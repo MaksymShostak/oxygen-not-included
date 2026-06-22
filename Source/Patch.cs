@@ -120,10 +120,10 @@ namespace DeliveryTemperatureLimit
                 // if (... && Begin_Hook( rootChore, fetchChore3 ))
                 if( codes[ i ].opcode == OpCodes.Brfalse_S && i + 6 < codes.Count
                     && codes[ i + 1 ].opcode == OpCodes.Ldloc_S && codes[ i + 1 ].operand.ToString().StartsWith( "FetchChore" )
-                    && codes[ i + 2 ].opcode == OpCodes.Ldfld && codes[ i + 2 ].operand.ToString() == "System.Int32 forbidHash"
+                    && codes[ i + 2 ].opcode == OpCodes.Ldfld && codes[ i + 2 ].operand is FieldInfo f1 && f1.Name == "forbidHash"
                     && codes[ i + 3 ].opcode == OpCodes.Ldarg_0
-                    && codes[ i + 4 ].opcode == OpCodes.Ldfld && codes[ i + 4 ].operand.ToString() == "FetchChore rootChore"
-                    && codes[ i + 5 ].opcode == OpCodes.Ldfld && codes[ i + 5 ].operand.ToString() == "System.Int32 forbidHash"
+                    && codes[ i + 4 ].opcode == OpCodes.Ldfld && codes[ i + 4 ].operand is FieldInfo f2 && f2.Name == "rootChore"
+                    && codes[ i + 5 ].opcode == OpCodes.Ldfld && codes[ i + 5 ].operand is FieldInfo f3 && f3.Name == "forbidHash"
                     && codes[ i + 6 ].opcode == OpCodes.Bne_Un_S )
                 {
                     codes.Insert( i + 7, codes[ i + 3 ].Clone());
@@ -177,43 +177,44 @@ namespace DeliveryTemperatureLimit
             int rootChoreLoad = -1;
             for( int i = 0; i < codes.Count; ++i )
             {
-//                Debug.Log("T:" + i + ":" + codes[i].opcode + "::" + (codes[i].operand != null ? codes[i].operand.ToString() : codes[i].operand));
                 if( codes[ i ].opcode == OpCodes.Ldarg_0 && i + 2 < codes.Count
                     && codes[ i + 1 ].opcode == OpCodes.Ldfld && codes[ i + 1 ].operand.ToString().EndsWith("this")
-                    && codes[ i + 2 ].opcode == OpCodes.Ldfld && codes[ i + 2 ].operand.ToString() == "FetchChore rootChore" )
+                    && codes[ i + 2 ].opcode == OpCodes.Ldfld && codes[ i + 2 ].operand is FieldInfo f && f.Name == "rootChore" )
                 {
                     rootChoreLoad = i;
                 }
                 // The function has code:
                 // if (!rootContext.consumerState.consumer.CanReach(pickupable))
-                // Add:
-                // if (... || !Delegate_Hook( rootChore, pickupable ))
-                if( rootChoreLoad != -1 && codes[ i ].opcode == OpCodes.Ldloc_S && i + 2 < codes.Count
-                    && codes[ i + 1 ].opcode == OpCodes.Callvirt && codes[ i + 1 ].operand.ToString() == "Boolean CanReach(IApproachable)"
-                    && codes[ i + 2 ].opcode == OpCodes.Brfalse_S )
+                // Replace the Callvirt CanReach instruction to use our hook.
+                if( rootChoreLoad != -1 && (codes[ i ].opcode == OpCodes.Ldloc_S || codes[ i ].opcode == OpCodes.Ldloc_0 || codes[ i ].opcode == OpCodes.Ldloc) && i + 1 < codes.Count
+                    && codes[ i + 1 ].opcode == OpCodes.Callvirt && codes[ i + 1 ].operand is MethodInfo m && m.Name == "CanReach" )
                 {
-                    codes.Insert( i + 3, codes[ rootChoreLoad ].Clone());
-                    codes.Insert( i + 4, codes[ rootChoreLoad + 1 ].Clone());
-                    codes.Insert( i + 5, codes[ rootChoreLoad + 2 ].Clone()); // load 'rootChore'
-                    codes.Insert( i + 6, codes[ i ].Clone()); // load 'pickupable'
-                    codes.Insert( i + 7, new CodeInstruction( OpCodes.Call,
-                        typeof( FetchAreaChore_StatesInstance_Patch ).GetMethod( nameof( Delegate_Hook ))));
-                    codes.Insert( i + 8, codes[ i + 2 ].Clone()); // if false
+                    codes.Insert( i + 1, codes[ rootChoreLoad ].Clone());
+                    codes.Insert( i + 2, codes[ rootChoreLoad + 1 ].Clone());
+                    codes.Insert( i + 3, codes[ rootChoreLoad + 2 ].Clone()); // load 'rootChore'
+                    codes[ i + 4 ] = new CodeInstruction( OpCodes.Call,
+                        typeof( FetchAreaChore_StatesInstance_Begin_Delegate_Patch ).GetMethod( nameof( CanReachAndAllowed_Hook )));
                     found = true;
                     break;
                 }
             }
-            if(found)
+            if(!found)
                 Debug.LogWarning("DeliveryTemperatureLimit: Failed to patch FetchAreaChore.StatesInstance.Begin delegate()");
             return codes;
         }
 
-        public static bool Delegate_Hook( FetchChore rootChore, Pickupable pickupable2 )
+        public static bool CanReachAndAllowed_Hook( ChoreConsumer consumer, IApproachable approachable, FetchChore rootChore )
         {
-            TemperatureLimit limit = TemperatureLimit.Get( rootChore.destination?.gameObject );
-            if( limit == null || limit.IsDisabled() || pickupable2.PrimaryElement == null )
-                return true;
-            return limit.AllowedByTemperature( pickupable2.PrimaryElement.Temperature );
+            if( !consumer.CanReach( approachable ) )
+                return false;
+            if( approachable is Pickupable pickupable )
+            {
+                TemperatureLimit limit = TemperatureLimit.Get( rootChore.destination?.gameObject );
+                if( limit == null || limit.IsDisabled() || pickupable.PrimaryElement == null )
+                    return true;
+                return limit.AllowedByTemperature( pickupable.PrimaryElement.Temperature );
+            }
+            return true;
         }
     }
 
@@ -267,10 +268,10 @@ namespace DeliveryTemperatureLimit
                 // if (!fetchMap.TryGetValue(worldIDsSorted[i], out var value))
                 // Change to:
                 // if (!fetchMap.TryGetValue(UpdateStorageFetchableBits_Hook1(worldIDsSorted[i]), out var value))
-                if( codes[ i ].opcode == OpCodes.Callvirt && codes[ i ].operand.ToString() == "Int32 get_Item(Int32)"
+                if( codes[ i ].opcode == OpCodes.Callvirt && codes[ i ].operand is MethodInfo m1 && m1.Name == "get_Item"
                     && i + 3 < codes.Count
                     && codes[ i + 2 ].opcode == OpCodes.Callvirt
-                    && codes[ i + 2 ].operand.ToString() == "Boolean TryGetValue(Int32, System.Collections.Generic.List`1[FetchChore] ByRef)" )
+                    && codes[ i + 2 ].operand is MethodInfo m2 && m2.Name == "TryGetValue" )
                 {
                     codes.Insert( i + 1, new CodeInstruction( OpCodes.Dup ));
                     codes.Insert( i + 2, new CodeInstruction( OpCodes.Call,
@@ -359,7 +360,7 @@ namespace DeliveryTemperatureLimit
             for( int i = 0; i < codes.Count; ++i )
             {
 //                Debug.Log("T:" + i + ":" + codes[i].opcode + "::" + (codes[i].operand != null ? codes[i].operand.ToString() : codes[i].operand));
-                if( i > 0 && codes[ i ].opcode == OpCodes.Ldfld && codes[ i ].operand.ToString() == "System.Int32 tagBitsHash" )
+                if( i > 0 && codes[ i ].opcode == OpCodes.Ldfld && codes[ i ].operand is FieldInfo f && f.Name == "tagBitsHash" )
                 {
                     if( pickupLoad < 0 )
                         pickupLoad = i - 1;
@@ -371,7 +372,7 @@ namespace DeliveryTemperatureLimit
                 // Change to:
                 // if (.. && tagBitsHash == num
                 //     && UpdatePickups_Hook( pickup, pickup2 ) == 1 )
-                if( codes[ i ].opcode == OpCodes.Ldfld && codes[ i ].operand.ToString() == "System.Int32 masterPriority"
+                if( codes[ i ].opcode == OpCodes.Ldfld && codes[ i ].operand is FieldInfo f && f.Name == "masterPriority"
                     && i + 4 < codes.Count && pickupLoad != -1 && pickup2Load != -1
                     && codes[ i + 1 ].opcode == OpCodes.Bne_Un_S
                     && codes[ i + 2 ].opcode == OpCodes.Ldloc_S
@@ -436,9 +437,9 @@ namespace DeliveryTemperatureLimit
                 //     return num;
                 if( codes[ i ].opcode == OpCodes.Ldarga_S && codes[ i ].operand.ToString() == "1"
                     && i + 9 < codes.Count
-                    && codes[ i + 1 ].opcode == OpCodes.Ldflda && codes[ i + 1 ].operand.ToString() == "System.Int32 masterPriority"
+                    && codes[ i + 1 ].opcode == OpCodes.Ldflda && codes[ i + 1 ].operand is FieldInfo f1 && f1.Name == "masterPriority"
                     && codes[ i + 2 ].opcode == OpCodes.Ldarg_0
-                    && codes[ i + 3 ].opcode == OpCodes.Ldfld && codes[ i + 3 ].operand.ToString() == "System.Int32 masterPriority"
+                    && codes[ i + 3 ].opcode == OpCodes.Ldfld && codes[ i + 3 ].operand is FieldInfo f3 && f3.Name == "masterPriority"
                     && codes[ i + 4 ].opcode == OpCodes.Call && codes[ i + 4 ].operand.ToString() == "Int32 CompareTo(Int32)"
                     && CodeInstructionExtensions.IsStloc( codes[ i + 5 ] )
                     && CodeInstructionExtensions.IsLdloc( codes[ i + 6 ] )

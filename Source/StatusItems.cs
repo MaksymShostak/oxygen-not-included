@@ -80,9 +80,9 @@ namespace DeliveryTemperatureLimit
                 // int id = worldContainer.id;
                 // Here 'worldContainer' is actually only a temporary variable on the IL stack, so prepend storing it:
                 // WorldContainer worldContainer = worldContainer;
-                if( codes[ i ].opcode == OpCodes.Call && codes[ i ].operand.ToString() == "WorldContainer get_Current()"
+                if( codes[ i ].opcode == OpCodes.Call && codes[ i ].operand is MethodInfo m && m.Name == "get_Current" && m.ReturnType.Name == "WorldContainer"
                     && i + 1 < codes.Count
-                    && codes[ i + 1 ].opcode == OpCodes.Ldfld && codes[ i + 1 ].operand.ToString() == "System.Int32 id" )
+                    && codes[ i + 1 ].opcode == OpCodes.Ldfld && codes[ i + 1 ].operand is FieldInfo f && f.Name == "id" )
                 {
                     codes.Insert( i + 1, new CodeInstruction( OpCodes.Dup ));
                     worldContainer = generator.DeclareLocal( typeof( WorldContainer ));
@@ -92,9 +92,9 @@ namespace DeliveryTemperatureLimit
                 // float minimumAmount = item8.GetMinimumAmount(key);
                 // Append:
                 // Render200ms_Hook( num3, ref num6, item8, id, key, value2, minimumAmount );
-                if( codes[ i ].opcode == OpCodes.Callvirt && codes[ i ].operand.ToString() == "Single GetMinimumAmount(Tag)"
+                if( codes[ i ].opcode == OpCodes.Callvirt && codes[ i ].operand is MethodInfo m2 && m2.Name == "GetMinimumAmount"
                     && i + 1 < codes.Count
-                    && codes[ i + 1 ].opcode == OpCodes.Stloc_S && codes[ i + 1 ].operand.ToString() == "System.Single (38)" )
+                    && codes[ i + 1 ].opcode == OpCodes.Stloc_S && codes[ i + 1 ].LocalIndex() == 38 )
                 {
                     // Load all the arguments, this of course depends on the exact code (but this patch already in practice
                     // depends on the exact code anyway). The following code uses only 'num6' out of the values that we
@@ -135,9 +135,9 @@ namespace DeliveryTemperatureLimit
                 // float minimumAmount = errand.GetMinimumAmount(tag);
                 // Append:
                 // UpdateStatus_Hook( errand, inventory, tag, inStorage, ref fetchable, minimumAmount, remaining );
-                if( codes[ i ].opcode == OpCodes.Callvirt && codes[ i ].operand.ToString() == "Single GetMinimumAmount(Tag)"
+                if( codes[ i ].opcode == OpCodes.Callvirt && codes[ i ].operand is MethodInfo m && m.Name == "GetMinimumAmount"
                     && i + 1 < codes.Count
-                    && codes[ i + 1 ].opcode == OpCodes.Stloc_S && codes[ i + 1 ].operand.ToString() == "System.Single (13)" )
+                    && codes[ i + 1 ].opcode == OpCodes.Stloc_S && codes[ i + 1 ].LocalIndex() == 13 )
                 {
                     // Load all the arguments, this of course depends on the exact code (but this patch already in practice
                     // depends on the exact code anyway).
@@ -224,7 +224,7 @@ namespace DeliveryTemperatureLimit
                 // Get location of 'num2'.
                 // int num2 = worldId;
                 if( num2Index == -1
-                    && codes[ i ].opcode == OpCodes.Call && codes[ i ].operand.ToString() == "Int32 get_worldId()"
+                    && codes[ i ].opcode == OpCodes.Call && codes[ i ].operand is MethodInfo m && m.Name == "get_worldId"
                     && i + 1 < codes.Count
                     && codes[ i + 1 ].IsStloc())
                 {
@@ -233,7 +233,7 @@ namespace DeliveryTemperatureLimit
                 // Get location of 'key'.
                 // Tag key = current.Key;
                 if( keyIndex == -1
-                    && codes[ i ].opcode == OpCodes.Call && codes[ i ].operand.ToString() == "Tag get_Key()"
+                    && codes[ i ].opcode == OpCodes.Call && codes[ i ].operand is MethodInfo m2 && m2.Name == "get_Key"
                     && i + 1 < codes.Count
                     && codes[ i + 1 ].IsStloc())
                 {
@@ -244,9 +244,9 @@ namespace DeliveryTemperatureLimit
                 // Append:
                 // WorldInventoryUpdate_Hook1( num2, key );
                 if( keyIndex != -1 && num2Index != -1
-                    && codes[ i ].opcode == OpCodes.Ldc_R4 && codes[ i ].operand.ToString() == "0"
+                    && codes[ i ].opcode == OpCodes.Ldc_R4 && Convert.ToSingle(codes[ i ].operand) == 0f
                     && i + 1 < codes.Count
-                    && codes[ i + 1 ].opcode == OpCodes.Stloc_S && codes[ i + 1 ].operand.ToString() == "System.Single (5)" )
+                    && codes[ i + 1 ].opcode == OpCodes.Stloc_S && codes[ i + 1 ].LocalIndex() == 5 )
                 {
                     codes.Insert( i + 2, CodeInstruction2.LoadLocal( num2Index )); // load 'num2'
                     codes.Insert( i + 3, CodeInstruction2.LoadLocal( keyIndex )); // load 'key'
@@ -260,7 +260,7 @@ namespace DeliveryTemperatureLimit
                 // WorldInventoryUpdate_Hook2( item );
                 if( codes[ i ].opcode == OpCodes.Ldloc_S && codes[ i ].operand.ToString().StartsWith( "Pickupable (" )
                     && i + 1 < codes.Count
-                    && codes[ i + 1 ].opcode == OpCodes.Callvirt && codes[ i + 1 ].operand.ToString() == "Single get_TotalAmount()" )
+                    && codes[ i + 1 ].opcode == OpCodes.Callvirt && codes[ i + 1 ].operand is MethodInfo m && m.Name == "get_TotalAmount" )
                 {
                     codes.Insert( i + 1, new CodeInstruction( OpCodes.Dup )); // create a copy of 'item'
                     codes.Insert( i + 2, new CodeInstruction( OpCodes.Call,
@@ -271,7 +271,7 @@ namespace DeliveryTemperatureLimit
                 // accessibleAmounts[key] = num3;
                 // Append:
                 // WorldInventoryUpdate_Hook3( key, num2 );
-                if( codes[ i ].opcode == OpCodes.Ldfld && codes[ i ].operand.ToString().EndsWith( " accessibleAmounts" ))
+                if( codes[ i ].opcode == OpCodes.Ldfld && codes[ i ].operand is FieldInfo f && f.Name == "accessibleAmounts" )
                 {
                     codes.Insert( i + 1, CodeInstruction2.LoadLocal( keyIndex )); // load 'key'
                     codes.Insert( i + 2, CodeInstruction2.LoadLocal( num2Index )); // load 'num2'
@@ -362,7 +362,7 @@ namespace DeliveryTemperatureLimit
                 // AmountByTagIndexDict amounts = RunUpdate_Hook1( worldId );
                 if( codes[ i ].opcode == OpCodes.Ldarg_0
                     && i + 2 < codes.Count
-                    && codes[ i + 1 ].opcode == OpCodes.Ldfld && codes[ i + 1 ].operand.ToString() == "System.Int32 updateIndex"
+                    && codes[ i + 1 ].opcode == OpCodes.Ldfld && codes[ i + 1 ].operand is FieldInfo f && f.Name == "updateIndex"
                     && codes[ i + 2 ].opcode == OpCodes.Stloc_S )
                 {
                     codes.Insert( i + 3, new CodeInstruction( OpCodes.Ldloc_0 )); // load 'worldId'
@@ -377,11 +377,11 @@ namespace DeliveryTemperatureLimit
                 // And append:
                 // RunUpdate_Hook2( pair.Key, amounts );
                 if( found1 && codes[ i ].opcode == OpCodes.Call
-                    && codes[ i ].operand.ToString() == "Tag get_Key()"
+                    && codes[ i ].operand is MethodInfo m1 && m1.Name == "get_Key"
                     && codes[ i + 3 ].opcode == OpCodes.Ldloc_0
                     && i + 4 < codes.Count
                     && codes[ i + 4 ].opcode == OpCodes.Call
-                    && codes[ i + 4 ].operand.ToString() == "Single SumTotal(System.Collections.Generic.IEnumerable`1[Pickupable], Int32)" )
+                    && codes[ i + 4 ].operand is MethodInfo m2 && m2.Name == "SumTotal" )
                 {
                     // Right after calling SumTotal() and before the Dictionary operator [] is called,
                     // the stack contains 'accessibleAmounts', 'pair.Key' and the return value of SumTotal().
@@ -461,7 +461,7 @@ namespace DeliveryTemperatureLimit
                 // SumTotal_Hook2( pickupable, data );
                 if( codes[ i ].opcode == OpCodes.Ldloc_S && codes[ i ].operand.ToString() == "Pickupable (4)"
                     && i + 1 < codes.Count
-                    && codes[ i + 1 ].opcode == OpCodes.Callvirt && codes[ i + 1 ].operand.ToString() == "Single get_TotalAmount()" )
+                    && codes[ i + 1 ].opcode == OpCodes.Callvirt && codes[ i + 1 ].operand is MethodInfo m && m.Name == "get_TotalAmount" )
                 {
                     codes.Insert( i + 1, new CodeInstruction( OpCodes.Dup )); // create a copy of 'pickupable'
                     codes.Insert( i + 2, new CodeInstruction( OpCodes.Ldloc_S, localSumTotalData.LocalIndex )); // load 'data'
