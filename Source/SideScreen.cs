@@ -72,6 +72,32 @@ namespace DeliveryTemperatureLimit
                 return transform.gameObject;
             return null;
         }
+
+        public override void OnKeyDown(KButtonEvent e)
+        {
+            bool editing = IsAnyFieldFocused();
+            this.isEditing = editing;
+            if (editing)
+            {
+                e.Consumed = true;
+            }
+        }
+
+        public override void OnKeyUp(KButtonEvent e)
+        {
+            bool editing = IsAnyFieldFocused();
+            this.isEditing = editing;
+            if (editing)
+            {
+                e.Consumed = true;
+            }
+        }
+
+        private bool IsAnyFieldFocused()
+        {
+            var widget = GetComponent<TemperatureLimitWidget>();
+            return widget != null && widget.IsAnyFieldFocused();
+        }
     }
 
     [HarmonyPatch(typeof(DetailsScreen))]

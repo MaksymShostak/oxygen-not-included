@@ -235,6 +235,16 @@ namespace DeliveryTemperatureLimit
             PUIElements.SetToolTip( highInput, tooltip );
         }
 
+        public bool IsAnyFieldFocused()
+        {
+            if (lowInput == null || highInput == null) return false;
+            
+            var lowField = lowInput.GetComponent<TMPro.TMP_InputField>();
+            var highField = highInput.GetComponent<TMPro.TMP_InputField>();
+            
+            return (lowField != null && lowField.isFocused) || (highField != null && highField.isFocused);
+        }
+
         protected override void OnDisable()
         {
             // This should be called whenever the widget is hidden, reset the widget
