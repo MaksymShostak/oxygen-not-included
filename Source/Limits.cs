@@ -21,7 +21,7 @@ namespace DeliveryTemperatureLimit
 
         public const int MaxValue = 5000; // diamond melts at ~4200K
 
-        public bool IsDisabled() => ( highLimit == 0 );
+        public bool IsDisabled() => ( highLimit <= 0 );
         public int LowLimit => lowLimit;
         public int HighLimit => highLimit;
 
@@ -66,13 +66,13 @@ namespace DeliveryTemperatureLimit
 
         public void SetLowLimit(int value)
         {
-            lowLimit = Math.Max( value, MinValue );
+            lowLimit = Math.Max( Math.Min( value, MaxValue ), MinValue );
             SetDirty();
         }
 
         public void SetHighLimit(int value)
         {
-            highLimit = Math.Min( value, MaxValue );
+            highLimit = Math.Max( Math.Min( value, MaxValue ), MinValue );
             SetDirty();
         }
 
@@ -134,7 +134,7 @@ namespace DeliveryTemperatureLimit
             // A list of temperature values where groups end (in the example above, this would
             // be { 10, 20, 30, max }.
             private List< int > indexTemperatures;
-            public List< int > IndexTemperatures { get; }
+            public List< int > IndexTemperatures => indexTemperatures;
             // The inverse of indexTemperatures. There are only 5000 (MinValue <= t < MaxValue) integer
             // temperatures, and TemperatureIndex() seems to be called for hot code, so replace
             // lookup in a loop with O(1) indexing.
@@ -146,11 +146,18 @@ namespace DeliveryTemperatureLimit
                 this.temperaturesToIndex = temperaturesToIndex;
             }
 
+            private int SafeGetIndex( int temperature )
+            {
+                if( temperature < MinValue )
+                    return 0;
+                if( temperature >= MaxValue )
+                    return indexTemperatures.Count - 1;
+                return temperaturesToIndex[ temperature ];
+            }
+
             public int TemperatureIndex( float temperature )
             {
-                if( temperature >= MinValue && temperature < MaxValue )
-                    return temperaturesToIndex[ (int) temperature ];
-                return -1;
+                return SafeGetIndex( (int) temperature );
             }
 
             public int TemperatureIndexCount()
@@ -164,12 +171,11 @@ namespace DeliveryTemperatureLimit
             {
                 if( limitsDirty )
                     UpdateIndexes();
-                // MaxValue is actually beyond indexes (there can't be any index after it),
-                // so handle that.
+                int lowIndex = SafeGetIndex( limit.lowLimit );
                 int highIndex = indexTemperatures.Count; // one beyond last
-                if( limit.highLimit != MaxValue )
-                    highIndex = temperaturesToIndex[ limit.highLimit ];
-                return ( temperaturesToIndex[ limit.lowLimit ], highIndex );
+                if( limit.highLimit < MaxValue )
+                    highIndex = SafeGetIndex( limit.highLimit );
+                return ( lowIndex, highIndex );
             }
         };
 
@@ -203,13 +209,13 @@ namespace DeliveryTemperatureLimit
                 {
                     if( !limit.IsDisabled())
                     {
-                        tmp.Add( limit.LowLimit );
-                        tmp.Add( limit.HighLimit );
+                        tmp.Add( Math.Max( MinValue, Math.Min( limit.LowLimit, MaxValue ) ) );
+                        tmp.Add( Math.Max( MinValue, Math.Min( limit.HighLimit, MaxValue ) ) );
                     }
                 }
                 tmp.Sort();
                 tmp = tmp.Distinct().ToList();
-                if( temperatureIndexData == null || !tmp.Equals( temperatureIndexData.IndexTemperatures ))
+                if( temperatureIndexData == null || !tmp.SequenceEqual( temperatureIndexData.IndexTemperatures ))
                 {
                     System.Int16[] newTemperaturesToIndex = new System.Int16[ MaxValue - MinValue ];
                     int pos = 0;
