@@ -6,7 +6,7 @@ using System.Collections.Generic;
 namespace DeliveryTemperatureLimit
 {
     [JsonObject(MemberSerialization.OptIn)]
-    [ModInfo("https://github.com/HaddenIndustries/oni-deliverytemperaturelimit")]
+    [ModInfo("https://github.com/Hadden-Industries/oni-deliverytemperaturelimit")]
     [ConfigFile(SharedConfigLocation: true)]
     [RestartRequired]
     public sealed class Options : SingletonOptions< Options >, IOptions
