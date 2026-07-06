@@ -78,23 +78,12 @@ namespace DeliveryTemperatureLimit
             return null;
         }
 
-        public override void OnKeyDown(KButtonEvent e)
+        private void Update()
         {
             bool editing = IsAnyFieldFocused();
-            this.isEditing = editing;
-            if (editing)
+            if (this.isEditing != editing)
             {
-                e.Consumed = true;
-            }
-        }
-
-        public override void OnKeyUp(KButtonEvent e)
-        {
-            bool editing = IsAnyFieldFocused();
-            this.isEditing = editing;
-            if (editing)
-            {
-                e.Consumed = true;
+                this.isEditing = editing;
             }
         }
 
