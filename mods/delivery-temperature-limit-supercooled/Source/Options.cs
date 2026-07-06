@@ -11,19 +11,19 @@ namespace DeliveryTemperatureLimit
     [RestartRequired]
     public sealed class Options : SingletonOptions< Options >, IOptions
     {
-        [Option("Check Temperature For Status Items", "Status items such as 'Building lacks resources' will be shown if resources are available but not allowed by temperature limits.")]
+        [Option("Include Temperature in \"Lacks Resources\" Warning", "If enabled, the yellow \"Lacks Resources\" warning will appear if all available materials in the colony are blocked by your temperature limits. Disabling this saves CPU performance in large colonies, but buildings may sit empty without showing a warning.")]
         [JsonProperty]
         public bool CheckTemperatureForStatusItems { get; set; }
 
-        [Option("Under Construction Limit", "Limit also deliveries to buildings under construction.")]
+        [Option("Apply Limits to Construction Materials", "When enabled, temperature limits will also apply to materials delivered to build new structures. This prevents duplicants from using hot materials (like igneous rock near volcanoes) to build in cold areas.")]
         [JsonProperty]
         public bool UnderConstructionLimit { get; set; }
 
-        [Option("Max Construction Temperature", "Maximum temperature of resources for building a building.")]
+        [Option("Default Max Construction Temperature", "The default maximum temperature allowed for materials used when placing new building blueprints.")]
         [JsonProperty]
         public int MaxConstructionTemperature { get; set; }
 
-        [Option("Min Construction Temperature", "Minimum temperature of resources for building a building.")]
+        [Option("Default Min Construction Temperature", "The default minimum temperature allowed for materials used when placing new building blueprints.")]
         [JsonProperty]
         public int MinConstructionTemperature { get; set; }
 
