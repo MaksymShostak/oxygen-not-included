@@ -13,6 +13,6 @@
             LibraryPath="$(GameFolder)" />
     </Target>
     <Target Name="UpdateModInfoVersion" AfterTargets="CustomILRepack">
-        <Exec Command="powershell -Command &quot;(Get-Content '$(MSBuildProjectDirectory)\..\mod_info.yaml') -replace '^version: .*', 'version: $(AssemblyVersion)' | Set-Content '$(MSBuildProjectDirectory)\..\mod_info.yaml'&quot;" />
+        <Exec Command="powershell -Command &quot;[System.IO.File]::WriteAllText('$(MSBuildProjectDirectory)\..\mod_info.yaml', ([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\mod_info.yaml') -replace '(?m)^version:[^\r\n]*', 'version: $(AssemblyVersion)'))&quot;" />
     </Target>
 </Project>

@@ -3,7 +3,7 @@
     <TargetFramework>net48</TargetFramework>
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <AssemblyTitle>Delivery Temperature Limit (Supercooled)</AssemblyTitle>
-    <AssemblyVersion>2026.7.6</AssemblyVersion>
+    <AssemblyVersion>2026.8.26</AssemblyVersion>
     <Authors>MaksymShostak</Authors>
     <Company>MaksymShostak</Company>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>

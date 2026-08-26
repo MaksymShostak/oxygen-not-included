@@ -17,7 +17,7 @@ Tired of Nisbet carrying a 95°C chunk of hot Igneous Rock straight from a volca
 
 ## 🚀 Key Features
 
-*   **Thermal Filtering:** Set minimum and maximum temperature limits on storage lockers, refrigerators, and other delivery targets.
+*   **Thermal Filtering:** Set minimum and maximum temperature limits on storage lockers, storage tiles, refrigerators, and other delivery targets.
 *   **Intelligent Routing:** Duplicants will ignore containers if the material's temperature lies outside your set limits. No more melting ice in storage!
 *   **Construction Limits (Optional):** Enable material temperature limits for blueprints to keep hot materials away from insulated structures or cryogenic chambers.
 *   **Clean UI Integration:** Tap into the standard building settings to set your ranges. 
@@ -29,14 +29,15 @@ Tired of Nisbet carrying a 95°C chunk of hot Igneous Rock straight from a volca
 
 The backend of the original mod has been completely overhauled to run as cleanly as a Thermo Regulator in a vacuum:
 
-1.  **Late-Game Lag Spikes Removed:** Completely optimized the temperature check logic. The mod now runs incredibly smoothly even in massive, highly populated late-game colonies with hundreds of delivery-capable buildings.
-2.  **No More Camera Lockups:** Fixed the bug where selecting the mod's temperature panel blocked you from moving your camera using the keyboard.
-3.  **UI Freeze Protection:** Fixed the interface lockup that occurred when clearing out temperature limit fields or typing a high limit first on a new bin.
-4.  **Game Loading Stability:** Resolved startup and loading crashes, ensuring the mod initializes safely when loading into a save.
-5.  **Inventory Update Crash Fix:** Resolved a crash that occurred when the colony's world inventory list refreshed.
-6.  **Modded Building Compatibility:** The mod now dynamically registers storage buildings, meaning it automatically works with custom storage bins and buildings introduced by other mods.
-7.  **Latest Game Update Support:** Fully compatible with Game Update 737790, resolving UI layout errors present in older versions.
-8.  **Full DLC Support & Future-Proofed:** Out-of-the-box compatibility with the Base Game, *Spaced Out!*, *The Frosty Planet Pack*, *The Bionic Booster Pack*, *The Prehistoric Planet Pack*, and *The Aquatic Planet Pack* DLCs. The mod dynamically hooks into the game's core delivery rules, meaning new buildings in upcoming DLCs are supported automatically.
+1.  **Storage Tiles Check the Thermometer:** Storage Tiles now support delivery temperature limits, including aboard rockets. When a limit is set, Duplicants will no longer tuck volcano-fresh cargo under the floor and stamp it “properly stored.” Many thanks to [ShyLion](https://steamcommunity.com/id/shylion) for suggesting the fix before the next mission became an orbital sauna.
+2.  **Late-Game Lag Spikes Removed:** Completely optimized the temperature check logic. The mod now runs incredibly smoothly even in massive, highly populated late-game colonies with hundreds of delivery-capable buildings.
+3.  **No More Camera Lockups:** Fixed the bug where selecting the mod's temperature panel blocked you from moving your camera using the keyboard.
+4.  **UI Freeze Protection:** Fixed the interface lockup that occurred when clearing out temperature limit fields or typing a high limit first on a new bin.
+5.  **Game Loading Stability:** Resolved startup and loading crashes, ensuring the mod initializes safely when loading into a save.
+6.  **Inventory Update Crash Fix:** Resolved a crash that occurred when the colony's world inventory list refreshed.
+7.  **Modded Building Compatibility:** The mod now dynamically registers storage buildings, meaning it automatically works with custom storage bins and buildings introduced by other mods.
+8.  **Latest Game Update Support:** Fully compatible with Game Update 737790, resolving UI layout errors present in older versions.
+9.  **Full DLC Support & Future-Proofed:** Out-of-the-box compatibility with the Base Game, *Spaced Out!*, *The Frosty Planet Pack*, *The Bionic Booster Pack*, *The Prehistoric Planet Pack*, and *The Aquatic Planet Pack* DLCs. The mod dynamically hooks into the game's core delivery rules, meaning new buildings in upcoming DLCs are supported automatically.
 
 ---
 

@@ -83,6 +83,8 @@ namespace DeliveryTemperatureLimit
         {
             if (go == null) return false;
 
+            if (config is StorageTileConfig) return true;
+
             // Check if it belongs to the specific modded assemblies
             if (config != null)
             {
