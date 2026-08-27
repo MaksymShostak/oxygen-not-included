@@ -4,6 +4,7 @@ using MaksymShostak.OniModPipeline.ModProfiles;
 using MaksymShostak.OniModPipeline.Processes;
 using MaksymShostak.OniModPipeline.SourceControl;
 using MaksymShostak.OniModPipeline.Tests.Fixtures;
+using MaksymShostak.OniModPipeline.WorkshopListing;
 using System.Text.Json;
 
 namespace MaksymShostak.OniModPipeline.Tests.Cli;
@@ -105,6 +106,7 @@ internal sealed class PipelineCommandFixture : IDisposable
                 candidateSource,
                 new SteamLibraryCatalog()),
             new GitRepositoryInspector(ProcessRunner),
+            new WorkshopListingValidator(),
             ProcessRunner);
     }
 

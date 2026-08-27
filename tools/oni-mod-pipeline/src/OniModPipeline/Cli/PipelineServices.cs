@@ -2,6 +2,7 @@ using MaksymShostak.OniModPipeline.EnvironmentDiscovery;
 using MaksymShostak.OniModPipeline.ModProfiles;
 using MaksymShostak.OniModPipeline.Processes;
 using MaksymShostak.OniModPipeline.SourceControl;
+using MaksymShostak.OniModPipeline.WorkshopListing;
 
 namespace MaksymShostak.OniModPipeline.Cli;
 
@@ -12,4 +13,5 @@ internal sealed record PipelineServices(
     OniMetadataReader MetadataReader,
     EnvironmentDiscoveryService EnvironmentDiscovery,
     GitRepositoryInspector GitRepositoryInspector,
+    WorkshopListingValidator WorkshopListingValidator,
     IExternalProcessRunner ProcessRunner);

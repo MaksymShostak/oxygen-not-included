@@ -130,4 +130,27 @@ public sealed class ValidateCommandTests
         StringAssert.Contains(invocation.StandardError, "git is unavailable");
         Assert.AreEqual(0, before.ChangedPathsComparedWith(after).Count);
     }
+
+    [TestMethod]
+    public async Task Validate_WhenChangeNotesArePlaceholder_ReturnsOnip1006WithoutWritingArtifacts()
+    {
+        using var fixture = new CliCommandFixture(sourceIsDirty: false);
+        File.WriteAllText(
+            Path.Combine(fixture.ModRoot, "change-notes.bbcode"),
+            "TODO\n");
+        var before = SourceSnapshot.CaptureTree(fixture.RootPath);
+        var command = CliApplication.CreateRootCommand(fixture.Services);
+
+        var invocation = await DiagnoseCommandTests.InvokeAsync(
+            command,
+            fixture.CreateArguments("validate"));
+
+        var after = SourceSnapshot.CaptureTree(fixture.RootPath);
+        Assert.AreEqual(2, invocation.ExitCode);
+        Assert.AreEqual(string.Empty, invocation.StandardOutput);
+        StringAssert.Contains(invocation.StandardError, "ONIP1006");
+        StringAssert.Contains(invocation.StandardError, "placeholder");
+        Assert.IsFalse(Directory.Exists(fixture.ArtifactsDirectory));
+        Assert.AreEqual(0, before.ChangedPathsComparedWith(after).Count);
+    }
 }

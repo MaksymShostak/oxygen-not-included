@@ -6,6 +6,7 @@ using MaksymShostak.OniModPipeline.ModTest;
 using MaksymShostak.OniModPipeline.Processes;
 using MaksymShostak.OniModPipeline.Serialization;
 using MaksymShostak.OniModPipeline.SourceControl;
+using MaksymShostak.OniModPipeline.WorkshopListing;
 using System.CommandLine;
 using System.Globalization;
 
@@ -46,6 +47,7 @@ internal static class CliApplication
                 candidateSource,
                 new SteamLibraryCatalog()),
             new GitRepositoryInspector(processRunner),
+            new WorkshopListingValidator(),
             processRunner);
     }
 
@@ -265,6 +267,14 @@ internal static class CliApplication
         }
 
         var context = contextResult.Value!;
+        var listingResult = await services.WorkshopListingValidator
+            .ValidateAsync(context.Profile, cancellationToken)
+            .ConfigureAwait(false);
+        if (!listingResult.IsSuccess)
+        {
+            return ConvertFailure<WorkshopListingValidation, ValidationReport>(listingResult);
+        }
+
         var provenanceResult = await services.GitRepositoryInspector.InspectAsync(
             context.Profile,
             typeof(CliApplication).Assembly.Location,

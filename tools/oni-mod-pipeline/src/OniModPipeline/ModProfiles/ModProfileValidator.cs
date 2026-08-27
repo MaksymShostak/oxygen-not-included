@@ -25,21 +25,6 @@ internal sealed class ModProfileValidator
         "^[A-Za-z_][A-Za-z0-9_.-]*$",
         RegexOptions.CultureInvariant | RegexOptions.NonBacktracking);
 
-    private static readonly ISet<string> AllowedModTypes = new HashSet<string>(
-        ["language", "worldgen", "new-features", "tweaks", "ui"],
-        StringComparer.Ordinal);
-
-    private static readonly ISet<string> AllowedDlcCompatibility = new HashSet<string>(
-        [
-            "base-game",
-            "spaced-out",
-            "frosty-planet-pack",
-            "bionic-booster-pack",
-            "prehistoric-planet-pack",
-            "aquatic-planet-pack"
-        ],
-        StringComparer.Ordinal);
-
     private static readonly ISet<string> SupportedBuildEntryPointExtensions =
         new HashSet<string>(
             [".csproj", ".fsproj", ".vbproj", ".sln", ".slnx"],
@@ -300,18 +285,22 @@ internal sealed class ModProfileValidator
         WorkshopListingProfile listing,
         ICollection<Diagnostic> diagnostics)
     {
-        ValidateListingIdentifiers("mod-types", listing.ModTypes, AllowedModTypes, diagnostics);
+        ValidateListingIdentifiers(
+            "mod-types",
+            listing.ModTypes,
+            WorkshopListingVocabulary.ModTypeLabels,
+            diagnostics);
         ValidateListingIdentifiers(
             "dlc-compatibility",
             listing.DlcCompatibility,
-            AllowedDlcCompatibility,
+            WorkshopListingVocabulary.DlcLabels,
             diagnostics);
     }
 
     private static void ValidateListingIdentifiers(
         string field,
         IReadOnlyList<string> identifiers,
-        ISet<string> allowedIdentifiers,
+        IReadOnlyDictionary<string, string> allowedIdentifiers,
         ICollection<Diagnostic> diagnostics)
     {
         if (identifiers.Count == 0)
@@ -325,7 +314,7 @@ internal sealed class ModProfileValidator
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var identifier in identifiers)
         {
-            if (!allowedIdentifiers.Contains(identifier))
+            if (!allowedIdentifiers.ContainsKey(identifier))
             {
                 diagnostics.Add(DiagnosticCatalog.InvalidWorkshopListing(
                     field,

@@ -5,6 +5,7 @@ using MaksymShostak.OniModPipeline.ModProfiles;
 using MaksymShostak.OniModPipeline.Processes;
 using MaksymShostak.OniModPipeline.SourceControl;
 using MaksymShostak.OniModPipeline.Tests.Fixtures;
+using MaksymShostak.OniModPipeline.WorkshopListing;
 using System.CommandLine;
 using System.ComponentModel;
 using System.Globalization;
@@ -164,6 +165,7 @@ internal sealed class CliCommandFixture : IDisposable
                 candidateSource,
                 new SteamLibraryCatalog()),
             new GitRepositoryInspector(ProcessRunner),
+            new WorkshopListingValidator(),
             ProcessRunner);
     }
 
@@ -248,7 +250,9 @@ internal sealed class CliCommandFixture : IDisposable
             """);
         File.WriteAllText(Path.Combine(ModRoot, "description.bbcode"), "Description\n");
         File.WriteAllText(Path.Combine(ModRoot, "change-notes.bbcode"), "Changes\n");
-        File.WriteAllBytes(Path.Combine(ModRoot, "preview.png"), [0x89, 0x50, 0x4E, 0x47]);
+        File.WriteAllBytes(
+            Path.Combine(ModRoot, "preview.png"),
+            [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
     }
 
     private void WriteEnvironment()
