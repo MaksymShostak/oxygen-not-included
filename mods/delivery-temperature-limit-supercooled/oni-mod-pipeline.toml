@@ -1,0 +1,110 @@
+schema-version = 1
+
+[mod]
+mod-yaml = "mod.yaml"
+mod-info-yaml = "mod_info.yaml"
+
+[build]
+entry-point = "Source/DeliveryTemperatureLimit.csproj"
+configuration = "Release"
+game-managed-directory-property = "OniManagedAssemblyDirectory"
+primary-output = "{build-output}/DeliveryTemperatureLimit.dll"
+merge-inputs = ["PLib"]
+
+[[package-files]]
+source = "mod.yaml"
+destination = "mod.yaml"
+
+[[package-files]]
+source = "mod_info.yaml"
+destination = "mod_info.yaml"
+
+[[package-files]]
+source = "{build-output}/DeliveryTemperatureLimit.dll"
+destination = "DeliveryTemperatureLimit.dll"
+
+[workshop-listing]
+description = "STEAM_DESCRIPTION.bbcode"
+change-notes = "STEAM_CHANGE_NOTES.bbcode"
+preview = "Preview.png"
+mod-types = ["new-features", "tweaks", "ui"]
+dlc-compatibility = [
+  "base-game",
+  "spaced-out",
+  "frosty-planet-pack",
+  "bionic-booster-pack",
+  "prehistoric-planet-pack",
+  "aquatic-planet-pack"
+]
+
+[local-install]
+directory-name = "DeliveryTemperatureLimit"
+
+[[test-projects]]
+id = "delivery-temperature-limit-regressions"
+path = "Tests/DeliveryTemperatureLimit.Tests.csproj"
+required = true
+
+[[acceptance-checks]]
+id = "storage-bin-temperature-filter"
+title = "Storage Bin rejects out-of-range deliveries"
+required = true
+setup = "Configure a Storage Bin with a bounded safe temperature range and make one out-of-range material plus one in-range control available."
+action = "Allow Duplicants to generate and perform storage errands for both materials."
+expected = "No errand delivers the out-of-range material to the configured bin, while the in-range control remains deliverable."
+
+[[acceptance-checks]]
+id = "storage-tile-rocket-temperature-filter"
+title = "Storage Tile aboard a rocket rejects out-of-range deliveries"
+required = true
+setup = "Load the release-test colony, configure a rocket-interior Storage Tile with a bounded safe temperature range, expose out-of-range and in-range control materials, and provide a competing valid destination if errand generation requires it."
+action = "Allow Duplicants to generate and perform rocket-interior storage errands for both materials."
+expected = "Duplicants refuse the out-of-range Storage Tile delivery and the in-range control remains deliverable."
+
+[[acceptance-checks]]
+id = "construction-temperature-filter"
+title = "Optional construction limits reject out-of-range building materials"
+required = true
+setup = "Enable Apply Limits to Construction Materials, place a blueprint with an applicable temperature limit, and make out-of-range plus in-range construction materials available."
+action = "Allow Duplicants to generate construction supply errands, then repeat after disabling the option."
+expected = "The enabled option blocks out-of-range construction delivery without blocking the in-range control; disabling the option restores ordinary construction delivery behavior."
+
+[[acceptance-checks]]
+id = "temperature-side-screen-editing"
+title = "Temperature side-screen fields edit and clear without freezing"
+required = true
+setup = "Select an eligible storage building with no active limits and open the Delivery Temperature Limit side screen."
+action = "Enter a high limit first, edit both limits, then press Del to clear the fields."
+expected = "Values update coherently, the interface remains responsive, and clearing both fields disables the limit."
+
+[[acceptance-checks]]
+id = "temperature-side-screen-keyboard"
+title = "Temperature side screen does not capture camera controls"
+required = true
+setup = "Open the Delivery Temperature Limit side screen on an eligible building."
+action = "Use the normal keyboard camera controls while the panel is selected and while a numeric field has focus."
+expected = "Camera controls work according to ONI's normal focus rules and the panel does not leave keyboard input locked."
+
+[[acceptance-checks]]
+id = "save-load-temperature-limits"
+title = "Configured limits survive save and load"
+required = true
+setup = "Configure distinct limits on a Storage Bin and a rocket Storage Tile, then save the colony."
+action = "Return to the main menu, reload the save, and inspect both buildings."
+expected = "Both buildings retain their configured limits and continue to apply them to delivery errands."
+
+[[acceptance-checks]]
+id = "delivery-temperature-log-review"
+title = "Acceptance run produces no relevant game-log exceptions"
+required = true
+setup = "Complete the storage, construction, UI, and save-load acceptance scenarios in one game session."
+action = "Exit the game and inspect Player.log for DeliveryTemperatureLimit, Harmony patch, Unity lifecycle, and unhandled exception messages."
+expected = "The log contains the mod's expected initialization messages and no new relevant errors or exceptions."
+
+[[acceptance-checks]]
+id = "workshop-description-uploader-line-structure"
+title = "Generated Workshop description preserves line structure in the ONI Uploader"
+required = true
+setup = "Open the candidate workshop-listing/description.bbcode in current Windows Notepad, open the authenticated ONI Uploader Edit Mod form, and leave every update checkbox disabled."
+action = "Copy all text from Notepad, paste it into Description, inspect the structure, record the Notepad and Uploader versions in the result note, then cancel the form without publishing."
+expected = "Paragraphs, blank lines, ---, headings, and [list] blocks remain on separate lines, and no Workshop update is submitted."
