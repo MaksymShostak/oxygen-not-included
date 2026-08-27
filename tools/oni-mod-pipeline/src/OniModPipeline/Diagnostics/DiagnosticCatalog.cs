@@ -307,6 +307,53 @@ internal static class DiagnosticCatalog
             "Disable the duplicate subscribed copy in ONI before testing; oni-mod-pipeline does not change subscriptions or enablement state.");
     }
 
+    internal static Diagnostic AcceptanceDigestMismatch(
+        string path,
+        string reason)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        return new Diagnostic(
+            DiagnosticIds.AcceptanceDigestMismatch,
+            DiagnosticSeverity.Error,
+            "Human acceptance cannot be bound to the exact installed candidate bytes.",
+            $"Evidence at '{path}' failed acceptance verification: {reason}",
+            "Preserve this candidate, diagnose the changed or missing evidence, and prepare a new candidate when immutable bytes no longer match.");
+    }
+
+    internal static Diagnostic RequiredAcceptanceMissing(string reason)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        return new Diagnostic(
+            DiagnosticIds.RequiredAcceptanceMissing,
+            DiagnosticSeverity.Error,
+            "The required human acceptance attestation is incomplete or failed.",
+            reason,
+            "Provide a nonempty tester identity and record every required check as passed on a new candidate before release verification.");
+    }
+
+    internal static Diagnostic AcceptanceResultsAlreadyExist(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        return new Diagnostic(
+            DiagnosticIds.ReleaseNotReady,
+            DiagnosticSeverity.Error,
+            "Acceptance results are already recorded for this candidate.",
+            $"Write-once evidence '{path}' was preserved and cannot be replaced.",
+            "Run verify-release for this candidate, or prepare a new candidate for another acceptance run.");
+    }
+
+    internal static Diagnostic AcceptanceRequiresInteractiveTerminal() =>
+        new(
+            DiagnosticIds.AcceptanceRequiresInteractiveTerminal,
+            DiagnosticSeverity.Error,
+            "Human acceptance recording requires an interactive terminal.",
+            "Standard input is redirected or otherwise unavailable for direct tester attestation.",
+            "Run record-acceptance in an interactive terminal; v1 does not import acceptance results from a file or JSON payload.");
+
     internal static Diagnostic MissingDotnetSdk(string reason)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);

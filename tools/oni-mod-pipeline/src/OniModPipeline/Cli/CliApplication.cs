@@ -33,6 +33,7 @@ internal static class CliApplication
         rootCommand.Subcommands.Add(CreateTestCommand(services));
         rootCommand.Subcommands.Add(CreatePrepareReleaseCommand(services));
         rootCommand.Subcommands.Add(CreateInstallCommand(services));
+        rootCommand.Subcommands.Add(CreateRecordAcceptanceCommand(services));
         return rootCommand;
     }
 
@@ -57,6 +58,7 @@ internal static class CliApplication
                 processRunner,
                 gitRepositoryInspector),
             ModInstaller.CreateDefault(),
+            AcceptanceRecorder.CreateDefault(new SystemAcceptanceConsole()),
             processRunner);
     }
 
@@ -311,6 +313,55 @@ internal static class CliApplication
             return DiagnosticRenderer.Render(
                 result,
                 options.GetOutputFormat(parseResult),
+                parseResult.InvocationConfiguration.Output,
+                parseResult.InvocationConfiguration.Error);
+        });
+        return command;
+    }
+
+    private static Command CreateRecordAcceptanceCommand(PipelineServices services)
+    {
+        var candidateOption = new Option<string?>("--candidate")
+        {
+            Description =
+                "Exact installed release-candidate directory whose human acceptance will be recorded."
+        };
+        var testerOption = new Option<string?>("--tester")
+        {
+            Description =
+                "Tester display name; when omitted, the interactive recorder prompts for it."
+        };
+        AddExplicitPathValidator(candidateOption);
+        testerOption.Validators.Add(result =>
+        {
+            var value = result.GetValueOrDefault<string?>();
+            if (value is not null && string.IsNullOrWhiteSpace(value))
+            {
+                result.AddError("Option '--tester' requires a nonempty display name.");
+            }
+        });
+
+        var command = new Command(
+            "record-acceptance",
+            "Record one interactive, write-once attestation for exact installed candidate bytes.");
+        command.Options.Add(candidateOption);
+        command.Options.Add(testerOption);
+        command.Validators.Add(result =>
+        {
+            if (result.GetValue(candidateOption) is null)
+            {
+                result.AddError("Command 'record-acceptance' requires '--candidate'.");
+            }
+        });
+        command.SetAction(async (parseResult, cancellationToken) =>
+        {
+            var result = await services.AcceptanceRecorder.RecordAsync(
+                Path.GetFullPath(parseResult.GetValue(candidateOption)!),
+                parseResult.GetValue(testerOption),
+                cancellationToken).ConfigureAwait(false);
+            return DiagnosticRenderer.Render(
+                result,
+                OutputFormat.Human,
                 parseResult.InvocationConfiguration.Output,
                 parseResult.InvocationConfiguration.Error);
         });

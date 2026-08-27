@@ -18,4 +18,5 @@ internal sealed record PipelineServices(
     WorkshopListingValidator WorkshopListingValidator,
     IReleaseCandidatePreparer ReleaseCandidatePreparer,
     IModInstaller ModInstaller,
+    IAcceptanceRecorder AcceptanceRecorder,
     IExternalProcessRunner ProcessRunner);

@@ -173,6 +173,7 @@ internal sealed class CliCommandFixture : IDisposable
                 ProcessRunner,
                 gitRepositoryInspector),
             ModInstaller.CreateDefault(),
+            AcceptanceRecorder.CreateDefault(new SystemAcceptanceConsole()),
             ProcessRunner);
     }
 
