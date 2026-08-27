@@ -203,6 +203,18 @@ internal static class DiagnosticCatalog
             $"Listing field '{field}' is invalid: {reason}",
             "Use only the schema-version = 1 Workshop listing fields and identifiers.");
     }
+
+    internal static Diagnostic DirtyReleaseInput(string reason)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        return new Diagnostic(
+            DiagnosticIds.DirtyReleaseInput,
+            DiagnosticSeverity.Error,
+            "Release input provenance is not clean and attributable.",
+            reason,
+            "Commit every contributing input and remove scoped modifications before preparing a release.");
+    }
 }
 
 internal static class DiagnosticIds

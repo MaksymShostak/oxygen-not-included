@@ -48,9 +48,42 @@ internal sealed class TemporaryDirectory : IDisposable
 
         if (Directory.Exists(resolvedPath))
         {
+            ClearReadOnlyAttributes(resolvedPath);
             Directory.Delete(resolvedPath, recursive: true);
         }
 
         disposed = true;
+    }
+
+    private static void ClearReadOnlyAttributes(string root)
+    {
+        var pendingDirectories = new Stack<string>();
+        pendingDirectories.Push(root);
+
+        while (pendingDirectories.Count > 0)
+        {
+            var directory = pendingDirectories.Pop();
+
+            foreach (var entry in Directory.EnumerateFileSystemEntries(directory))
+            {
+                var attributes = File.GetAttributes(entry);
+                if ((attributes & FileAttributes.ReadOnly) != 0)
+                {
+                    File.SetAttributes(entry, attributes & ~FileAttributes.ReadOnly);
+                }
+
+                if ((attributes & FileAttributes.Directory) != 0 &&
+                    (attributes & FileAttributes.ReparsePoint) == 0)
+                {
+                    pendingDirectories.Push(entry);
+                }
+            }
+
+            var directoryAttributes = File.GetAttributes(directory);
+            if ((directoryAttributes & FileAttributes.ReadOnly) != 0)
+            {
+                File.SetAttributes(directory, directoryAttributes & ~FileAttributes.ReadOnly);
+            }
+        }
     }
 }
