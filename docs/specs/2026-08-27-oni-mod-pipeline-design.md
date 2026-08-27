@@ -3,7 +3,7 @@
 - **Status:** Proposed for written-specification review
 - **Date:** 2026-08-27
 - **Product name:** ONI Mod Pipeline
-- **Command name:** `oni-pipeline`
+- **Command name:** `oni-mod-pipeline`
 - **Implementation runtime:** .NET 10 LTS
 - **Initial repository:** `MaksymShostak/oxygen-not-included`
 - **Initial mod:** Delivery Temperature Limit (Supercooled)
@@ -145,7 +145,7 @@ The initial implementation will not:
 
 ### 7.1 One local CLI, deep internal modules
 
-The first version is one production assembly named `OniModPipeline`, with root namespace `MaksymShostak.OniModPipeline`, exposed through the executable command `oni-pipeline`. It is kept in:
+The first version is one production assembly named `OniModPipeline`, with root namespace `MaksymShostak.OniModPipeline`, exposed through the executable command `oni-mod-pipeline`. It is kept in:
 
 ```text
 tools/oni-mod-pipeline/
@@ -205,7 +205,7 @@ Names communicate domain purpose rather than implementation mechanism.
 | Concern | Name or convention |
 |---|---|
 | Product | ONI Mod Pipeline |
-| Executable | `oni-pipeline` |
+| Executable | `oni-mod-pipeline` |
 | Production assembly | `OniModPipeline` |
 | Root namespace | `MaksymShostak.OniModPipeline` |
 | Tool directory | `tools/oni-mod-pipeline` |
@@ -383,7 +383,7 @@ All commands support `--help`. Commands that emit evidence also support `--forma
 ### 12.1 `diagnose`
 
 ```text
-oni-pipeline diagnose --mod <path>
+oni-mod-pipeline diagnose --mod <path>
 ```
 
 Performs read-only environment discovery and reports actionable diagnostics. It does not restore packages, build, install, or create a candidate.
@@ -391,7 +391,7 @@ Performs read-only environment discovery and reports actionable diagnostics. It 
 ### 12.2 `validate`
 
 ```text
-oni-pipeline validate --mod <path> [--for-release]
+oni-mod-pipeline validate --mod <path> [--for-release]
 ```
 
 Loads the profile and validates:
@@ -414,7 +414,7 @@ Validation is side-effect free. Without `--for-release`, it permits ordinary unc
 ### 12.3 `build`
 
 ```text
-oni-pipeline build --mod <path> [--configuration Release]
+oni-mod-pipeline build --mod <path> [--configuration Release]
 ```
 
 Runs locked restore and the configured build without a shell. Output is written under `artifacts/builds/<static-id>/<run-id>/`, never into the mod source root. It writes `build-result.json` at that run root, naming all declared outputs, the primary assembly and merged dependencies when present, source commit, version, game-reference hashes, SDK version, and actual output hashes. For a content-only profile, it skips restore/compilation explicitly and returns a build result with no compiled outputs rather than fabricating an assembly.
@@ -424,7 +424,7 @@ Runs locked restore and the configured build without a shell. Output is written 
 ### 12.4 `test`
 
 ```text
-oni-pipeline test --mod <path>
+oni-mod-pipeline test --mod <path>
 ```
 
 Runs every required mod test project declared by the profile. Test-project IDs are required, unique, stable kebab-case identifiers; each names its TRX evidence file. Standalone results are written beneath `artifacts/test-runs/<static-id>/<run-id>/automated-test-results/`; `prepare-release` writes the same contract inside its staged candidate. A required project that is missing, skipped, has a duplicate ID, or produces no result is a failure.
@@ -434,10 +434,10 @@ The pipeline tool's own unit and integration suites are run from `OniModPipeline
 ### 12.5 `install`
 
 ```text
-oni-pipeline install --candidate <candidate-directory> --target dev
-oni-pipeline install --candidate <candidate-directory> --target local
-oni-pipeline install --mod <path> --build-result <build-result.json> --target dev
-oni-pipeline install --mod <path> --build-result <build-result.json> --target local
+oni-mod-pipeline install --candidate <candidate-directory> --target dev
+oni-mod-pipeline install --candidate <candidate-directory> --target local
+oni-mod-pipeline install --mod <path> --build-result <build-result.json> --target dev
+oni-mod-pipeline install --mod <path> --build-result <build-result.json> --target local
 ```
 
 The mutually exclusive `--candidate` and `--build-result` inputs install exact, named artifacts into the selected ONI mod target. Candidate-based installation is the only path that creates an acceptance installation receipt. A development build result also requires `--mod`; the installer verifies the profile and source-input hashes recorded by that result before assembling its declared package. An implicit “latest” build is never selected.
@@ -461,7 +461,7 @@ A release candidate has one acceptance installation receipt. If that receipt alr
 ### 12.6 `prepare-release`
 
 ```text
-oni-pipeline prepare-release --mod <path>
+oni-mod-pipeline prepare-release --mod <path>
 ```
 
 This is the orchestration command. It performs environment validation, relevant-source cleanliness validation, locked restore, Release build, automated tests, clean package construction, Workshop-listing rendering, hashing, provenance capture, and initial readiness reporting.
@@ -471,7 +471,7 @@ It either creates one complete candidate in `awaiting-acceptance` state or leave
 ### 12.7 `record-acceptance`
 
 ```text
-oni-pipeline record-acceptance --candidate <candidate-directory> [--tester <display-name>]
+oni-mod-pipeline record-acceptance --candidate <candidate-directory> [--tester <display-name>]
 ```
 
 Displays the candidate's immutable acceptance plan and records a human result for each check. It requires an interactive terminal because these results attest to actions performed in ONI. A non-empty tester display name is supplied by option or interactive prompt. Each result is `passed` or `failed`, with an optional note. Required checks cannot be recorded as skipped.
@@ -483,7 +483,7 @@ For future laboratory automation, a separately authenticated result-file import 
 ### 12.8 `verify-release`
 
 ```text
-oni-pipeline verify-release --candidate <candidate-directory>
+oni-mod-pipeline verify-release --candidate <candidate-directory>
 ```
 
 Recomputes every release-content hash, verifies provenance and automated evidence, verifies that all required acceptance checks passed against the current digest, checks Uploader-facing representation rules, and writes the final readiness report.
@@ -946,14 +946,14 @@ If ILRepack or another unavoidable tool produces non-reproducible binary bytes, 
 The implementation updates repository documentation to present one normal path:
 
 ```text
-oni-pipeline diagnose
-oni-pipeline validate
-oni-pipeline test
-oni-pipeline prepare-release
-oni-pipeline install --candidate <path> --target local
+oni-mod-pipeline diagnose
+oni-mod-pipeline validate
+oni-mod-pipeline test
+oni-mod-pipeline prepare-release
+oni-mod-pipeline install --candidate <path> --target local
 # perform in-game acceptance
-oni-pipeline record-acceptance --candidate <path>
-oni-pipeline verify-release --candidate <path>
+oni-mod-pipeline record-acceptance --candidate <path>
+oni-mod-pipeline verify-release --candidate <path>
 # inspect release-summary.md and uploader-checklist.md
 # publish manually with the authenticated ONI Uploader
 ```
@@ -1014,11 +1014,11 @@ This is sequencing guidance, not the task-by-task implementation plan. The imple
 The architecture is successfully implemented when all of the following are true:
 
 1. A fresh local checkout with the pinned .NET 10 SDK can restore the tool in locked mode.
-2. `oni-pipeline diagnose` identifies or clearly requests the local ONI paths on every supported operating system.
-3. `oni-pipeline validate` finds malformed metadata, unsafe paths, invalid package mappings, oversized listing text, and missing game references without changing files.
+2. `oni-mod-pipeline diagnose` identifies or clearly requests the local ONI paths on every supported operating system.
+3. `oni-mod-pipeline validate` finds malformed metadata, unsafe paths, invalid package mappings, oversized listing text, and missing game references without changing files.
 4. `DeliveryTemperatureLimit.csproj` remains SDK-style `net48` but contains no redundant legacy output/configuration/base-framework declarations, source-owned release version, or machine-specific game path; locked restore and explicit non-framework references remain.
 5. The modernized project and merge target reproduce the captured public assembly surface and Workshop runtime inventory except for approved version/provenance metadata and artifact paths.
-6. `oni-pipeline build` produces the merged mod DLL beneath `artifacts/` and leaves every tracked source byte unchanged.
+6. `oni-mod-pipeline build` produces the merged mod DLL beneath `artifacts/` and leaves every tracked source byte unchanged.
 7. All former PowerShell regression behavior is covered by passing C# tests.
 8. No supported ONI development workflow invokes PowerShell, batch, or Bash.
 9. `install` places an exact, manifest-verified candidate in a guarded `dev` or `local` directory.

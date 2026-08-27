@@ -371,7 +371,7 @@ Present the exact `global.json`, solution, and two project-file changes below. S
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Deterministic>true</Deterministic>
     <PackAsTool>true</PackAsTool>
-    <ToolCommandName>oni-pipeline</ToolCommandName>
+    <ToolCommandName>oni-mod-pipeline</ToolCommandName>
     <PackageId>MaksymShostak.OniModPipeline</PackageId>
     <Version>0.1.0</Version>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
@@ -519,7 +519,7 @@ Run:
 dotnet run --project tools/oni-mod-pipeline/src/OniModPipeline/OniModPipeline.csproj --no-restore -- --help
 ```
 
-Expected: exit `0`; output contains `oni-pipeline` and the exact description from the test.
+Expected: exit `0`; output contains `oni-mod-pipeline` and the exact description from the test.
 
 - [ ] **Step 8: Review and commit the foundation**
 
@@ -1270,8 +1270,8 @@ Expected: `diagnose` is not registered.
 - [ ] **Step 4: Register exact command options**
 
 ```text
-oni-pipeline diagnose --mod <path> [environment overrides] [--format human|json]
-oni-pipeline validate --mod <path> [environment overrides] [--for-release] [--format human|json]
+oni-mod-pipeline diagnose --mod <path> [environment overrides] [--format human|json]
+oni-mod-pipeline validate --mod <path> [environment overrides] [--for-release] [--format human|json]
 ```
 
 `--mod` defaults to the current directory for discovery. Environment options are optional and accept one path. `--format` defaults to `human`; unknown values are command-parse errors with exit `2`.
@@ -1616,7 +1616,7 @@ Expected: `IsEligible_WhenConfigIsStorageTile_ReturnsTrue` passes.
 
 - [ ] **Step 6: Validate the real profile**
 
-Run `oni-pipeline validate` with explicit local ONI paths if automatic discovery is ambiguous:
+Run `oni-mod-pipeline validate` with explicit local ONI paths if automatic discovery is ambiguous:
 
 ```text
 dotnet run --project tools/oni-mod-pipeline/src/OniModPipeline/OniModPipeline.csproj --no-restore -- validate --mod mods/delivery-temperature-limit-supercooled
@@ -1743,8 +1743,8 @@ Set `ONI_MANAGED_ASSEMBLY_DIRECTORY` and `ONI_PIPELINE_REPOSITORY_ROOT` only on 
 - [ ] **Step 8: Register `build` and `test` commands**
 
 ```text
-oni-pipeline build --mod <path> [environment overrides] [--configuration Release] [--format human|json]
-oni-pipeline test --mod <path> [environment overrides] [--format human|json]
+oni-mod-pipeline build --mod <path> [environment overrides] [--configuration Release] [--format human|json]
+oni-mod-pipeline test --mod <path> [environment overrides] [--format human|json]
 ```
 
 `build` prints the exact `build-result.json` path. `test` prints the exact automated-test-results directory. Neither selects a previous run, installs, packages, or mutates metadata.
@@ -1897,7 +1897,7 @@ internal sealed class TemporaryDirectory : IDisposable
 
     internal TemporaryDirectory()
     {
-        Path = System.IO.Path.Combine(tempRoot, $"oni-pipeline-test-{Guid.NewGuid():N}");
+        Path = System.IO.Path.Combine(tempRoot, $"oni-mod-pipeline-test-{Guid.NewGuid():N}");
         Directory.CreateDirectory(Path);
     }
 
@@ -2023,11 +2023,11 @@ The completed project contains this structure; retain the existing list of non-f
 
   <Target Name="ValidateOniBuildProperties" BeforeTargets="ResolveReferences">
     <Error Condition="'$(OniManagedAssemblyDirectory)' == ''"
-           Text="OniManagedAssemblyDirectory is required. Run this build through oni-pipeline or pass the installed ONI Managed directory explicitly." />
+           Text="OniManagedAssemblyDirectory is required. Run this build through oni-mod-pipeline or pass the installed ONI Managed directory explicitly." />
     <Error Condition="!Exists('$(OniManagedAssemblyDirectory)/Assembly-CSharp.dll')"
            Text="OniManagedAssemblyDirectory does not contain Assembly-CSharp.dll: $(OniManagedAssemblyDirectory)" />
     <Error Condition="'$(OniMergedModOutputPath)' == ''"
-           Text="OniMergedModOutputPath is required. Run this build through oni-pipeline or pass an isolated merged output path explicitly." />
+           Text="OniMergedModOutputPath is required. Run this build through oni-mod-pipeline or pass an isolated merged output path explicitly." />
   </Target>
 
   <Import Project="ILRepack.targets" />
@@ -2547,7 +2547,7 @@ The summary includes exact candidate content/listing paths, digest, build/test s
 - [ ] **Step 10: Register `prepare-release`**
 
 ```text
-oni-pipeline prepare-release --mod <path> [environment overrides] [--format human|json]
+oni-mod-pipeline prepare-release --mod <path> [environment overrides] [--format human|json]
 ```
 
 There is no dirty bypass, skip-test option, candidate reuse, overwrite, publish option, or interactive prompt. Success prints the absolute candidate path, content digest, and `awaiting-acceptance` state.
@@ -2640,7 +2640,7 @@ Expected: compilation fails because `ModInstaller` does not exist.
 
 - [ ] **Step 4: Resolve and guard the exact install target**
 
-Derive `<user-data>/mods/Dev/<directory-name>` or `<user-data>/mods/Local/<directory-name>`. Require the destination to be a strict descendant of the selected target root. If it exists, read `.oni-pipeline-owner.json` and require schema `1`, matching static ID, and matching managed directory name. V1 has no force, adopt, or arbitrary destination switch.
+Derive `<user-data>/mods/Dev/<directory-name>` or `<user-data>/mods/Local/<directory-name>`. Require the destination to be a strict descendant of the selected target root. If it exists, read `.oni-mod-pipeline-owner.json` and require schema `1`, matching static ID, and matching managed directory name. V1 has no force, adopt, or arbitrary destination switch.
 
 For a development build result, reload the explicitly supplied mod profile and recompute every `BuildResult.Inputs` and `BuildResult.Outputs` hash before assembling its runtime package. Any changed/missing input or output invalidates that build result; never install an implicit latest build.
 
@@ -2659,10 +2659,10 @@ Read `mods/Steam/*/mod.yaml` beneath the selected user-data directory and compar
 - [ ] **Step 8: Register exact install forms**
 
 ```text
-oni-pipeline install --candidate <directory> --target dev [environment overrides]
-oni-pipeline install --candidate <directory> --target local [environment overrides]
-oni-pipeline install --mod <path> --build-result <build-result.json> --target dev [environment overrides]
-oni-pipeline install --mod <path> --build-result <build-result.json> --target local [environment overrides]
+oni-mod-pipeline install --candidate <directory> --target dev [environment overrides]
+oni-mod-pipeline install --candidate <directory> --target local [environment overrides]
+oni-mod-pipeline install --mod <path> --build-result <build-result.json> --target dev [environment overrides]
+oni-mod-pipeline install --mod <path> --build-result <build-result.json> --target local [environment overrides]
 ```
 
 Enforce candidate versus mod/build-result mutual exclusivity at parse time. Never infer a latest artifact.
@@ -2754,7 +2754,7 @@ Expected: compilation fails because `AcceptanceRecorder` does not exist.
 
 - [ ] **Step 4: Verify candidate and live installation before prompting**
 
-Recompute all release-content hashes, verify manifest bytes/digest, verify the receipt, then hash the live install files named by `workshop-content/` while ignoring only `.oni-pipeline-owner.json`. Require exact path, size, and hash equality. Re-hash `acceptance-test-plan.json` and compare provenance.
+Recompute all release-content hashes, verify manifest bytes/digest, verify the receipt, then hash the live install files named by `workshop-content/` while ignoring only `.oni-mod-pipeline-owner.json`. Require exact path, size, and hash equality. Re-hash `acceptance-test-plan.json` and compare provenance.
 
 - [ ] **Step 5: Record one complete interactive attestation**
 
@@ -2763,7 +2763,7 @@ Print candidate ID/version/digest before the checks. Read tester from `--tester`
 - [ ] **Step 6: Register `record-acceptance`**
 
 ```text
-oni-pipeline record-acceptance --candidate <directory> [--tester <display-name>]
+oni-mod-pipeline record-acceptance --candidate <directory> [--tester <display-name>]
 ```
 
 This command has no JSON result-import mode in v1. A failed check returns exit `6` after preserving the results file; all passed checks return `0` but the candidate is not yet ready until `verify-release` succeeds.
@@ -2896,7 +2896,7 @@ Render summary and checklist first from the fully derived in-memory verification
 - [ ] **Step 10: Register `verify-release`**
 
 ```text
-oni-pipeline verify-release --candidate <directory> [--format human|json]
+oni-mod-pipeline verify-release --candidate <directory> [--format human|json]
 ```
 
 Success is only `ready-for-upload` with exit `0`. Every other state returns exit `6`. The command is non-interactive and has no Uploader/open/publish side effect.
@@ -2939,8 +2939,8 @@ Show the four paths, their replacements, and fresh passing evidence:
 
 | Deleted path | Proven replacement |
 |---|---|
-| `Source/build.sh` | `oni-pipeline build` / `prepare-release` plus locked isolated MSBuild |
-| `scripts/deploy_mod_locally.bat` | guarded `oni-pipeline install` |
+| `Source/build.sh` | `oni-mod-pipeline build` / `prepare-release` plus locked isolated MSBuild |
+| `scripts/deploy_mod_locally.bat` | guarded `oni-mod-pipeline install` |
 | `Tests/BuildingsEligibility.Tests.ps1` | `BuildingsEligibilityTests.cs` in declared MSTest project |
 | `Tests/ModInfoVersion.Tests.ps1` | `ModBuildContractTests.cs` plus generic no-source-mutation checks |
 
@@ -2983,14 +2983,14 @@ Use targeted file deletion. Do not delete `Source/.gitignore`, the tracked basel
 Document prerequisites, profile discovery, environment overrides, and this one normal path:
 
 ```text
-oni-pipeline diagnose
-oni-pipeline validate
-oni-pipeline test
-oni-pipeline prepare-release
-oni-pipeline install --candidate <path> --target local
+oni-mod-pipeline diagnose
+oni-mod-pipeline validate
+oni-mod-pipeline test
+oni-mod-pipeline prepare-release
+oni-mod-pipeline install --candidate <path> --target local
 # perform in-game acceptance
-oni-pipeline record-acceptance --candidate <path>
-oni-pipeline verify-release --candidate <path>
+oni-mod-pipeline record-acceptance --candidate <path>
+oni-mod-pipeline verify-release --candidate <path>
 # inspect release-summary.md and uploader-checklist.md
 # publish manually with the authenticated ONI Uploader
 ```
