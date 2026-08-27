@@ -57,4 +57,36 @@ You can adjust mod settings directly in the game Options menu:
 *   **Apply Limits to Construction Materials:** Toggle whether temperature limits also apply to materials delivered to build new structures (prevents using hot materials in cold-area construction).
 
 ---
+
+## Development and Release Workflow
+
+[ONI Mod Pipeline](docs/guides/oni-mod-development-workflow.md) is the repository's single supported path for building, testing, installing, and preparing this mod for a manual Workshop upload. It requires the .NET 10 SDK selected by `global.json`, a local Oxygen Not Included installation, an existing ONI user-data directory, and the `oni-mod-pipeline` command on `PATH`.
+
+Run the normal release sequence from `mods/delivery-temperature-limit-supercooled` (or pass that directory with `--mod`):
+
+```text
+oni-mod-pipeline diagnose
+oni-mod-pipeline validate
+oni-mod-pipeline test
+oni-mod-pipeline prepare-release
+oni-mod-pipeline install --candidate <path> --target local
+# perform in-game acceptance
+oni-mod-pipeline record-acceptance --candidate <path>
+oni-mod-pipeline verify-release --candidate <path>
+# inspect release-summary.md and uploader-checklist.md
+# publish manually with the authenticated ONI Uploader
+```
+
+`oni-mod-pipeline.toml` is discovered from the current directory, an explicit profile path, or a descendant path by walking upward to the repository boundary. Explicit command options take precedence over environment variables and automatic discovery:
+
+| Purpose | Command option | Environment variable |
+| --- | --- | --- |
+| ONI installation root | `--game-directory` | `ONI_GAME_DIRECTORY` |
+| ONI per-user data root | `--user-data-directory` | `ONI_USER_DATA_DIRECTORY` |
+| Generated artifact root | `--artifacts-directory` | `ONI_MOD_PIPELINE_ARTIFACTS_DIRECTORY` |
+
+The version in `mod_info.yaml` and the text in `STEAM_CHANGE_NOTES.bbcode` are deliberate, reviewed source edits made before `prepare-release`. Builds never increment or rewrite either file. ONI Mod Pipeline prepares and verifies exact candidate bytes; it never performs the authenticated **Publish** action.
+
+---
+
 *Disclaimer: This is a community mod. It is not affiliated with, sponsored by, or endorsed by Klei Entertainment.*

@@ -27,7 +27,7 @@ public sealed class WorkshopContentValidatorTests
             "Source/Mod.slnx",
             "scripts/build.ps1",
             "scripts/build.bat",
-            "scripts/build.sh",
+            "scripts/package-content.sh",
             "Example.pdb",
             "packages.lock.json",
             "dependencies.lock",
