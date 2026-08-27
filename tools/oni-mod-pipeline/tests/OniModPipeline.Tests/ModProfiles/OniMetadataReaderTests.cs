@@ -7,13 +7,15 @@ namespace MaksymShostak.OniModPipeline.Tests.ModProfiles;
 [TestClass]
 public sealed class OniMetadataReaderTests
 {
+    private readonly OniMetadataReader metadataReader = new();
+
     [TestMethod]
     public void Read_WhenYamlContainsAllRequiredScalars_ReturnsTypedMetadata()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         WriteValidMetadata(temporaryDirectory);
 
-        var result = OniMetadataReader.Read(CreateProfile(temporaryDirectory));
+        var result = metadataReader.Read(CreateProfile(temporaryDirectory));
 
         Assert.IsTrue(result.IsSuccess);
         Assert.IsNotNull(result.Value);
@@ -34,7 +36,7 @@ public sealed class OniMetadataReaderTests
             temporaryDirectory,
             additionalModInfo: "requiredDlcIds:\n  - EXPANSION1\n");
 
-        var result = OniMetadataReader.Read(CreateProfile(temporaryDirectory));
+        var result = metadataReader.Read(CreateProfile(temporaryDirectory));
 
         Assert.IsTrue(result.IsSuccess);
         Assert.AreEqual("MaksymShostak.ExampleMod", result.Value?.StaticId);
@@ -55,7 +57,7 @@ public sealed class OniMetadataReaderTests
             """);
         File.WriteAllText(temporaryDirectory.GetPath("mod_info.yaml"), ValidModInfo);
 
-        var result = OniMetadataReader.Read(CreateProfile(temporaryDirectory));
+        var result = metadataReader.Read(CreateProfile(temporaryDirectory));
 
         Assert.AreEqual(PipelineExitCode.InvalidInput, result.ExitCode);
         Assert.AreEqual("ONIP1005", result.Diagnostics.Single().Id);
@@ -67,7 +69,7 @@ public sealed class OniMetadataReaderTests
         using var temporaryDirectory = new TemporaryDirectory();
         File.WriteAllText(temporaryDirectory.GetPath("mod.yaml"), ValidModYaml);
 
-        var result = OniMetadataReader.Read(CreateProfile(temporaryDirectory));
+        var result = metadataReader.Read(CreateProfile(temporaryDirectory));
 
         Assert.AreEqual(PipelineExitCode.InvalidInput, result.ExitCode);
         Assert.AreEqual("ONIP1008", result.Diagnostics.Single().Id);
@@ -88,7 +90,7 @@ public sealed class OniMetadataReaderTests
         File.WriteAllText(temporaryDirectory.GetPath("mod.yaml"), modYaml);
         File.WriteAllText(temporaryDirectory.GetPath("mod_info.yaml"), ValidModInfo);
 
-        var result = OniMetadataReader.Read(CreateProfile(temporaryDirectory));
+        var result = metadataReader.Read(CreateProfile(temporaryDirectory));
 
         Assert.AreEqual(PipelineExitCode.InvalidInput, result.ExitCode);
         Assert.AreEqual("ONIP1005", result.Diagnostics.Single().Id);
@@ -106,7 +108,7 @@ public sealed class OniMetadataReaderTests
                 "APIVersion: 2147483648",
                 StringComparison.Ordinal));
 
-        var result = OniMetadataReader.Read(CreateProfile(temporaryDirectory));
+        var result = metadataReader.Read(CreateProfile(temporaryDirectory));
 
         Assert.AreEqual(PipelineExitCode.InvalidInput, result.ExitCode);
         Assert.AreEqual("ONIP1005", result.Diagnostics.Single().Id);

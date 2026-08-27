@@ -4,7 +4,7 @@ using Tomlyn.Model;
 
 namespace MaksymShostak.OniModPipeline.ModProfiles;
 
-internal static class ModProfileLoader
+internal sealed class ModProfileLoader
 {
     private const int SupportedSchemaVersion = 1;
     private const int DefaultListingByteLimit = 8000;
@@ -61,7 +61,7 @@ internal static class ModProfileLoader
                 StringComparer.Ordinal)
         };
 
-    internal static OperationResult<ModProfile> Load(string manifestPath)
+    internal OperationResult<ModProfile> Load(string manifestPath)
     {
         var displayPath = string.IsNullOrWhiteSpace(manifestPath)
             ? "<empty>"

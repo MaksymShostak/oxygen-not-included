@@ -7,13 +7,15 @@ namespace MaksymShostak.OniModPipeline.Tests.ModProfiles;
 [TestClass]
 public sealed class ModProfileValidatorTests
 {
+    private readonly ModProfileValidator profileValidator = new();
+
     [TestMethod]
     public void Validate_WhenProfileIsPortableAndComplete_ReturnsSuccess()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var profile = CreateValidProfile(temporaryDirectory);
 
-        var result = ModProfileValidator.Validate(profile, ValidMetadata);
+        var result = profileValidator.Validate(profile, ValidMetadata);
 
         Assert.IsTrue(result.IsSuccess);
         Assert.AreSame(profile, result.Value);
@@ -40,7 +42,7 @@ public sealed class ModProfileValidatorTests
             ]
         };
 
-        var result = ModProfileValidator.Validate(profile, ValidMetadata);
+        var result = profileValidator.Validate(profile, ValidMetadata);
 
         AssertDiagnostic(result, "ONIP1004");
     }
@@ -58,7 +60,7 @@ public sealed class ModProfileValidatorTests
             ]
         };
 
-        var result = ModProfileValidator.Validate(profile, ValidMetadata);
+        var result = profileValidator.Validate(profile, ValidMetadata);
 
         AssertDiagnostic(result, "ONIP1002");
     }
@@ -72,7 +74,7 @@ public sealed class ModProfileValidatorTests
             TestProjects = [new TestProjectProfile("Not_Kebab", "Tests/Example.Tests.csproj", true)]
         };
 
-        var result = ModProfileValidator.Validate(profile, ValidMetadata);
+        var result = profileValidator.Validate(profile, ValidMetadata);
 
         AssertDiagnostic(result, "ONIP1002");
     }
@@ -89,7 +91,7 @@ public sealed class ModProfileValidatorTests
             }
         };
 
-        var result = ModProfileValidator.Validate(profile, ValidMetadata);
+        var result = profileValidator.Validate(profile, ValidMetadata);
 
         AssertDiagnostic(result, "ONIP1008");
     }
@@ -112,7 +114,7 @@ public sealed class ModProfileValidatorTests
             }
         };
 
-        var result = ModProfileValidator.Validate(profile, ValidMetadata);
+        var result = profileValidator.Validate(profile, ValidMetadata);
 
         AssertDiagnostic(result, "ONIP1006");
     }
@@ -123,7 +125,7 @@ public sealed class ModProfileValidatorTests
         using var temporaryDirectory = new TemporaryDirectory();
         var profile = CreateValidProfile(temporaryDirectory) with { PackageFiles = [] };
 
-        var result = ModProfileValidator.Validate(profile, ValidMetadata);
+        var result = profileValidator.Validate(profile, ValidMetadata);
 
         AssertDiagnostic(result, "ONIP1002");
     }
@@ -137,7 +139,7 @@ public sealed class ModProfileValidatorTests
             PackageFiles = [new PackageFileMapping("mod.yaml", "mod.yaml")]
         };
 
-        var result = ModProfileValidator.Validate(profile, ValidMetadata);
+        var result = profileValidator.Validate(profile, ValidMetadata);
 
         AssertDiagnostic(result, "ONIP1002");
     }
@@ -152,7 +154,7 @@ public sealed class ModProfileValidatorTests
             Build = profile.Build! with { PrimaryOutput = "bin/Example.dll" }
         };
 
-        var result = ModProfileValidator.Validate(profile, ValidMetadata);
+        var result = profileValidator.Validate(profile, ValidMetadata);
 
         AssertDiagnostic(result, "ONIP1002");
     }
@@ -179,7 +181,7 @@ public sealed class ModProfileValidatorTests
             _ => throw new AssertFailedException($"Unknown fixture field '{invalidField}'.")
         };
 
-        var result = ModProfileValidator.Validate(profile, metadata);
+        var result = profileValidator.Validate(profile, metadata);
 
         AssertDiagnostic(result, "ONIP1005");
     }

@@ -7,6 +7,8 @@ namespace MaksymShostak.OniModPipeline.Tests.ModProfiles;
 [TestClass]
 public sealed class ModProfileLocatorTests
 {
+    private readonly ModProfileLocator profileLocator = new();
+
     [TestMethod]
     public void Locate_WhenNoManifestIsReachable_ReturnsMissingProfileDiagnostic()
     {
@@ -15,7 +17,7 @@ public sealed class ModProfileLocatorTests
         var descendant = temporaryDirectory.GetPath("mods", "example-mod", "Source");
         Directory.CreateDirectory(descendant);
 
-        var result = ModProfileLocator.Locate(descendant);
+        var result = profileLocator.Locate(descendant);
 
         Assert.AreEqual(PipelineExitCode.InvalidInput, result.ExitCode);
         Assert.AreEqual("ONIP1007", result.Diagnostics.Single().Id);
@@ -33,7 +35,7 @@ public sealed class ModProfileLocatorTests
         var manifestPath = Path.Combine(modRoot, "oni-mod-pipeline.toml");
         File.WriteAllText(manifestPath, "schema-version = 1");
 
-        var result = ModProfileLocator.Locate(descendant);
+        var result = profileLocator.Locate(descendant);
 
         Assert.IsTrue(result.IsSuccess);
         Assert.AreEqual(Path.GetFullPath(manifestPath), result.Value);
@@ -54,7 +56,7 @@ public sealed class ModProfileLocatorTests
         var descendant = Path.Combine(nestedRoot, "Source");
         Directory.CreateDirectory(descendant);
 
-        var result = ModProfileLocator.Locate(descendant);
+        var result = profileLocator.Locate(descendant);
 
         Assert.IsFalse(result.IsSuccess);
         Assert.AreEqual(PipelineExitCode.InvalidInput, result.ExitCode);

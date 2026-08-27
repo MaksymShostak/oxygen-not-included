@@ -5,9 +5,9 @@ using YamlDotNet.RepresentationModel;
 
 namespace MaksymShostak.OniModPipeline.ModProfiles;
 
-internal static class OniMetadataReader
+internal sealed class OniMetadataReader
 {
-    internal static OperationResult<OniMetadata> Read(ModProfile profile)
+    internal OperationResult<OniMetadata> Read(ModProfile profile)
     {
         ArgumentNullException.ThrowIfNull(profile);
 

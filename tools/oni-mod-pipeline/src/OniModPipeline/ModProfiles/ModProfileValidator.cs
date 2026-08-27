@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace MaksymShostak.OniModPipeline.ModProfiles;
 
-internal static class ModProfileValidator
+internal sealed class ModProfileValidator
 {
     private const string BuildOutputPrefix = "{build-output}/";
 
@@ -45,7 +45,7 @@ internal static class ModProfileValidator
             [".csproj", ".fsproj", ".vbproj", ".sln", ".slnx"],
             StringComparer.OrdinalIgnoreCase);
 
-    internal static OperationResult<ModProfile> Validate(
+    internal OperationResult<ModProfile> Validate(
         ModProfile profile,
         OniMetadata metadata)
     {

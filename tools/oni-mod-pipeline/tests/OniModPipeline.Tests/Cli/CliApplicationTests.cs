@@ -37,6 +37,36 @@ public sealed class CliApplicationTests
         await process.WaitForExitAsync();
 
         Assert.AreEqual(0, process.ExitCode, await standardError);
-        StringAssert.Contains(await standardOutput, "oni-mod-pipeline [options]");
+        StringAssert.Contains(
+            await standardOutput,
+            "oni-mod-pipeline [command] [options]");
+    }
+
+    [TestMethod]
+    public async Task InvokeExecutable_WhenFormatIsUnknown_ReturnsInvalidInputExitCode()
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "dotnet",
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+        startInfo.ArgumentList.Add(typeof(CliApplication).Assembly.Location);
+        startInfo.ArgumentList.Add("validate");
+        startInfo.ArgumentList.Add("--format");
+        startInfo.ArgumentList.Add("xml");
+        using var process = new Process { StartInfo = startInfo };
+
+        Assert.IsTrue(process.Start(), "The production CLI process did not start.");
+        var standardOutput = process.StandardOutput.ReadToEndAsync();
+        var standardError = process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+
+        Assert.AreEqual(2, process.ExitCode, await standardError);
+        Assert.AreEqual(string.Empty, await standardOutput);
+        StringAssert.Contains(await standardError, "human");
+        StringAssert.Contains(await standardError, "json");
     }
 }

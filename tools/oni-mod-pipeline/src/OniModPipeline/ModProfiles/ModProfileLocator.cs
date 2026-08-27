@@ -2,11 +2,11 @@ using MaksymShostak.OniModPipeline.Diagnostics;
 
 namespace MaksymShostak.OniModPipeline.ModProfiles;
 
-internal static class ModProfileLocator
+internal sealed class ModProfileLocator
 {
     internal const string ManifestFileName = "oni-mod-pipeline.toml";
 
-    internal static OperationResult<string> Locate(string startPath)
+    internal OperationResult<string> Locate(string startPath)
     {
         if (string.IsNullOrWhiteSpace(startPath))
         {

@@ -7,6 +7,8 @@ namespace MaksymShostak.OniModPipeline.Tests.ModProfiles;
 [TestClass]
 public sealed class ModProfileLoaderTests
 {
+    private readonly ModProfileLoader profileLoader = new();
+
     [TestMethod]
     public void Load_WhenSchemaVersionIsTwo_ReturnsOnip1001()
     {
@@ -15,7 +17,7 @@ public sealed class ModProfileLoaderTests
             temporaryDirectory,
             ValidManifest.Replace("schema-version = 1", "schema-version = 2", StringComparison.Ordinal));
 
-        var result = ModProfileLoader.Load(manifestPath);
+        var result = profileLoader.Load(manifestPath);
 
         Assert.AreEqual(PipelineExitCode.InvalidInput, result.ExitCode);
         Assert.AreEqual("ONIP1001", result.Diagnostics.Single().Id);
@@ -29,7 +31,7 @@ public sealed class ModProfileLoaderTests
             temporaryDirectory,
             $"schema-versoin = 1{Environment.NewLine}{ValidManifest}");
 
-        var result = ModProfileLoader.Load(manifestPath);
+        var result = profileLoader.Load(manifestPath);
 
         Assert.AreEqual(PipelineExitCode.InvalidInput, result.ExitCode);
         Assert.AreEqual("ONIP1002", result.Diagnostics.Single().Id);
@@ -47,7 +49,7 @@ public sealed class ModProfileLoaderTests
                 "configuration = \"Release\"\nconfiguraton = \"Release\"",
                 StringComparison.Ordinal));
 
-        var result = ModProfileLoader.Load(manifestPath);
+        var result = profileLoader.Load(manifestPath);
 
         Assert.AreEqual(PipelineExitCode.InvalidInput, result.ExitCode);
         Assert.AreEqual("ONIP1002", result.Diagnostics.Single().Id);
@@ -60,7 +62,7 @@ public sealed class ModProfileLoaderTests
         using var temporaryDirectory = new TemporaryDirectory();
         var manifestPath = WriteManifest(temporaryDirectory, ValidManifest);
 
-        var result = ModProfileLoader.Load(manifestPath);
+        var result = profileLoader.Load(manifestPath);
 
         Assert.IsTrue(result.IsSuccess);
         Assert.IsNotNull(result.Value);
@@ -80,7 +82,7 @@ public sealed class ModProfileLoaderTests
             temporaryDirectory,
             ValidManifest.Replace(BuildTable, string.Empty, StringComparison.Ordinal));
 
-        var result = ModProfileLoader.Load(manifestPath);
+        var result = profileLoader.Load(manifestPath);
 
         Assert.IsTrue(result.IsSuccess);
         Assert.IsNull(result.Value?.Build);
@@ -99,7 +101,7 @@ public sealed class ModProfileLoaderTests
                 $"description = \"STEAM_DESCRIPTION.bbcode\"\ndescription-byte-limit = {byteLimit}",
                 StringComparison.Ordinal));
 
-        var result = ModProfileLoader.Load(manifestPath);
+        var result = profileLoader.Load(manifestPath);
 
         Assert.AreEqual(PipelineExitCode.InvalidInput, result.ExitCode);
         Assert.AreEqual("ONIP1002", result.Diagnostics.Single().Id);

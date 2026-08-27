@@ -1,5 +1,7 @@
 using MaksymShostak.OniModPipeline.Diagnostics;
+using MaksymShostak.OniModPipeline.ModProfiles;
 using MaksymShostak.OniModPipeline.Processes;
+using System.ComponentModel;
 
 namespace MaksymShostak.OniModPipeline.SourceControl;
 
@@ -22,43 +24,70 @@ internal sealed class GitRepositoryInspector(IExternalProcessRunner processRunne
         ArgumentException.ThrowIfNullOrWhiteSpace(workingDirectory);
         ArgumentNullException.ThrowIfNull(contributingAbsolutePaths);
 
+        return await InspectAsync(
+            workingDirectory,
+            (worktreeRoot, _) => ResolveContributingPaths(
+                worktreeRoot,
+                contributingAbsolutePaths),
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    internal async Task<OperationResult<GitProvenance>> InspectAsync(
+        ModProfile profile,
+        string? pipelineExecutablePath,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+
+        return await InspectAsync(
+            profile.ModRoot,
+            (worktreeRoot, trackedPaths) =>
+            {
+                var sourceSetResult = RelevantSourceSet.Create(
+                    profile,
+                    worktreeRoot,
+                    trackedPaths,
+                    pipelineExecutablePath);
+                return sourceSetResult.IsSuccess
+                    ? new OperationResult<IReadOnlyList<string>>(
+                        sourceSetResult.Value!.WorktreeRelativePaths,
+                        [],
+                        PipelineExitCode.Success)
+                    : new OperationResult<IReadOnlyList<string>>(
+                        null,
+                        sourceSetResult.Diagnostics,
+                        sourceSetResult.ExitCode);
+            },
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<OperationResult<GitProvenance>> InspectAsync(
+        string workingDirectory,
+        Func<string, IReadOnlyList<string>, OperationResult<IReadOnlyList<string>>>
+            resolveContributingPaths,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
         var rootResult = await RunGitAsync(
             workingDirectory,
             ["rev-parse", "--show-toplevel"],
             cancellationToken).ConfigureAwait(false);
         if (rootResult.ExitCode != 0)
         {
-            return Failure(
+            return Failure<GitProvenance>(
                 $"Git could not locate a worktree from '{workingDirectory}': {rootResult.StandardError}");
         }
 
         var worktreeRoot = Path.GetFullPath(rootResult.StandardOutput.TrimEnd('\r', '\n'));
-        var contributingPaths = new List<string>(contributingAbsolutePaths.Count);
-        foreach (var absolutePath in contributingAbsolutePaths)
-        {
-            var fullPath = Path.GetFullPath(absolutePath);
-            var relativePath = Path.GetRelativePath(worktreeRoot, fullPath);
-            if (relativePath == "." || IsOutsideWorktree(relativePath))
-            {
-                return Failure(
-                    $"Contributing path '{fullPath}' is outside Git worktree '{worktreeRoot}'.");
-            }
-
-            contributingPaths.Add(NormalizeGitPath(relativePath));
-        }
-
-        var normalizedContributingPaths = contributingPaths
-            .Distinct(StringComparer.Ordinal)
-            .OrderBy(path => path, StringComparer.Ordinal)
-            .ToArray();
-
         var commitResult = await RunGitAsync(
             worktreeRoot,
             ["rev-parse", "HEAD"],
             cancellationToken).ConfigureAwait(false);
         if (commitResult.ExitCode != 0)
         {
-            return Failure($"Git could not resolve HEAD: {commitResult.StandardError}");
+            return Failure<GitProvenance>(
+                $"Git could not resolve HEAD: {commitResult.StandardError}");
         }
 
         var statusResult = await RunGitAsync(
@@ -67,7 +96,8 @@ internal sealed class GitRepositoryInspector(IExternalProcessRunner processRunne
             cancellationToken).ConfigureAwait(false);
         if (statusResult.ExitCode != 0)
         {
-            return Failure($"Git could not inspect worktree status: {statusResult.StandardError}");
+            return Failure<GitProvenance>(
+                $"Git could not inspect worktree status: {statusResult.StandardError}");
         }
 
         var trackedResult = await RunGitAsync(
@@ -76,16 +106,34 @@ internal sealed class GitRepositoryInspector(IExternalProcessRunner processRunne
             cancellationToken).ConfigureAwait(false);
         if (trackedResult.ExitCode != 0)
         {
-            return Failure($"Git could not enumerate tracked files: {trackedResult.StandardError}");
+            return Failure<GitProvenance>(
+                $"Git could not enumerate tracked files: {trackedResult.StandardError}");
         }
 
         var statusPaths = ParseStatusPaths(statusResult.StandardOutput);
         var trackedPaths = trackedResult.StandardOutput
             .Split('\0', StringSplitOptions.RemoveEmptyEntries)
             .Select(NormalizeGitPath)
-            .ToHashSet(StringComparer.Ordinal);
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+        var contributingResult = resolveContributingPaths(worktreeRoot, trackedPaths);
+        if (!contributingResult.IsSuccess)
+        {
+            return new OperationResult<GitProvenance>(
+                null,
+                contributingResult.Diagnostics,
+                contributingResult.ExitCode);
+        }
+
+        var normalizedContributingPaths = contributingResult.Value!
+            .Select(NormalizeGitPath)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+        var trackedPathSet = trackedPaths.ToHashSet(StringComparer.Ordinal);
         var dirtyPaths = normalizedContributingPaths
-            .Where(path => statusPaths.Contains(path) || !trackedPaths.Contains(path))
+            .Where(path => statusPaths.Contains(path) || !trackedPathSet.Contains(path))
             .ToArray();
 
         var provenance = new GitProvenance(
@@ -99,22 +147,58 @@ internal sealed class GitRepositoryInspector(IExternalProcessRunner processRunne
             PipelineExitCode.Success);
     }
 
+    private static OperationResult<IReadOnlyList<string>> ResolveContributingPaths(
+        string worktreeRoot,
+        IReadOnlyList<string> contributingAbsolutePaths)
+    {
+        var contributingPaths = new List<string>(contributingAbsolutePaths.Count);
+        foreach (var absolutePath in contributingAbsolutePaths)
+        {
+            var fullPath = Path.GetFullPath(absolutePath);
+            var relativePath = Path.GetRelativePath(worktreeRoot, fullPath);
+            if (relativePath == "." || IsOutsideWorktree(relativePath))
+            {
+                return Failure<IReadOnlyList<string>>(
+                    $"Contributing path '{fullPath}' is outside Git worktree '{worktreeRoot}'.");
+            }
+
+            contributingPaths.Add(NormalizeGitPath(relativePath));
+        }
+
+        return new OperationResult<IReadOnlyList<string>>(
+            contributingPaths,
+            [],
+            PipelineExitCode.Success);
+    }
+
     private async Task<ProcessResult> RunGitAsync(
         string workingDirectory,
         IReadOnlyList<string> arguments,
-        CancellationToken cancellationToken) =>
-        await processRunner.RunAsync(
-            new ProcessRequest(
-                "git",
-                arguments,
-                workingDirectory,
-                new Dictionary<string, string>(StringComparer.Ordinal)
-                {
-                    ["GIT_CONFIG_GLOBAL"] = OperatingSystem.IsWindows() ? "NUL" : "/dev/null",
-                    ["GIT_CONFIG_NOSYSTEM"] = "1",
-                    ["GIT_OPTIONAL_LOCKS"] = "0"
-                }),
-            cancellationToken).ConfigureAwait(false);
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await processRunner.RunAsync(
+                new ProcessRequest(
+                    "git",
+                    arguments,
+                    workingDirectory,
+                    new Dictionary<string, string>(StringComparer.Ordinal)
+                    {
+                        ["GIT_CONFIG_GLOBAL"] = OperatingSystem.IsWindows()
+                            ? "NUL"
+                            : "/dev/null",
+                        ["GIT_CONFIG_NOSYSTEM"] = "1",
+                        ["GIT_OPTIONAL_LOCKS"] = "0"
+                    }),
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (
+            exception is Win32Exception or FileNotFoundException)
+        {
+            return new ProcessResult(-1, string.Empty, exception.Message);
+        }
+    }
 
     private static HashSet<string> ParseStatusPaths(string porcelainOutput)
     {
@@ -148,9 +232,9 @@ internal sealed class GitRepositoryInspector(IExternalProcessRunner processRunne
     private static string NormalizeGitPath(string path) =>
         path.Replace((char)92, '/');
 
-    private static OperationResult<GitProvenance> Failure(string reason) =>
+    private static OperationResult<T> Failure<T>(string reason) =>
         new(
-            null,
+            default,
             [DiagnosticCatalog.DirtyReleaseInput(reason)],
             PipelineExitCode.ReleaseNotReady);
 }
