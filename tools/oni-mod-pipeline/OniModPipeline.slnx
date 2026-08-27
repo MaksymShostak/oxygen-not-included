@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/OniModPipeline/OniModPipeline.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/OniModPipeline.Tests/OniModPipeline.Tests.csproj" />
+  </Folder>
+</Solution>
