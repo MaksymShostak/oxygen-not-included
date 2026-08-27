@@ -215,6 +215,78 @@ internal static class DiagnosticCatalog
             reason,
             "Commit every contributing input and remove scoped modifications before preparing a release.");
     }
+
+    internal static Diagnostic MissingDotnetSdk(string reason)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        return new Diagnostic(
+            DiagnosticIds.MissingDotnetSdk,
+            DiagnosticSeverity.Error,
+            "The required .NET SDK is unavailable.",
+            reason,
+            "Install the pinned stable .NET 10.0.4xx SDK; oni-mod-pipeline never installs SDKs automatically.");
+    }
+
+    internal static Diagnostic AmbiguousGameInstallation(
+        IReadOnlyList<string> candidatePaths)
+    {
+        ArgumentNullException.ThrowIfNull(candidatePaths);
+
+        return new Diagnostic(
+            DiagnosticIds.AmbiguousGameInstallation,
+            DiagnosticSeverity.Error,
+            "More than one valid ONI installation was discovered.",
+            $"Valid installations: {string.Join(", ", candidatePaths.Select(path => $"'{path}'"))}.",
+            "Pass --game-directory with the intended ONI installation root.");
+    }
+
+    internal static Diagnostic MissingGameAssembly(
+        IReadOnlyList<string> searchedPaths,
+        IReadOnlyList<string> requiredAssemblies)
+    {
+        ArgumentNullException.ThrowIfNull(searchedPaths);
+        ArgumentNullException.ThrowIfNull(requiredAssemblies);
+
+        var searched = searchedPaths.Count == 0
+            ? "No automatic game-installation candidates were available."
+            : $"Searched: {string.Join(", ", searchedPaths.Select(path => $"'{path}'"))}.";
+        return new Diagnostic(
+            DiagnosticIds.MissingGameAssembly,
+            DiagnosticSeverity.Error,
+            "A valid ONI managed-assembly directory was not found.",
+            $"{searched} Required managed anchors: {string.Join(", ", requiredAssemblies)}.",
+            "Pass --game-directory with a game root containing both required managed assemblies.");
+    }
+
+    internal static Diagnostic MissingUserDataDirectory(
+        IReadOnlyList<string> searchedPaths)
+    {
+        ArgumentNullException.ThrowIfNull(searchedPaths);
+
+        var searched = searchedPaths.Count == 0
+            ? "No automatic ONI user-data candidates were available."
+            : $"Searched: {string.Join(", ", searchedPaths.Select(path => $"'{path}'"))}.";
+        return new Diagnostic(
+            DiagnosticIds.MissingUserDataDirectory,
+            DiagnosticSeverity.Error,
+            "A valid ONI user-data directory was not found.",
+            searched,
+            "Pass --user-data-directory with the exact existing ONI per-user data root.");
+    }
+
+    internal static Diagnostic UnsafeArtifactsDirectory(string path, string reason)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        return new Diagnostic(
+            DiagnosticIds.UnsafeProfilePath,
+            DiagnosticSeverity.Error,
+            "The artifact-directory override is unsafe.",
+            $"Artifact path '{path}' is invalid: {reason}.",
+            "Use an absolute, dedicated artifact directory that is not a protected filesystem or ONI root.");
+    }
 }
 
 internal static class DiagnosticIds
