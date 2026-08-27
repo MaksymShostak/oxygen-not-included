@@ -275,6 +275,71 @@ internal static class DiagnosticCatalog
             "Pass --user-data-directory with the exact existing ONI per-user data root.");
     }
 
+    internal static Diagnostic RestoreFailed(string projectPath, string evidence)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(evidence);
+
+        return new Diagnostic(
+            DiagnosticIds.RestoreFailed,
+            DiagnosticSeverity.Error,
+            "Locked dependency restore failed.",
+            $"Project '{projectPath}' did not restore successfully: {evidence}",
+            "Restore the reviewed lock file with the pinned SDK and correct the reported dependency failure.");
+    }
+
+    internal static Diagnostic BuildFailed(string projectPath, string evidence)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(evidence);
+
+        return new Diagnostic(
+            DiagnosticIds.BuildFailed,
+            DiagnosticSeverity.Error,
+            "The isolated mod build failed.",
+            $"Project '{projectPath}' did not satisfy the build contract: {evidence}",
+            "Correct the project or declared build inputs, then run the isolated build again.");
+    }
+
+    internal static Diagnostic SourceChangedDuringBuild(IReadOnlyList<string> changedPaths)
+    {
+        ArgumentNullException.ThrowIfNull(changedPaths);
+
+        return new Diagnostic(
+            DiagnosticIds.SourceChangedDuringBuild,
+            DiagnosticSeverity.Error,
+            "Contributing source bytes changed during the build.",
+            changedPaths.Count == 0
+                ? "The pre-build and post-build source snapshots differ."
+                : $"Changed paths: {string.Join(", ", changedPaths.Select(path => $"'{path}'"))}.",
+            "Remove source-writing build behavior and keep every intermediate and output beneath the run root.");
+    }
+
+    internal static Diagnostic BuildOutputMissing(string outputPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
+
+        return new Diagnostic(
+            DiagnosticIds.BuildOutputMissing,
+            DiagnosticSeverity.Error,
+            "A declared build output is missing.",
+            $"The isolated build did not produce declared output '{outputPath}'.",
+            "Correct the project output contract so every declared build output is written beneath the run root.");
+    }
+
+    internal static Diagnostic AutomatedTestFailed(string testProjectId, string evidence)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(testProjectId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(evidence);
+
+        return new Diagnostic(
+            DiagnosticIds.AutomatedTestFailed,
+            DiagnosticSeverity.Error,
+            $"Automated test project '{testProjectId}' did not produce passing evidence.",
+            evidence,
+            "Correct the test project or its locked dependencies and rerun the declared automated tests.");
+    }
+
     internal static Diagnostic UnsafeArtifactsDirectory(string path, string reason)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);

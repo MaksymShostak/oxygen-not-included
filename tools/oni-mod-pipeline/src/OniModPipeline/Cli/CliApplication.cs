@@ -1,7 +1,10 @@
 using MaksymShostak.OniModPipeline.Diagnostics;
 using MaksymShostak.OniModPipeline.EnvironmentDiscovery;
+using MaksymShostak.OniModPipeline.ModBuild;
 using MaksymShostak.OniModPipeline.ModProfiles;
+using MaksymShostak.OniModPipeline.ModTest;
 using MaksymShostak.OniModPipeline.Processes;
+using MaksymShostak.OniModPipeline.Serialization;
 using MaksymShostak.OniModPipeline.SourceControl;
 using System.CommandLine;
 using System.Globalization;
@@ -23,6 +26,8 @@ internal static class CliApplication
             "Prepare tested ONI mod release candidates for manual Workshop upload.");
         rootCommand.Subcommands.Add(CreateDiagnoseCommand(services));
         rootCommand.Subcommands.Add(CreateValidateCommand(services));
+        rootCommand.Subcommands.Add(CreateBuildCommand(services));
+        rootCommand.Subcommands.Add(CreateTestCommand(services));
         return rootCommand;
     }
 
@@ -40,7 +45,8 @@ internal static class CliApplication
                 new EnvironmentVariableSource(),
                 candidateSource,
                 new SteamLibraryCatalog()),
-            new GitRepositoryInspector(processRunner));
+            new GitRepositoryInspector(processRunner),
+            processRunner);
     }
 
     internal static async Task<int> InvokeAsync(
@@ -125,6 +131,72 @@ internal static class CliApplication
                 options.GetModPath(parseResult),
                 options.GetEnvironmentRequest(parseResult),
                 parseResult.GetValue(forReleaseOption),
+                cancellationToken).ConfigureAwait(false);
+            return DiagnosticRenderer.Render(
+                result,
+                options.GetOutputFormat(parseResult),
+                parseResult.InvocationConfiguration.Output,
+                parseResult.InvocationConfiguration.Error);
+        });
+        return command;
+    }
+
+    private static Command CreateBuildCommand(PipelineServices services)
+    {
+        var options = new CommandOptions();
+        var configurationOption = new Option<string?>("--configuration")
+        {
+            Description =
+                "MSBuild configuration override; defaults to the profile build configuration."
+        };
+        configurationOption.Validators.Add(result =>
+        {
+            var value = result.GetValueOrDefault<string?>();
+            if (value is not null &&
+                (string.IsNullOrWhiteSpace(value) ||
+                 value.Contains('"') ||
+                 value.Any(char.IsControl)))
+            {
+                result.AddError(
+                    "Option '--configuration' must be nonempty and contain no control characters or double quotes.");
+            }
+        });
+
+        var command = new Command(
+            "build",
+            "Build an ONI mod into a new isolated artifact run.");
+        options.AddTo(command);
+        command.Options.Add(configurationOption);
+        command.SetAction(async (parseResult, cancellationToken) =>
+        {
+            var result = await BuildAsync(
+                services,
+                options.GetModPath(parseResult),
+                options.GetEnvironmentRequest(parseResult),
+                parseResult.GetValue(configurationOption),
+                cancellationToken).ConfigureAwait(false);
+            return DiagnosticRenderer.Render(
+                result,
+                options.GetOutputFormat(parseResult),
+                parseResult.InvocationConfiguration.Output,
+                parseResult.InvocationConfiguration.Error);
+        });
+        return command;
+    }
+
+    private static Command CreateTestCommand(PipelineServices services)
+    {
+        var options = new CommandOptions();
+        var command = new Command(
+            "test",
+            "Run every declared mod test project into a new evidence directory.");
+        options.AddTo(command);
+        command.SetAction(async (parseResult, cancellationToken) =>
+        {
+            var result = await TestAsync(
+                services,
+                options.GetModPath(parseResult),
+                options.GetEnvironmentRequest(parseResult),
                 cancellationToken).ConfigureAwait(false);
             return DiagnosticRenderer.Render(
                 result,
@@ -226,6 +298,109 @@ internal static class CliApplication
             context.Environment.DotnetSdkVersion));
     }
 
+    private static async Task<OperationResult<string>> BuildAsync(
+        PipelineServices services,
+        string modPath,
+        EnvironmentDiscoveryRequest environmentRequest,
+        string? configuration,
+        CancellationToken cancellationToken)
+    {
+        var contextResult = await ResolveReadOnlyContextAsync(
+            services,
+            modPath,
+            environmentRequest,
+            cancellationToken).ConfigureAwait(false);
+        if (!contextResult.IsSuccess)
+        {
+            return ConvertFailure<ReadOnlyContext, string>(contextResult);
+        }
+
+        var context = contextResult.Value!;
+        var provenanceResult = await services.GitRepositoryInspector.InspectAsync(
+            context.Profile,
+            typeof(CliApplication).Assembly.Location,
+            cancellationToken).ConfigureAwait(false);
+        if (!provenanceResult.IsSuccess)
+        {
+            return ConvertFailure<GitProvenance, string>(provenanceResult);
+        }
+
+        var provenance = provenanceResult.Value!;
+        var runRoot = CreateRunRoot(
+            context.Environment.ArtifactsDirectory,
+            "builds",
+            context.Metadata.StaticId);
+        var selectedConfiguration = configuration ??
+            context.Profile.Build?.Configuration ??
+            "Release";
+        var builder = new ModBuilder(
+            services.ProcessRunner,
+            new Utf8ArtifactWriter());
+        var buildResult = await builder.BuildAsync(
+            new BuildRequest(
+                context.Profile,
+                context.Environment,
+                selectedConfiguration,
+                runRoot,
+                context.Metadata.Version,
+                provenance.Commit),
+            cancellationToken).ConfigureAwait(false);
+        if (!buildResult.IsSuccess)
+        {
+            return ConvertFailure<BuildResult, string>(buildResult);
+        }
+
+        return Success(Path.Combine(runRoot, "build-result.json"));
+    }
+
+    private static async Task<OperationResult<string>> TestAsync(
+        PipelineServices services,
+        string modPath,
+        EnvironmentDiscoveryRequest environmentRequest,
+        CancellationToken cancellationToken)
+    {
+        var contextResult = await ResolveReadOnlyContextAsync(
+            services,
+            modPath,
+            environmentRequest,
+            cancellationToken).ConfigureAwait(false);
+        if (!contextResult.IsSuccess)
+        {
+            return ConvertFailure<ReadOnlyContext, string>(contextResult);
+        }
+
+        var context = contextResult.Value!;
+        var provenanceResult = await services.GitRepositoryInspector.InspectAsync(
+            context.Profile,
+            typeof(CliApplication).Assembly.Location,
+            cancellationToken).ConfigureAwait(false);
+        if (!provenanceResult.IsSuccess)
+        {
+            return ConvertFailure<GitProvenance, string>(provenanceResult);
+        }
+
+        var provenance = provenanceResult.Value!;
+        var runRoot = CreateRunRoot(
+            context.Environment.ArtifactsDirectory,
+            "tests",
+            context.Metadata.StaticId);
+        var resultsRoot = Path.Combine(runRoot, "automated-test-results");
+        var testRunner = new AutomatedTestRunner(
+            services.ProcessRunner,
+            context.Environment.OniManagedAssemblyDirectory,
+            provenance.WorktreeRoot);
+        var testResult = await testRunner.RunAsync(
+            context.Profile,
+            resultsRoot,
+            cancellationToken).ConfigureAwait(false);
+        return testResult.IsSuccess
+            ? Success(resultsRoot)
+            : new OperationResult<string>(
+                null,
+                testResult.Diagnostics,
+                testResult.ExitCode);
+    }
+
     private static async Task<OperationResult<ReadOnlyContext>> ResolveReadOnlyContextAsync(
         PipelineServices services,
         string modPath,
@@ -325,6 +500,19 @@ internal static class CliApplication
         File.Exists(Path.Combine(gameDirectory, "OniUploader64.exe")) ||
         File.Exists(Path.Combine(gameDirectory, "OniUploader.exe")) ||
         Directory.Exists(Path.Combine(gameDirectory, "OniUploader.app"));
+
+    private static string CreateRunRoot(
+        string artifactsDirectory,
+        string category,
+        string staticId)
+    {
+        var runId = $"{DateTimeOffset.UtcNow:yyyyMMddTHHmmssfffffffZ}-{Guid.NewGuid():N}";
+        return Path.GetFullPath(Path.Combine(
+            artifactsDirectory,
+            category,
+            staticId,
+            runId));
+    }
 
     private static OperationResult<T> Success<T>(T value) =>
         new(value, [], PipelineExitCode.Success);

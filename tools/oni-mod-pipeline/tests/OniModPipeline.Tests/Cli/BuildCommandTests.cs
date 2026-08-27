@@ -1,125 +1,75 @@
 using MaksymShostak.OniModPipeline.Cli;
-using MaksymShostak.OniModPipeline.Diagnostics;
 using MaksymShostak.OniModPipeline.EnvironmentDiscovery;
 using MaksymShostak.OniModPipeline.ModProfiles;
 using MaksymShostak.OniModPipeline.Processes;
 using MaksymShostak.OniModPipeline.SourceControl;
 using MaksymShostak.OniModPipeline.Tests.Fixtures;
-using System.CommandLine;
-using System.ComponentModel;
-using System.Globalization;
+using System.Text.Json;
 
 namespace MaksymShostak.OniModPipeline.Tests.Cli;
 
 [TestClass]
-public sealed class DiagnoseCommandTests
+public sealed class BuildCommandTests
 {
     [TestMethod]
-    public async Task Diagnose_WhenEnvironmentIsValid_PrintsResolvedPathsWithoutCreatingArtifacts()
+    public async Task Build_WhenProfileIsContentOnly_PrintsExactBuildResultPath()
     {
-        using var fixture = new CliCommandFixture(sourceIsDirty: false);
-        var before = SourceSnapshot.CaptureTree(fixture.RootPath);
+        using var fixture = new PipelineCommandFixture(includeTests: false);
         var command = CliApplication.CreateRootCommand(fixture.Services);
 
-        var invocation = await InvokeAsync(command, fixture.CreateArguments("diagnose"));
+        var invocation = await DiagnoseCommandTests.InvokeAsync(
+            command,
+            fixture.CreateArguments("build", "--configuration", "Release"));
 
-        var after = SourceSnapshot.CaptureTree(fixture.RootPath);
         Assert.AreEqual(0, invocation.ExitCode);
         Assert.AreEqual(string.Empty, invocation.StandardError);
-        StringAssert.Contains(invocation.StandardOutput, fixture.ModRoot);
-        StringAssert.Contains(invocation.StandardOutput, fixture.WorktreeRoot);
-        StringAssert.Contains(invocation.StandardOutput, fixture.GameDirectory);
-        StringAssert.Contains(invocation.StandardOutput, fixture.ManagedDirectory);
-        StringAssert.Contains(invocation.StandardOutput, fixture.UserDataDirectory);
-        StringAssert.Contains(invocation.StandardOutput, fixture.ArtifactsDirectory);
-        StringAssert.Contains(invocation.StandardOutput, "10.0.400");
-        StringAssert.Contains(invocation.StandardOutput, "123456");
-        StringAssert.Contains(invocation.StandardOutput, "Uploader present: true");
-        Assert.IsFalse(Directory.Exists(fixture.ArtifactsDirectory));
-        Assert.AreEqual(0, before.ChangedPathsComparedWith(after).Count);
+        var buildResultPath = invocation.StandardOutput.TrimEnd('\r', '\n');
+        Assert.AreEqual("build-result.json", Path.GetFileName(buildResultPath));
+        Assert.IsTrue(File.Exists(buildResultPath));
+        Assert.IsTrue(buildResultPath.StartsWith(
+            Path.Combine(fixture.ArtifactsDirectory, "builds", "Example.Mod") +
+            Path.DirectorySeparatorChar,
+            StringComparison.OrdinalIgnoreCase));
+        using var document = JsonDocument.Parse(await File.ReadAllBytesAsync(buildResultPath));
+        Assert.AreEqual(
+            Path.GetDirectoryName(buildResultPath),
+            document.RootElement.GetProperty("runRoot").GetString());
+        Assert.AreEqual(JsonValueKind.Null, document.RootElement
+            .GetProperty("primaryOutputPath")
+            .ValueKind);
+        Assert.AreEqual(
+            PipelineCommandFixture.Commit,
+            document.RootElement.GetProperty("sourceCommit").GetString());
+        Assert.AreEqual(0, fixture.ProcessRunner.BuildOrTestRequests.Count);
     }
 
     [TestMethod]
-    public async Task Diagnose_WhenHelpIsRequested_DocumentsAllFiveCommonOptionsWithoutDiscovery()
+    public async Task Build_WhenJsonRequested_ReturnsExactBuildResultPathAsValue()
     {
-        using var fixture = new CliCommandFixture(sourceIsDirty: false);
-        var before = SourceSnapshot.CaptureTree(fixture.RootPath);
+        using var fixture = new PipelineCommandFixture(includeTests: false);
         var command = CliApplication.CreateRootCommand(fixture.Services);
 
-        var invocation = await InvokeAsync(command, ["diagnose", "--help"]);
+        var invocation = await DiagnoseCommandTests.InvokeAsync(
+            command,
+            fixture.CreateArguments("build", "--format", "json"));
 
-        var after = SourceSnapshot.CaptureTree(fixture.RootPath);
-        Assert.AreEqual(0, invocation.ExitCode);
-        StringAssert.Contains(invocation.StandardOutput, "--mod");
-        StringAssert.Contains(invocation.StandardOutput, "--game-directory");
-        StringAssert.Contains(invocation.StandardOutput, "--user-data-directory");
-        StringAssert.Contains(invocation.StandardOutput, "--artifacts-directory");
-        StringAssert.Contains(invocation.StandardOutput, "--format");
-        Assert.AreEqual(0, fixture.ProcessRunner.Requests.Count);
-        Assert.AreEqual(0, before.ChangedPathsComparedWith(after).Count);
-    }
-
-    [TestMethod]
-    public async Task Diagnose_WhenGitIsUnavailable_ReportsEnvironmentWithoutWorktreeProvenance()
-    {
-        using var fixture = new CliCommandFixture(
-            sourceIsDirty: false,
-            gitIsAvailable: false);
-        var before = SourceSnapshot.CaptureTree(fixture.RootPath);
-        var command = CliApplication.CreateRootCommand(fixture.Services);
-
-        var invocation = await InvokeAsync(command, fixture.CreateArguments("diagnose"));
-
-        var after = SourceSnapshot.CaptureTree(fixture.RootPath);
         Assert.AreEqual(0, invocation.ExitCode);
         Assert.AreEqual(string.Empty, invocation.StandardError);
-        StringAssert.Contains(
-            invocation.StandardOutput,
-            "Git worktree root: <unavailable>");
-        Assert.AreEqual(0, before.ChangedPathsComparedWith(after).Count);
-    }
-
-    internal static async Task<CommandInvocation> InvokeAsync(
-        RootCommand command,
-        string[] arguments)
-    {
-        using var output = new StringWriter(CultureInfo.InvariantCulture);
-        using var error = new StringWriter(CultureInfo.InvariantCulture);
-        var parseResult = command.Parse(arguments);
-        parseResult.InvocationConfiguration.Output = output;
-        parseResult.InvocationConfiguration.Error = error;
-
-        int exitCode;
-        if (parseResult.Errors.Count > 0)
-        {
-            foreach (var parseError in parseResult.Errors)
-            {
-                error.WriteLine(parseError.Message);
-            }
-
-            exitCode = (int)PipelineExitCode.InvalidInput;
-        }
-        else
-        {
-            exitCode = await parseResult.InvokeAsync();
-        }
-
-        return new CommandInvocation(exitCode, output.ToString(), error.ToString());
+        using var document = JsonDocument.Parse(invocation.StandardOutput);
+        var buildResultPath = document.RootElement.GetProperty("value").GetString();
+        Assert.IsNotNull(buildResultPath);
+        Assert.IsTrue(File.Exists(buildResultPath));
     }
 }
 
-internal sealed record CommandInvocation(
-    int ExitCode,
-    string StandardOutput,
-    string StandardError);
-
-internal sealed class CliCommandFixture : IDisposable
+internal sealed class PipelineCommandFixture : IDisposable
 {
+    internal const string Commit = "0123456789abcdef0123456789abcdef01234567";
+
     private readonly TemporaryDirectory temporaryDirectory = new();
 
-    internal CliCommandFixture(bool sourceIsDirty, bool gitIsAvailable = true)
+    internal PipelineCommandFixture(bool includeTests)
     {
-        RootPath = temporaryDirectory.Path;
         WorktreeRoot = temporaryDirectory.GetPath("repository");
         ModRoot = Path.Combine(WorktreeRoot, "mods", "example");
         GameDirectory = temporaryDirectory.GetPath("game");
@@ -129,24 +79,15 @@ internal sealed class CliCommandFixture : IDisposable
             "Managed");
         UserDataDirectory = temporaryDirectory.GetPath("user-data");
         ArtifactsDirectory = temporaryDirectory.GetPath("pipeline-artifacts");
-        WriteProfile();
+        WriteProfile(includeTests);
         WriteEnvironment();
-
         var trackedPaths = Directory
             .EnumerateFiles(ModRoot, "*", SearchOption.AllDirectories)
             .Select(path => Path.GetRelativePath(WorktreeRoot, path)
                 .Replace((char)92, '/'))
             .OrderBy(path => path, StringComparer.Ordinal)
             .ToArray();
-        var dirtyPath = Path.GetRelativePath(
-                WorktreeRoot,
-                Path.Combine(ModRoot, "description.bbcode"))
-            .Replace((char)92, '/');
-        ProcessRunner = new CliProcessRunner(
-            WorktreeRoot,
-            trackedPaths,
-            sourceIsDirty ? dirtyPath : null,
-            gitIsAvailable);
+        ProcessRunner = new PipelineCommandProcessRunner(WorktreeRoot, trackedPaths);
         var candidateSource = new GameInstallationCandidateSource(
             HostOperatingSystem.Windows,
             temporaryDirectory.GetPath("home"),
@@ -167,8 +108,6 @@ internal sealed class CliCommandFixture : IDisposable
             ProcessRunner);
     }
 
-    internal string RootPath { get; }
-
     internal string WorktreeRoot { get; }
 
     internal string ModRoot { get; }
@@ -181,7 +120,7 @@ internal sealed class CliCommandFixture : IDisposable
 
     internal string ArtifactsDirectory { get; }
 
-    internal CliProcessRunner ProcessRunner { get; }
+    internal PipelineCommandProcessRunner ProcessRunner { get; }
 
     internal PipelineServices Services { get; }
 
@@ -201,12 +140,21 @@ internal sealed class CliCommandFixture : IDisposable
 
     public void Dispose() => temporaryDirectory.Dispose();
 
-    private void WriteProfile()
+    private void WriteProfile(bool includeTests)
     {
         Directory.CreateDirectory(ModRoot);
+        var tests = includeTests
+            ? """
+
+              [[test-projects]]
+              id = "example-regressions"
+              path = "Tests/Example.Tests.csproj"
+              required = true
+              """
+            : string.Empty;
         File.WriteAllText(
             Path.Combine(ModRoot, "oni-mod-pipeline.toml"),
-            """
+            $$"""
             schema-version = 1
 
             [mod]
@@ -230,6 +178,7 @@ internal sealed class CliCommandFixture : IDisposable
 
             [local-install]
             directory-name = "ExampleMod"
+            {{tests}}
             """);
         File.WriteAllText(
             Path.Combine(ModRoot, "mod.yaml"),
@@ -249,6 +198,14 @@ internal sealed class CliCommandFixture : IDisposable
         File.WriteAllText(Path.Combine(ModRoot, "description.bbcode"), "Description\n");
         File.WriteAllText(Path.Combine(ModRoot, "change-notes.bbcode"), "Changes\n");
         File.WriteAllBytes(Path.Combine(ModRoot, "preview.png"), [0x89, 0x50, 0x4E, 0x47]);
+        if (includeTests)
+        {
+            var testDirectory = Path.Combine(ModRoot, "Tests");
+            Directory.CreateDirectory(testDirectory);
+            File.WriteAllText(
+                Path.Combine(testDirectory, "Example.Tests.csproj"),
+                "<Project />\n");
+        }
     }
 
     private void WriteEnvironment()
@@ -259,20 +216,21 @@ internal sealed class CliCommandFixture : IDisposable
             Path.Combine(ManagedDirectory, "Assembly-CSharp.dll"),
             "assembly");
         File.WriteAllText(Path.Combine(ManagedDirectory, "0Harmony.dll"), "harmony");
-        File.WriteAllText(
-            Path.Combine(GameDirectory, "build.json"),
-            "{\"build\":123456}\n");
-        File.WriteAllText(Path.Combine(GameDirectory, "OniUploader64.exe"), "uploader");
     }
 }
 
-internal sealed class CliProcessRunner(
+internal sealed class PipelineCommandProcessRunner(
     string worktreeRoot,
-    IReadOnlyList<string> trackedPaths,
-    string? dirtyPath,
-    bool gitIsAvailable) : IExternalProcessRunner
+    IReadOnlyList<string> trackedPaths) : IExternalProcessRunner
 {
     internal List<ProcessRequest> Requests { get; } = [];
+
+    internal IReadOnlyList<ProcessRequest> BuildOrTestRequests => Requests
+        .Where(request =>
+            request.FileName == "dotnet" &&
+            request.Arguments.Count > 0 &&
+            request.Arguments[0] is "restore" or "test" or "build" or "msbuild")
+        .ToArray();
 
     public Task<ProcessResult> RunAsync(
         ProcessRequest request,
@@ -280,23 +238,12 @@ internal sealed class CliProcessRunner(
     {
         cancellationToken.ThrowIfCancellationRequested();
         Requests.Add(request);
-        if (string.Equals(request.FileName, "dotnet", StringComparison.Ordinal))
+        if (request.FileName == "dotnet")
         {
-            CollectionAssert.AreEqual(
-                new[] { "--version" },
-                request.Arguments.ToArray());
-            return Task.FromResult(new ProcessResult(
-                0,
-                $"10.0.400{Environment.NewLine}",
-                string.Empty));
+            return Task.FromResult(RunDotnet(request));
         }
 
         Assert.AreEqual("git", request.FileName);
-        if (!gitIsAvailable)
-        {
-            throw new Win32Exception("git is unavailable for this test.");
-        }
-
         var key = string.Join(' ', request.Arguments);
         return Task.FromResult(key switch
         {
@@ -306,17 +253,64 @@ internal sealed class CliProcessRunner(
                 string.Empty),
             "rev-parse HEAD" => new ProcessResult(
                 0,
-                $"0123456789abcdef0123456789abcdef01234567{Environment.NewLine}",
+                $"{PipelineCommandFixture.Commit}{Environment.NewLine}",
                 string.Empty),
-            "status --porcelain=v1 -z --untracked-files=all" => new ProcessResult(
-                0,
-                dirtyPath is null ? string.Empty : $" M {dirtyPath}\0",
-                string.Empty),
+            "status --porcelain=v1 -z --untracked-files=all" =>
+                new ProcessResult(0, string.Empty, string.Empty),
             "ls-files -z" => new ProcessResult(
                 0,
                 string.Join('\0', trackedPaths) + '\0',
                 string.Empty),
             _ => new ProcessResult(2, string.Empty, $"Unexpected git arguments: {key}")
         });
+    }
+
+    private static ProcessResult RunDotnet(ProcessRequest request)
+    {
+        if (request.Arguments.SequenceEqual(["--version"]))
+        {
+            return new ProcessResult(0, $"10.0.400{Environment.NewLine}", string.Empty);
+        }
+
+        if (request.Arguments[0] == "restore")
+        {
+            return new ProcessResult(0, "restored", string.Empty);
+        }
+
+        if (request.Arguments[0] == "test")
+        {
+            var resultsIndex = FindArgumentIndex(
+                request.Arguments,
+                "--results-directory");
+            var filenameIndex = FindArgumentIndex(
+                request.Arguments,
+                "--report-trx-filename");
+            var trxPath = Path.Combine(
+                request.Arguments[resultsIndex + 1],
+                request.Arguments[filenameIndex + 1]);
+            Directory.CreateDirectory(Path.GetDirectoryName(trxPath)!);
+            File.WriteAllText(trxPath, "<TestRun />\n");
+            return new ProcessResult(0, "tested", string.Empty);
+        }
+
+        return new ProcessResult(
+            2,
+            string.Empty,
+            $"Unexpected dotnet arguments: {string.Join(' ', request.Arguments)}");
+    }
+
+    private static int FindArgumentIndex(
+        IReadOnlyList<string> arguments,
+        string expected)
+    {
+        for (var index = 0; index < arguments.Count; index++)
+        {
+            if (string.Equals(arguments[index], expected, StringComparison.Ordinal))
+            {
+                return index;
+            }
+        }
+
+        return -1;
     }
 }
