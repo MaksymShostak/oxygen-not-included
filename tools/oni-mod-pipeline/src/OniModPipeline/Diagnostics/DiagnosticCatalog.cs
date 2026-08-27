@@ -143,6 +143,66 @@ internal static class DiagnosticCatalog
             $"Declared path '{declaredPath}' resolves to '{resolvedPath}', which does not exist.",
             "Create the declared input or correct its path in oni-mod-pipeline.toml.");
     }
+
+    internal static Diagnostic DeclaredInputWrongKind(
+        string declaredPath,
+        string resolvedPath,
+        string expectedKind)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(declaredPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(resolvedPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(expectedKind);
+
+        return new Diagnostic(
+            DiagnosticIds.DeclaredInputMissing,
+            DiagnosticSeverity.Error,
+            "A declared profile input has the wrong filesystem kind.",
+            $"Declared path '{declaredPath}' resolves to '{resolvedPath}', which is not a {expectedKind}.",
+            "Correct the declared input kind or its path in oni-mod-pipeline.toml.");
+    }
+
+    internal static Diagnostic InvalidProfileSemantics(string field, string reason)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(field);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        return new Diagnostic(
+            DiagnosticIds.UnknownProfileKey,
+            DiagnosticSeverity.Error,
+            "The mod profile is not semantically valid.",
+            $"Field '{field}' is invalid: {reason}",
+            "Correct the profile so it satisfies the schema-version = 1 semantic contract.");
+    }
+
+    internal static Diagnostic DuplicatePackageDestination(
+        string firstDestination,
+        string secondDestination,
+        string portableCollisionKey)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(firstDestination);
+        ArgumentException.ThrowIfNullOrWhiteSpace(secondDestination);
+        ArgumentException.ThrowIfNullOrWhiteSpace(portableCollisionKey);
+
+        return new Diagnostic(
+            DiagnosticIds.DuplicatePackageDestination,
+            DiagnosticSeverity.Error,
+            "Package destinations collide on a supported filesystem.",
+            $"Destinations '{firstDestination}' and '{secondDestination}' share portable key '{portableCollisionKey}'.",
+            "Use unique NFC-normalized destinations that remain distinct without case sensitivity.");
+    }
+
+    internal static Diagnostic InvalidWorkshopListing(string field, string reason)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(field);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        return new Diagnostic(
+            DiagnosticIds.InvalidWorkshopListing,
+            DiagnosticSeverity.Error,
+            "Workshop listing configuration is invalid.",
+            $"Listing field '{field}' is invalid: {reason}",
+            "Use only the schema-version = 1 Workshop listing fields and identifiers.");
+    }
 }
 
 internal static class DiagnosticIds

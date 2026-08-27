@@ -47,50 +47,13 @@ internal static class OniMetadataReader
 
     private static string ResolveMetadataPath(string modRoot, string declaredPath)
     {
-        if (string.IsNullOrWhiteSpace(declaredPath) || Path.IsPathRooted(declaredPath))
+        var result = ContainedPathResolver.ResolveExistingFile(modRoot, declaredPath);
+        if (!result.IsSuccess)
         {
-            throw new MetadataReadException(DiagnosticCatalog.UnsafeProfilePath(
-                modRoot,
-                string.IsNullOrWhiteSpace(declaredPath) ? "<empty>" : declaredPath,
-                "the declaration must be a nonempty relative path."));
+            throw new MetadataReadException(result.Diagnostics.Single());
         }
 
-        string resolvedRoot;
-        string resolvedPath;
-        try
-        {
-            resolvedRoot = Path.GetFullPath(modRoot);
-            resolvedPath = Path.GetFullPath(Path.Combine(resolvedRoot, declaredPath));
-        }
-        catch (Exception exception) when (
-            exception is ArgumentException or NotSupportedException or PathTooLongException)
-        {
-            throw new MetadataReadException(DiagnosticCatalog.UnsafeProfilePath(
-                modRoot,
-                declaredPath,
-                "the declaration is not a valid filesystem path."));
-        }
-
-        var relativePath = Path.GetRelativePath(resolvedRoot, resolvedPath);
-        if (Path.IsPathRooted(relativePath) ||
-            relativePath == ".." ||
-            relativePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
-            relativePath.StartsWith($"..{Path.AltDirectorySeparatorChar}", StringComparison.Ordinal))
-        {
-            throw new MetadataReadException(DiagnosticCatalog.UnsafeProfilePath(
-                resolvedRoot,
-                declaredPath,
-                $"it resolves outside the mod root to '{resolvedPath}'."));
-        }
-
-        if (!File.Exists(resolvedPath))
-        {
-            throw new MetadataReadException(DiagnosticCatalog.DeclaredInputMissing(
-                declaredPath,
-                resolvedPath));
-        }
-
-        return resolvedPath;
+        return result.Value!;
     }
 
     private static YamlMappingNode ReadMapping(string path)

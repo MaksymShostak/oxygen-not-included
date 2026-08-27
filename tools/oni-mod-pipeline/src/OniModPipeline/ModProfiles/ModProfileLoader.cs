@@ -88,6 +88,20 @@ internal static class ModProfileLoader
                 resolvedManifestPath));
         }
 
+        var manifestDirectory = Path.GetDirectoryName(resolvedManifestPath)!;
+        var containedManifest = ContainedPathResolver.ResolveExistingFile(
+            manifestDirectory,
+            Path.GetFileName(resolvedManifestPath));
+        if (!containedManifest.IsSuccess)
+        {
+            return new OperationResult<ModProfile>(
+                null,
+                containedManifest.Diagnostics,
+                containedManifest.ExitCode);
+        }
+
+        resolvedManifestPath = containedManifest.Value!;
+
         TomlTable root;
         try
         {
