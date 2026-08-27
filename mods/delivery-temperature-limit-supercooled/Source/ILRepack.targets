@@ -1,18 +1,24 @@
-<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-    <Target Name="CustomILRepack" AfterTargets="Build">
-        <ItemGroup>
-            <InputAssemblies Include="$(OutputPath)\$(AssemblyName).dll" />
-            <InputAssemblies Include="$(OutputPath)\PLib.dll" />
-        </ItemGroup>
-        <ILRepack
-            Parallel="true"
-            Internalize="true"
-            InputAssemblies="@(InputAssemblies)"
-            TargetKind="Dll"
-            OutputFile="$(MSBuildProjectDirectory)\..\$(AssemblyName).dll"
-            LibraryPath="$(GameFolder)" />
-    </Target>
-    <Target Name="UpdateModInfoVersion" AfterTargets="CustomILRepack">
-        <Exec Command="powershell -Command &quot;[System.IO.File]::WriteAllText('$(MSBuildProjectDirectory)\..\mod_info.yaml', ([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\..\mod_info.yaml') -replace '(?m)^version:[^\r\n]*', 'version: $(AssemblyVersion)'))&quot;" />
-    </Target>
+<Project>
+  <Target Name="MergeModAssembly"
+          AfterTargets="Build"
+          DependsOnTargets="ValidateOniBuildProperties"
+          Condition="'$(DesignTimeBuild)' != 'true'">
+    <PropertyGroup>
+      <_ResolvedMergedModOutputPath>$([System.IO.Path]::GetFullPath('$(OniMergedModOutputPath)'))</_ResolvedMergedModOutputPath>
+    </PropertyGroup>
+    <ItemGroup>
+      <_OniMergeInput Include="$(TargetPath)" />
+      <_OniMergeInput Include="$(TargetDir)PLib.dll" />
+    </ItemGroup>
+    <Error Condition="!Exists('$(TargetPath)')" Text="Primary mod assembly was not built: $(TargetPath)" />
+    <Error Condition="!Exists('$(TargetDir)PLib.dll')" Text="Declared PLib merge input was not restored to $(TargetDir)PLib.dll." />
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(_ResolvedMergedModOutputPath)'))" />
+    <ILRepack Parallel="true"
+              Internalize="true"
+              InputAssemblies="@(_OniMergeInput)"
+              TargetKind="Dll"
+              OutputFile="$(_ResolvedMergedModOutputPath)"
+              LibraryPath="$(OniManagedAssemblyDirectory)" />
+    <Error Condition="!Exists('$(_ResolvedMergedModOutputPath)')" Text="ILRepack did not create $(_ResolvedMergedModOutputPath)." />
+  </Target>
 </Project>

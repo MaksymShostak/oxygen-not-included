@@ -1,90 +1,84 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
-    <OutputPath>bin\$(Configuration)\</OutputPath>
     <AssemblyTitle>Delivery Temperature Limit (Supercooled)</AssemblyTitle>
-    <AssemblyVersion>2026.8.26</AssemblyVersion>
     <Authors>MaksymShostak</Authors>
     <Company>MaksymShostak</Company>
-    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-  </PropertyGroup>
-
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-  </PropertyGroup>
-
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>none</DebugType>
-    <Optimize>true</Optimize>
+    <DefaultItemExcludes>$(DefaultItemExcludes);$(MSBuildProjectDirectory)/obj/**</DefaultItemExcludes>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="PLib" Version="4.24.0" />
-    <PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.34" />
+    <PackageReference Include="PLib" Version="4.24.0">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.34">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
     <Reference Include="0Harmony">
-      <HintPath>$(GameFolder)\0Harmony.dll</HintPath>
+      <HintPath>$(OniManagedAssemblyDirectory)/0Harmony.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Assembly-CSharp">
-      <HintPath>$(GameFolder)\Assembly-CSharp.dll</HintPath>
+      <HintPath>$(OniManagedAssemblyDirectory)/Assembly-CSharp.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Assembly-CSharp-firstpass">
-      <HintPath>$(GameFolder)\Assembly-CSharp-firstpass.dll</HintPath>
+      <HintPath>$(OniManagedAssemblyDirectory)/Assembly-CSharp-firstpass.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine">
-      <HintPath>$(GameFolder)\UnityEngine.dll</HintPath>
+      <HintPath>$(OniManagedAssemblyDirectory)/UnityEngine.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>$(GameFolder)\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>$(OniManagedAssemblyDirectory)/UnityEngine.CoreModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.UI">
-      <HintPath>$(GameFolder)\UnityEngine.UI.dll</HintPath>
+      <HintPath>$(OniManagedAssemblyDirectory)/UnityEngine.UI.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Unity.TextMeshPro">
-      <HintPath>$(GameFolder)\Unity.TextMeshPro.dll</HintPath>
+      <HintPath>$(OniManagedAssemblyDirectory)/Unity.TextMeshPro.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.TextRenderingModule">
-      <HintPath>$(GameFolder)\UnityEngine.TextRenderingModule.dll</HintPath>
+      <HintPath>$(OniManagedAssemblyDirectory)/UnityEngine.TextRenderingModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.UIModule">
-      <HintPath>$(GameFolder)\UnityEngine.UIModule.dll</HintPath>
+      <HintPath>$(OniManagedAssemblyDirectory)/UnityEngine.UIModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.InputLegacyModule">
-      <HintPath>$(GameFolder)\UnityEngine.InputLegacyModule.dll</HintPath>
+      <HintPath>$(OniManagedAssemblyDirectory)/UnityEngine.InputLegacyModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.ImageConversionModule">
-      <HintPath>$(GameFolder)\UnityEngine.ImageConversionModule.dll</HintPath>
+      <HintPath>$(OniManagedAssemblyDirectory)/UnityEngine.ImageConversionModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>$(GameFolder)\Newtonsoft.Json.dll</HintPath>
+      <HintPath>$(OniManagedAssemblyDirectory)/Newtonsoft.Json.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="FMODUnity">
-      <HintPath>$(GameFolder)\FMODUnity.dll</HintPath>
+      <HintPath>$(OniManagedAssemblyDirectory)/FMODUnity.dll</HintPath>
       <Private>false</Private>
     </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
   </ItemGroup>
 
+  <Target Name="ValidateOniBuildProperties" BeforeTargets="ResolveReferences">
+    <Error Condition="'$(OniManagedAssemblyDirectory)' == ''"
+           Text="OniManagedAssemblyDirectory is required. Run this build through oni-mod-pipeline or pass the installed ONI Managed directory explicitly." />
+    <Error Condition="!Exists('$(OniManagedAssemblyDirectory)/Assembly-CSharp.dll')"
+           Text="OniManagedAssemblyDirectory does not contain Assembly-CSharp.dll: $(OniManagedAssemblyDirectory)" />
+    <Error Condition="'$(OniMergedModOutputPath)' == ''"
+           Text="OniMergedModOutputPath is required. Run this build through oni-mod-pipeline or pass an isolated merged output path explicitly." />
+  </Target>
 </Project>

@@ -6,6 +6,7 @@ using MaksymShostak.OniModPipeline.Processes;
 using MaksymShostak.OniModPipeline.Serialization;
 using MaksymShostak.OniModPipeline.Tests.Fixtures;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text.Json;
 
 namespace MaksymShostak.OniModPipeline.Tests.ModBuild;
@@ -227,7 +228,7 @@ public sealed class ModBuilderTests
     }
 
     [TestMethod]
-    public async Task BuildAsync_WhenRunRootContainsSpacesAndSemicolon_UsesLiteralIsolatedPaths()
+    public async Task BuildAsync_WhenRunRootsContainSpacesAndDelimiters_ProducesRepeatableAssembliesInIsolation()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var worktreeRoot = temporaryDirectory.GetPath("repository");
@@ -271,9 +272,10 @@ public sealed class ModBuilderTests
         var runRoots = new[]
         {
             temporaryDirectory.GetPath("runs", "ordinary"),
-            temporaryDirectory.GetPath("runs", "with spaces;and=equals")
+            temporaryDirectory.GetPath("runs", "with spaces;comma,value=equals")
         };
         var sourceBytes = await File.ReadAllBytesAsync(sourcePath);
+        var outputHashes = new List<string>();
 
         foreach (var runRoot in runRoots)
         {
@@ -296,9 +298,12 @@ public sealed class ModBuilderTests
                 Path.GetFullPath(runRoot) + Path.DirectorySeparatorChar,
                 StringComparison.OrdinalIgnoreCase));
             Assert.IsTrue(File.Exists(result.Value.PrimaryOutputPath));
+            outputHashes.Add(Convert.ToHexString(SHA256.HashData(
+                await File.ReadAllBytesAsync(result.Value.PrimaryOutputPath))));
             CollectionAssert.AreEqual(sourceBytes, await File.ReadAllBytesAsync(sourcePath));
         }
 
+        Assert.AreEqual(outputHashes[0], outputHashes[1]);
         Assert.AreEqual(0, CountFilesIfDirectoryExists(Path.Combine(sourceDirectory, "bin")));
         Assert.AreEqual(0, CountFilesIfDirectoryExists(Path.Combine(sourceDirectory, "obj")));
     }
@@ -511,7 +516,9 @@ public sealed class ModBuilderTests
                 "1.2.3+0123456789ab"),
             MsBuildPropertyArgument.Create("Deterministic", "true"),
             MsBuildPropertyArgument.Create("ContinuousIntegrationBuild", "true"),
-            MsBuildPropertyArgument.Create("PathMap", $"{WorktreeRoot}=/_/")
+            MsBuildPropertyArgument.Create(
+                "PathMap",
+                $"{RunRoot}=/_build/,{WorktreeRoot}=/_/")
         ];
 
         private string IntermediatePath =>

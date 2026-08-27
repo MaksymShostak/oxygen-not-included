@@ -166,7 +166,7 @@ internal sealed class ModBuilder(
                         "true"),
                     MsBuildPropertyArgument.Create(
                         "PathMap",
-                        $"{worktreeRoot}=/_/")
+                        CreateDeterministicPathMap(runRoot, worktreeRoot))
                 ];
             }
             catch (ArgumentException exception)
@@ -793,6 +793,17 @@ internal sealed class ModBuilder(
             Path.Combine);
         return path.Replace((char)92, '/') + "/";
     }
+
+    private static string CreateDeterministicPathMap(
+        string runRoot,
+        string worktreeRoot) =>
+        $"{EscapePathMapComponent(Path.GetFullPath(runRoot))}=/_build/," +
+        $"{EscapePathMapComponent(Path.GetFullPath(worktreeRoot))}=/_/";
+
+    private static string EscapePathMapComponent(string value) =>
+        value
+            .Replace("=", "==", StringComparison.Ordinal)
+            .Replace(",", ",,", StringComparison.Ordinal);
 
     private static bool IsStrictDescendant(string root, string candidate)
     {

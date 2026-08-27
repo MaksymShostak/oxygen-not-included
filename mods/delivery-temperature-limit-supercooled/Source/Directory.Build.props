@@ -1,5 +1,0 @@
-<Project>
-  <PropertyGroup>
-    <GameFolder Condition="'$(GameFolder)' == ''">C:\Program Files (x86)\Steam\steamapps\common\OxygenNotIncluded\OxygenNotIncluded_Data\Managed</GameFolder>
-  </PropertyGroup>
-</Project>
