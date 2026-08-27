@@ -216,6 +216,18 @@ internal static class DiagnosticCatalog
             "Commit every contributing input and remove scoped modifications before preparing a release.");
     }
 
+    internal static Diagnostic CandidateManifestMismatch(string reason)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        return new Diagnostic(
+            DiagnosticIds.CandidateManifestMismatch,
+            DiagnosticSeverity.Error,
+            "Workshop content does not match the declared release package.",
+            reason,
+            "Use only declared runtime files and rebuild a new closed Workshop content staging directory.");
+    }
+
     internal static Diagnostic MissingDotnetSdk(string reason)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);

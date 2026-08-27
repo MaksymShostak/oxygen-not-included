@@ -36,6 +36,18 @@ internal static class ContainedPathResolver
             File.GetAttributes,
             ReadLinkTarget);
 
+    internal static OperationResult<string> ResolveExistingDirectory(
+        string root,
+        string declaredPath,
+        Func<string, FileAttributes> readAttributes,
+        Func<string, string?> readLinkTarget) =>
+        ResolveExisting(
+            root,
+            declaredPath,
+            ExpectedEntryKind.Directory,
+            readAttributes,
+            readLinkTarget);
+
     private static OperationResult<string> ResolveExisting(
         string root,
         string declaredPath,
