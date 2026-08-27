@@ -1,6 +1,7 @@
 using MaksymShostak.OniModPipeline.Diagnostics;
 using MaksymShostak.OniModPipeline.EnvironmentDiscovery;
 using MaksymShostak.OniModPipeline.ModBuild;
+using MaksymShostak.OniModPipeline.ModInstallation;
 using MaksymShostak.OniModPipeline.ModProfiles;
 using MaksymShostak.OniModPipeline.ModTest;
 using MaksymShostak.OniModPipeline.Processes;
@@ -31,6 +32,7 @@ internal static class CliApplication
         rootCommand.Subcommands.Add(CreateBuildCommand(services));
         rootCommand.Subcommands.Add(CreateTestCommand(services));
         rootCommand.Subcommands.Add(CreatePrepareReleaseCommand(services));
+        rootCommand.Subcommands.Add(CreateInstallCommand(services));
         return rootCommand;
     }
 
@@ -54,6 +56,7 @@ internal static class CliApplication
             ReleaseCandidatePreparer.CreateDefault(
                 processRunner,
                 gitRepositoryInspector),
+            ModInstaller.CreateDefault(),
             processRunner);
     }
 
@@ -227,6 +230,82 @@ internal static class CliApplication
             var result = await PrepareReleaseAsync(
                 services,
                 options.GetModPath(parseResult),
+                options.GetEnvironmentRequest(parseResult),
+                cancellationToken).ConfigureAwait(false);
+            return DiagnosticRenderer.Render(
+                result,
+                options.GetOutputFormat(parseResult),
+                parseResult.InvocationConfiguration.Output,
+                parseResult.InvocationConfiguration.Error);
+        });
+        return command;
+    }
+
+    private static Command CreateInstallCommand(PipelineServices services)
+    {
+        var options = new CommandOptions(defaultModToCurrentDirectory: false);
+        var candidateOption = new Option<string?>("--candidate")
+        {
+            Description = "Exact manifest-verified release-candidate directory to install."
+        };
+        var buildResultOption = new Option<string?>("--build-result")
+        {
+            Description =
+                "Exact build-result.json to install together with the explicit --mod profile."
+        };
+        var targetOption = new Option<string?>("--target")
+        {
+            Description = "Guarded ONI installation target: dev or local."
+        };
+        AddExplicitPathValidator(candidateOption);
+        AddExplicitPathValidator(options.ModOption);
+        AddExplicitPathValidator(buildResultOption);
+        targetOption.Validators.Add(result =>
+        {
+            var value = result.GetValueOrDefault<string?>();
+            if (value is not null && value is not ("dev" or "local"))
+            {
+                result.AddError("Option '--target' accepts only 'dev' or 'local'.");
+            }
+        });
+
+        var command = new Command(
+            "install",
+            "Install one exact candidate or explicit development build with ownership guards.");
+        options.AddTo(command);
+        command.Options.Add(candidateOption);
+        command.Options.Add(buildResultOption);
+        command.Options.Add(targetOption);
+        command.Validators.Add(result =>
+        {
+            var candidate = result.GetValue(candidateOption);
+            var mod = result.GetValue(options.ModOption);
+            var buildResult = result.GetValue(buildResultOption);
+            var candidateForm = candidate is not null &&
+                mod is null &&
+                buildResult is null;
+            var developmentForm = candidate is null &&
+                mod is not null &&
+                buildResult is not null;
+            if (!candidateForm && !developmentForm)
+            {
+                result.AddError(
+                    "Command 'install' requires exactly one source form: --candidate, or --mod together with --build-result.");
+            }
+
+            if (result.GetValue(targetOption) is null)
+            {
+                result.AddError("Command 'install' requires '--target dev' or '--target local'.");
+            }
+        });
+        command.SetAction(async (parseResult, cancellationToken) =>
+        {
+            var result = await InstallAsync(
+                services,
+                options.GetOptionalModPath(parseResult),
+                parseResult.GetValue(candidateOption),
+                parseResult.GetValue(buildResultOption),
+                ParseInstallTarget(parseResult.GetValue(targetOption)!),
                 options.GetEnvironmentRequest(parseResult),
                 cancellationToken).ConfigureAwait(false);
             return DiagnosticRenderer.Render(
@@ -490,6 +569,93 @@ internal static class CliApplication
                 pipelineExecutablePath,
                 TryReadGameBuildMetadata(context.Environment.GameDirectory)),
             cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task<OperationResult<ModInstallationResult>> InstallAsync(
+        PipelineServices services,
+        string? modPath,
+        string? candidateDirectory,
+        string? buildResultPath,
+        InstallTarget target,
+        EnvironmentDiscoveryRequest environmentRequest,
+        CancellationToken cancellationToken)
+    {
+        if (candidateDirectory is not null)
+        {
+            var resolvedCandidateDirectory = Path.GetFullPath(candidateDirectory);
+            var environmentResult = await services.EnvironmentDiscovery.DiscoverAsync(
+                resolvedCandidateDirectory,
+                environmentRequest,
+                cancellationToken).ConfigureAwait(false);
+            if (!environmentResult.IsSuccess)
+            {
+                return ConvertFailure<PipelineEnvironment, ModInstallationResult>(
+                    environmentResult);
+            }
+
+            return await services.ModInstaller.InstallCandidateAsync(
+                resolvedCandidateDirectory,
+                target,
+                environmentResult.Value!,
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        var contextResult = await ResolveReadOnlyContextAsync(
+            services,
+            modPath!,
+            environmentRequest,
+            cancellationToken).ConfigureAwait(false);
+        if (!contextResult.IsSuccess)
+        {
+            return ConvertFailure<ReadOnlyContext, ModInstallationResult>(contextResult);
+        }
+
+        var context = contextResult.Value!;
+        return await services.ModInstaller.InstallBuildAsync(
+            context.Profile,
+            context.Metadata,
+            Path.GetFullPath(buildResultPath!),
+            target,
+            context.Environment,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private static InstallTarget ParseInstallTarget(string value) =>
+        value switch
+        {
+            "dev" => InstallTarget.Dev,
+            "local" => InstallTarget.Local,
+            _ => throw new InvalidOperationException(
+                "The validated installation target was not canonical.")
+        };
+
+    private static void AddExplicitPathValidator(Option<string?> option)
+    {
+        option.Validators.Add(result =>
+        {
+            var value = result.GetValueOrDefault<string?>();
+            if (value is null)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                result.AddError($"Option '{option.Name}' requires a nonempty path.");
+                return;
+            }
+
+            try
+            {
+                _ = Path.GetFullPath(value);
+            }
+            catch (Exception exception) when (
+                exception is ArgumentException or NotSupportedException)
+            {
+                result.AddError(
+                    $"Option '{option.Name}' requires a valid path: {exception.Message}");
+            }
+        });
     }
 
     private static async Task<OperationResult<ReadOnlyContext>> ResolveReadOnlyContextAsync(

@@ -1,5 +1,6 @@
 using MaksymShostak.OniModPipeline.Cli;
 using MaksymShostak.OniModPipeline.EnvironmentDiscovery;
+using MaksymShostak.OniModPipeline.ModInstallation;
 using MaksymShostak.OniModPipeline.ModProfiles;
 using MaksymShostak.OniModPipeline.Processes;
 using MaksymShostak.OniModPipeline.ReleaseCandidates;
@@ -112,6 +113,7 @@ internal sealed class PipelineCommandFixture : IDisposable
             ReleaseCandidatePreparer.CreateDefault(
                 ProcessRunner,
                 gitRepositoryInspector),
+            ModInstaller.CreateDefault(),
             ProcessRunner);
     }
 

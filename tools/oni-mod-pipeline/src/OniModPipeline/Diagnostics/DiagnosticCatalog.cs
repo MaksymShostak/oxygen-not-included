@@ -254,6 +254,59 @@ internal static class DiagnosticCatalog
             "Inspect and remove only the named hidden transient directory after confirming it belongs to this run ID.");
     }
 
+    internal static Diagnostic UnownedInstallDestination(string path, string reason)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        return new Diagnostic(
+            DiagnosticIds.UnownedInstallDestination,
+            DiagnosticSeverity.Error,
+            "The ONI mod installation destination is not owned by this pipeline identity.",
+            $"Destination '{path}' was preserved: {reason}",
+            "Move an existing hand-maintained directory aside, or use a destination carrying the matching ownership marker.");
+    }
+
+    internal static Diagnostic InstalledContentMismatch(string path, string reason)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        return new Diagnostic(
+            DiagnosticIds.InstalledContentMismatch,
+            DiagnosticSeverity.Error,
+            "The exact ONI mod bytes could not be installed and verified.",
+            $"Content at '{path}' did not satisfy the recorded identity: {reason}",
+            "Rebuild or prepare a new candidate, then install the unchanged explicitly selected artifact again.");
+    }
+
+    internal static Diagnostic InstallationReceiptExists(string receiptPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(receiptPath);
+
+        return new Diagnostic(
+            DiagnosticIds.InstallationReceiptExists,
+            DiagnosticSeverity.Error,
+            "This release candidate already has an acceptance installation receipt.",
+            $"Receipt '{receiptPath}' already exists and will not be overwritten.",
+            "Use development build results for iterative installs or prepare a new release candidate for another acceptance pass.");
+    }
+
+    internal static Diagnostic DuplicateInstalledMod(
+        string staticId,
+        IReadOnlyList<string> subscribedDirectories)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(staticId);
+        ArgumentNullException.ThrowIfNull(subscribedDirectories);
+
+        return new Diagnostic(
+            DiagnosticIds.DuplicateInstalledMod,
+            DiagnosticSeverity.Warning,
+            "A subscribed Steam copy may conflict with the installed local mod.",
+            $"Static ID '{staticId}' also appears beneath: {string.Join(", ", subscribedDirectories.Select(path => $"'{path}'"))}.",
+            "Disable the duplicate subscribed copy in ONI before testing; oni-mod-pipeline does not change subscriptions or enablement state.");
+    }
+
     internal static Diagnostic MissingDotnetSdk(string reason)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);

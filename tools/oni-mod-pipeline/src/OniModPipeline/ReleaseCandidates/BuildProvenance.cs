@@ -27,6 +27,7 @@ internal sealed record BuildProvenance(
     string StaticId,
     string Title,
     string Version,
+    string ManagedDirectoryName,
     string RepositoryCommit,
     bool RelevantPathsClean,
     IReadOnlyList<string> RelevantSourcePaths,

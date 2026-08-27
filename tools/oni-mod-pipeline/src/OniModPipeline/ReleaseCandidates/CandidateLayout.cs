@@ -139,6 +139,46 @@ internal sealed record CandidateLayout
         return layout;
     }
 
+    internal static CandidateLayout FromCandidateDirectory(string candidateDirectory)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(candidateDirectory);
+        var candidate = new DirectoryInfo(Path.GetFullPath(candidateDirectory));
+        var version = candidate.Parent;
+        var staticId = version?.Parent;
+        var releaseCandidates = staticId?.Parent;
+        var artifacts = releaseCandidates?.Parent;
+        if (version is null ||
+            staticId is null ||
+            releaseCandidates is null ||
+            artifacts is null ||
+            !string.Equals(
+                releaseCandidates.Name,
+                "release-candidates",
+                StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "A candidate must use the exact artifacts/release-candidates/<static-id>/<version>/<run-id> hierarchy.",
+                nameof(candidateDirectory));
+        }
+
+        var layout = Create(
+            artifacts.FullName,
+            staticId.Name,
+            version.Name,
+            candidate.Name);
+        var comparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+        if (!string.Equals(layout.CandidateDirectory, candidate.FullName, comparison))
+        {
+            throw new ArgumentException(
+                "The candidate directory does not resolve to its canonical layout path.",
+                nameof(candidateDirectory));
+        }
+
+        return layout;
+    }
+
     internal string CreateTransientSiblingPath(string kind, Guid suffix)
     {
         if (kind is not ("staging" or "work"))

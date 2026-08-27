@@ -6,12 +6,7 @@ namespace MaksymShostak.OniModPipeline.Cli;
 
 internal sealed class CommandOptions
 {
-    private readonly Option<string> modOption = new("--mod")
-    {
-        Description =
-            "Mod directory, profile path, or descendant path used to discover oni-mod-pipeline.toml.",
-        DefaultValueFactory = _ => Directory.GetCurrentDirectory()
-    };
+    private readonly Option<string?> modOption;
     private readonly Option<string?> gameDirectoryOption = new("--game-directory")
     {
         Description = "ONI installation root containing the required managed assemblies."
@@ -30,8 +25,18 @@ internal sealed class CommandOptions
         DefaultValueFactory = _ => "human"
     };
 
-    internal CommandOptions()
+    internal CommandOptions(bool defaultModToCurrentDirectory = true)
     {
+        modOption = new Option<string?>("--mod")
+        {
+            Description =
+                "Mod directory, profile path, or descendant path used to discover oni-mod-pipeline.toml."
+        };
+        if (defaultModToCurrentDirectory)
+        {
+            modOption.DefaultValueFactory = _ => Directory.GetCurrentDirectory();
+        }
+
         formatOption.Validators.Add(result =>
         {
             var value = result.GetValueOrDefault<string>();
@@ -55,6 +60,11 @@ internal sealed class CommandOptions
 
     internal string GetModPath(ParseResult parseResult) =>
         parseResult.GetValue(modOption) ?? Directory.GetCurrentDirectory();
+
+    internal string? GetOptionalModPath(ParseResult parseResult) =>
+        parseResult.GetValue(modOption);
+
+    internal Option<string?> ModOption => modOption;
 
     internal EnvironmentDiscoveryRequest GetEnvironmentRequest(ParseResult parseResult) =>
         new(

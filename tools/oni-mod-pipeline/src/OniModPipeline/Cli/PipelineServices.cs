@@ -1,4 +1,5 @@
 using MaksymShostak.OniModPipeline.EnvironmentDiscovery;
+using MaksymShostak.OniModPipeline.ModInstallation;
 using MaksymShostak.OniModPipeline.ModProfiles;
 using MaksymShostak.OniModPipeline.Processes;
 using MaksymShostak.OniModPipeline.ReleaseCandidates;
@@ -16,4 +17,5 @@ internal sealed record PipelineServices(
     GitRepositoryInspector GitRepositoryInspector,
     WorkshopListingValidator WorkshopListingValidator,
     IReleaseCandidatePreparer ReleaseCandidatePreparer,
+    IModInstaller ModInstaller,
     IExternalProcessRunner ProcessRunner);

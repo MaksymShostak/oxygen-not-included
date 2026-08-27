@@ -25,8 +25,22 @@ internal sealed partial class EnvironmentDiscoveryService(
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(profile);
+        return await DiscoverAsync(
+            profile.ModRoot,
+            request,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    internal async Task<OperationResult<PipelineEnvironment>> DiscoverAsync(
+        string contextDirectory,
+        EnvironmentDiscoveryRequest request,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(contextDirectory);
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
+
+        var resolvedContextDirectory = Path.GetFullPath(contextDirectory);
 
         IReadOnlyList<string>? steamLibraries = null;
         IReadOnlyList<string> GetSteamLibraries() =>
@@ -49,7 +63,7 @@ internal sealed partial class EnvironmentDiscoveryService(
         }
 
         var artifactsResult = await SelectArtifactsDirectoryAsync(
-            profile,
+            resolvedContextDirectory,
             request.ArtifactsDirectory,
             userDataResult.Value!,
             GetSteamLibraries,
@@ -60,7 +74,7 @@ internal sealed partial class EnvironmentDiscoveryService(
         }
 
         var sdkResult = await DiscoverDotnetSdkVersionAsync(
-            profile.ModRoot,
+            resolvedContextDirectory,
             cancellationToken).ConfigureAwait(false);
         if (!sdkResult.IsSuccess)
         {
@@ -235,7 +249,7 @@ internal sealed partial class EnvironmentDiscoveryService(
     }
 
     private async Task<OperationResult<string>> SelectArtifactsDirectoryAsync(
-        ModProfile profile,
+        string contextDirectory,
         string? explicitDirectory,
         string userDataDirectory,
         Func<IReadOnlyList<string>> getSteamLibraries,
@@ -266,9 +280,9 @@ internal sealed partial class EnvironmentDiscoveryService(
         }
 
         var gitWorktreeRoot = await TryDiscoverGitWorktreeRootAsync(
-            profile.ModRoot,
+            contextDirectory,
             cancellationToken).ConfigureAwait(false);
-        var artifactParent = gitWorktreeRoot ?? Path.GetFullPath(profile.ModRoot);
+        var artifactParent = gitWorktreeRoot ?? Path.GetFullPath(contextDirectory);
         var defaultArtifactsDirectory = Path.Combine(artifactParent, "artifacts");
         var defaultUnsafeReason = GetUnsafeArtifactsReason(
             defaultArtifactsDirectory,

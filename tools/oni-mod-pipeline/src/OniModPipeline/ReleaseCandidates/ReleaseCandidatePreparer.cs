@@ -909,6 +909,7 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
             request.Metadata.StaticId,
             request.Metadata.Title,
             request.Metadata.Version,
+            request.Profile.LocalInstall.DirectoryName,
             request.InitialProvenance.Commit,
             RelevantPathsClean: request.InitialProvenance.IsClean,
             request.InitialProvenance.ContributingPaths
