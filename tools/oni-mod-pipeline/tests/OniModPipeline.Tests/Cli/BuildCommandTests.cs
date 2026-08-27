@@ -2,6 +2,7 @@ using MaksymShostak.OniModPipeline.Cli;
 using MaksymShostak.OniModPipeline.EnvironmentDiscovery;
 using MaksymShostak.OniModPipeline.ModProfiles;
 using MaksymShostak.OniModPipeline.Processes;
+using MaksymShostak.OniModPipeline.ReleaseCandidates;
 using MaksymShostak.OniModPipeline.SourceControl;
 using MaksymShostak.OniModPipeline.Tests.Fixtures;
 using MaksymShostak.OniModPipeline.WorkshopListing;
@@ -94,6 +95,7 @@ internal sealed class PipelineCommandFixture : IDisposable
             temporaryDirectory.GetPath("home"),
             temporaryDirectory.GetPath("documents"),
             []);
+        var gitRepositoryInspector = new GitRepositoryInspector(ProcessRunner);
         Services = new PipelineServices(
             new ModProfileLocator(),
             new ModProfileLoader(),
@@ -105,8 +107,11 @@ internal sealed class PipelineCommandFixture : IDisposable
                     new Dictionary<string, string?>()),
                 candidateSource,
                 new SteamLibraryCatalog()),
-            new GitRepositoryInspector(ProcessRunner),
+            gitRepositoryInspector,
             new WorkshopListingValidator(),
+            ReleaseCandidatePreparer.CreateDefault(
+                ProcessRunner,
+                gitRepositoryInspector),
             ProcessRunner);
     }
 
@@ -227,6 +232,8 @@ internal sealed class PipelineCommandProcessRunner(
 {
     internal List<ProcessRequest> Requests { get; } = [];
 
+    internal string GitStatusOutput { get; set; } = string.Empty;
+
     internal IReadOnlyList<ProcessRequest> BuildOrTestRequests => Requests
         .Where(request =>
             request.FileName == "dotnet" &&
@@ -258,7 +265,7 @@ internal sealed class PipelineCommandProcessRunner(
                 $"{PipelineCommandFixture.Commit}{Environment.NewLine}",
                 string.Empty),
             "status --porcelain=v1 -z --untracked-files=all" =>
-                new ProcessResult(0, string.Empty, string.Empty),
+                new ProcessResult(0, GitStatusOutput, string.Empty),
             "ls-files -z" => new ProcessResult(
                 0,
                 string.Join('\0', trackedPaths) + '\0',

@@ -4,6 +4,7 @@ using MaksymShostak.OniModPipeline.ModBuild;
 using MaksymShostak.OniModPipeline.ModProfiles;
 using MaksymShostak.OniModPipeline.ModTest;
 using MaksymShostak.OniModPipeline.Processes;
+using MaksymShostak.OniModPipeline.ReleaseCandidates;
 using MaksymShostak.OniModPipeline.Serialization;
 using MaksymShostak.OniModPipeline.SourceControl;
 using MaksymShostak.OniModPipeline.WorkshopListing;
@@ -29,6 +30,7 @@ internal static class CliApplication
         rootCommand.Subcommands.Add(CreateValidateCommand(services));
         rootCommand.Subcommands.Add(CreateBuildCommand(services));
         rootCommand.Subcommands.Add(CreateTestCommand(services));
+        rootCommand.Subcommands.Add(CreatePrepareReleaseCommand(services));
         return rootCommand;
     }
 
@@ -36,6 +38,7 @@ internal static class CliApplication
     {
         var processRunner = new ExternalProcessRunner();
         var candidateSource = GameInstallationCandidateSource.CreateDefault();
+        var gitRepositoryInspector = new GitRepositoryInspector(processRunner);
         return new PipelineServices(
             new ModProfileLocator(),
             new ModProfileLoader(),
@@ -46,8 +49,11 @@ internal static class CliApplication
                 new EnvironmentVariableSource(),
                 candidateSource,
                 new SteamLibraryCatalog()),
-            new GitRepositoryInspector(processRunner),
+            gitRepositoryInspector,
             new WorkshopListingValidator(),
+            ReleaseCandidatePreparer.CreateDefault(
+                processRunner,
+                gitRepositoryInspector),
             processRunner);
     }
 
@@ -196,6 +202,29 @@ internal static class CliApplication
         command.SetAction(async (parseResult, cancellationToken) =>
         {
             var result = await TestAsync(
+                services,
+                options.GetModPath(parseResult),
+                options.GetEnvironmentRequest(parseResult),
+                cancellationToken).ConfigureAwait(false);
+            return DiagnosticRenderer.Render(
+                result,
+                options.GetOutputFormat(parseResult),
+                parseResult.InvocationConfiguration.Output,
+                parseResult.InvocationConfiguration.Error);
+        });
+        return command;
+    }
+
+    private static Command CreatePrepareReleaseCommand(PipelineServices services)
+    {
+        var options = new CommandOptions();
+        var command = new Command(
+            "prepare-release",
+            "Prepare one immutable awaiting-acceptance ONI release candidate.");
+        options.AddTo(command);
+        command.SetAction(async (parseResult, cancellationToken) =>
+        {
+            var result = await PrepareReleaseAsync(
                 services,
                 options.GetModPath(parseResult),
                 options.GetEnvironmentRequest(parseResult),
@@ -409,6 +438,58 @@ internal static class CliApplication
                 null,
                 testResult.Diagnostics,
                 testResult.ExitCode);
+    }
+
+    private static async Task<OperationResult<PreparedReleaseCandidate>> PrepareReleaseAsync(
+        PipelineServices services,
+        string modPath,
+        EnvironmentDiscoveryRequest environmentRequest,
+        CancellationToken cancellationToken)
+    {
+        var contextResult = await ResolveReadOnlyContextAsync(
+            services,
+            modPath,
+            environmentRequest,
+            cancellationToken).ConfigureAwait(false);
+        if (!contextResult.IsSuccess)
+        {
+            return ConvertFailure<ReadOnlyContext, PreparedReleaseCandidate>(contextResult);
+        }
+
+        var context = contextResult.Value!;
+        var pipelineExecutablePath = typeof(CliApplication).Assembly.Location;
+        var provenanceResult = await services.GitRepositoryInspector.InspectAsync(
+            context.Profile,
+            pipelineExecutablePath,
+            cancellationToken).ConfigureAwait(false);
+        if (!provenanceResult.IsSuccess)
+        {
+            return ConvertFailure<GitProvenance, PreparedReleaseCandidate>(
+                provenanceResult);
+        }
+
+        var provenance = provenanceResult.Value!;
+        if (!provenance.IsClean)
+        {
+            var dirtyPaths = string.Join(
+                ", ",
+                provenance.DirtyPaths.Select(path => $"'{path}'"));
+            return new OperationResult<PreparedReleaseCandidate>(
+                null,
+                [DiagnosticCatalog.DirtyReleaseInput(
+                    $"Dirty contributing paths: {dirtyPaths}.")],
+                PipelineExitCode.ReleaseNotReady);
+        }
+
+        return await services.ReleaseCandidatePreparer.PrepareAsync(
+            new ReleasePreparationRequest(
+                context.Profile,
+                context.Metadata,
+                context.Environment,
+                provenance,
+                pipelineExecutablePath,
+                TryReadGameBuildMetadata(context.Environment.GameDirectory)),
+            cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task<OperationResult<ReadOnlyContext>> ResolveReadOnlyContextAsync(

@@ -228,6 +228,32 @@ internal static class DiagnosticCatalog
             "Use only declared runtime files and rebuild a new closed Workshop content staging directory.");
     }
 
+    internal static Diagnostic CandidateAlreadyExists(string candidatePath, string reason)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(candidatePath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        return new Diagnostic(
+            DiagnosticIds.CandidateAlreadyExists,
+            DiagnosticSeverity.Error,
+            "The release candidate destination already exists or collided during promotion.",
+            $"Candidate path '{candidatePath}' was not created: {reason}",
+            "Prepare a new release candidate with a new run ID; existing candidates are never reused or overwritten.");
+    }
+
+    internal static Diagnostic CleanupFailed(string transientPath, string reason)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(transientPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        return new Diagnostic(
+            DiagnosticIds.CleanupFailed,
+            DiagnosticSeverity.Error,
+            "Release-candidate transient cleanup did not complete normally.",
+            $"Owned transient path '{transientPath}' reported a cleanup failure: {reason}",
+            "Inspect and remove only the named hidden transient directory after confirming it belongs to this run ID.");
+    }
+
     internal static Diagnostic MissingDotnetSdk(string reason)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);

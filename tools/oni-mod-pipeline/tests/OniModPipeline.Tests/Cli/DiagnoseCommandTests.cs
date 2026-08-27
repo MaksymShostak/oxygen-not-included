@@ -3,6 +3,7 @@ using MaksymShostak.OniModPipeline.Diagnostics;
 using MaksymShostak.OniModPipeline.EnvironmentDiscovery;
 using MaksymShostak.OniModPipeline.ModProfiles;
 using MaksymShostak.OniModPipeline.Processes;
+using MaksymShostak.OniModPipeline.ReleaseCandidates;
 using MaksymShostak.OniModPipeline.SourceControl;
 using MaksymShostak.OniModPipeline.Tests.Fixtures;
 using MaksymShostak.OniModPipeline.WorkshopListing;
@@ -153,6 +154,7 @@ internal sealed class CliCommandFixture : IDisposable
             temporaryDirectory.GetPath("home"),
             temporaryDirectory.GetPath("documents"),
             []);
+        var gitRepositoryInspector = new GitRepositoryInspector(ProcessRunner);
         Services = new PipelineServices(
             new ModProfileLocator(),
             new ModProfileLoader(),
@@ -164,8 +166,11 @@ internal sealed class CliCommandFixture : IDisposable
                     new Dictionary<string, string?>()),
                 candidateSource,
                 new SteamLibraryCatalog()),
-            new GitRepositoryInspector(ProcessRunner),
+            gitRepositoryInspector,
             new WorkshopListingValidator(),
+            ReleaseCandidatePreparer.CreateDefault(
+                ProcessRunner,
+                gitRepositoryInspector),
             ProcessRunner);
     }
 
