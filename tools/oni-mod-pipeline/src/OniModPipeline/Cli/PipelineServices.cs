@@ -19,4 +19,5 @@ internal sealed record PipelineServices(
     IReleaseCandidatePreparer ReleaseCandidatePreparer,
     IModInstaller ModInstaller,
     IAcceptanceRecorder AcceptanceRecorder,
+    IReleaseCandidateVerifier ReleaseCandidateVerifier,
     IExternalProcessRunner ProcessRunner);

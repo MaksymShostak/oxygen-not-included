@@ -688,7 +688,14 @@ internal sealed class FixtureTestRunner(PreparationFixture fixture) :
         var trxPath = Path.Combine(resultsRoot, "example-regressions.trx");
         await File.WriteAllTextAsync(
             trxPath,
-            "<TestRun><ResultSummary outcome=\"Completed\" /></TestRun>\n",
+            """
+            <TestRun xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+              <ResultSummary outcome="Completed">
+                <Counters total="1" executed="1" passed="1" failed="0" error="0" timeout="0" aborted="0" />
+              </ResultSummary>
+            </TestRun>
+
+            """,
             cancellationToken);
         var passed = !fixture.FailsAt(PreparationFailure.InvalidTestContract);
         return new OperationResult<IReadOnlyList<AutomatedTestResult>>(

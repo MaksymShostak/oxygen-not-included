@@ -34,6 +34,7 @@ internal static class CliApplication
         rootCommand.Subcommands.Add(CreatePrepareReleaseCommand(services));
         rootCommand.Subcommands.Add(CreateInstallCommand(services));
         rootCommand.Subcommands.Add(CreateRecordAcceptanceCommand(services));
+        rootCommand.Subcommands.Add(CreateVerifyReleaseCommand(services));
         return rootCommand;
     }
 
@@ -59,6 +60,7 @@ internal static class CliApplication
                 gitRepositoryInspector),
             ModInstaller.CreateDefault(),
             AcceptanceRecorder.CreateDefault(new SystemAcceptanceConsole()),
+            ReleaseCandidateVerifier.CreateDefault(),
             processRunner);
     }
 
@@ -362,6 +364,61 @@ internal static class CliApplication
             return DiagnosticRenderer.Render(
                 result,
                 OutputFormat.Human,
+                parseResult.InvocationConfiguration.Output,
+                parseResult.InvocationConfiguration.Error);
+        });
+        return command;
+    }
+
+    private static Command CreateVerifyReleaseCommand(PipelineServices services)
+    {
+        var candidateOption = new Option<string?>("--candidate")
+        {
+            Description =
+                "Exact release-candidate directory whose upload readiness will be verified."
+        };
+        var formatOption = new Option<string>("--format")
+        {
+            Description = "Output format: human or json.",
+            DefaultValueFactory = _ => "human"
+        };
+        AddExplicitPathValidator(candidateOption);
+        formatOption.Validators.Add(result =>
+        {
+            var value = result.GetValueOrDefault<string>();
+            if (!string.Equals(value, "human", StringComparison.Ordinal) &&
+                !string.Equals(value, "json", StringComparison.Ordinal))
+            {
+                result.AddError("Option '--format' accepts only 'human' or 'json'.");
+            }
+        });
+
+        var command = new Command(
+            "verify-release",
+            "Deterministically verify one candidate for deliberate manual ONI Uploader handoff.");
+        command.Options.Add(candidateOption);
+        command.Options.Add(formatOption);
+        command.Validators.Add(result =>
+        {
+            if (result.GetValue(candidateOption) is null)
+            {
+                result.AddError("Command 'verify-release' requires '--candidate'.");
+            }
+        });
+        command.SetAction(async (parseResult, cancellationToken) =>
+        {
+            var result = await services.ReleaseCandidateVerifier.VerifyAsync(
+                Path.GetFullPath(parseResult.GetValue(candidateOption)!),
+                cancellationToken).ConfigureAwait(false);
+            var format = string.Equals(
+                parseResult.GetValue(formatOption),
+                "json",
+                StringComparison.Ordinal)
+                ? OutputFormat.Json
+                : OutputFormat.Human;
+            return DiagnosticRenderer.Render(
+                result,
+                format,
                 parseResult.InvocationConfiguration.Output,
                 parseResult.InvocationConfiguration.Error);
         });

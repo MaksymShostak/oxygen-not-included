@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace MaksymShostak.OniModPipeline.ReleaseCandidates;
 
 internal sealed record AutomatedTestEvidence(
@@ -31,4 +33,19 @@ internal sealed record ReleaseReadinessReport(
     IReadOnlyList<AutomatedTestEvidence> AutomatedTests,
     IReadOnlyList<EvidenceIndexEntry> EvidenceIndex,
     IReadOnlyList<ReleaseBlockingCondition> BlockingConditions,
-    string? IrreversibleInvalidation);
+    string? IrreversibleInvalidation,
+    DateTimeOffset? InstalledAtUtc = null,
+    DateTimeOffset? AcceptanceRecordedAtUtc = null,
+    string? AcceptanceTester = null,
+    bool? RequiredAcceptancePassed = null) : IFormattable
+{
+    public override string ToString() =>
+        ToString(null, CultureInfo.InvariantCulture);
+
+    public string ToString(string? format, IFormatProvider? formatProvider) =>
+        $"Candidate: {StaticId} {Version}{Environment.NewLine}" +
+        $"Content digest: {ContentDigest}{Environment.NewLine}" +
+        $"State: {State.ToCanonicalName()}{Environment.NewLine}" +
+        $"Blocking conditions: {BlockingConditions.Count.ToString(CultureInfo.InvariantCulture)}{Environment.NewLine}" +
+        $"Irreversibly invalidated: {(IrreversibleInvalidation is not null).ToString().ToLowerInvariant()}";
+}

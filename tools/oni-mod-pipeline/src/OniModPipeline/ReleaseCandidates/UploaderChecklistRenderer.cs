@@ -34,11 +34,7 @@ internal static class UploaderChecklistRenderer
             $"[ ] Change notes come from `{context.Layout.ChangeNotesPath}`.");
         builder.AppendLine($"[ ] Preview comes from `{context.PreviewPath}`.");
         builder.AppendLine(
-            $"[ ] Title is `{context.Metadata.Title}` and matches release-summary.md.");
-        builder.AppendLine(
-            $"[ ] Mod types / tags match release-summary.md: {RenderSelection(context.Listing.ModTypeLabels)}.");
-        builder.AppendLine(
-            $"[ ] DLC compatibility matches release-summary.md: {RenderSelection(context.Listing.DlcLabels)}.");
+            "[ ] Title, mod types, tags, and DLC compatibility match release-summary.md.");
         builder.AppendLine(
             "[ ] The final form has been reviewed immediately before Publish.");
         builder.AppendLine();
@@ -46,9 +42,4 @@ internal static class UploaderChecklistRenderer
             "Publish is a deliberate authenticated human action. ONI Mod Pipeline does not perform or record it.");
         return builder.ToString();
     }
-
-    private static string RenderSelection(IReadOnlyList<string> values) =>
-        values.Count == 0
-            ? "`none`"
-            : string.Join(", ", values.Select(value => $"`{value}`"));
 }

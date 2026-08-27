@@ -354,6 +354,33 @@ internal static class DiagnosticCatalog
             "Standard input is redirected or otherwise unavailable for direct tester attestation.",
             "Run record-acceptance in an interactive terminal; v1 does not import acceptance results from a file or JSON payload.");
 
+    internal static Diagnostic InvalidUploaderRepresentation(
+        string path,
+        string reason)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        return new Diagnostic(
+            DiagnosticIds.InvalidUploaderRepresentation,
+            DiagnosticSeverity.Error,
+            "Workshop text no longer has the exact ONI Uploader representation.",
+            $"Listing artifact '{path}' is invalid: {reason}",
+            "Prepare a new candidate whose generated description and change notes are BOM-free UTF-8 with exact CRLF structure.");
+    }
+
+    internal static Diagnostic ReleaseNotReady(string reason)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        return new Diagnostic(
+            DiagnosticIds.ReleaseNotReady,
+            DiagnosticSeverity.Error,
+            "The ONI release candidate is not ready for upload.",
+            reason,
+            "Resolve every reported blocker on a valid candidate and run verify-release again; publication remains a separate human action.");
+    }
+
     internal static Diagnostic MissingDotnetSdk(string reason)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);

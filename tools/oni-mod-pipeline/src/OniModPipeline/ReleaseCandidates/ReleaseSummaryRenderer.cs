@@ -15,7 +15,10 @@ internal sealed record ReleaseDocumentContext(
     WorkshopListingAssembly Listing,
     IReadOnlyList<AutomatedTestResult> AutomatedTests,
     ReleaseCandidateState State,
-    IReadOnlyList<string> Warnings)
+    IReadOnlyList<string> Warnings,
+    AcceptanceTestPlan? AcceptancePlan = null,
+    AcceptanceTestResults? AcceptanceResults = null,
+    IReadOnlyDictionary<string, bool>? AutomatedTestRequirements = null)
 {
     internal string PreviewPath => Path.Combine(
         Layout.WorkshopListingDirectory,
@@ -53,21 +56,51 @@ internal static class ReleaseSummaryRenderer
         }
         else
         {
+            builder.AppendLine("| Automated test | Required | Result | TRX |");
+            builder.AppendLine("| --- | --- | --- | --- |");
             foreach (var test in context.AutomatedTests)
             {
+                var required = context.AutomatedTestRequirements is null ||
+                    !context.AutomatedTestRequirements.TryGetValue(
+                        test.TestProjectId,
+                        out var configuredRequired) ||
+                    configuredRequired;
                 builder.AppendLine(
-                    $"- `{test.TestProjectId}`: `{(test.Passed ? "passed" : "failed")}` " +
-                    $"(TRX: `{MapToFinalCandidatePath(context, test.TrxPath)}`)");
+                    $"| {EscapeTable(test.TestProjectId)} | {(required ? "yes" : "no")} | " +
+                    $"{(test.Passed ? "passed" : "failed")} | " +
+                    $"`{MapToFinalCandidatePath(context, test.TrxPath)}` |");
             }
         }
 
         builder.AppendLine();
         builder.AppendLine("## Human acceptance");
         builder.AppendLine();
-        builder.AppendLine(
-            $"- Acceptance checks declared: `{context.Provenance.AcceptanceCheckCount}`");
-        builder.AppendLine("- Result: `not recorded`");
-        builder.AppendLine("- Candidate remains `awaiting-acceptance` until exact installed bytes pass the immutable acceptance plan and verification.");
+        if (context.AcceptancePlan is null || context.AcceptanceResults is null)
+        {
+            builder.AppendLine(
+                $"- Acceptance checks declared: `{context.Provenance.AcceptanceCheckCount}`");
+            builder.AppendLine("- Result: `not recorded`");
+            builder.AppendLine("- Candidate remains `awaiting-acceptance` until exact installed bytes pass the immutable acceptance plan and verification.");
+        }
+        else
+        {
+            builder.AppendLine($"- Tester: {context.AcceptanceResults.Tester}");
+            builder.AppendLine(
+                $"- Recorded at (UTC): `{context.AcceptanceResults.RecordedAtUtc.ToString("O", CultureInfo.InvariantCulture)}`");
+            builder.AppendLine();
+            builder.AppendLine("| Acceptance check | Required | Outcome | Note |");
+            builder.AppendLine("| --- | --- | --- | --- |");
+            foreach (var result in context.AcceptanceResults.Checks)
+            {
+                var planCheck = context.AcceptancePlan.Checks.Single(check =>
+                    string.Equals(check.Id, result.Id, StringComparison.Ordinal));
+                builder.AppendLine(
+                    $"| {EscapeTable(result.Title)} | " +
+                    $"{(planCheck.Required ? "yes" : "no")} | " +
+                    $"{(result.Outcome == AcceptanceOutcome.Passed ? "passed" : "failed")} | " +
+                    $"{EscapeTable(result.Note ?? string.Empty)} |");
+            }
+        }
         builder.AppendLine();
         builder.AppendLine("## ONI Uploader handoff");
         builder.AppendLine();
@@ -103,6 +136,11 @@ internal static class ReleaseSummaryRenderer
         values.Count == 0
             ? "`none`"
             : string.Join(", ", values.Select(value => $"`{value}`"));
+
+    private static string EscapeTable(string value) =>
+        value.Replace("|", "\\|", StringComparison.Ordinal)
+            .Replace("\r", " ", StringComparison.Ordinal)
+            .Replace("\n", " ", StringComparison.Ordinal);
 
     private static string MapToFinalCandidatePath(
         ReleaseDocumentContext context,

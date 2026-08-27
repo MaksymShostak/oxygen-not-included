@@ -115,6 +115,7 @@ internal sealed class PipelineCommandFixture : IDisposable
                 gitRepositoryInspector),
             ModInstaller.CreateDefault(),
             AcceptanceRecorder.CreateDefault(new SystemAcceptanceConsole()),
+            ReleaseCandidateVerifier.CreateDefault(),
             ProcessRunner);
     }
 

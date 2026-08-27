@@ -535,7 +535,11 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
                 listing,
                 automatedTests,
                 ReleaseCandidateState.AwaitingAcceptance,
-                []);
+                [],
+                AutomatedTestRequirements: request.Profile.TestProjects.ToDictionary(
+                    project => project.Id,
+                    project => project.Required,
+                    StringComparer.Ordinal));
             var stagedSummaryPath = layout.GetStagingPath(
                 stagingDirectory,
                 layout.ReleaseSummaryPath);
