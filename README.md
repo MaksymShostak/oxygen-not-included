@@ -58,34 +58,55 @@ You can adjust mod settings directly in the game Options menu:
 
 ---
 
-## Development and Release Workflow
+## Development and release workflow
 
-[ONI Mod Pipeline](docs/guides/oni-mod-development-workflow.md) is the repository's single supported path for building, testing, installing, and preparing this mod for a manual Workshop upload. It requires the .NET 10 SDK selected by `global.json`, a local Oxygen Not Included installation, an existing ONI user-data directory, and the `oni-mod-pipeline` command on `PATH`.
+[ONI Mod Pipeline](docs/guides/oni-mod-development-workflow.md) is the repository's single supported path for validating, building, testing, installing, and preparing this mod for a manual Workshop upload. The user-facing command is `oni-mod-pipeline`.
 
-Run the normal release sequence from `mods/delivery-temperature-limit-supercooled` (or pass that directory with `--mod`):
+> [!IMPORTANT]
+> Development builds are repeatable working artifacts. Release candidates are immutable, install-once inputs to human acceptance. Carry the exact path printed by each command into the next command; never infer a “latest” run. ONI Mod Pipeline never performs the authenticated **Publish** action.
+
+### Choose the workflow that matches your goal
+
+| Goal | Start here | Use when |
+| --- | --- | --- |
+| Set up a checkout | [Getting started with ONI Mod Pipeline](docs/guides/getting-started-with-oni-mod-pipeline.md) | You are configuring the SDK, command, ONI paths, or profile discovery for the first time. |
+| Iterate on mod code | [Developing ONI mods](docs/guides/developing-oni-mods.md) | You need a new isolated build, automated tests, or a guarded `mods/Dev` installation. |
+| Prepare a Workshop update | [Preparing ONI mod releases](docs/guides/preparing-oni-mod-releases.md) | The version, listing, dependencies, tests, and contributing source are reviewed and ready to become one exact candidate. |
+| Define a mod | [ONI Mod Pipeline profile reference](docs/guides/oni-mod-pipeline-profile-reference.md) | You need the schema-v1 keys, path rules, package allowlist, test declarations, or acceptance declarations. |
+| Resolve a failure | [Troubleshooting ONI Mod Pipeline](docs/guides/troubleshooting-oni-mod-pipeline.md) | A command reports an `ONIP####` diagnostic, nonzero exit code, unsafe destination, or invalid candidate. |
+
+### Run the development loop
+
+Run from `mods/delivery-temperature-limit-supercooled`, or add `--mod mods/delivery-temperature-limit-supercooled` when running elsewhere:
 
 ```text
 oni-mod-pipeline diagnose
 oni-mod-pipeline validate
+oni-mod-pipeline build
 oni-mod-pipeline test
-oni-mod-pipeline prepare-release
-oni-mod-pipeline install --candidate <path> --target local
-# perform in-game acceptance
-oni-mod-pipeline record-acceptance --candidate <path>
-oni-mod-pipeline verify-release --candidate <path>
-# inspect release-summary.md and uploader-checklist.md
-# publish manually with the authenticated ONI Uploader
+oni-mod-pipeline install --mod . --build-result <exact-build-result.json> --target dev
 ```
 
-`oni-mod-pipeline.toml` is discovered from the current directory, an explicit profile path, or a descendant path by walking upward to the repository boundary. Explicit command options take precedence over environment variables and automatic discovery:
+`build` prints a new `build-result.json`; pass that exact file to `install`. After editing source, create a new build run rather than reusing or modifying an older result.
 
-| Purpose | Command option | Environment variable |
-| --- | --- | --- |
-| ONI installation root | `--game-directory` | `ONI_GAME_DIRECTORY` |
-| ONI per-user data root | `--user-data-directory` | `ONI_USER_DATA_DIRECTORY` |
-| Generated artifact root | `--artifacts-directory` | `ONI_MOD_PIPELINE_ARTIFACTS_DIRECTORY` |
+### Prepare a release candidate
 
-The version in `mod_info.yaml` and the text in `STEAM_CHANGE_NOTES.bbcode` are deliberate, reviewed source edits made before `prepare-release`. Builds never increment or rewrite either file. ONI Mod Pipeline prepares and verifies exact candidate bytes; it never performs the authenticated **Publish** action.
+Before release preparation, deliberately edit and commit the intended version in `mod_info.yaml`, the current `STEAM_CHANGE_NOTES.bbcode`, and every other contributing source or listing change. Then run:
+
+```text
+git status --short
+oni-mod-pipeline validate --for-release
+oni-mod-pipeline test
+oni-mod-pipeline prepare-release
+oni-mod-pipeline install --candidate <exact-candidate-directory> --target local
+# Perform every check in release-evidence/acceptance-test-plan.json.
+oni-mod-pipeline record-acceptance --candidate <exact-candidate-directory> --tester <display-name>
+oni-mod-pipeline verify-release --candidate <exact-candidate-directory>
+```
+
+A successful `verify-release` reports `ready-for-upload` and regenerates the candidate's `release-summary.md` and `uploader-checklist.md`. In the ONI Uploader, select only the generated `workshop-content` directory for **Update Data** and copy the generated listing files from `workshop-listing`. Never upload `release-evidence` or use the mutable Dev/Local installation as Update Data.
+
+Read [ONI mod development workflow](docs/guides/oni-mod-development-workflow.md) for the command lifecycle, exact-path discipline, and documentation map.
 
 ---
 
