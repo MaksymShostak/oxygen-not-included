@@ -98,7 +98,7 @@ public sealed class BbCodeValidatorTests
     [DataRow("TODO")]
     [DataRow("tbd")]
     [DataRow(" ChangeMe ")]
-    [DataRow("ONI_PIPELINE_CHANGE_NOTES_REQUIRED")]
+    [DataRow("ONI_MOD_PIPELINE_CHANGE_NOTES_REQUIRED")]
     public void ValidateText_WhenWholeFileIsReservedPlaceholder_ReturnsOnip1006(
         string placeholder)
     {

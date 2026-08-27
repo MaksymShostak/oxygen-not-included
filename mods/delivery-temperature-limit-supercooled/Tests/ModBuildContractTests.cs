@@ -11,7 +11,7 @@ public sealed class ModBuildContractTests
     [TestMethod]
     public async Task Build_WhenPipelinePropertiesAreProvided_DoesNotChangeModInfoBytes()
     {
-        var repositoryRoot = RequiredEnvironmentVariable("ONI_PIPELINE_REPOSITORY_ROOT");
+        var repositoryRoot = RequiredEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT");
         var managedDirectory = RequiredEnvironmentVariable("ONI_MANAGED_ASSEMBLY_DIRECTORY");
         var modRoot = Path.Combine(
             repositoryRoot,
@@ -69,7 +69,7 @@ public sealed class ModBuildContractTests
     [TestMethod]
     public async Task ModernizedBuild_WhenComparedWithTrackedLegacyDll_PreservesPublicSurface()
     {
-        var repositoryRoot = RequiredEnvironmentVariable("ONI_PIPELINE_REPOSITORY_ROOT");
+        var repositoryRoot = RequiredEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT");
         var managedDirectory = RequiredEnvironmentVariable("ONI_MANAGED_ASSEMBLY_DIRECTORY");
         using var output = new TemporaryDirectory();
 
@@ -91,7 +91,7 @@ public sealed class ModBuildContractTests
     [TestMethod]
     public async Task ModernizedBuild_WhenBuiltTwiceFromSameInputs_ProducesSameMergedDllHash()
     {
-        var repositoryRoot = RequiredEnvironmentVariable("ONI_PIPELINE_REPOSITORY_ROOT");
+        var repositoryRoot = RequiredEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT");
         var managedDirectory = RequiredEnvironmentVariable("ONI_MANAGED_ASSEMBLY_DIRECTORY");
         using var firstOutput = new TemporaryDirectory();
         using var secondOutput = new TemporaryDirectory();

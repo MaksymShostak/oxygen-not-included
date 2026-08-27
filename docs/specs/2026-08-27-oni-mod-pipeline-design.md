@@ -359,7 +359,7 @@ The initial portable options and environment equivalents are:
 |---|---|---|
 | ONI installation root | `--game-directory` | `ONI_GAME_DIRECTORY` |
 | ONI per-user data root | `--user-data-directory` | `ONI_USER_DATA_DIRECTORY` |
-| Pipeline artifact root | `--artifacts-directory` | `ONI_PIPELINE_ARTIFACTS_DIRECTORY` |
+| Pipeline artifact root | `--artifacts-directory` | `ONI_MOD_PIPELINE_ARTIFACTS_DIRECTORY` |
 
 Without an artifact-root override, the tool uses `<git-worktree-root>/artifacts` when the mod is inside a Git worktree and `<mod-root>/artifacts` otherwise. Artifact paths are never inferred from the current shell's temporary directory. The selected root is reported before a mutating command and participates in the same containment checks as every staging and cleanup path.
 
@@ -519,7 +519,7 @@ artifacts/
 
 The tree is concrete for Delivery Temperature Limit, whose preview is PNG. A profile using another accepted format produces `preview.jpg` or `preview.gif` in the same role.
 
-`change-notes.bbcode` is always rendered from the profile's declared, tracked source, even when no Workshop description update is intended. Empty or whitespace-only notes cannot produce `ready-for-upload`. The trimmed entire source is also rejected, case-insensitively, when it equals one of the reserved placeholders `TODO`, `TBD`, `CHANGEME`, or `ONI_PIPELINE_CHANGE_NOTES_REQUIRED`.
+`change-notes.bbcode` is always rendered from the profile's declared, tracked source, even when no Workshop description update is intended. Empty or whitespace-only notes cannot produce `ready-for-upload`. The trimmed entire source is also rejected, case-insensitively, when it equals one of the reserved placeholders `TODO`, `TBD`, `CHANGEME`, or `ONI_MOD_PIPELINE_CHANGE_NOTES_REQUIRED`.
 
 The run ID has the invariant format `yyyyMMddTHHmmss.fffffffZ-<16-lowercase-hex-random>`. It is filesystem-safe, UTC-sortable, collision-resistant for repeated local runs, and metadata rather than the mod version.
 

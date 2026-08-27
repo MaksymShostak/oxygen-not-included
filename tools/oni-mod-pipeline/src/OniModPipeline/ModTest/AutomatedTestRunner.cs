@@ -106,7 +106,7 @@ internal sealed class AutomatedTestRunner
                     new Dictionary<string, string>(StringComparer.Ordinal)
                     {
                         ["ONI_MANAGED_ASSEMBLY_DIRECTORY"] = managedAssemblyDirectory,
-                        ["ONI_PIPELINE_REPOSITORY_ROOT"] = repositoryRoot
+                        ["ONI_MOD_PIPELINE_REPOSITORY_ROOT"] = repositoryRoot
                     }),
                 cancellationToken).ConfigureAwait(false);
             var passed = test.ExitCode == 0 && File.Exists(trxPath);

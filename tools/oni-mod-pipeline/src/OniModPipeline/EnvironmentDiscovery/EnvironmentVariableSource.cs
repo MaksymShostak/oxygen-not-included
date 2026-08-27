@@ -5,7 +5,7 @@ internal sealed class EnvironmentVariableSource
     internal const string GameDirectoryVariable = "ONI_GAME_DIRECTORY";
     internal const string UserDataDirectoryVariable = "ONI_USER_DATA_DIRECTORY";
     internal const string ArtifactsDirectoryVariable =
-        "ONI_PIPELINE_ARTIFACTS_DIRECTORY";
+        "ONI_MOD_PIPELINE_ARTIFACTS_DIRECTORY";
 
     private readonly Func<string, string?> readVariable;
 

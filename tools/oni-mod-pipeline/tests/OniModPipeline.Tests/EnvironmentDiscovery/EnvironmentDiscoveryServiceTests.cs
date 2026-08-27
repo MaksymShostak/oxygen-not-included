@@ -97,7 +97,7 @@ public sealed class EnvironmentDiscoveryServiceTests
             new Dictionary<string, string?>
             {
                 [EnvironmentVariableSource.UserDataDirectoryVariable] = environmentUserData,
-                [EnvironmentVariableSource.ArtifactsDirectoryVariable] = environmentArtifacts
+                ["ONI_MOD_PIPELINE_ARTIFACTS_DIRECTORY"] = environmentArtifacts
             },
             gitWorktreeRoot: temporaryDirectory.GetPath("repository"));
 
@@ -121,6 +121,41 @@ public sealed class EnvironmentDiscoveryServiceTests
         Assert.AreNotEqual(
             Path.GetFullPath(automaticUserData),
             result.Value?.UserDataDirectory);
+    }
+
+    [TestMethod]
+    public async Task DiscoverAsync_WhenOnlyAbbreviatedPipelineArtifactVariableIsSet_DoesNotTreatItAsAnOverride()
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var worktreeRoot = temporaryDirectory.GetPath("repository");
+        var abbreviatedArtifacts = temporaryDirectory.GetPath("abbreviated-artifacts");
+        var profile = CreateProfile(Path.Combine(worktreeRoot, "mods", "example"));
+        var service = CreateService(
+            temporaryDirectory,
+            HostOperatingSystem.Windows,
+            new Dictionary<string, string?>
+            {
+                ["ONI_PIPELINE_ARTIFACTS_DIRECTORY"] = abbreviatedArtifacts
+            },
+            gitWorktreeRoot: worktreeRoot);
+
+        var result = await service.DiscoverAsync(
+            profile,
+            new EnvironmentDiscoveryRequest(
+                CreateValidGame(
+                    temporaryDirectory.GetPath("game"),
+                    HostOperatingSystem.Windows),
+                CreateUserData(temporaryDirectory.GetPath("user-data")),
+                null),
+            CancellationToken.None);
+
+        Assert.IsTrue(result.IsSuccess);
+        Assert.AreEqual(
+            Path.Combine(Path.GetFullPath(worktreeRoot), "artifacts"),
+            result.Value?.ArtifactsDirectory);
+        Assert.AreNotEqual(
+            Path.GetFullPath(abbreviatedArtifacts),
+            result.Value?.ArtifactsDirectory);
     }
 
     [TestMethod]

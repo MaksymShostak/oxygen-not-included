@@ -22,7 +22,7 @@ internal sealed class WorkshopListingValidator
         throwOnInvalidBytes: true);
 
     private static readonly ISet<string> ReservedWholeFileValues = new HashSet<string>(
-        ["TODO", "TBD", "CHANGEME", "ONI_PIPELINE_CHANGE_NOTES_REQUIRED"],
+        ["TODO", "TBD", "CHANGEME", "ONI_MOD_PIPELINE_CHANGE_NOTES_REQUIRED"],
         StringComparer.OrdinalIgnoreCase);
 
     private readonly ListingTextRenderer renderer;

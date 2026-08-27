@@ -143,9 +143,12 @@ public sealed class AutomatedTestRunnerTests
             Assert.AreEqual(
                 fixture.ManagedDirectory,
                 test.EnvironmentVariables["ONI_MANAGED_ASSEMBLY_DIRECTORY"]);
-            Assert.AreEqual(
-                fixture.RepositoryRoot,
-                test.EnvironmentVariables["ONI_PIPELINE_REPOSITORY_ROOT"]);
+            Assert.IsTrue(test.EnvironmentVariables.TryGetValue(
+                "ONI_MOD_PIPELINE_REPOSITORY_ROOT",
+                out var repositoryRoot));
+            Assert.AreEqual(fixture.RepositoryRoot, repositoryRoot);
+            Assert.IsFalse(test.EnvironmentVariables.ContainsKey(
+                "ONI_PIPELINE_REPOSITORY_ROOT"));
         }
     }
 

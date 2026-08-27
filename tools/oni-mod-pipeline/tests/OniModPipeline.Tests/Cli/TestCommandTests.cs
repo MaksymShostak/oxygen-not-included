@@ -34,9 +34,12 @@ public sealed class TestCommandTests
         Assert.AreEqual(
             fixture.ManagedDirectory,
             testRequest.EnvironmentVariables["ONI_MANAGED_ASSEMBLY_DIRECTORY"]);
-        Assert.AreEqual(
-            fixture.WorktreeRoot,
-            testRequest.EnvironmentVariables["ONI_PIPELINE_REPOSITORY_ROOT"]);
+        Assert.IsTrue(testRequest.EnvironmentVariables.TryGetValue(
+            "ONI_MOD_PIPELINE_REPOSITORY_ROOT",
+            out var repositoryRoot));
+        Assert.AreEqual(fixture.WorktreeRoot, repositoryRoot);
+        Assert.IsFalse(testRequest.EnvironmentVariables.ContainsKey(
+            "ONI_PIPELINE_REPOSITORY_ROOT"));
     }
 
     [TestMethod]

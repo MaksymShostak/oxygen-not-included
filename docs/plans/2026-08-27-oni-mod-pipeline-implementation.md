@@ -1178,7 +1178,7 @@ platform automatic candidates
 actionable failure
 ```
 
-The variables are `ONI_GAME_DIRECTORY`, `ONI_USER_DATA_DIRECTORY`, and `ONI_PIPELINE_ARTIFACTS_DIRECTORY`. From a selected game root, probe `OxygenNotIncluded_Data/Managed` on Windows/Linux and `OxygenNotIncluded.app/Contents/Resources/Data/Managed` on macOS. Validate the derived managed directory by requiring `Assembly-CSharp.dll` and `0Harmony.dll`. Later build evidence enumerates the complete resolved compile-reference set.
+The variables are `ONI_GAME_DIRECTORY`, `ONI_USER_DATA_DIRECTORY`, and `ONI_MOD_PIPELINE_ARTIFACTS_DIRECTORY`. From a selected game root, probe `OxygenNotIncluded_Data/Managed` on Windows/Linux and `OxygenNotIncluded.app/Contents/Resources/Data/Managed` on macOS. Validate the derived managed directory by requiring `Assembly-CSharp.dll` and `0Harmony.dll`. Later build evidence enumerates the complete resolved compile-reference set.
 
 - [ ] **Step 5: Implement Steam-library candidate discovery**
 
@@ -1738,7 +1738,7 @@ For every profile test project, first run locked restore. Then invoke Microsoft.
 dotnet test --project <test-project> --no-restore --configuration Release --results-directory <results-root> -- --report-trx --report-trx-filename <test-project-id>.trx
 ```
 
-Set `ONI_MANAGED_ASSEMBLY_DIRECTORY` and `ONI_PIPELINE_REPOSITORY_ROOT` only on the child test process so mod integration tests can locate real references and source without committed machine paths. Delete no pre-existing result directory: require the run-specific result root to be absent, create it, then require exactly the intended `.trx` per declared project. Capture stdout/stderr in `AutomatedTestResult` but never place logs in Workshop content.
+Set `ONI_MANAGED_ASSEMBLY_DIRECTORY` and `ONI_MOD_PIPELINE_REPOSITORY_ROOT` only on the child test process so mod integration tests can locate real references and source without committed machine paths. Delete no pre-existing result directory: require the run-specific result root to be absent, create it, then require exactly the intended `.trx` per declared project. Capture stdout/stderr in `AutomatedTestResult` but never place logs in Workshop content.
 
 - [ ] **Step 8: Register `build` and `test` commands**
 
@@ -1806,7 +1806,7 @@ Explain that the target remains `net48`, SDK-generated compile items/assembly at
 [TestMethod]
 public async Task Build_WhenPipelinePropertiesAreProvided_DoesNotChangeModInfoBytes()
 {
-    var repositoryRoot = RequiredEnvironmentVariable("ONI_PIPELINE_REPOSITORY_ROOT");
+    var repositoryRoot = RequiredEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT");
     var managedDirectory = RequiredEnvironmentVariable("ONI_MANAGED_ASSEMBLY_DIRECTORY");
     var modRoot = Path.Combine(repositoryRoot, "mods", "delivery-temperature-limit-supercooled");
     var project = Path.Combine(modRoot, "Source", "DeliveryTemperatureLimit.csproj");
@@ -2276,7 +2276,7 @@ public void Render_WhenArtifactIsWritten_UsesNoBomAndOnlyCrLfWithOneFinalCrLf()
 
 - [ ] **Step 2: Write failing validation tests**
 
-Cover source CR/CRLF rejection, absent/multiple final LF, empty notes, the four reserved whole-file values `TODO`, `TBD`, `CHANGEME`, and `ONI_PIPELINE_CHANGE_NOTES_REQUIRED` (case-insensitive after trimming), 8,001 UTF-8 bytes, 8,000 UTF-8 bytes, Markdown links, unsupported URL schemes, unbalanced/nonnested paired BBCode, and valid `[*]` items inside `[list]`.
+Cover source CR/CRLF rejection, absent/multiple final LF, empty notes, the four reserved whole-file values `TODO`, `TBD`, `CHANGEME`, and `ONI_MOD_PIPELINE_CHANGE_NOTES_REQUIRED` (case-insensitive after trimming), 8,001 UTF-8 bytes, 8,000 UTF-8 bytes, Markdown links, unsupported URL schemes, unbalanced/nonnested paired BBCode, and valid `[*]` items inside `[list]`.
 
 - [ ] **Step 3: Write failing image-signature tests**
 
