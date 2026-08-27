@@ -28,6 +28,121 @@ internal static class DiagnosticCatalog
             $"{exception.GetType().FullName}: {exception.Message}",
             "Report this failure with the diagnostic ID and evidence.");
     }
+
+    internal static Diagnostic UnknownProfileKey(string keyPath, string manifestPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(keyPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(manifestPath);
+
+        return new Diagnostic(
+            DiagnosticIds.UnknownProfileKey,
+            DiagnosticSeverity.Error,
+            "The mod profile contains an unknown key.",
+            $"Profile '{manifestPath}' contains unknown key '{keyPath}'.",
+            "Correct the key to a schema-version = 1 field or remove it.");
+    }
+
+    internal static Diagnostic InvalidProfileValue(
+        string keyPath,
+        string manifestPath,
+        string requirement)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(keyPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(manifestPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(requirement);
+
+        return new Diagnostic(
+            DiagnosticIds.UnknownProfileKey,
+            DiagnosticSeverity.Error,
+            "The mod profile does not match schema-version = 1.",
+            $"Profile '{manifestPath}' has invalid field '{keyPath}': {requirement}",
+            "Correct the declared value to satisfy the schema-version = 1 requirement.");
+    }
+
+    internal static Diagnostic UnsafeProfilePath(
+        string modRoot,
+        string declaredPath,
+        string reason)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(modRoot);
+        ArgumentException.ThrowIfNullOrWhiteSpace(declaredPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        return new Diagnostic(
+            DiagnosticIds.UnsafeProfilePath,
+            DiagnosticSeverity.Error,
+            "A declared profile path is not safely contained by the mod root.",
+            $"Path '{declaredPath}' under mod root '{modRoot}' is unsafe: {reason}",
+            "Use a relative path that resolves entirely beneath the mod root without links.");
+    }
+
+    internal static Diagnostic InvalidOniMetadata(string metadataPath, string reason)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(metadataPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+
+        return new Diagnostic(
+            DiagnosticIds.InvalidOniMetadata,
+            DiagnosticSeverity.Error,
+            "ONI metadata is invalid.",
+            $"Metadata file '{metadataPath}' is invalid: {reason}",
+            "Correct the YAML while preserving ONI's required metadata fields.");
+    }
+
+    internal static Diagnostic ProfileNotFound(
+        string? startPath,
+        IReadOnlyList<string> searchedPaths)
+    {
+        ArgumentNullException.ThrowIfNull(searchedPaths);
+
+        var renderedStartPath = string.IsNullOrWhiteSpace(startPath)
+            ? "<empty>"
+            : startPath;
+        var searchedEvidence = searchedPaths.Count == 0
+            ? "No valid search directory was available."
+            : $"Searched: {string.Join(", ", searchedPaths.Select(path => $"'{path}'"))}.";
+
+        return new Diagnostic(
+            DiagnosticIds.ProfileNotFoundOrAmbiguous,
+            DiagnosticSeverity.Error,
+            "No ONI mod profile was found.",
+            $"Starting from '{renderedStartPath}'. {searchedEvidence}",
+            "Pass --mod with a mod directory or an explicit oni-mod-pipeline.toml path.");
+    }
+
+    internal static Diagnostic ProfileAmbiguous(
+        string startPath,
+        IReadOnlyList<string> candidatePaths)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(startPath);
+        ArgumentNullException.ThrowIfNull(candidatePaths);
+
+        var orderedCandidates = candidatePaths
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .Select(path => $"'{path}'");
+
+        return new Diagnostic(
+            DiagnosticIds.ProfileNotFoundOrAmbiguous,
+            DiagnosticSeverity.Error,
+            "More than one ONI mod profile is reachable.",
+            $"Starting from '{startPath}', found: {string.Join(", ", orderedCandidates)}.",
+            "Pass --mod with the intended explicit oni-mod-pipeline.toml path.");
+    }
+
+    internal static Diagnostic DeclaredInputMissing(
+        string declaredPath,
+        string resolvedPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(declaredPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(resolvedPath);
+
+        return new Diagnostic(
+            DiagnosticIds.DeclaredInputMissing,
+            DiagnosticSeverity.Error,
+            "A declared profile input is missing.",
+            $"Declared path '{declaredPath}' resolves to '{resolvedPath}', which does not exist.",
+            "Create the declared input or correct its path in oni-mod-pipeline.toml.");
+    }
 }
 
 internal static class DiagnosticIds
