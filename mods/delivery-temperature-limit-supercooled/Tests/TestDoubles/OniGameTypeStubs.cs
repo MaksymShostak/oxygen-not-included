@@ -1,3 +1,5 @@
+public readonly struct Tag { }
+
 namespace HarmonyLib
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
@@ -54,6 +56,11 @@ namespace UnityEngine
     }
 }
 
+namespace DeliveryTemperatureLimit
+{
+    public sealed class TemperatureLimit { }
+}
+
 public interface IBuildingConfig { }
 public sealed class StorageTileConfig : IBuildingConfig { }
 
@@ -69,7 +76,6 @@ public sealed class BuildingDef
     public UnityEngine.GameObject? BuildingUnderConstruction { get; set; }
 }
 
-public sealed class TemperatureLimit { }
 public sealed class ManualDeliveryKG { }
 public sealed class Storage { public bool allowUIItemRemoval { get; set; } }
 public sealed class StorageLocker { }

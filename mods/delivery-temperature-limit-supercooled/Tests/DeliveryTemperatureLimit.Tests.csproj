@@ -9,5 +9,18 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\Source\Buildings.cs" Link="Production\Buildings.cs" />
+    <Compile Include="..\Source\TemperatureConstraints\**\*.cs" Link="Production\TemperatureConstraints\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\Source\WorldParentTopology\**\*.cs" Link="Production\WorldParentTopology\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\Source\WorldResourceTemperatureAmounts\**\*.cs" Link="Production\WorldResourceTemperatureAmounts\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\Source\FetchTemperatureEligibility\**\*.cs" Link="Production\FetchTemperatureEligibility\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\Source\DeliveryTemperatureGameSessionLifecycle\**\*.cs" Link="Production\DeliveryTemperatureGameSessionLifecycle\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\Source\FastTrackCompatibility\FeatureContractVerification\**\*.cs" Link="Production\FastTrackCompatibility\FeatureContractVerification\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\Source\FastTrackCompatibility\InventoryUpdateAdapters\FastTrackWorldInventoryPublicationKind.cs" Link="Production\FastTrackCompatibility\InventoryUpdateAdapters\FastTrackWorldInventoryPublicationKind.cs" Condition="Exists('..\Source\FastTrackCompatibility\InventoryUpdateAdapters\FastTrackWorldInventoryPublicationKind.cs')" />
+    <Compile Include="..\Source\FastTrackCompatibility\InventoryUpdateAdapters\FastTrackWorldInventoryPublicationResult.cs" Link="Production\FastTrackCompatibility\InventoryUpdateAdapters\FastTrackWorldInventoryPublicationResult.cs" Condition="Exists('..\Source\FastTrackCompatibility\InventoryUpdateAdapters\FastTrackWorldInventoryPublicationResult.cs')" />
+    <Compile Include="..\Source\FastTrackCompatibility\InventoryUpdateAdapters\FastTrackWorldInventoryPublicationSession.cs" Link="Production\FastTrackCompatibility\InventoryUpdateAdapters\FastTrackWorldInventoryPublicationSession.cs" Condition="Exists('..\Source\FastTrackCompatibility\InventoryUpdateAdapters\FastTrackWorldInventoryPublicationSession.cs')" />
+    <Compile Include="..\Source\FastTrackCompatibility\PickupGroupingAdapters\FastTrackPickupGroupingKeyAllocator.cs" Link="Production\FastTrackCompatibility\PickupGroupingAdapters\FastTrackPickupGroupingKeyAllocator.cs" Condition="Exists('..\Source\FastTrackCompatibility\PickupGroupingAdapters\FastTrackPickupGroupingKeyAllocator.cs')" />
+    <Compile Include="..\Source\HarmonyTranspilerInfrastructure\HarmonyPatchContract*.cs" Link="Production\HarmonyTranspilerInfrastructure\%(Filename)%(Extension)" />
+    <Compile Include="..\Source\RuntimePatchInstallation\DeliveryTemperatureRuntimePatchGroup.cs" Link="Production\RuntimePatchInstallation\DeliveryTemperatureRuntimePatchGroup.cs" Condition="Exists('..\Source\RuntimePatchInstallation\DeliveryTemperatureRuntimePatchGroup.cs')" />
+    <Compile Include="..\Source\RuntimePatchInstallation\DeliveryTemperatureRuntimePatchPlan.cs" Link="Production\RuntimePatchInstallation\DeliveryTemperatureRuntimePatchPlan.cs" Condition="Exists('..\Source\RuntimePatchInstallation\DeliveryTemperatureRuntimePatchPlan.cs')" />
   </ItemGroup>
 </Project>

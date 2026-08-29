@@ -1,19 +1,36 @@
 using System.Diagnostics;
 
-namespace DeliveryTemperatureLimit.Tests;
+namespace DeliveryTemperatureLimit.Tests.OniModPipelineIntegration;
 
-internal sealed record DotnetProcessResult(
+internal sealed record DotnetCommandResult(
     int ExitCode,
     string StandardOutput,
-    string StandardError);
-
-internal static class DotnetProcess
+    string StandardError)
 {
-    internal static async Task<DotnetProcessResult> RunAsync(
+    internal string FormatEvidence()
+    {
+        var standardError = string.IsNullOrWhiteSpace(StandardError)
+            ? "<empty>"
+            : StandardError.Trim();
+        var standardOutput = string.IsNullOrWhiteSpace(StandardOutput)
+            ? "<empty>"
+            : StandardOutput.Trim();
+
+        return $"dotnet exited {ExitCode}. Standard error: {standardError}. " +
+            $"Standard output: {standardOutput}.";
+    }
+}
+
+internal static class DotnetCommandRunner
+{
+    internal static async Task<DotnetCommandResult> RunAsync(
         string workingDirectory,
         IReadOnlyList<string> arguments,
         CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(workingDirectory);
+        ArgumentNullException.ThrowIfNull(arguments);
+
         var startInfo = new ProcessStartInfo
         {
             FileName = "dotnet",
@@ -29,7 +46,7 @@ internal static class DotnetProcess
         }
 
         using var process = new Process { StartInfo = startInfo };
-        Assert.IsTrue(process.Start(), "dotnet process did not start.");
+        Assert.IsTrue(process.Start(), "The requested dotnet command did not start.");
         var standardOutput = process.StandardOutput.ReadToEndAsync(cancellationToken);
         var standardError = process.StandardError.ReadToEndAsync(cancellationToken);
         using var registration = cancellationToken.Register(
@@ -40,7 +57,11 @@ internal static class DotnetProcess
                     process.Kill(entireProcessTree: true);
                 }
             });
+
         await process.WaitForExitAsync(cancellationToken);
-        return new(process.ExitCode, await standardOutput, await standardError);
+        return new(
+            process.ExitCode,
+            await standardOutput,
+            await standardError);
     }
 }
