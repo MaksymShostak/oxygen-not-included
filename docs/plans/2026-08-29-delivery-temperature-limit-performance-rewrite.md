@@ -4,9 +4,9 @@
 
 **Goal:** Replace the mod's global temperature-band subsystem with scoped immutable constraints, sparse world inventory, tag/world-specific fetch eligibility, collision-free FastTrack grouping, and game-session-safe publication so very large ONI colonies pay only for distinctions that can affect an actual delivery decision.
 
-**Architecture:** Pure domain modules define canonical Kelvin semantics, constraint registration, sparse amount series, normalized storage intervals, scoped pickup partitions, content-neutral authoritative world topology, and generation-validated snapshots. Thin Harmony adapters preserve Klei complete-world inventory enumeration or FastTrack complete-first/one-tag-incremental enumeration and publish through one `DeliveryTemperatureGameSession`; base-game versus Spaced Out content mode is an independent topology axis, not an adapter selector. A single coordinated activation removes the old global model instead of bridging it. Focused TDD and signed commits occur throughout, while the expensive installed-game/pipeline/profiler campaign runs only after every rewrite component is integrated.
+**Architecture:** Pure `netstandard2.1` production modules define current-ONI Kelvin semantics, constraint registration, sparse amount series, normalized storage intervals, scoped pickup partitions, content-neutral authoritative world topology, and generation-validated snapshots; the same physical pure files are linked into the `net10.0` test project. Thin Harmony adapters preserve Klei complete-world inventory enumeration or a structurally verified FastTrack complete-first/one-tag-incremental enumeration and publish through one `DeliveryTemperatureGameSession`; base-game versus Spaced Out content mode is an independent topology axis, not an adapter selector. A single coordinated activation removes the old global model instead of bridging it. Focused TDD, mandatory pipeline gates, and signed commits occur throughout; only the modest in-game baseline/candidate comparison waits until every rewrite component is integrated.
 
-**Tech Stack:** SDK-style C# targeting .NET Framework 4.8 for the mod; C# `net10.0` MSTest.Sdk 4.3.3 test project with nullable annotations and warnings as errors; Harmony; PLib 4.24.0; installed ONI managed assemblies; optional FastTrack adapter; repository-local .NET 10 ONI Mod Pipeline; Git commit workflow with configured signing.
+**Tech Stack:** SDK-style C# targeting .NET Standard 2.1 for the game-loaded mod; C# `net10.0` MSTest.Sdk 4.3.3 tests/tooling; `System.Reflection.Metadata` from the modern tooling runtime; Harmony; PLib 4.24.0; ILRepack 2.0.34; current installed ONI changelist 744825/Unity 6000.3.5f2/MonoBleedingEdge; optional best-efforts FastTrack 0.18.4.0 adapter; repository-local .NET 10 ONI Mod Pipeline; configured signed Git commit workflow.
 
 **Spec:** `docs/specs/2026-08-29-delivery-temperature-limit-performance-rewrite-design.md`
 
@@ -15,30 +15,36 @@
 - Implement the approved specification exactly. If source or installed binary evidence contradicts it, stop and amend the specification and plan with the user; do not improvise a materially different architecture.
 - Strictly do not spawn subagents. This applies to implementation, review, research, testing, profiling, and remediation.
 - Deliver one big-bang runtime migration. New modules may be developed and tested before activation, but no build intended for players may execute old and new temperature-eligibility algorithms in parallel.
-- Run focused red-green-refactor cycles throughout. Only the expensive whole-pipeline, installed-game, four-way base-game/Spaced-Out and Klei/FastTrack, large-colony, profiler, allocation, GC, save/load, and lifecycle campaign is deferred until every fix is integrated.
+- Run focused red-green-refactor cycles throughout. Direct filtered tests are an inner-loop convenience only. Before every meaningful commit, the complete current working tree must pass pipeline `validate`, pipeline `build`, and pipeline `test`. Only the four-run in-game baseline/candidate comparison is deferred until every fix is integrated.
 - Commit after every meaningful complete chunk. A meaningful chunk has a deliberate failing test, complete passing behavior, a buildable affected source set, correct names, durable comments, no temporary diagnostics, no disabled assertions, no unresolved placeholder comment, no half-migrated caller, and no unapproved shim.
 - Use the signed commit workflow in `C:\Users\maksy\.agents\skills\committing-to-git`; do not substitute raw `git add` or `git commit`. Obtain exact approval for the prepared snapshot and exact commit message immediately before every commit. Do not push without separate explicit authorization.
 - Preserve unrelated user-owned changes. At plan-writing time these include untracked `AGENTS.md` and `mods/delivery-temperature-limit-supercooled/screenshot-guidance.md`; re-check rather than assuming that list remains complete.
-- Never create, edit, rename, or delete configuration without explicit approval for the exact file and setting in the Configuration Approval Dossier. Plan approval is not configuration approval.
-- Make no package or lockfile change. The design requires no new dependency. If implementation appears to need one, stop and present the exact package, version, transitive/pipeline impact, and package-free alternative.
-- Keep the production mod on `net48`. Do not retarget it to the test project's `net10.0`.
+- Never create, edit, rename, or delete configuration outside the exact approved staged changes in the Configuration Approval Dossier. Verify the live context before applying an approved edit; a broader or different delta requires renewed exact approval.
+- Make no package-version change or package addition. Refresh `Source/packages.lock.json` only for the approved framework-graph change. If implementation appears to need another dependency or graph change, stop and present its exact version, transitive/pipeline impact, and package-free alternative.
+- Target the game-loaded assembly exactly to `netstandard2.1`; target tests/tooling exactly to `net10.0`. Do not multi-target, target the game DLL to .NET 8/9/10, retain `net48`, or ship a modern-runtime sidecar.
+- Support the current public ONI build only: changelist `744825`, release branch, `minimumSupportedBuild: 744825`. Do not add historical-signature compatibility analysis or `archived_versions`. If public ONI changes before release, stop and request a decision.
 - Preserve serialized type `DeliveryTemperatureLimit.TemperatureLimit` and private serialized integer fields `lowLimit` and `highLimit` with `[KSerialization.Serialize]` and `[UnityEngine.SerializeField]`.
 - Preserve option names, JSON properties, defaults, construction behavior, copy-settings behavior, inclusive-low/exclusive-high boundaries, enabled-but-empty semantics, and `(int)temperatureKelvin` truncation toward zero.
 - No shims by default. A legacy type, member, alias, wrapper, fallback implementation, or parallel subsystem requires a named reproducible consumer, precise legacy semantics, no clean migration, focused tests, owner/removal criteria, and explicit user approval for that exact exception.
 - Specifically remove `TemperatureLimit.TemperatureIndexData`, `TemperatureLimit.getTemperatureIndexData()`, `allLimits`, `limitsDirty`, lazy index rebuilding, dense storage band sets, dense status `(Tag, index)` dictionaries, and FastTrack hash mixing.
-- Keep all new domain and patch types `internal`. Public visibility is allowed only for the curated Unity/Klei/PLib entry points enumerated in Task 23.
+- Keep all new domain and adapter types `internal`. Public visibility is allowed only for the curated Unity/Klei/PLib entry points enumerated in the coordinated-activation task.
 - Use semantic names from the contract registry. Do not introduce `Helper`, `Utils`, `Common`, `Misc`, bare `Data`, or generic `Manager` names.
 - Never use the unqualified word “vanilla.” Use exactly `base-game content mode`, `Spaced Out content mode`, `Klei inventory update path`, `FastTrack inventory update path`, `Klei pickup grouping path`, or `FastTrack pickup grouping path`; use `Klei implementation paths` or `FastTrack implementation paths` only when deliberately referring to several corresponding paths together. Content mode and implementation path are independent axes; names such as `VanillaInventoryAdapter` and `NonVanillaAdapter` are forbidden.
-- Add comments for conversion semantics, eligibility invariants, lock/snapshot ownership, generation validation, Harmony anchors, fallback correctness, FastTrack key allocation, and high-water retention. Do not comment obvious syntax.
+- Add comments for conversion semantics, eligibility invariants, lock/snapshot ownership, generation validation, Harmony anchors, exact stale-snapshot classification, FastTrack key allocation, and high-water retention. Do not comment obvious syntax.
 - Never hold more than one domain-service lock at a time. Never call Unity, Klei, PLib, Harmony, FastTrack, logging, sorting, another domain service, or large allocation code while a domain lock is held.
-- Worker-capable code may read captured immutable snapshots, thread-confined state, and only the exact pickup candidate/cached-primary fields whose managed access and cross-thread stability were verified before activation. It must not perform `GetComponent`, enumerate `ClusterManager`/`WorldContainer`, query mutable game topology, or call unverified Unity APIs; a failed proof selects the specified fallback instead of weakening this rule.
+- Worker-capable code may read captured immutable snapshots, thread-confined state, and only the exact pickup candidate/cached-primary fields whose managed access and cross-thread stability were verified before activation. It must not perform `GetComponent`, enumerate `ClusterManager`/`WorldContainer`, query mutable game topology, or call unverified Unity APIs. A failed proof invokes the named subsystem policy—exact bucket classification for stale domain snapshots or coherent activation failure for an unsafe active replacement—rather than weakening this rule.
 - A missing/stale pickup partition uses exact temperature-decision classes. Incomplete status inventory leaves ONI's existing availability unchanged. Missing/stale sweep eligibility returns conservative `false` after preserving an original `false` result.
 - Publish combined fetch state only when game-session generation, constraint generation, fetch topology version, and world-parent topology version all match the values captured at build start.
+- Derive the upper configurable endpoint from the named compile-time constant `OniStorableTemperatureBounds.MaximumTemperatureKelvin`, currently `10000`, whose current-build source is statically verified against `Sim.MaxTemperature`, `PrimaryElement.OnDeserialized`, and `SimMessages.ModifyCell`. Preserve high-exclusive mod semantics; do not expose `10001`.
+- Use exactly `TemperatureDecisionBucket.BucketCount = 1 + OniStorableTemperatureBounds.MaximumTemperatureKelvin + 1`, currently `10,002`: one below-range bucket, integer Kelvin `0..9999`, and one at-or-above-maximum bucket. Missing `PrimaryElement` is a separate named classification, never a synthetic temperature ordinal.
+- Never scan all `10,002` buckets or `10,001` endpoints in a per-pickup, per-tag, per-world, comparator, suppression, status-query, or recurring-update path. Fixed arrays are permitted only for bounded reusable accumulators/reference counts whose ordinary work touches observed buckets or changed endpoints.
+- When FastTrack is absent, disabled, or inactive for the loaded game, install the Klei path directly and perform no FastTrack hot-path lookup, branch, reflection, allocation, or adapter dispatch. Active critical FastTrack contract failure aborts coherent activation before patching; status-only failure omits only status integration.
 - Rate-limit diagnostics by game-session generation and diagnostic key. Never emit per-pickup or per-status-item warning storms.
 - Run commands individually. Do not chain commands with `;`, `&&`, `||`, pipes, background operators, or command substitution.
 - Use `rg` and `rg --files` for repository searches.
 - Use `apply_patch` for targeted file edits. Never use Git restoration commands to undo working-tree changes.
-- Do not claim completion until the final verification task has fresh command output and the complete deep campaign has passed against the exact installed candidate.
+- Do not automate ONI, run a game CPU/allocation/GC profiler campaign, add timing assertions, repeat manual measurements, or require a Markdown performance record. Final game evidence is deliberately indicative: separate baseline-role and candidate-role derivatives copied from each of two untouched late-game colonies, producing exactly four one-pass sessions with all other mods disabled.
+- Do not claim completion until the final verification task has fresh pipeline/static output and the exact candidate passes the approved four manual runs. Publishing/uploading remains outside scope and separately authorized.
 
 ---
 
@@ -52,235 +58,222 @@ The work is one release-level migration with five review gates. Only Gate D acti
 | B — Sparse/scoped domain | World topology, sparse inventory, intervals, partitions, combined fetch snapshots, exhaustive reference-model tests | Existing path remains active |
 | C — Verified adapters | Thin Klei/FastTrack implementation-path and lifecycle Harmony adapters compile and their pure contracts are tested, but installer does not invoke them | Existing path remains active |
 | D — Coordinated activation | `TemperatureLimit` and `Mod` switch once; obsolete patch/status/index files are deleted in the same chunk | New path only |
-| E — Final evidence | Required pipeline profile, complete automated suite, exact candidate install, gameplay matrix, profiler/GC review, acceptance evidence | New path only, release-eligible after pass |
+| E — Final evidence | Fresh pipeline suite, static baseline/candidate and runtime-contract analysis, exact candidate install, and four simple Klei-path colony runs | New path only, release-eligible after pass |
 
 Do not install a Gate A–C build into ONI. Those commits are code-review checkpoints, not partially migrated releases.
 
 ## Configuration Approval Dossier
 
-Before Task 1, request explicit approval for the following exact configuration changes. If the file contents or intended values differ when implementation starts, show the delta and obtain renewed approval.
+The user approved these exact staged changes during grilling. Do not request the same decision again if the live files still match the recorded starting state. Do stop and request renewed approval if a live file changed or the required delta is broader.
 
-### `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj`
+### First meaningful implementation commit
 
-Add this item to the existing `<ItemGroup>`; retain the existing explicit `Buildings.cs` link and every current property/package setting:
+1. In `Source/DeliveryTemperatureLimit.csproj`, replace only `net48` with `netstandard2.1`; add `CopyLocalLockFileAssemblies=true` and `TreatWarningsAsErrors=true`; do not yet add project-wide nullable.
+2. Refresh `Source/packages.lock.json` only for the target-framework restore graph; retain PLib `4.24.0` and ILRepack `2.0.34` and introduce no deliberate version change.
+3. In `Tests/DeliveryTemperatureLimit.Tests.csproj`, add only the linked pure production roots and reflection-only contract sources named in the File and Module Map; retain `net10.0`, MSTest.Sdk `4.3.3`, `Nullable=annotations`, warnings as errors, and locked restore.
+4. In `mod_info.yaml`, replace only `minimumSupportedBuild: 596100` with `minimumSupportedBuild: 744825`; retain `supportedContent: ALL`, `version: 2026.8.26`, and `APIVersion: 2`.
+5. Add static project/reference/package/ONI contracts. Every new C# file begins with `#nullable enable`.
 
-```xml
-<Compile Include="..\Source\Domain\**\*.cs"
-         Link="Production\Domain\%(RecursiveDir)%(Filename)%(Extension)" />
-<Compile Include="..\Source\Patching\PatchContractViolationException.cs"
-         Link="Production\Patching\PatchContractViolationException.cs" />
-<Compile Include="..\Source\Patching\PatchContractVerifier.cs"
-         Link="Production\Patching\PatchContractVerifier.cs" />
-<Compile Include="..\Source\FastTrack\FastTrackFeatureCompatibilityState.cs"
-         Link="Production\FastTrack\FastTrackFeatureCompatibilityState.cs" />
-<Compile Include="..\Source\FastTrack\FastTrackCompatibilityReport.cs"
-         Link="Production\FastTrack\FastTrackCompatibilityReport.cs" />
-<Compile Include="..\Source\FastTrack\FastTrackCompatibilityInspector.cs"
-         Link="Production\FastTrack\FastTrackCompatibilityInspector.cs" />
-```
+The first commit deliberately leaves project-wide nullable staged because the current legacy game source produces 38 nullable errors and the linked legacy `Buildings.cs` path produces 12. Suppressing those errors or weakening warnings is forbidden.
 
-Impact: the already-required pipeline test project compiles the exact pure-domain production sources plus the two reflection-only patch-contract files and three reflection-only FastTrack compatibility files so internal algorithms/contracts are tested without a game process. The linked patch-contract and FastTrack files must not reference Harmony, Unity, Klei, PLib, or FastTrack compile-time types. No package, target framework, lockfile, warning, nullable, or pipeline test-project change is involved.
+### FastTrack static-fixture task
 
-### `mods/delivery-temperature-limit-supercooled/oni-mod-pipeline.toml`
+1. In Task 21 only, update the SDK-default `None` item for `Tests/Fixtures/ThirdParty/FastTrack/0.18.4.0/FastTrack.dll` with `CopyToOutputDirectory=PreserveNewest`.
+2. Do not add the DLL as a `<Reference>`, compile item, analyzer, production output, package file, or restore input. Make no other project change in that task.
 
-Append exactly these required acceptance checks in Task 25; do not alter existing build, package, listing, installation, test-project, or acceptance settings:
+### Coordinated big-bang activation
 
-```toml
-[[acceptance-checks]]
-id = "base-game-klei-path-temperature-performance"
-title = "Base-game content mode remains responsive on Klei inventory and pickup paths"
-required = true
-setup = "Disable the Spaced Out DLC, ensure the FastTrack inventory and pickup replacements are not active, use the designated large-colony save, enable status temperature accounting, record active destination, distinct endpoint, pickupable, requested-tag, and authoritative world counts, and configure diverse nonempty, empty, disabled, underflow-adjacent, and 5000 K-boundary limits."
-action = "Run the fixed profiling interval at the same simulation speed, edit representative limits while fetches are active, and exercise storage, sweeping, construction, and lacks-resources status paths."
-expected = "Delivery decisions and statuses remain correct; the Klei inventory update path publishes one complete world candidate without a second pickupable scan; stale windows use the specified conservative behavior; no old global-index rebuild or dense world-tag-band work appears; mod-attributed hot paths and allocations satisfy the recorded final performance review."
+1. In `Source/DeliveryTemperatureLimit.csproj`, add `<Nullable>enable</Nullable>` after obsolete legacy files have been deleted or rewritten.
+2. In `Tests/DeliveryTemperatureLimit.Tests.csproj`, replace `<Nullable>annotations</Nullable>` with `<Nullable>enable</Nullable>` after the legacy `Buildings.cs` link/file has been removed or rewritten.
+3. Make no other configuration change.
 
-[[acceptance-checks]]
-id = "base-game-fasttrack-path-temperature-performance"
-title = "Base-game content mode preserves FastTrack incremental inventory performance"
-required = true
-setup = "Disable the Spaced Out DLC, enable the verified FastTrack inventory and pickup replacements, repeat the designated large-colony topology and temperature-limit distribution, and record the FastTrack version, assembly identity, options, Harmony ownership, and SHA-256 digest."
-action = "Run the fixed profiling interval with FastTrack pickup updates, background world inventory, status replacement, active constraint edits, and multi-tag pickupables."
-expected = "FastTrack and corresponding Klei implementation-path reference decisions are equivalent; distinct composite pickup classes never collapse; FastTrack's initial full update may publish one complete world candidate, each later update publishes exactly one selected resource-tag series, unrelated tags are not rebuilt, coverage distinguishes absent from pending tags, and no relevant exception, warning storm, unbounded retained collection, or temperature-unaware replacement occurs."
+### Explicit byte-for-byte invariant
 
-[[acceptance-checks]]
-id = "spaced-out-klei-path-temperature-performance"
-title = "Spaced Out content mode uses authoritative topology on Klei inventory and pickup paths"
-required = true
-setup = "Enable the Spaced Out DLC, ensure the FastTrack inventory and pickup replacements are not active, load the designated multi-asteroid large-colony save, enable status temperature accounting, and record asteroid, rocket-interior, parent-world, destination, requested-tag, and pickupable counts."
-action = "Run the fixed profiling interval while exercising storage, sweeping, construction, lacks-resources status, representative limit edits, asteroid switching, and supported rocket-interior lifecycle transitions."
-expected = "Eligibility and status totals use only the authoritative current parent-world membership; the Klei inventory update path publishes complete world contributions without repeated world discovery in status queries; topology changes invalidate only affected aggregates; no DLC-specific single-world assumption or dense world-tag-band work appears."
+`mods/delivery-temperature-limit-supercooled/oni-mod-pipeline.toml` must remain byte-for-byte unchanged from the approved 5,413-byte LF file whose SHA-256 is `5A03C7656F75B539B226C1CD6FF231D85C7DE200E701B5274751F09F00739AFD`. The existing profile is the production suite; the manual performance comparison is supplemental and a concise Markdown result is non-blocking.
 
-[[acceptance-checks]]
-id = "spaced-out-fasttrack-path-temperature-performance"
-title = "Spaced Out content mode preserves FastTrack incremental work across authoritative worlds"
-required = true
-setup = "Enable the Spaced Out DLC and the verified FastTrack inventory and pickup replacements, load the designated multi-asteroid large-colony save, and record topology counts plus the FastTrack version, assembly identity, options, Harmony ownership, and SHA-256 digest."
-action = "Run the fixed profiling interval with FastTrack background updates and pickup grouping while exercising status queries, active limit edits, asteroid switching, multi-tag resources, and supported rocket-interior lifecycle transitions."
-expected = "Each world follows FastTrack's complete-first-or-coverage-then-single-tag publication contract; a one-tag refresh never reconstructs unrelated world/tag data; parent aggregates never mix worlds from different current parent groups; collision-free grouping and conservative stale behavior remain correct without relevant exceptions, warning storms, or unbounded retained collections."
+### Explicitly rejected configuration workarounds
 
-[[acceptance-checks]]
-id = "temperature-status-disabled-overhead"
-title = "Disabled status accounting installs no inventory instrumentation"
-required = true
-setup = "Disable Include Temperature in Lacks Resources, restart ONI as required, load the designated large-colony save, and record enabled mods plus profiler configuration."
-action = "Run the same fixed profiling interval and exercise delivery limits while inspecting Harmony ownership and mod-attributed allocations."
-expected = "Direct delivery limits remain correct; Klei and FastTrack inventory/status temperature hooks are absent; no status accumulator, coverage scan, amount series, or world-temperature catalog work is observed."
-
-[[acceptance-checks]]
-id = "temperature-parent-world-topology"
-title = "Asteroids and rocket interiors use current parent-world temperature data"
-required = true
-setup = "Prepare at least one asteroid parent group and one rocket interior with distinguishable in-range and out-of-range resources and destinations."
-action = "Exercise storage and status queries, create or destroy a rocket interior where supported, change a world parent through normal gameplay, and repeat the queries after each topology change."
-expected = "Only resources from the current parent group contribute; old-parent contributions disappear; new-parent data remains conservative until complete; no worker performs component lookup or queries mutable ClusterManager state."
-
-[[acceptance-checks]]
-id = "temperature-session-lifecycle"
-title = "Temperature runtime state does not cross game sessions"
-required = true
-setup = "Configure distinctive limits in colony A and prepare colony B with different worlds, destinations, and material temperatures; prepare both base-game and Spaced Out content-mode variants."
-action = "Load colony A, return to the main menu, load colony B, reload a save in colony B, and repeat the sequence for the Klei and FastTrack implementation paths in each applicable content mode."
-expected = "Colony B observes no component, topology, inventory, grouping, diagnostic-suppression, or high-water variable state from colony A; late old-session work is rejected and logs contain one start and one completed shutdown per observed session."
-
-[[acceptance-checks]]
-id = "temperature-performance-evidence"
-title = "Profiler, allocation, and retained-memory evidence has no unexplained mod hotspot"
-required = true
-setup = "Use the exact candidate installed by the pipeline and prepare the four base-game/Spaced-Out and Klei/FastTrack combinations plus status-disabled and active-limit scenarios, with counts and tool versions recorded."
-action = "Capture CPU samples, allocation samples, generation-zero collection counts, retained collection capacities, lock contention, patch diagnostics, and the exact candidate plus optional-mod digests."
-expected = "Every material mod-attributed cost is either removed or documented as unavoidable input-proportional work; direct checks allocate zero after warm-up; retained variable collections obey high-water replacement; no dense band multiplication, hot-reader rebuild, repeated world scan, FastTrack single-tag-to-complete-world reconstruction, or unexplained lock contention remains."
-```
-
-Impact: these cases become required, digest-bound human acceptance for release candidates. They are added only after the implementation exists, so pipeline validation never points at an impossible intermediate requirement.
+Do not add `LangVersion`, multi-targeting, package references, framework DLLs, binding redirects, `AutoUnify`, `NoWarn`, direct `System.IO.Compression`/`System.Net.Http` pins, application configuration files, CI changes, pipeline acceptance entries, or a sidecar assembly. The two known MSB3277 roots remain visible and are statically bounded instead.
 
 ## File and Module Map
 
-All new production types are `internal` unless Task 23's curated runtime contract explicitly says otherwise.
+All new production types are `internal` unless the coordinated-activation task's curated runtime contract explicitly says otherwise. These exact semantically named roots are authoritative; do not replace them with `Domain`, `Runtime`, `Patches`, `FastTrack`, `Helpers`, `Utils`, or another vague grouping.
 
 ```text
 mods/delivery-temperature-limit-supercooled/
   Source/
-    Domain/
-      TemperatureConstraints/
-        DeliveryTemperatureBounds.cs
-        DeliveryTemperatureConstraint.cs
-        TemperatureDecisionBucket.cs
-        TemperatureConstraintGeneration.cs
-        TemperatureConstraintRegistration.cs
-        ActiveTemperatureConstraintSnapshot.cs
-        TemperatureConstraintRegistry.cs
-        TemperatureLimitComponentIndex.cs
-        TemperatureLimitRegistration.cs
-      Runtime/
-        GameSessionGeneration.cs
-        DeliveryTemperatureGameSession.cs
-        DeliveryTemperatureGameSessionHost.cs
-        SessionDiagnosticLimiter.cs
-        RetainedCollectionLimits.cs
-        InventoryImplementationPath.cs
-        PickupGroupingImplementationPath.cs
-        DeliveryTemperaturePatchActivationPlan.cs
-      WorldTopology/
-        WorldParentTopologyVersion.cs
-        WorldParentTopologyChange.cs
-        WorldParentTopologySnapshot.cs
-        WorldParentTopologyCatalog.cs
-      WorldInventory/
-        WorldInventoryCollectionGeneration.cs
-        TemperatureAmountAccumulator.cs
-        TemperatureAmountSeries.cs
-        CompleteWorldResourceTemperatureAmounts.cs
-        WorldResourceTagCoverage.cs
-        WorldResourceTemperatureSeriesPublication.cs
-        CompleteWorldResourceTemperatureAmountsBuilder.cs
-        WorldTemperatureInventoryCatalog.cs
-      FetchEligibility/
-        AllowedTemperatureInterval.cs
-        AllowedTemperatureIntervalSet.cs
-        FetchRequestTopologyVersion.cs
-        FetchRequestTopologyTracker.cs
-        PickupTagIdentity.cs
-        TemperaturePartitionDefinition.cs
-        TemperatureEligibilityClassKey.cs
-        PickupTemperaturePartitionCatalog.cs
-        FetchTemperatureEligibilitySnapshot.cs
-        FetchTemperatureEligibilityBuilder.cs
-        PickupTemperatureGroupingSession.cs
-      FastTrack/
-        FastTrackPickupGroupingKeyAllocator.cs
-        FastTrackWorldInventoryUpdateKind.cs
-        FastTrackWorldInventoryPublicationResult.cs
-        FastTrackWorldInventoryPublicationSession.cs
-    Patching/
-      PatchContractViolationException.cs
-      PatchContractVerifier.cs
-      DeliveryTemperaturePatchInstaller.cs
-      DeliveryTemperatureLifecyclePatches.cs
+    DeliveryTemperatureLimitMod.cs
+    DeliveryTemperatureLimitOptions.cs
+    DeliveryTemperatureLimitStrings.cs
+    TemperatureConstraints/
+      OniStorableTemperatureBounds.cs
+      DeliveryTemperatureConstraint.cs
+      TemperatureDecisionBucket.cs
+      TemperatureConstraintGeneration.cs
+      TemperatureConstraintRegistration.cs
+      RegisteredTemperatureConstraint.cs
+      ActiveTemperatureConstraintSnapshot.cs
+      TemperatureConstraintRegistry.cs
+      TemperatureLimitComponentIndex.cs
+    WorldParentTopology/
+      WorldParentTopologyVersion.cs
+      WorldParentTopologyChange.cs
+      WorldParentTopologySnapshot.cs
+      WorldParentTopologyCatalog.cs
+    WorldResourceTemperatureAmounts/
+      WorldInventoryCollectionGeneration.cs
+      TemperatureAmountAccumulator.cs
+      TemperatureAmountSeries.cs
+      CompleteWorldResourceTemperatureAmounts.cs
+      WorldResourceTagCoverage.cs
+      WorldResourceTemperatureSeriesPublication.cs
+      CompleteWorldResourceTemperatureAmountsBuilder.cs
+      WorldResourceTemperatureAmountCatalog.cs
+      TemperatureStatusAvailabilityDecision.cs
+    FetchTemperatureEligibility/
+      AllowedTemperatureInterval.cs
+      AllowedTemperatureIntervalSet.cs
+      FetchRequestTopologyVersion.cs
+      FetchRequestTopologyTracker.cs
+      PickupTagIdentity.cs
+      TemperaturePartitionDefinition.cs
+      TemperatureEligibilityClassificationKind.cs
+      TemperatureEligibilityClassKey.cs
+      PickupTemperaturePartitionCatalog.cs
+      FetchTemperatureEligibilitySnapshot.cs
+      FetchTemperatureEligibilityBuilder.cs
+      PickupTemperatureGroupingSession.cs
+      ClearableDestinationTemperatureEligibility.cs
+      FetchChoreTemperatureConstraintContainment.cs
+    DeliveryTemperatureGameSessionLifecycle/
+      GameSessionGeneration.cs
+      TemperatureLimitRegistration.cs
+      DeliveryTemperatureGameSession.cs
+      DeliveryTemperatureGameSessionHost.cs
+      ThreadConfinedSessionSlot.cs
+      SessionDiagnosticLimiter.cs
+      RetainedCollectionCapacityLimits.cs
+      InventoryImplementationPath.cs
+      PickupGroupingImplementationPath.cs
+      DeliveryTemperatureRuntimePatchPlan.cs
+      FastTrackDeliveryEligibilityCompatibilityException.cs
+    TemperatureLimitedDeliveryTargets/
+      TemperatureLimit.cs
+      TemperatureLimitedDeliveryTargetPrefabConfigurator.cs
+      ConstructionMaterialTemperatureLimit.cs
+    KleiImplementationAdapters/
+      DeliveryTemperatureRuntimePatchInstaller.cs
+      DeliveryTemperatureGameSessionLifecyclePatches.cs
       WorldParentTopologyPatches.cs
       KleiWorldInventoryTemperaturePatches.cs
-      StatusAvailabilityPatches.cs
+      TemperatureStatusAvailabilityPatches.cs
       FetchTemperatureEligibilityPatches.cs
       DirectFetchTemperatureEligibilityPatches.cs
       KleiPickupTemperatureGroupingPatches.cs
-      CodeInstructionFactory.cs
-    FastTrack/
-      FastTrackFeatureCompatibilityState.cs
-      FastTrackCompatibilityReport.cs
-      FastTrackCompatibilityInspector.cs
-      FastTrackWorldInventoryTemperaturePatches.cs
-      FastTrackPickupTemperaturePatches.cs
-      FastTrackDirectFetchTemperaturePatches.cs
-    TemperatureLimit.cs
-    Mod.cs
-    Construction.cs
-    Widget.cs
-    SideScreen.cs
-    Buildings.cs
-    Strings.cs
-    Options.cs
+    FastTrackCompatibility/
+      FeatureContractVerification/
+        FastTrackFeature.cs
+        FastTrackFeatureCompatibilityState.cs
+        FastTrackVerifiedMember.cs
+        FastTrackFeatureCompatibility.cs
+        FastTrackCompatibilityReport.cs
+        FastTrackLoadedGameInspectionInput.cs
+        ActiveHarmonyPatchDescriptor.cs
+        FastTrackCompatibilityInspector.cs
+      InventoryUpdateAdapters/
+        FastTrackWorldInventoryUpdateKind.cs
+        FastTrackWorldInventoryPublicationResult.cs
+        FastTrackWorldInventoryPublicationSession.cs
+        FastTrackWorldInventoryTemperaturePatches.cs
+      PickupGroupingAdapters/
+        FastTrackPickupGroupingKeyAllocator.cs
+        FastTrackPickupTemperaturePatches.cs
+      DirectDeliveryEligibilityAdapters/
+        FastTrackDirectDeliveryEligibilityPatches.cs
+    TemperatureLimitUserInterface/
+      TemperatureLimitWidget.cs
+      TemperatureLimitSideScreen.cs
+    HarmonyTranspilerInfrastructure/
+      HarmonyPatchContractViolationException.cs
+      HarmonyPatchContractVerifier.cs
+      HarmonyCodeInstructionFactory.cs
   Tests/
-    Domain/
+    TemperatureConstraints/
+      OniStorableTemperatureBoundsTests.cs
       DeliveryTemperatureConstraintTests.cs
       TemperatureDecisionBucketTests.cs
       TemperatureConstraintRegistryTests.cs
       TemperatureLimitComponentIndexTests.cs
+    DeliveryTemperatureGameSessionLifecycle/
       DeliveryTemperatureGameSessionTests.cs
       SessionDiagnosticLimiterTests.cs
+      ThreadConfinedSessionSlotTests.cs
+      DeliveryTemperatureRuntimePatchPlanTests.cs
+    WorldParentTopology/
       WorldParentTopologyCatalogTests.cs
+    WorldResourceTemperatureAmounts/
       TemperatureAmountAccumulatorTests.cs
       TemperatureAmountSeriesTests.cs
       WorldResourceTemperaturePublicationTests.cs
       CompleteWorldResourceTemperatureAmountsBuilderTests.cs
-      WorldTemperatureInventoryCatalogTests.cs
+      WorldResourceTemperatureAmountCatalogTests.cs
+      TemperatureStatusAvailabilityDecisionTests.cs
+    FetchTemperatureEligibility/
       AllowedTemperatureIntervalSetTests.cs
       TemperaturePartitionDefinitionTests.cs
       FetchRequestTopologyTrackerTests.cs
       FetchTemperatureEligibilityBuilderTests.cs
       PickupTemperatureGroupingSessionTests.cs
+      ClearableDestinationTemperatureEligibilityTests.cs
+      FetchChoreTemperatureConstraintContainmentTests.cs
+      CanonicalTemperatureEligibilityAgreementTests.cs
+    TemperatureLimitedDeliveryTargets/
+      TemperatureLimitedDeliveryTargetPrefabConfiguratorTests.cs
+    FastTrackCompatibility/
       FastTrackPickupGroupingKeyAllocatorTests.cs
       FastTrackWorldInventoryPublicationSessionTests.cs
-      DeliveryTemperaturePatchActivationPlanTests.cs
-      CrossDomainTemperatureEligibilityTests.cs
-    Patching/
-      PatchContractVerifierTests.cs
-    FastTrack/
+      FastTrackInactivePathArchitectureContractTests.cs
       FastTrackCompatibilityInspectorTests.cs
       FastTrackReflectionEmitFixture.cs
+      FastTrackGithubReleaseAssemblyContractTests.cs
       FastTrackPickupTemperaturePatchContractTests.cs
-      FastTrackFallbackContractTests.cs
-    Architecture/
+      FastTrackDirectDeliveryEligibilityPatchContractTests.cs
+      FastTrackCoherentActivationContractTests.cs
+    HarmonyTranspilerInfrastructure/
+      HarmonyPatchContractVerifierTests.cs
+    DeliveryTemperatureAssemblyContracts/
+      OniStorableTemperatureBoundsContractTests.cs
+      CurrentOniRuntimeContractTests.cs
+      ProjectTargetFrameworkContractTests.cs
+      KnownOniReferenceConflictContractTests.cs
+      DeliveryTemperatureAssemblyMetadataReader.cs
+      MergedDeliveryTemperatureAssemblyContractTests.cs
+      DeliveryTemperaturePackageBoundaryContractTests.cs
+      IntentionalRuntimeContractTests.cs
       NoShimArchitectureContractTests.cs
       ImplementationTerminologyContractTests.cs
       PerformanceArchitectureContractTests.cs
-    ReferenceModels/
-      ReferenceTemperatureEligibility.cs
-      ReferenceWorldTemperatureInventory.cs
-    GameStubs.cs
-    IntentionalRuntimeContract.cs
-    PipelineAcceptanceProfileTests.cs
-    ModBuildContractTests.cs
-    PublicAssemblySurface.cs
+      LinkedProductionSourceBoundaryContractTests.cs
+    ReferenceTemperatureModels/
+      ReferenceTemperatureEligibilityModel.cs
+      ReferenceWorldResourceTemperatureAmounts.cs
+    OniModPipelineIntegration/
+      OniModPipelineProfileInvarianceTests.cs
+      PipelineProvenanceBoundAssemblyLocator.cs
+      PipelineTestTemporaryDirectory.cs
+      DotnetCommandRunner.cs
+    TestDoubles/
+      OniGameTypeStubs.cs
+    Fixtures/
+      ThirdParty/
+        FastTrack/
+          0.18.4.0/
+            README.md
+            FastTrack.dll
     DeliveryTemperatureLimit.Tests.csproj
+    packages.lock.json
+  DeliveryTemperatureLimit.dll
+  mod_info.yaml
   oni-mod-pipeline.toml
 ```
 
@@ -294,18 +287,19 @@ Source/StatusItems.cs
 Source/Harmony.cs
 ```
 
-`Source/Patching/CodeInstructionFactory.cs` replaces only the instruction-construction mechanics that remain necessary. It does not preserve the public `CodeInstruction2` name or act as a compatibility facade.
+`Source/HarmonyTranspilerInfrastructure/HarmonyCodeInstructionFactory.cs` replaces only instruction-construction mechanics that remain necessary. It does not preserve the public `CodeInstruction2` name or act as a compatibility facade. Fixture DLL inclusion in the test project must use `CopyToOutputDirectory=PreserveNewest` or an equivalent exact test-data item; the pipeline package-boundary contract must prove neither fixture enters the released mod package.
 
 ## Cross-Task Contract Registry
 
 Later tasks must use these names and signatures. A genuine implementation discovery may change them only through a coordinated plan/spec amendment before dependent code is written.
 
 ```csharp
-internal static class DeliveryTemperatureBounds
+internal static class OniStorableTemperatureBounds
 {
-    internal const int MinimumSupportedKelvin = 0;
-    internal const int MaximumSupportedKelvinExclusive = 5000;
-    internal const int SupportedIntegerKelvinCount = 5000;
+    // ONI release changelist 744825: Sim.MaxTemperature == 10000f;
+    // PrimaryElement.OnDeserialized and SimMessages.ModifyCell accept the bound inclusively.
+    internal const int MinimumTemperatureKelvin = 0;
+    internal const int MaximumTemperatureKelvin = 10000;
 }
 
 internal readonly struct DeliveryTemperatureConstraint : IEquatable<DeliveryTemperatureConstraint>
@@ -324,12 +318,14 @@ internal readonly struct DeliveryTemperatureConstraint : IEquatable<DeliveryTemp
 internal readonly struct TemperatureDecisionBucket :
     IEquatable<TemperatureDecisionBucket>, IComparable<TemperatureDecisionBucket>
 {
-    internal const int BucketCount = 5002;
-    internal const int UnderflowOrdinal = 0;
-    internal const int OverflowOrdinal = 5001;
+    internal const int BucketCount =
+        1 + OniStorableTemperatureBounds.MaximumTemperatureKelvin + 1;
+    internal const int BelowMinimumConfigurableKelvinOrdinal = 0;
+    internal const int AtOrAboveMaximumConfigurableExclusiveKelvinOrdinal =
+        BucketCount - 1;
     internal int Ordinal { get; }
-    internal bool IsUnderflow { get; }
-    internal bool IsOverflow { get; }
+    internal bool IsBelowMinimumConfigurableKelvin { get; }
+    internal bool IsAtOrAboveMaximumConfigurableExclusiveKelvin { get; }
     internal bool TryGetIntegerKelvin(out int integerKelvin);
     internal static TemperatureDecisionBucket FromTemperature(float temperatureKelvin);
     internal static TemperatureDecisionBucket FromIntegerKelvin(int truncatedKelvin);
@@ -412,8 +408,10 @@ internal sealed class DeliveryTemperatureGameSession
     internal TemperatureConstraintRegistry TemperatureConstraints { get; }
     internal TemperatureLimitComponentIndex TemperatureLimitComponents { get; }
     internal WorldParentTopologyCatalog WorldParentTopology { get; }
-    internal WorldTemperatureInventoryCatalog WorldTemperatureInventory { get; }
+    internal WorldResourceTemperatureAmountCatalog WorldResourceTemperatureAmounts { get; }
     internal FetchRequestTopologyTracker FetchRequestTopology { get; }
+    internal WorldInventoryCollectionGeneration CurrentWorldInventoryCollectionGeneration { get; }
+    internal FetchTemperatureEligibilitySnapshot? CurrentFetchTemperatureEligibility { get; }
 
     internal TemperatureLimitRegistration RegisterTemperatureLimit(
         int gameObjectInstanceId,
@@ -426,6 +424,10 @@ internal sealed class DeliveryTemperatureGameSession
     internal void RemoveTemperatureLimit(TemperatureLimitRegistration registration);
     internal bool TryPublishFetchTemperatureEligibility(
         FetchTemperatureEligibilitySnapshot candidate);
+    internal WorldParentTopologyChange RegisterWorld(
+        int worldId,
+        int parentWorldId);
+    internal WorldParentTopologyChange RemoveWorld(int worldId);
     internal void StopAcceptingPublications();
     internal void ReleaseOwnedState();
 }
@@ -530,7 +532,7 @@ internal sealed class CompleteWorldResourceTemperatureAmountsBuilder
     internal void Discard();
 }
 
-internal sealed class WorldTemperatureInventoryCatalog
+internal sealed class WorldResourceTemperatureAmountCatalog
 {
     internal void RegisterWorld(int worldId, int parentWorldId);
     internal bool PublishCompleteWorldResourceAmounts(
@@ -562,6 +564,9 @@ internal readonly struct AllowedTemperatureInterval : IEquatable<AllowedTemperat
 {
     internal int MinimumInclusiveKelvin { get; }
     internal int MaximumExclusiveKelvin { get; }
+    internal AllowedTemperatureInterval(
+        int minimumInclusiveKelvin,
+        int maximumExclusiveKelvin);
 }
 
 internal sealed class AllowedTemperatureIntervalSet
@@ -570,6 +575,9 @@ internal sealed class AllowedTemperatureIntervalSet
     internal bool AllowsEveryTemperature { get; }
     internal IReadOnlyList<AllowedTemperatureInterval> Intervals { get; }
     internal bool Allows(TemperatureDecisionBucket bucket);
+    internal static AllowedTemperatureIntervalSet FromDestinations(
+        bool hasUnconstrainedDestination,
+        IReadOnlyList<DeliveryTemperatureConstraint> constrainedDestinations);
 }
 
 internal readonly struct FetchRequestTopologyVersion : IEquatable<FetchRequestTopologyVersion>
@@ -594,13 +602,34 @@ internal sealed class TemperaturePartitionDefinition
     internal int DefinitionId { get; }
     internal IReadOnlyList<int> SortedDecisionEndpointsKelvin { get; }
     internal int Classify(TemperatureDecisionBucket bucket);
+    internal static TemperaturePartitionDefinition Create(
+        int definitionId,
+        IReadOnlyList<int> decisionEndpointsKelvin);
+}
+
+internal enum TemperatureEligibilityClassificationKind
+{
+    NoTemperatureDistinction,
+    OptimizedPartitionInterval,
+    ExactTemperatureDecisionBucket,
+    MissingPrimaryElement
 }
 
 internal readonly struct TemperatureEligibilityClassKey :
     IEquatable<TemperatureEligibilityClassKey>, IComparable<TemperatureEligibilityClassKey>
 {
+    internal TemperatureEligibilityClassificationKind ClassificationKind { get; }
     internal int PartitionDefinitionId { get; }
     internal int IntervalOrdinal { get; }
+    internal TemperatureDecisionBucket ExactTemperatureDecisionBucket { get; }
+
+    internal static TemperatureEligibilityClassKey NoTemperatureDistinction();
+    internal static TemperatureEligibilityClassKey OptimizedPartitionInterval(
+        int partitionDefinitionId,
+        int intervalOrdinal);
+    internal static TemperatureEligibilityClassKey ExactDecisionBucket(
+        TemperatureDecisionBucket temperatureDecisionBucket);
+    internal static TemperatureEligibilityClassKey MissingPrimaryElement();
 }
 
 internal sealed class FetchTemperatureEligibilitySnapshot
@@ -665,7 +694,7 @@ internal enum FastTrackFeature
 {
     WorldInventory,
     PickupGrouping,
-    DirectChoreComparison
+    DirectDeliveryEligibility
 }
 
 internal enum FastTrackFeatureCompatibilityState
@@ -711,14 +740,14 @@ internal sealed class FastTrackCompatibilityReport
     internal FastTrackFeatureCompatibility GetFeature(FastTrackFeature feature);
 }
 
-internal sealed class FastTrackRuntimeInspectionInput
+internal sealed class FastTrackLoadedGameInspectionInput
 {
     internal bool IsFastTrackEnabledForActiveContent { get; }
     internal Assembly? FastTrackAssembly { get; }
-    internal IReadOnlyList<RuntimePatchDescriptor> ActivePatches { get; }
+    internal IReadOnlyList<ActiveHarmonyPatchDescriptor> ActivePatches { get; }
 }
 
-internal sealed class RuntimePatchDescriptor
+internal sealed class ActiveHarmonyPatchDescriptor
 {
     internal MethodBase TargetMethod { get; }
     internal MethodInfo PatchMethod { get; }
@@ -729,7 +758,7 @@ internal sealed class RuntimePatchDescriptor
 internal sealed class FastTrackCompatibilityInspector
 {
     internal FastTrackCompatibilityReport Inspect(
-        FastTrackRuntimeInspectionInput inspectionInput);
+        FastTrackLoadedGameInspectionInput inspectionInput);
 }
 
 internal enum FastTrackWorldInventoryUpdateKind
@@ -782,33 +811,38 @@ internal enum PickupGroupingImplementationPath
     FastTrack
 }
 
-internal sealed class DeliveryTemperaturePatchActivationPlan
+internal sealed class DeliveryTemperatureRuntimePatchPlan
 {
     internal bool InstallTemperatureStatusReplacement { get; }
     internal InventoryImplementationPath InventoryImplementationPath { get; }
     internal PickupGroupingImplementationPath PickupGroupingImplementationPath { get; }
-    internal bool InstallFastTrackDirectChoreComparison { get; }
-    internal bool HasReleaseBlockingIncompatibility { get; }
+    internal bool InstallFastTrackDirectDeliveryEligibility { get; }
+    internal string? StatusCompatibilityDiagnostic { get; }
 
-    internal static DeliveryTemperaturePatchActivationPlan Create(
+    internal static DeliveryTemperatureRuntimePatchPlan Create(
         bool statusTemperatureAccountingEnabled,
-        FastTrackCompatibilityReport fastTrackCompatibility,
-        bool kleiInventoryFallbackVerified,
-        bool kleiPickupFallbackVerified);
+        FastTrackCompatibilityReport fastTrackCompatibility);
+}
+
+internal sealed class FastTrackDeliveryEligibilityCompatibilityException : Exception
+{
+    internal FastTrackDeliveryEligibilityCompatibilityException(
+        string message,
+        FastTrackCompatibilityReport compatibilityReport);
 }
 ```
 
 ## Test Naming, Seeds, and Reference Rules
 
 - Test method format: `Operation_WhenCondition_ExpectedOutcome`.
-- Exhaustive temperature tests iterate `TemperatureDecisionBucket.UnderflowOrdinal` through `OverflowOrdinal` inclusive.
+- Exhaustive temperature tests iterate `TemperatureDecisionBucket.BelowMinimumConfigurableKelvinOrdinal` through `AtOrAboveMaximumConfigurableExclusiveKelvinOrdinal` inclusive. Tests derive all counts from named production bounds and also assert that build `744825` resolves the formula to `10,002`; loops must not repeat the literal as an independent bound.
 - Use fixed seeds and print the seed plus generated operation index in assertion messages:
   - constraint registry operations: `0x51A7E`;
   - interval normalization: `0x1A7E2A1`;
   - amount series: `0xA60A17`;
   - combined fetch eligibility: `0xFE7C4`;
   - lifecycle/concurrency schedules: `0x5E5510`.
-- `Tests/ReferenceModels/ReferenceTemperatureEligibility.cs` must implement direct loops independently. It must not call production normalization, bucket classification, prefix summation, partition classification, or interval merging.
+- `Tests/ReferenceTemperatureModels/ReferenceTemperatureEligibilityModel.cs` and `ReferenceWorldResourceTemperatureAmounts.cs` must implement direct loops independently. They must not call production normalization, bucket classification, prefix summation, partition classification, interval merging, or catalog aggregation.
 - Ordinary unit tests assert counts, equality, generations, completeness, and allocation structure. Do not use wall-clock thresholds in the unit suite.
 - Every exception assertion verifies the semantic exception type and a message naming the violated invariant; do not pin punctuation or full stack traces.
 
@@ -830,13 +864,27 @@ dotnet test --project mods/delivery-temperature-limit-supercooled/Tests/Delivery
 
 Replace `CLASS_NAME` with the exact class named by the task. Do not pass several commands in one shell invocation.
 
-Build through the repository-local pipeline when an integration adapter first touches game/Harmony types:
+Validate through the repository-local pipeline before every meaningful commit:
+
+```text
+dotnet run --project tools/oni-mod-pipeline/src/OniModPipeline/OniModPipeline.csproj --no-restore -- validate --mod mods/delivery-temperature-limit-supercooled
+```
+
+Build through the repository-local pipeline before every meaningful commit:
 
 ```text
 dotnet run --project tools/oni-mod-pipeline/src/OniModPipeline/OniModPipeline.csproj --no-restore -- build --mod mods/delivery-temperature-limit-supercooled
 ```
 
-Expected build success includes one printed exact build-result JSON path. Do not install that Gate A–C build.
+Expected build success includes one printed exact build-result JSON path. Do not install a Gate A–C build.
+
+Run the authoritative pipeline-declared test project before every meaningful commit:
+
+```text
+dotnet run --project tools/oni-mod-pipeline/src/OniModPipeline/OniModPipeline.csproj --no-restore -- test --mod mods/delivery-temperature-limit-supercooled
+```
+
+Each task's final green step means its focused tests **and all three pipeline commands above** pass against the same unmodified working tree. Do not prepare a commit after only direct `dotnet test` or a direct source build.
 
 ## Commit Protocol for Every Meaningful Chunk
 
@@ -844,18 +892,19 @@ For every task commit:
 
 1. Run `git status --short` and confirm unrelated paths remain unstaged.
 2. Run targeted `git diff --check -- <exact task paths>`.
-3. Load and follow `C:\Users\maksy\.agents\skills\committing-to-git\SKILL.md` in full.
-4. Invoke its `workflow prepare` in `actual`/`paths` mode with every exact whole path listed by the task, `--evidence reuse`, `--basis authored-current-task`, and only the task's stated allowed Conventional Commit type.
-5. Show the helper's `displayText` verbatim and obtain explicit authorization for that exact snapshot and exact message.
-6. Without reading or changing any artifact between prepare and commit, invoke `workflow commit` with the opaque transaction, the exact approved transport-safe subject, and `--verification required`.
-7. Parse and report the helper's JSON result. If the commit exists but a later gate fails or the outcome is unknown, use the skill's recovery procedure; never repeat the commit blindly.
-8. Do not push.
+3. Run pipeline `validate`, then `build`, then `test` as three separate commands; retain their fresh success evidence for the unchanged working tree.
+4. Load and follow `C:\Users\maksy\.agents\skills\committing-to-git\SKILL.md` in full.
+5. Invoke its `workflow prepare` in `actual`/`paths` mode with every exact whole path listed by the task, `--evidence reuse`, `--basis authored-current-task`, and only the task's stated allowed Conventional Commit type.
+6. Show the helper's `displayText` verbatim and obtain explicit authorization for that exact snapshot and exact message.
+7. Without reading or changing any artifact between prepare and commit, invoke `workflow commit` with the opaque transaction, the exact approved transport-safe subject, and `--verification required`.
+8. Parse and report the helper's JSON result. If the commit exists but a later gate fails or the outcome is unknown, use the skill's recovery procedure; never repeat the commit blindly.
+9. Do not push.
 
 Every subject below begins with an uppercase description as required by the commit workflow.
 
 ---
 
-### Task 0: Preflight, Configuration Approval, and Baseline Boundaries
+### Task 0: Preflight, Approved Configuration Context, and Evidence Baselines
 
 **Files:**
 - Read: `docs/specs/2026-08-29-delivery-temperature-limit-performance-rewrite-design.md`
@@ -863,11 +912,13 @@ Every subject below begins with an uppercase description as required by the comm
 - Inspect: `mods/delivery-temperature-limit-supercooled/Source/*.cs`
 - Inspect: `mods/delivery-temperature-limit-supercooled/Tests/*`
 - Inspect: `mods/delivery-temperature-limit-supercooled/oni-mod-pipeline.toml`
+- Inspect: `mods/delivery-temperature-limit-supercooled/DeliveryTemperatureLimit.dll`
+- Inspect: installed ONI `Assembly-CSharp.dll`
 - Do not modify any file in this task.
 
 **Interfaces:**
 - Consumes: approved architecture and current working tree.
-- Produces: a verified clean implementation scope, exact configuration authorization, and baseline focused command evidence.
+- Produces: a verified clean implementation scope, confirmation that the already-approved configuration context still matches, and immutable baseline/runtime facts.
 
 - [ ] **Step 1: Re-read repository instructions and both approved documents completely**
 
@@ -883,11 +934,16 @@ git status --short
 
 Expected: identify every pre-existing modification/untracked path, including but not limited to the two paths recorded in Global Constraints. Treat all as user-owned.
 
-- [ ] **Step 3: Obtain exact configuration approval**
+- [ ] **Step 3: Verify the approved configuration context without editing it**
 
-Present the two exact changes in the Configuration Approval Dossier. Do not edit either file until the user explicitly approves those exact settings and impacts.
+Read the four approved mutable files and byte-hash the invariant pipeline profile. Confirm:
 
-Expected: approval names both `Tests/DeliveryTemperatureLimit.Tests.csproj` and `oni-mod-pipeline.toml`. Approval for one does not authorize the other.
+- source target is still `net48`, without `Nullable`, `TreatWarningsAsErrors`, or `CopyLocalLockFileAssemblies`;
+- tests still target `net10.0`, `Nullable=annotations`, warnings as errors, with only the legacy `Buildings.cs` link;
+- `minimumSupportedBuild` is still `596100`; and
+- no work since plan approval changed the target sections.
+
+Expected: exact match. If any item differs, stop and show the user the old approved value, current value, and smallest revised delta. Do not assume the earlier approval covers a different file state.
 
 - [ ] **Step 4: Confirm the current focused tests before changing the harness**
 
@@ -897,7 +953,7 @@ Run:
 dotnet test --project mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj --no-restore -- --filter "FullyQualifiedName~BuildingsEligibilityTests"
 ```
 
-Expected: PASS. If restore assets are absent, run the locked restore command once, then rerun. Do not run installed-game or profiler validation.
+Expected: PASS. If restore assets are absent, run the locked restore command once, then rerun. Do not launch ONI.
 
 - [ ] **Step 5: Confirm the local pipeline entrypoint without running the deep campaign**
 
@@ -909,7 +965,23 @@ dotnet run --project tools/oni-mod-pipeline/src/OniModPipeline/OniModPipeline.cs
 
 Expected: successful environment diagnosis naming the installed ONI managed directory. If tool restore assets are absent, perform a locked restore of the tool project as a separate command. Do not change configuration to work around discovery.
 
-- [ ] **Step 6: Record the big-bang boundary in the implementation log**
+- [ ] **Step 6: Verify the published baseline and current ONI evidence**
+
+Run separate read-only commands to prove and record:
+
+- Git object `5f7bf43aa823bbb4771936b058c6d573484b6d91` exists;
+- tracked baseline `DeliveryTemperatureLimit.dll` has file version `2026.8.26.0` and SHA-256 `02A14F2E123F42BDD87847C15AB434DAFC8A4D4BC92B465F9DCD367364BF465E`;
+- installed `Assembly-CSharp.dll` has SHA-256 `A58E04D0FFDF89B86FB28B71AD900625B3B539DB30D67F8C6269F73A9F5AE599`;
+- `KleiVersion.ChangeList == 744825`, `KleiVersion.BuildBranch == "release"`, and `Sim.MaxTemperature == 10000f`; and
+- installed element YAML still records `MoltenCarbon.highTemp=5100`, `MoltenNiobium.highTemp=5017`, and `MoltenTungsten.highTemp=6203`.
+
+Expected: exact match. A mismatch is a planning input change, not a reason to edit expectations silently.
+
+- [ ] **Step 7: Run the unchanged baseline through the pipeline gates**
+
+Run pipeline `validate`, `build`, and `test` as separate commands. Record any pre-existing MSB3277 reference warnings exactly. Expected: all commands succeed; the warning inventory becomes diagnostic evidence for Task 1 rather than a suppression target.
+
+- [ ] **Step 8: Record the big-bang boundary in the implementation log**
 
 Use the task conversation/status update, not a repository file, to state:
 
@@ -922,23 +994,154 @@ There is no commit for Task 0.
 
 ---
 
-### Task 1: Canonical Delivery Constraint and Temperature Decision Buckets
+### Task 1: Current ONI Runtime Target and Static Contract Harness
+
+This is the first meaningful implementation commit boundary. Its approved commit subject/body intent is fixed below; if the actual prepared snapshot needs a materially different message, show the difference and obtain exact approval through the commit workflow.
 
 **Files:**
+- Modify: `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureLimit.csproj`
+- Modify: `mods/delivery-temperature-limit-supercooled/Source/packages.lock.json`
 - Modify: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/TemperatureConstraints/DeliveryTemperatureBounds.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/TemperatureConstraints/DeliveryTemperatureConstraint.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/TemperatureConstraints/TemperatureDecisionBucket.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/DeliveryTemperatureConstraintTests.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/TemperatureDecisionBucketTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/mod_info.yaml`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/TemperatureConstraints/OniStorableTemperatureBounds.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/TemperatureConstraints/OniStorableTemperatureBoundsTests.cs`
+- Move: `mods/delivery-temperature-limit-supercooled/Tests/PublicAssemblySurface.cs` to `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureAssemblyContracts/DeliveryTemperatureAssemblyMetadataReader.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureAssemblyContracts/DeliveryTemperatureAssemblyMetadataReader.cs`
+- Move: `mods/delivery-temperature-limit-supercooled/Tests/ModBuildContractTests.cs` to `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureAssemblyContracts/MergedDeliveryTemperatureAssemblyContractTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureAssemblyContracts/MergedDeliveryTemperatureAssemblyContractTests.cs`
+- Move: `mods/delivery-temperature-limit-supercooled/Tests/TemporaryDirectory.cs` to `mods/delivery-temperature-limit-supercooled/Tests/OniModPipelineIntegration/PipelineTestTemporaryDirectory.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/OniModPipelineIntegration/PipelineTestTemporaryDirectory.cs`
+- Move: `mods/delivery-temperature-limit-supercooled/Tests/DotnetProcess.cs` to `mods/delivery-temperature-limit-supercooled/Tests/OniModPipelineIntegration/DotnetCommandRunner.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/OniModPipelineIntegration/DotnetCommandRunner.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureAssemblyContracts/OniStorableTemperatureBoundsContractTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureAssemblyContracts/CurrentOniRuntimeContractTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureAssemblyContracts/ProjectTargetFrameworkContractTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureAssemblyContracts/KnownOniReferenceConflictContractTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureAssemblyContracts/LinkedProductionSourceBoundaryContractTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureAssemblyContracts/DeliveryTemperaturePackageBoundaryContractTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/OniModPipelineIntegration/OniModPipelineProfileInvarianceTests.cs`
 
 **Interfaces:**
-- Consumes: the approved project wildcard and exact existing serialized semantics.
-- Produces: `DeliveryTemperatureBounds`, `DeliveryTemperatureConstraint`, and `TemperatureDecisionBucket` exactly as declared in the contract registry.
+- Consumes: installed ONI directory from `ONI_MANAGED_ASSEMBLY_DIRECTORY`, repository root from `ONI_MOD_PIPELINE_REPOSITORY_ROOT`, the published baseline DLL, the approved staged configuration dossier, and the current pipeline profile.
+- Produces: `OniStorableTemperatureBounds.MaximumTemperatureKelvin == 10000`, `netstandard2.1` production targeting, current-build metadata contracts, exact known-warning contracts, merge/package boundary contracts, semantically named test infrastructure, and a linked-source test boundary without changing `oni-mod-pipeline.toml`.
 
-- [ ] **Step 1: Add the approved production-domain compile wildcard**
+- [ ] **Step 1: Write red project/runtime contract tests before changing configuration**
 
-Insert exactly the XML from the Configuration Approval Dossier. Do not reformat or alter any other project property. Run locked restore and verify `packages.lock.json` remains byte-unchanged.
+Use `System.Reflection.Metadata` and `PEReader` from `net10.0`; do not add a package. Tests must fail for the intended old facts:
+
+- source project still targets `net48`;
+- source project lacks `CopyLocalLockFileAssemblies` and `TreatWarningsAsErrors`;
+- `mod_info.yaml` still names build `596100`;
+- `OniStorableTemperatureBounds` does not exist; and
+- the test project does not link the exact approved algorithm/session and reflection-only source set.
+
+The runtime reader resolves `Assembly-CSharp.dll` only beneath the full path supplied by `ONI_MANAGED_ASSEMBLY_DIRECTORY`, rejects a missing/non-rooted/out-of-directory path, and reports observed assembly digest/build/branch/value on failure. It verifies `KleiVersion.ChangeList`, `KleiVersion.BuildBranch`, `Sim.MaxTemperature`, the inclusive `10000f` validation shape in `PrimaryElement.OnDeserialized`, and the matching `SimMessages.ModifyCell` bound. Do not load the game assembly for execution. Rename the existing generic test infrastructure as listed; update namespaces and callers atomically rather than leaving aliases for the old names.
+
+- [ ] **Step 2: Run the new static contract class red**
+
+Run the class through direct filtered `dotnet test`, supplying the same two environment variables the pipeline supplies. Expected: failures name the old target/build and missing bound source, not an environment discovery error.
+
+- [ ] **Step 3: Apply only the approved first-stage project and metadata changes**
+
+Make these exact edits:
+
+```xml
+<TargetFramework>netstandard2.1</TargetFramework>
+<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+```
+
+Do not add `<Nullable>` to the production project yet. In the test project, retain `net10.0`, `Nullable=annotations`, and every existing property. Retain the legacy `Buildings.cs` link, then add only these future-safe linked items under matching `Production\<semantic-root>\...` paths:
+
+- `..\Source\TemperatureConstraints\**\*.cs`;
+- `..\Source\WorldParentTopology\**\*.cs`;
+- `..\Source\WorldResourceTemperatureAmounts\**\*.cs`;
+- `..\Source\FetchTemperatureEligibility\**\*.cs`;
+- `..\Source\DeliveryTemperatureGameSessionLifecycle\**\*.cs`;
+- `..\Source\FastTrackCompatibility\FeatureContractVerification\**\*.cs`;
+- `..\Source\FastTrackCompatibility\InventoryUpdateAdapters\FastTrackWorldInventoryUpdateKind.cs`;
+- `..\Source\FastTrackCompatibility\InventoryUpdateAdapters\FastTrackWorldInventoryPublicationResult.cs`;
+- `..\Source\FastTrackCompatibility\InventoryUpdateAdapters\FastTrackWorldInventoryPublicationSession.cs`;
+- `..\Source\FastTrackCompatibility\PickupGroupingAdapters\FastTrackPickupGroupingKeyAllocator.cs`; and
+- `..\Source\HarmonyTranspilerInfrastructure\HarmonyPatchContract*.cs`.
+
+Globs deliberately match no file until a later task creates that semantic root; they must never include runtime Harmony adapter files. Set only `minimumSupportedBuild: 744825` in `mod_info.yaml`.
+
+`LinkedProductionSourceBoundaryContractTests` parses the project and linked source syntax on every later pipeline run. It permits only the exact items above and the legacy `Buildings.cs` link until Task 24. It rejects a copied production algorithm, broad `FastTrackCompatibility\**` or adapter glob, Unity/Klei/Harmony/PLib/FastTrack API invocation from linked algorithm/session code, conditional framework fork, or test-only branch. Exact plan-named value/identity types supplied by `OniGameTypeStubs` are allowed; game-object traversal is not.
+
+- [ ] **Step 4: Add the pure bound source with an evidence comment**
+
+Start the file with `#nullable enable`. Define only the `internal` static class and current named constant from the Contract Registry. Its comment must name changelist `744825`, `Sim.MaxTemperature`, inclusive validity, and the static test that forces review after an ONI change. Do not reference a Klei type from this linked pure file and do not add runtime reflection.
+
+- [ ] **Step 5: Refresh and inspect the locked restore graph**
+
+Run a non-locked restore once to update `Source/packages.lock.json`, then inspect the diff before any locked command. Expected: only the target-framework graph changes; PLib remains `4.24.0`, ILRepack remains `2.0.34`, and no package version or unrelated framework graph changes. Any broader delta stops this task.
+
+- [ ] **Step 6: Characterize the two visible ONI reference conflicts**
+
+Capture `ResolveReferences` through the production project using the pipeline-provided ONI directory and isolated output/intermediate directories. `KnownOniReferenceConflictContractTests` must describe exactly:
+
+- `System.IO.Compression`: framework/reference root `4.1.3.0`, ONI root `4.2.0.0`; and
+- `System.Net.Http`: framework/reference root `4.1.2.0`, ONI root `4.2.0.0`.
+
+The test/project scan fails if a third root appears, either version changes, the warnings disappear through suppression/redirect/pinning, or `NoWarn`, binding redirects, `AutoUnify`, or direct framework-reference workarounds appear. Compiler warnings remain errors; these two MSBuild resolution warnings remain visible.
+
+- [ ] **Step 7: Add merge, package, baseline, and pipeline invariance contracts**
+
+Tests must prove:
+
+- tracked baseline DLL version/hash/source-commit facts;
+- the baseline DLL directly references neither `System.IO.Compression` nor `System.Net.Http`;
+- pipeline profile declares PLib as the only merge input;
+- pipeline package files are exactly `mod.yaml`, `mod_info.yaml`, and the merged `DeliveryTemperatureLimit.dll`;
+- no framework DLL or `.config` file can enter the package declaration; and
+- `oni-mod-pipeline.toml` equals the Task 0 recorded bytes/hash.
+
+`MergedDeliveryTemperatureAssemblyContractTests` starts with one always-present published-baseline data row. Task 26 extends that provider with an exact pipeline-build row when an explicit build-result path is supplied and an exact release-candidate row when an explicit provenance-bound candidate directory is supplied. Ordinary pipeline `test` has no skipped or inconclusive case and cannot silently claim external artifact evidence; the final gates supply each exact path and verify the corresponding named row executed.
+
+- [ ] **Step 8: Run red-to-green focused tests and locked builds**
+
+Run the new contract classes, locked test restore, and a production `netstandard2.1` build through the pipeline. Expected: contracts pass; exactly the two known MSB3277 roots remain visible; the merged DLL directly references neither disputed assembly; no framework DLL/config is packaged.
+
+- [ ] **Step 9: Run the mandatory commit gates**
+
+Run pipeline `validate`, `build`, and `test` separately on the unchanged working tree. Confirm `oni-mod-pipeline.toml` is byte-for-byte unchanged and both project nullable stages remain exactly as approved.
+
+- [ ] **Step 10: Commit the first meaningful implementation chunk**
+
+Allowed type: `build`. Prepare only the exact files listed in this task. Use this detailed message intent:
+
+```text
+build: Target Delivery Temperature Limit for current ONI
+
+Compile the game-loaded assembly for .NET Standard 2.1 and refresh
+the locked restore graph without changing package versions.
+
+Record ONI build 744825 as the supported public runtime and add
+static contracts for the target framework, assembly references,
+known ONI reference-analysis conflicts, merge inputs, and package
+boundary.
+```
+
+Use the Commit Protocol; the user's prior approval of this intent does not bypass the required exact prepared-snapshot/message authorization. Do not push.
+
+---
+
+### Task 2: Canonical Delivery Constraint and Temperature Decision Buckets
+
+**Files:**
+- Create: `mods/delivery-temperature-limit-supercooled/Source/TemperatureConstraints/DeliveryTemperatureConstraint.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/TemperatureConstraints/TemperatureDecisionBucket.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/TemperatureConstraints/DeliveryTemperatureConstraintTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/TemperatureConstraints/TemperatureDecisionBucketTests.cs`
+
+**Interfaces:**
+- Consumes: linked `OniStorableTemperatureBounds` from Task 1 and exact existing serialized/truncation semantics.
+- Produces: `DeliveryTemperatureConstraint` and the formula-derived `TemperatureDecisionBucket` exactly as declared in the Contract Registry.
+
+- [ ] **Step 1: Confirm the linked pure-source boundary is active**
+
+Run `OniStorableTemperatureBoundsTests` through the pipeline-declared test project and confirm the production source is linked from `Source/TemperatureConstraints`, not copied. Do not modify either project in this task.
 
 - [ ] **Step 2: Write failing constraint characterization tests**
 
@@ -972,21 +1175,22 @@ Also add exact tests named:
 - `FromSerializedLimits_WhenHighIsZero_ReturnsDisabledConstraint`
 - `FromSerializedLimits_WhenValuesExceedBounds_ClampsBothValues`
 - `FromSerializedLimits_WhenValuesAreNegative_ClampsBothValuesToZero`
-- `Allows_WhenConstraintIsDisabled_ReturnsTrueForUnderflowAndOverflow`
+- `Allows_WhenConstraintIsDisabled_ReturnsTrueBelowAndAtOrAboveConfigurableBounds`
 - `Allows_WhenTemperatureHasNegativeFraction_TruncatesTowardZero`
-- `Allows_WhenMaximumIs5000_Rejects5000AndOverflow`
+- `Allows_WhenMaximumIsOniStorableTemperatureMaximum_RejectsExactMaximumAndAbove`
+- `Allows_WhenTemperatureIsExactlyOniMaximum_IsRejectedByEnabledRangeButAllowedWhenDisabled`
 
 - [ ] **Step 3: Write failing decision-bucket tests**
 
 Include:
 
 ```csharp
-[DataRow(-1.0f, TemperatureDecisionBucket.UnderflowOrdinal)]
+[DataRow(-1.0f, TemperatureDecisionBucket.BelowMinimumConfigurableKelvinOrdinal)]
 [DataRow(-0.999f, 1)]
 [DataRow(0.0f, 1)]
 [DataRow(273.15f, 274)]
-[DataRow(4999.999f, 5000)]
-[DataRow(5000.0f, TemperatureDecisionBucket.OverflowOrdinal)]
+[DataRow(9999.999f, OniStorableTemperatureBounds.MaximumTemperatureKelvin)]
+[DataRow(10000.0f, TemperatureDecisionBucket.AtOrAboveMaximumConfigurableExclusiveKelvinOrdinal)]
 [TestMethod]
 public void FromTemperature_WhenGivenBoundaryValue_UsesCSharpTruncation(
     float temperatureKelvin,
@@ -998,13 +1202,13 @@ public void FromTemperature_WhenGivenBoundaryValue_UsesCSharpTruncation(
 }
 ```
 
-Add exhaustive round-trip coverage for integer Kelvin `0..4999` and tests that every truncated integer below zero shares underflow while every integer at/above 5000 shares overflow.
+Add exhaustive round-trip coverage for integer Kelvin `0..OniStorableTemperatureBounds.MaximumTemperatureKelvin - 1` (currently `0..9999`) and tests that every representative truncated integer below zero shares `BelowMinimumConfigurableKelvin` while every representative integer at/above `10000` shares `AtOrAboveMaximumConfigurableExclusiveKelvin`. Assert `BucketCount` from its formula and assert the current reviewed result is `10002` once; do not use a repeated literal as a loop bound.
 
 - [ ] **Step 4: Run both test classes and observe the intended red**
 
 Run the focused command once with `DeliveryTemperatureConstraintTests`, then once with `TemperatureDecisionBucketTests`.
 
-Expected: compilation fails because the three production types do not exist. Any project XML, lockfile, or unrelated compilation failure must be fixed before implementation.
+Expected: compilation fails because the two new production types do not exist. Any project XML, lockfile, installed-ONI, or unrelated compilation failure must be resolved before implementation.
 
 - [ ] **Step 5: Implement the minimal immutable constraint**
 
@@ -1026,37 +1230,42 @@ internal bool Allows(float temperatureKelvin)
 
 Add comments explaining why disabled and empty are distinct and why the cast must precede comparison. Do not call `Math.Floor`, `Math.Round`, Celsius conversion, or a caller-supplied classifier.
 
-- [ ] **Step 6: Implement the fixed 5,002-class bucket mapping**
+- [ ] **Step 6: Implement the formula-derived canonical bucket mapping**
 
 Use ordinal mapping:
 
 ```csharp
-if (truncatedKelvin < DeliveryTemperatureBounds.MinimumSupportedKelvin)
-    return new TemperatureDecisionBucket(UnderflowOrdinal);
-if (truncatedKelvin >= DeliveryTemperatureBounds.MaximumSupportedKelvinExclusive)
-    return new TemperatureDecisionBucket(OverflowOrdinal);
+if (truncatedKelvin < OniStorableTemperatureBounds.MinimumTemperatureKelvin)
+    return new TemperatureDecisionBucket(BelowMinimumConfigurableKelvinOrdinal);
+if (truncatedKelvin >= OniStorableTemperatureBounds.MaximumTemperatureKelvin)
+    return new TemperatureDecisionBucket(
+        AtOrAboveMaximumConfigurableExclusiveKelvinOrdinal);
 return new TemperatureDecisionBucket(truncatedKelvin + 1);
 ```
 
-Comment why negative Celsius is not negative Kelvin and why `-0.999 K` truncates into the zero-Kelvin class.
+Comment why negative Celsius is not negative Kelvin, why `-0.999 K` truncates into the zero-Kelvin bucket, and why exact `10000 K` shares a rejection-equivalent bucket with higher values despite being valid ONI state.
 
 - [ ] **Step 7: Run the focused tests green and refactor**
 
-Expected: both classes PASS. Confirm equality/hash/compare implementations are value-based and allocation-free. Run `git diff --check` on the six task paths.
+Expected: both classes PASS. Confirm equality/hash/compare implementations are value-based and allocation-free. Run `git diff --check` on the four task paths.
 
 - [ ] **Step 8: Perform the chunk shim and naming scan**
 
 Run:
 
 ```text
-rg -n "TemperatureIndexData|getTemperatureIndexData|Helper|Utils" mods/delivery-temperature-limit-supercooled/Source/Domain mods/delivery-temperature-limit-supercooled/Tests/Domain
+rg -n "TemperatureIndexData|getTemperatureIndexData|Helper|Utils|DeliveryTemperatureBounds|UnderflowOrdinal|OverflowOrdinal" mods/delivery-temperature-limit-supercooled/Source/TemperatureConstraints mods/delivery-temperature-limit-supercooled/Tests/TemperatureConstraints
 ```
 
 Expected: no new legacy reference, generic utility name, or incomplete marker. Existing legacy references outside the new directories are expected until Gate D.
 
-- [ ] **Step 9: Prepare and commit the exact chunk**
+- [ ] **Step 9: Run mandatory pipeline gates**
 
-Use the Commit Protocol with the six task paths, allowed type `perf`, and exact subject:
+Run pipeline `validate`, `build`, and `test` separately. Confirm the project/lock/metadata files from Task 1 remain unchanged and the two known reference warnings remain exactly bounded.
+
+- [ ] **Step 10: Prepare and commit the exact chunk**
+
+Use the Commit Protocol with the four task paths, allowed type `perf`, and exact subject:
 
 ```text
 perf: Define canonical delivery temperature semantics
@@ -1064,17 +1273,18 @@ perf: Define canonical delivery temperature semantics
 
 ---
 
-### Task 2: Immutable Constraint Registry and Endpoint Reference Counts
+### Task 3: Immutable Constraint Registry and Endpoint Reference Counts
 
 **Files:**
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/TemperatureConstraints/TemperatureConstraintGeneration.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/TemperatureConstraints/TemperatureConstraintRegistration.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/TemperatureConstraints/ActiveTemperatureConstraintSnapshot.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/TemperatureConstraints/TemperatureConstraintRegistry.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/TemperatureConstraintRegistryTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/TemperatureConstraints/TemperatureConstraintGeneration.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/TemperatureConstraints/TemperatureConstraintRegistration.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/TemperatureConstraints/RegisteredTemperatureConstraint.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/TemperatureConstraints/ActiveTemperatureConstraintSnapshot.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/TemperatureConstraints/TemperatureConstraintRegistry.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/TemperatureConstraints/TemperatureConstraintRegistryTests.cs`
 
 **Interfaces:**
-- Consumes: canonical constraints and bounds from Task 1.
+- Consumes: current ONI bounds from Task 1 and canonical constraints/buckets from Task 2.
 - Produces: token-owned O(1) registry mutation and eagerly published immutable endpoint snapshots.
 
 - [ ] **Step 1: Write failing registry lifecycle tests**
@@ -1126,17 +1336,19 @@ Use:
 ```csharp
 private readonly Dictionary<int, RegistryEntry> entriesByComponentInstanceId;
 private readonly int[] endpointReferenceCounts =
-    new int[DeliveryTemperatureBounds.MaximumSupportedKelvinExclusive + 1];
+    new int[OniStorableTemperatureBounds.MaximumTemperatureKelvin + 1];
+private readonly ulong[] activeEndpointMembershipWords =
+    new ulong[(OniStorableTemperatureBounds.MaximumTemperatureKelvin + 1 + 63) / 64];
 private long nextRegistrationSequence;
 private long generation;
 private ActiveTemperatureConstraintSnapshot publishedSnapshot;
 ```
 
-Registration sequence zero is invalid. Increment with checked semantics; exhaustion throws a named `InvalidOperationException` and never reuses a token. Endpoint increments/decrements occur only for enabled, nonempty constraints. Guard underflow of a reference count with an invariant exception.
+Registration sequence zero is invalid. Increment with checked semantics; exhaustion throws a named `InvalidOperationException` and never reuses a token. Endpoint increments/decrements occur only for enabled, nonempty constraints. A `0 -> 1` transition sets the endpoint membership bit; a `1 -> 0` transition clears it. Guard reference-count underflow and an inconsistent bit with invariant exceptions.
 
 - [ ] **Step 5: Eagerly publish immutable snapshots on changed mutations**
 
-Reconstruct sorted endpoints by scanning the fixed 5,001-entry reference array, not by sorting all components. Copy registered constraints into a deterministic component-instance-ID order. Publish the new reference only after all fields are complete and while the registry owns its private lock.
+Reconstruct sorted endpoints by scanning the fixed membership words in ascending order and emitting only set endpoint bits; for the current bound this inspects `ceil(10001 / 64) = 157` words rather than all `10,001` counts. Do not use `SortedSet`, LINQ, or sort all components. Copy registered constraints into deterministic component-instance-ID order. Publish the new reference only after all fields are complete and while the registry owns its private lock.
 
 Return the already-published reference from `CaptureSnapshot`; it must not acquire another service or cause deferred work.
 
@@ -1146,11 +1358,15 @@ Expected: all registry tests PASS. Confirm identical operations preserve object 
 
 - [ ] **Step 7: Inspect bounded complexity and comments**
 
-Verify the only per-mutation bounded scan is the fixed endpoint array plus snapshot copy; no LINQ `Sort`, `Distinct`, `allLimits` scan, lazy flag, or worker callback exists. Comments must identify token ownership and endpoint-count invariants.
+Verify the only changed-mutation bounded work is the 157-word membership scan, emission of actually active endpoints, and immutable registered-constraint snapshot copy; no full temperature-range scan, LINQ `Sort`, `Distinct`, `allLimits` scan, lazy flag, or worker callback exists. Assert endpoint-count element storage is `40,004` bytes (`10,001 × 4`), approximately `39.1 KiB` and `19.5 KiB` more than the former range. Comments must identify token ownership, reference-count/bit invariants, and why unused `5000..9999 K` values add fixed memory but no recurring work.
 
-- [ ] **Step 8: Prepare and commit**
+- [ ] **Step 8: Run mandatory pipeline gates**
 
-Use the five task paths, allowed type `perf`, and exact subject:
+Run pipeline `validate`, `build`, and `test` separately. Confirm the bounded-reference tests and candidate build remain green.
+
+- [ ] **Step 9: Prepare and commit**
+
+Use the six task paths, allowed type `perf`, and exact subject:
 
 ```text
 perf: Publish immutable active temperature constraints
@@ -1158,17 +1374,17 @@ perf: Publish immutable active temperature constraints
 
 ---
 
-### Task 3: Owned TemperatureLimit Component Index
+### Task 4: Owned TemperatureLimit Component Index
 
 **Files:**
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/TemperatureConstraints/TemperatureLimitComponentIndex.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/TemperatureConstraints/TemperatureLimitRegistration.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/GameStubs.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/TemperatureLimitComponentIndexTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/TemperatureConstraints/TemperatureLimitComponentIndex.cs`
+- Move: `mods/delivery-temperature-limit-supercooled/Tests/GameStubs.cs` to `mods/delivery-temperature-limit-supercooled/Tests/TestDoubles/OniGameTypeStubs.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/TestDoubles/OniGameTypeStubs.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/TemperatureConstraints/TemperatureLimitComponentIndexTests.cs`
 
 **Interfaces:**
 - Consumes: `DeliveryTemperatureConstraint` and `TemperatureConstraintRegistration`.
-- Produces: O(1) thread-safe GameObject-instance lookup with remove-if-owned semantics; `TemperatureLimitRegistration` later composes index and registry ownership.
+- Produces: O(1) thread-safe GameObject-instance lookup with remove-if-owned semantics; Task 5's `TemperatureLimitRegistration` composes index and registry ownership after game-session generation exists.
 
 - [ ] **Step 1: Extend the test stub semantically**
 
@@ -1232,7 +1448,11 @@ Do not expose the dictionary, return mutable entries, or call Unity from the ind
 
 Expected: all index tests PASS. Ordinary successful reads must perform no allocation. Replacement may allocate one immutable entry; it occurs only on configuration change.
 
-- [ ] **Step 6: Prepare and commit**
+- [ ] **Step 6: Run mandatory pipeline gates**
+
+Run pipeline `validate`, `build`, and `test` separately. Confirm the file move changed no stub namespace/type identity used by existing tests.
+
+- [ ] **Step 7: Prepare and commit**
 
 Use the four task paths, allowed type `perf`, and exact subject:
 
@@ -1242,16 +1462,17 @@ perf: Add owned temperature component lookup
 
 ---
 
-### Task 4: Game-Session Ownership, Registration Coordination, and Diagnostic Limiting
+### Task 5: Game-Session Ownership, Registration Coordination, and Diagnostic Limiting
 
 **Files:**
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/Runtime/GameSessionGeneration.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/Runtime/RetainedCollectionLimits.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/Runtime/SessionDiagnosticLimiter.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/Runtime/DeliveryTemperatureGameSession.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/Runtime/DeliveryTemperatureGameSessionHost.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/SessionDiagnosticLimiterTests.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/DeliveryTemperatureGameSessionTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureGameSessionLifecycle/GameSessionGeneration.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureGameSessionLifecycle/TemperatureLimitRegistration.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureGameSessionLifecycle/RetainedCollectionCapacityLimits.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureGameSessionLifecycle/SessionDiagnosticLimiter.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureGameSessionLifecycle/DeliveryTemperatureGameSession.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureGameSessionLifecycle/DeliveryTemperatureGameSessionHost.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureGameSessionLifecycle/SessionDiagnosticLimiterTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureGameSessionLifecycle/DeliveryTemperatureGameSessionTests.cs`
 
 **Interfaces:**
 - Consumes: constraint registry and component index.
@@ -1265,7 +1486,6 @@ Include:
 [TestMethod]
 public void EnsureGameSession_WhenGameIdentityChanges_DetachesAndInvalidatesOldSession()
 {
-    DeliveryTemperatureGameSessionHost.ResetForTests();
     var oldSession = DeliveryTemperatureGameSessionHost.EnsureGameSession(100);
 
     var newSession = DeliveryTemperatureGameSessionHost.EnsureGameSession(200);
@@ -1277,7 +1497,7 @@ public void EnsureGameSession_WhenGameIdentityChanges_DetachesAndInvalidatesOldS
 }
 ```
 
-`ResetForTests` is `internal` and exists only to isolate static host tests; production code must not call it.
+Each test uses unique game identities and performs cleanup through the real detach/complete lifecycle in `TestCleanup`. Do not add `ResetForTests`, `InternalsVisibleTo`-only behavior branches, or any test-only method to production.
 
 Add exact tests:
 
@@ -1319,7 +1539,7 @@ Sequence mutation so a partially failed registration is rolled back in the same 
 
 - [ ] **Step 6: Add named retained collection limits**
 
-Use these initial limits and comments explaining that Task 27 verifies them under profiling:
+Use these initial limits and comments explaining that Task 25 verifies their retention behavior structurally and Task 28 permits an indicative manual observation:
 
 ```csharp
 internal const int MaximumRetainedPickupClassificationCount = 16384;
@@ -1330,17 +1550,23 @@ internal const int MaximumRetainedWorldResourceTagCount = 4096;
 
 Do not call them cache sizes. Each consumer later replaces its variable-capacity collection after exceeding its relevant limit.
 
+These constants are retention limits, never functional workload caps: an invocation may grow beyond them and must still process every entry correctly, then discard/replace the oversized backing collection only at its documented safe completion/finalizer boundary. The powers of two are deliberately generous for a community-mod large-colony workload while preventing one pathological session from pinning its peak capacity forever. Tests must prove no item is dropped at `limit`, `limit + 1`, or a much larger count and that only the post-operation reusable instance changes. Changing a value later is a named resource-policy decision, not a silent micro-optimization.
+
 - [ ] **Step 7: Run green, then run lifecycle schedule stress**
 
 Use seed `0x5E5510` to run 10,000 deterministic ensure/capture/detach/complete/register/remove operations. Assert no old generation removes or publishes into the current session. This is invariant testing, not wall-clock benchmarking.
 
 - [ ] **Step 8: Scan for static mutable gameplay collections**
 
-Within `Source/Domain`, only the host's atomic current-session reference and monotonic generation source may be mutable static state. `SessionDiagnosticLimiter` belongs to a session instance.
+Within the new semantic production directories, only the host's atomic current-session reference and monotonic generation source may be mutable static state. `SessionDiagnosticLimiter` belongs to a session instance. The architecture test must name every allowed field rather than allowlisting a directory.
 
-- [ ] **Step 9: Prepare and commit**
+- [ ] **Step 9: Run mandatory pipeline gates**
 
-Use the seven task paths, allowed type `perf`, and exact subject:
+Run pipeline `validate`, `build`, and `test` separately. Confirm lifecycle schedule tests pass under the linked pure-source build and no test-only production API exists.
+
+- [ ] **Step 10: Prepare and commit**
+
+Use the eight task paths, allowed type `perf`, and exact subject:
 
 ```text
 perf: Scope temperature state to game sessions
@@ -1348,19 +1574,19 @@ perf: Scope temperature state to game sessions
 
 ---
 
-### Task 5: Immutable World-to-Parent Topology
+### Task 6: Immutable World-to-Parent Topology
 
 **Files:**
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/WorldTopology/WorldParentTopologyVersion.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/WorldTopology/WorldParentTopologyChange.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/WorldTopology/WorldParentTopologySnapshot.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/WorldTopology/WorldParentTopologyCatalog.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Source/Domain/Runtime/DeliveryTemperatureGameSession.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/WorldParentTopologyCatalogTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/Domain/DeliveryTemperatureGameSessionTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/WorldParentTopology/WorldParentTopologyVersion.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/WorldParentTopology/WorldParentTopologyChange.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/WorldParentTopology/WorldParentTopologySnapshot.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/WorldParentTopology/WorldParentTopologyCatalog.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureGameSessionLifecycle/DeliveryTemperatureGameSession.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/WorldParentTopology/WorldParentTopologyCatalogTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureGameSessionLifecycle/DeliveryTemperatureGameSessionTests.cs`
 
 **Interfaces:**
-- Consumes: `GameSessionGeneration` and the session lifetime from Task 4.
+- Consumes: `GameSessionGeneration` and session lifetime from Task 5.
 - Produces: immutable world-parent snapshots, exact old/new parent changes, sorted member-world lookup, and the session's `WorldParentTopology` property.
 
 - [ ] **Step 1: Write failing topology mutation tests**
@@ -1419,7 +1645,11 @@ Expected: both classes PASS. The concurrent reader test must use barriers and as
 
 Confirm every integer parameter/property says `worldId` or `parentWorldId`; no bare `id`, `index`, or `worldMap` survives. Confirm snapshot construction calls no other domain service while locked.
 
-- [ ] **Step 7: Prepare and commit**
+- [ ] **Step 7: Run mandatory pipeline gates**
+
+Run pipeline `validate`, `build`, and `test` separately. Confirm both content-neutral topology shapes remain covered by pure tests; do not add DLC-specific branches.
+
+- [ ] **Step 8: Prepare and commit**
 
 Use the seven task paths, allowed type `perf`, and exact subject:
 
@@ -1429,18 +1659,18 @@ perf: Publish immutable parent world topology
 
 ---
 
-### Task 6: Sparse Temperature Amount Accumulator and Prefix-Summed Series
+### Task 7: Sparse Temperature Amount Accumulator and Prefix-Summed Series
 
 **Files:**
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/WorldInventory/TemperatureAmountAccumulator.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/WorldInventory/TemperatureAmountSeries.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/TemperatureAmountAccumulatorTests.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/TemperatureAmountSeriesTests.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/ReferenceModels/ReferenceTemperatureEligibility.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/WorldResourceTemperatureAmounts/TemperatureAmountAccumulator.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/WorldResourceTemperatureAmounts/TemperatureAmountSeries.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/WorldResourceTemperatureAmounts/TemperatureAmountAccumulatorTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/WorldResourceTemperatureAmounts/TemperatureAmountSeriesTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/ReferenceTemperatureModels/ReferenceTemperatureEligibilityModel.cs`
 
 **Interfaces:**
 - Consumes: `TemperatureDecisionBucket` and `DeliveryTemperatureConstraint`.
-- Produces: O(1) stamped accumulation over fixed 5,002-class arrays and immutable sparse prefix-sum range queries.
+- Produces: O(1) stamped accumulation over formula-sized `10,002`-bucket arrays and immutable sparse prefix-sum range queries whose recurring work depends only on touched/occupied buckets.
 
 - [ ] **Step 1: Write failing accumulator tests**
 
@@ -1469,14 +1699,14 @@ Add exact tests:
 - `Add_WhenSeveralAmountsShareBucket_SumsThem`
 - `Add_WhenAmountIsZero_DoesNotTouchBucket`
 - `Add_WhenAmountsCancelToZero_OmitsBucketFromSeries`
-- `Add_WhenTemperatureIsUnderflow_UsesUnderflowBucket`
-- `Add_WhenTemperatureIsOverflow_UsesOverflowBucket`
+- `Add_WhenTemperatureIsBelowMinimumConfigurableKelvin_UsesBelowRangeBucket`
+- `Add_WhenTemperatureIsAtOrAboveMaximumConfigurableExclusiveKelvin_UsesAboveRangeBucket`
 - `BeginResourceTag_WhenStampWraps_PerformsOneSafeFullReset`
 - `BuildSeries_WhenTouchedBucketsWereUnordered_SortsByBucketOrdinal`
 - `BuildSeries_WhenCalledWithoutBegin_ThrowsInvalidOperationException`
 - `Add_WhenCalledAfterBuildWithoutNewBegin_ThrowsInvalidOperationException`
 
-Expose an internal constructor/test seam that initializes the stamp to `int.MaxValue` solely to test wraparound without billions of calls. Production callers use the parameterless constructor.
+Do not expose a test-only constructor or production branch. The linked test assembly may set the private stamp field to `int.MaxValue` through narrowly scoped reflection immediately before the wraparound assertion; the test must assert the exact private field name so a representation change forces deliberate test review.
 
 - [ ] **Step 2: Write failing amount-series tests**
 
@@ -1492,7 +1722,8 @@ public void GetAmountAllowedBy_WhenConstraintIsTenThroughTwenty_SumsOnlyTenThrou
         (10.0f, 5.0f),
         (19.0f, 7.0f),
         (20.0f, 11.0f),
-        (5000.0f, 13.0f));
+        (6203.0f, 13.0f),
+        (10000.0f, 17.0f));
 
     Assert.AreEqual(
         12.0f,
@@ -1502,16 +1733,17 @@ public void GetAmountAllowedBy_WhenConstraintIsTenThroughTwenty_SumsOnlyTenThrou
 
 Add exact tests:
 
-- `GetAmountAllowedBy_WhenConstraintIsDisabled_ReturnsTotalIncludingUnderflowAndOverflow`
+- `GetAmountAllowedBy_WhenConstraintIsDisabled_ReturnsTotalIncludingBelowAndAboveRangeBuckets`
 - `GetAmountAllowedBy_WhenConstraintIsEmpty_ReturnsZero`
 - `GetAmountAllowedBy_WhenNoBucketOccupied_ReturnsZero`
-- `GetAmountAllowedBy_WhenMaximumIs5000_ExcludesOverflow`
-- `GetAmountAllowedBy_WhenMinimumIsZero_ExcludesUnderflow`
+- `GetAmountAllowedBy_WhenMaximumIsOniStorableTemperatureMaximum_ExcludesExactMaximumAndAbove`
+- `GetAmountAllowedBy_WhenMinimumIsZero_ExcludesBelowRangeBucket`
+- `GetAmountAllowedBy_WhenRangeIncludesTemperaturesAboveFiveThousand_IncludesObservedBuckets`
 - `PublishedArrays_WhenSourceBuffersAreReused_DoNotChange`
 
 - [ ] **Step 3: Add deterministic reference comparison**
 
-With seed `0xA60A17`, generate 10,000 sparse series with bucket counts `0..256`, duplicate additions, cancellation, and random normalized constraints. Compare `GetAmountAllowedBy` with `ReferenceTemperatureEligibility.SumAllowedAmounts`, which directly iterates original `(temperature, amount)` pairs and calls its own explicit truncation/comparison.
+With seed `0xA60A17`, generate 10,000 sparse series with bucket counts `0..256`, duplicate additions, cancellation, and random normalized constraints. Compare `GetAmountAllowedBy` with `ReferenceTemperatureEligibilityModel.SumAllowedAmounts`, which directly iterates original `(temperature, amount)` pairs and calls its own explicit truncation/comparison.
 
 - [ ] **Step 4: Run both classes red**
 
@@ -1533,13 +1765,17 @@ On the first touch under the current stamp, initialize the bucket amount and app
 
 Filter exact zero totals, sort only the touched ordinal segment, copy occupied ordinals/amounts into publication-owned arrays, and compute cumulative totals once. `GetAmountAllowedBy` performs two lower-bound searches and one subtraction. It must not loop through every Kelvin class.
 
-Add comments showing the ordinal mapping used for `[minimum, maximum)` and why underflow/overflow are excluded from every enabled valid constraint.
+Add comments showing the ordinal mapping used for `[minimum, maximum)` and why below-range and at-or-above-maximum buckets are excluded from every enabled valid constraint.
 
 - [ ] **Step 7: Run all tests green and inspect representation**
 
-Expected: both focused classes and randomized reference comparison PASS. Verify no dictionary, LINQ iterator, or per-`BeginResourceTag` array allocation exists.
+Expected: both focused classes and randomized reference comparison PASS. Verify no dictionary, LINQ iterator, complete-range loop, or per-`BeginResourceTag` allocation exists. Assert the current three-array element storage is `120,024` bytes (`10,002 × 12`), approximately `117.2 KiB` excluding headers and approximately `58.6 KiB` more than the former range. Assert that only a small bounded number of accumulators may exist and that an unobserved upper-range ordinal causes no read/write/iteration after construction. This is a capacity/structure contract, not an allocation benchmark.
 
-- [ ] **Step 8: Prepare and commit**
+- [ ] **Step 8: Run mandatory pipeline gates**
+
+Run pipeline `validate`, `build`, and `test` separately. Confirm the static performance-shape test finds no recurring full-range scan and the known reference warnings remain unchanged.
+
+- [ ] **Step 9: Prepare and commit**
 
 Use the five task paths, allowed type `perf`, and exact subject:
 
@@ -1549,20 +1785,20 @@ perf: Add sparse temperature amount series
 
 ---
 
-### Task 7: Immutable Complete-World, Coverage, and Single-Resource Inventory Publications
+### Task 8: Immutable Complete-World, Coverage, and Single-Resource Inventory Publications
 
 **Files:**
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/WorldInventory/WorldInventoryCollectionGeneration.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/WorldInventory/CompleteWorldResourceTemperatureAmounts.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/WorldInventory/WorldResourceTagCoverage.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/WorldInventory/WorldResourceTemperatureSeriesPublication.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/WorldInventory/CompleteWorldResourceTemperatureAmountsBuilder.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/GameStubs.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/WorldResourceTemperaturePublicationTests.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/CompleteWorldResourceTemperatureAmountsBuilderTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/WorldResourceTemperatureAmounts/WorldInventoryCollectionGeneration.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/WorldResourceTemperatureAmounts/CompleteWorldResourceTemperatureAmounts.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/WorldResourceTemperatureAmounts/WorldResourceTagCoverage.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/WorldResourceTemperatureAmounts/WorldResourceTemperatureSeriesPublication.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/WorldResourceTemperatureAmounts/CompleteWorldResourceTemperatureAmountsBuilder.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/TestDoubles/OniGameTypeStubs.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/WorldResourceTemperatureAmounts/WorldResourceTemperaturePublicationTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/WorldResourceTemperatureAmounts/CompleteWorldResourceTemperatureAmountsBuilderTests.cs`
 
 **Interfaces:**
-- Consumes: sparse accumulator/series and `RetainedCollectionLimits.MaximumRetainedWorldResourceTagCount`.
+- Consumes: sparse accumulator/series and `RetainedCollectionCapacityLimits.MaximumRetainedWorldResourceTagCount`.
 - Produces: three non-interchangeable immutable contracts: one complete world map, one complete present-tag coverage set, and one complete temperature series for exactly one resource tag.
 
 - [ ] **Step 1: Add the production-shaped `Tag` test stub**
@@ -1658,7 +1894,7 @@ Expected: missing complete-world builder and publication types. Confirm the fail
 
 Use named states `Idle`, `BuildingWorld`, `BuildingResourceTag`, and `Completed`. `Build` copies the tag-to-series mapping into `CompleteWorldResourceTemperatureAmounts`; the publication never exposes the reusable dictionary. `Discard` returns to `Idle` and clears all candidate references after any exception path.
 
-When retained entry count exceeds the configured limit, replace the mutable dictionary instance instead of only calling `Clear`. Expose dictionary identity only through an `internal` diagnostic consumed by the test assembly; do not add public diagnostic surface.
+When retained entry count exceeds the configured limit, replace the mutable dictionary instance instead of only calling `Clear`. Verify replacement by narrowly scoped private-field reflection in the linked test assembly; do not add test-only or public diagnostic surface.
 
 - [ ] **Step 9: Run both publication classes green and inspect allocation ownership**
 
@@ -1666,7 +1902,11 @@ Run `WorldResourceTemperaturePublicationTests`, then `CompleteWorldResourceTempe
 
 Expected: both classes pass. Confirm no publication exposes mutable arrays, dictionaries, or source collections and no type uses the ambiguous unqualified term prohibited by Global Constraints.
 
-- [ ] **Step 10: Prepare and commit**
+- [ ] **Step 10: Run mandatory pipeline gates**
+
+Run pipeline `validate`, `build`, and `test` separately. Confirm fixture/test doubles remain outside production/package declarations and all publications are immutable.
+
+- [ ] **Step 11: Prepare and commit**
 
 Use the eight task paths, allowed type `perf`, and exact subject:
 
@@ -1676,15 +1916,15 @@ perf: Add explicit world inventory publications
 
 ---
 
-### Task 8: Preaggregated Parent-World Temperature Inventory Catalog
+### Task 9: Preaggregated Parent-World Temperature Amount Catalog
 
 **Files:**
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/WorldInventory/WorldTemperatureInventoryCatalog.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Source/Domain/WorldInventory/TemperatureAmountSeries.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Source/Domain/Runtime/DeliveryTemperatureGameSession.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/WorldTemperatureInventoryCatalogTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/Domain/TemperatureAmountSeriesTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/Domain/DeliveryTemperatureGameSessionTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/WorldResourceTemperatureAmounts/WorldResourceTemperatureAmountCatalog.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Source/WorldResourceTemperatureAmounts/TemperatureAmountSeries.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureGameSessionLifecycle/DeliveryTemperatureGameSession.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/WorldResourceTemperatureAmounts/WorldResourceTemperatureAmountCatalogTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/WorldResourceTemperatureAmounts/TemperatureAmountSeriesTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureGameSessionLifecycle/DeliveryTemperatureGameSessionTests.cs`
 
 **Interfaces:**
 - Consumes: complete-world publications, FastTrack coverage and single-tag publications, world-parent changes, constraints, and session ownership.
@@ -1698,7 +1938,7 @@ Include this test exactly:
 [TestMethod]
 public void TryGetAvailableAmount_WhenCoverageContainsTagButSeriesHasNotArrived_ReturnsFalse()
 {
-    var catalog = new WorldTemperatureInventoryCatalog();
+    var catalog = new WorldResourceTemperatureAmountCatalog();
     catalog.RegisterWorld(worldId: 1, parentWorldId: 1);
     var generation = new WorldInventoryCollectionGeneration(9);
     catalog.PublishWorldResourceTagCoverage(
@@ -1749,15 +1989,15 @@ Add exact tests:
 - `TryGetAvailableAmount_WhenConstraintIsDisabled_ReturnsFalseBecauseCallerMustBypassTemperatureReplacement`
 - `ConcurrentReadDuringSingleTagPublication_ObservesWholeOldOrWholeNewTagAggregate`
 
-Use internal diagnostics to count aggregate rebuilds. The diagnostic must be compiled only as an `internal` member; no production behavior may branch on test mode.
+Prove unaffected aggregate reuse by capturing the relevant private immutable aggregate reference through narrowly scoped test reflection before and after the update. Do not add diagnostic counters, test-mode branches, or observers to the production hot path.
 
 - [ ] **Step 3: Write failing sparse series-combination tests**
 
-Add `TemperatureAmountSeries.Combine` tests for empty inputs, overlapping buckets, disjoint buckets, underflow/overflow, source immutability, and `Combine_WhenSameSeriesAppearsTwice_CountsTwoListedContributions`. Each input-list entry semantically represents one member-world contribution even when two entries reference the same immutable object. The implementation must merge sorted sparse bucket arrays and must not expand every aggregate rebuild to 5,002 entries.
+Add `TemperatureAmountSeries.Combine` tests for empty inputs, overlapping buckets, disjoint buckets, below-range/at-or-above-maximum buckets, source immutability, and `Combine_WhenSameSeriesAppearsTwice_CountsTwoListedContributions`. Each input-list entry semantically represents one member-world contribution even when two entries reference the same immutable object. The implementation must merge sorted sparse bucket arrays and must not expand any aggregate rebuild to `TemperatureDecisionBucket.BucketCount` entries.
 
 - [ ] **Step 4: Run all three affected classes red**
 
-Run `WorldTemperatureInventoryCatalogTests`, `TemperatureAmountSeriesTests`, and `DeliveryTemperatureGameSessionTests` separately.
+Run `WorldResourceTemperatureAmountCatalogTests`, `TemperatureAmountSeriesTests`, and `DeliveryTemperatureGameSessionTests` separately.
 
 Expected: failures identify the missing catalog/combine/session members. Correct test setup must not depend on Unity or Harmony.
 
@@ -1785,7 +2025,7 @@ Capture immutable member series and catalog versions under the lock, release it,
 
 - [ ] **Step 7: Extend game-session ownership**
 
-Construct and expose `WorldTemperatureInventory`. When topology changes, the game adapter calls topology and inventory services sequentially after releasing each service's lock. `ReleaseOwnedState` invokes `ClearForGameSession` exactly once; late detached-session publications return `false` and retain no candidate reference.
+Construct and expose `WorldResourceTemperatureAmounts`. When topology changes, the game adapter calls topology and amount-catalog services sequentially after releasing each service's lock. `ReleaseOwnedState` invokes `ClearForGameSession` exactly once; late detached-session publications return `false` and retain no candidate reference.
 
 - [ ] **Step 8: Run green and deterministic mixed-publication stress**
 
@@ -1795,25 +2035,29 @@ The reference model must independently implement the three-proof rule; it must n
 
 - [ ] **Step 9: Verify fallback and complexity contracts**
 
-Assert that `TryGetAvailableAmount` returns `false` for every incomplete case and that callers ignore `availableAmount` on `false`. Comments must tell the status adapter to preserve ONI's incoming `fetchable` unchanged. Use diagnostics to prove a single-tag update rebuilds one tag, does not enumerate `WorldContainer`, and does not construct a complete-world map.
+Assert that `TryGetAvailableAmount` returns `false` for every incomplete case and that callers ignore `availableAmount` on `false`. Comments must tell the status adapter to preserve ONI's incoming `fetchable` unchanged. Use immutable-reference checks plus static call/loop inspection to prove a single-tag update rebuilds one tag, does not enumerate `WorldContainer`, does not scan the temperature range, and does not construct a complete-world map.
 
-- [ ] **Step 10: Prepare and commit**
+- [ ] **Step 10: Run mandatory pipeline gates**
+
+Run pipeline `validate`, `build`, and `test` separately. Confirm incomplete publications remain conservative and the one-tag structural contracts pass.
+
+- [ ] **Step 11: Prepare and commit**
 
 Use the six task paths, allowed type `perf`, and exact subject:
 
 ```text
-perf: Preaggregate incremental world temperature inventory
+perf: Preaggregate world resource temperature amounts
 ```
 
 ---
 
-### Task 9: Normalized Storage Temperature Interval Sets
+### Task 10: Normalized Storage Temperature Interval Sets
 
 **Files:**
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/FetchEligibility/AllowedTemperatureInterval.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/FetchEligibility/AllowedTemperatureIntervalSet.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/AllowedTemperatureIntervalSetTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/ReferenceModels/ReferenceTemperatureEligibility.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FetchTemperatureEligibility/AllowedTemperatureInterval.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FetchTemperatureEligibility/AllowedTemperatureIntervalSet.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/FetchTemperatureEligibility/AllowedTemperatureIntervalSetTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/ReferenceTemperatureModels/ReferenceTemperatureEligibilityModel.cs`
 
 **Interfaces:**
 - Consumes: canonical constraints and decision buckets.
@@ -1829,7 +2073,7 @@ internal static AllowedTemperatureIntervalSet FromDestinations(
     IReadOnlyList<DeliveryTemperatureConstraint> constrainedDestinations);
 ```
 
-A missing or disabled `TemperatureLimit` is represented by `hasUnconstrainedDestination = true`; do not insert a fake `[0,5000)` constraint.
+A missing or disabled `TemperatureLimit` is represented by `hasUnconstrainedDestination = true`; do not insert a fake `[0, OniStorableTemperatureBounds.MaximumTemperatureKelvin)` constraint.
 
 - [ ] **Step 2: Write failing state and normalization tests**
 
@@ -1859,13 +2103,13 @@ Add exact tests:
 - `FromDestinations_WhenIntervalsAreDisjoint_SortsThem`
 - `Allows_WhenBucketIsAtInclusiveMinimum_ReturnsTrue`
 - `Allows_WhenBucketIsAtExclusiveMaximum_ReturnsFalse`
-- `Allows_WhenBucketIsUnderflow_ReturnsFalseUnlessAllowsEvery`
-- `Allows_WhenBucketIsOverflow_ReturnsFalseUnlessAllowsEvery`
+- `Allows_WhenBucketIsBelowMinimumConfigurableKelvin_ReturnsFalseUnlessAllowsEvery`
+- `Allows_WhenBucketIsAtOrAboveMaximumConfigurableExclusiveKelvin_ReturnsFalseUnlessAllowsEvery`
 - `PublishedIntervals_WhenInputListChanges_RemainImmutable`
 
 - [ ] **Step 3: Add exhaustive and randomized reference tests**
 
-For each generated destination set, compare interval membership for all 5,002 buckets with direct “any destination allows” evaluation from `ReferenceTemperatureEligibility`. Use seed `0x1A7E2A1`, 5,000 destination sets, duplicates, adjacency, disabled, empty, zero, and 5000 boundaries.
+For each generated destination set, compare interval membership for every formula-derived decision bucket with direct “any destination allows” evaluation from `ReferenceTemperatureEligibilityModel`. Use seed `0x1A7E2A1`, 5,000 destination sets, duplicates, adjacency, disabled, empty, zero, `5000`, `9999`, and exact `10000` boundaries.
 
 - [ ] **Step 4: Run red**
 
@@ -1875,13 +2119,17 @@ Expected: missing interval types/factory.
 
 Return singleton immutable instances for allows-none and allows-every. For finite constraints, copy valid intervals, sort by minimum then maximum, and merge when `next.MinimumInclusiveKelvin <= current.MaximumExclusiveKelvin`. That comparison intentionally merges adjacency.
 
-Membership uses binary search against interval minima/maxima. Do not allocate a 5,002-entry membership array and do not retain the input list.
+Membership uses binary search against interval minima/maxima. Do not allocate a `TemperatureDecisionBucket.BucketCount` membership array and do not retain the input list.
 
 - [ ] **Step 6: Run green and inspect minimal representation**
 
 Expected: all interval and reference tests PASS. Assert `AllowsEveryTemperature` carries no interval array and empty constraints do not contribute endpoints.
 
-- [ ] **Step 7: Prepare and commit**
+- [ ] **Step 7: Run mandatory pipeline gates**
+
+Run pipeline `validate`, `build`, and `test` separately. Confirm exhaustive current-bound tests and linked-source boundary contracts pass.
+
+- [ ] **Step 8: Prepare and commit**
 
 Use the four task paths, allowed type `perf`, and exact subject:
 
@@ -1891,32 +2139,33 @@ perf: Normalize storage temperature eligibility
 
 ---
 
-### Task 10: Scoped Temperature Partition Definitions and Class Keys
+### Task 11: Scoped Temperature Partition Definitions and Class Keys
 
 **Files:**
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/FetchEligibility/PickupTagIdentity.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/FetchEligibility/TemperaturePartitionDefinition.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/FetchEligibility/TemperatureEligibilityClassKey.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/FetchEligibility/PickupTemperaturePartitionCatalog.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/TemperaturePartitionDefinitionTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/ReferenceModels/ReferenceTemperatureEligibility.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FetchTemperatureEligibility/PickupTagIdentity.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FetchTemperatureEligibility/TemperaturePartitionDefinition.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FetchTemperatureEligibility/TemperatureEligibilityClassificationKind.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FetchTemperatureEligibility/TemperatureEligibilityClassKey.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FetchTemperatureEligibility/PickupTemperaturePartitionCatalog.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/FetchTemperatureEligibility/TemperaturePartitionDefinitionTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/ReferenceTemperatureModels/ReferenceTemperatureEligibilityModel.cs`
 
 **Interfaces:**
 - Consumes: decision buckets and relevant constraint endpoints.
 - Produces: minimal behavior-equivalence partitions, snapshot-local definition IDs, exact fallback/missing-element classes, and structural sharing for identical endpoint unions.
 
-- [ ] **Step 1: Fix reserved definition/class constants in tests**
+- [ ] **Step 1: Fix explicit classification kinds and factories in tests**
 
-Use these exact semantic constants:
+Use the exact `TemperatureEligibilityClassificationKind` enum and factory methods from the Contract Registry. Assert:
 
 ```csharp
-internal const int ExactTemperatureDecisionDefinitionId = -1;
-internal const int NoTemperatureDistinctionDefinitionId = 0;
-internal const int FirstOptimizedDefinitionId = 1;
-internal const int MissingPrimaryElementOrdinal = TemperatureDecisionBucket.BucketCount;
+TemperatureEligibilityClassKey.NoTemperatureDistinction();
+TemperatureEligibilityClassKey.OptimizedPartitionInterval(definitionId, intervalOrdinal);
+TemperatureEligibilityClassKey.ExactDecisionBucket(temperatureDecisionBucket);
+TemperatureEligibilityClassKey.MissingPrimaryElement();
 ```
 
-An exact fallback temperature uses definition `-1` and its decision-bucket ordinal. A missing primary element uses definition `-1`, ordinal `5002`. No-temperature-distinction uses definition `0`, ordinal `0`. Optimized snapshot definitions use positive IDs unique within that snapshot.
+Do not reserve magic negative definition IDs or place `MissingPrimaryElement` immediately after the temperature bucket range. Each key kind validates that only its meaningful fields are populated. Optimized snapshot definition IDs are positive and unique within that snapshot; all other kinds carry no invented definition ID.
 
 - [ ] **Step 2: Write failing partition boundary tests**
 
@@ -1933,28 +2182,25 @@ public void Classify_WhenEndpointsAreTenAndTwenty_ChangesClassAtEachEndpoint()
     Assert.AreEqual(1, definition.Classify(Bucket(10)));
     Assert.AreEqual(1, definition.Classify(Bucket(19)));
     Assert.AreEqual(2, definition.Classify(Bucket(20)));
-    Assert.AreEqual(2, definition.Classify(Bucket(5000)));
+    Assert.AreEqual(2, definition.Classify(Bucket(10000)));
 }
 ```
 
 Add exact tests:
 
 - `Create_WhenEndpointsAreUnsortedAndDuplicated_NormalizesThem`
-- `Create_WhenEndpointIsZero_SeparatesUnderflowFromZero`
-- `Create_WhenEndpointIs5000_Separates4999FromOverflow`
+- `Create_WhenEndpointIsZero_SeparatesBelowRangeFromZero`
+- `Create_WhenEndpointIsOniMaximum_Separates9999FromAtOrAboveMaximum`
 - `Create_WhenNoEndpoints_ReturnsNoTemperatureDistinction`
 - `Classify_WhenInputIsEveryDecisionBucket_ReturnsMonotonicOrdinals`
 - `TemperatureEligibilityClassKey_WhenOrdinalsMatchButDefinitionsDiffer_IsNotEqual`
 - `TemperatureEligibilityClassKey_WhenDefinitionAndOrdinalMatch_IsEqual`
-- `ExactFallback_WhenPrimaryElementIsMissing_UsesDedicatedMissingOrdinal`
+- `ExactFallback_WhenPrimaryElementIsMissing_UsesDedicatedNonTemperatureClassification`
 - `PickupTagIdentity_WhenHashesMatchButPrefabTagsDiffer_IsNotEqual`
 
 - [ ] **Step 3: Write equivalence and minimal-fragmentation proof tests**
 
-For constraint set `[10,20)` and `[30,40)`, iterate every pair of the 5,002 decision buckets:
-
-- if partition classes are equal, direct allow/deny vectors across both constraints must be identical;
-- if direct vectors are identical and no endpoint lies between the buckets, their partition classes must be equal.
+For constraint set `[10,20)` and `[30,40)`, iterate every formula-derived decision bucket once. For each bucket compute an independent direct allow/deny vector and assert that every bucket assigned to an existing partition class has the same vector as that class's first bucket. Then compare each adjacent bucket pair and assert that the partition class changes if and only if the reference vector changes at a configured endpoint. This O(bucket-count) proof establishes soundness and minimal fragmentation without an unnecessary O(bucket-count²) test loop.
 
 Implement the allow/deny vector in the independent reference model, not via `TemperaturePartitionDefinition`.
 
@@ -1968,7 +2214,7 @@ Expected: missing partition/key/catalog types.
 
 - [ ] **Step 6: Implement upper-bound classification**
 
-Classification ordinal equals the number of endpoints less than or equal to the decision temperature. Treat underflow as below zero and overflow as at/above 5000. Use binary upper-bound search; do not linearly scan endpoints in the per-pickup path.
+Classification ordinal equals the number of endpoints less than or equal to the decision temperature. Treat `BelowMinimumConfigurableKelvin` as below zero and `AtOrAboveMaximumConfigurableExclusiveKelvin` as at/above `OniStorableTemperatureBounds.MaximumTemperatureKelvin`. Use binary upper-bound search; do not linearly scan endpoints in the per-pickup path.
 
 Create copies of endpoint inputs. Assign positive IDs deterministically in first-normalized-definition encounter order inside one catalog build.
 
@@ -1978,11 +2224,15 @@ The catalog stores immutable endpoints by `(parentWorldId, requestedTag)`. `Crea
 
 - [ ] **Step 8: Run green and exhaustive proof tests**
 
-Expected: every boundary, equality, structural sharing, and 5,002-class proof test PASS.
+Expected: every boundary, equality, structural-sharing, and formula-derived exhaustive proof test PASS.
 
-- [ ] **Step 9: Prepare and commit**
+- [ ] **Step 9: Run mandatory pipeline gates**
 
-Use the six task paths, allowed type `perf`, and exact subject:
+Run pipeline `validate`, `build`, and `test` separately. Confirm the classification kinds contain no sentinel magic and the per-pickup classifier contains only binary search.
+
+- [ ] **Step 10: Prepare and commit**
+
+Use the seven task paths, allowed type `perf`, and exact subject:
 
 ```text
 perf: Define scoped pickup temperature partitions
@@ -1990,21 +2240,21 @@ perf: Define scoped pickup temperature partitions
 
 ---
 
-### Task 11: Combined Fetch Eligibility Builder and Version-Validated Publication
+### Task 12: Combined Fetch Eligibility Builder and Version-Validated Publication
 
 **Files:**
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/FetchEligibility/FetchRequestTopologyVersion.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/FetchEligibility/FetchRequestTopologyTracker.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/FetchEligibility/FetchTemperatureEligibilitySnapshot.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/FetchEligibility/FetchTemperatureEligibilityBuilder.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Source/Domain/Runtime/DeliveryTemperatureGameSession.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/FetchRequestTopologyTrackerTests.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/FetchTemperatureEligibilityBuilderTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/Domain/DeliveryTemperatureGameSessionTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/ReferenceModels/ReferenceTemperatureEligibility.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FetchTemperatureEligibility/FetchRequestTopologyVersion.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FetchTemperatureEligibility/FetchRequestTopologyTracker.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FetchTemperatureEligibility/FetchTemperatureEligibilitySnapshot.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FetchTemperatureEligibility/FetchTemperatureEligibilityBuilder.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureGameSessionLifecycle/DeliveryTemperatureGameSession.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/FetchTemperatureEligibility/FetchRequestTopologyTrackerTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/FetchTemperatureEligibility/FetchTemperatureEligibilityBuilderTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureGameSessionLifecycle/DeliveryTemperatureGameSessionTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/ReferenceTemperatureModels/ReferenceTemperatureEligibilityModel.cs`
 
 **Interfaces:**
-- Consumes: active constraints, component lookup generation, world topology, interval sets, and partition catalog.
+- Consumes: the active constraint snapshot/generation, component lookup, world topology, interval sets, and partition catalog.
 - Produces: one immutable storage-plus-pickup snapshot stamped with all four validity dimensions and session-side rejection of stale candidates.
 
 - [ ] **Step 1: Write failing topology-version tests**
@@ -2081,13 +2331,15 @@ Build storage interval sets and the partition catalog from the same fully traver
 
 Add `FetchRequestTopology`, an atomically read current `FetchTemperatureEligibilitySnapshot`, and `TryPublishFetchTemperatureEligibility`. Registration changes that alter effective constraints call `RecordEffectiveChange` after registry/index mutation completes. World add/remove/reparent session methods update world topology and inventory first, then record one fetch topology change after both locks are released.
 
-Also expose the current `WorldInventoryCollectionGeneration`. Increment it on an enabled-count transition from zero to nonzero, keep it unchanged for constraint edits while the enabled count remains nonzero because fixed decision-bucket inventory is constraint-independent, clear temperature inventory on a nonzero-to-zero transition, and increment again on the next zero-to-nonzero transition. A world added while active must establish the proof appropriate to the selected inventory implementation—complete-world publication for the Klei inventory update path, or coverage plus required present-tag series for the FastTrack inventory update path—before its parent/tag becomes complete. While the enabled count is zero, inventory adapters must decline to open an accumulator/builder session.
+Also expose the current `WorldInventoryCollectionGeneration`. Increment it on an enabled-count transition from zero to nonzero, keep it unchanged for constraint edits while the enabled count remains nonzero because fixed decision-bucket inventory is constraint-independent, clear world resource temperature amounts on a nonzero-to-zero transition, and increment again on the next zero-to-nonzero transition. A world added while active must establish the proof appropriate to the selected inventory implementation—complete-world publication for the Klei inventory update path, or coverage plus required present-tag series for the FastTrack inventory update path—before its parent/tag becomes complete. While the enabled count is zero, inventory adapters must decline to open an accumulator/builder session.
 
 Candidate publication captures the current active constraint snapshot and current world snapshot once, compares every stamp, and uses `Volatile.Write` only after all comparisons pass.
 
 - [ ] **Step 7: Add deterministic combined reference comparison**
 
-Using seed `0xFE7C4`, generate 2,000 topologies with `1..8` parents, `1..32` tags, and `0..256` fetch requests. For all 5,002 decision buckets:
+First, run every formula-derived decision bucket through a fixed suite of representative empty, unconstrained, single-parent, multi-parent, single-tag, and multi-tag topologies. Then, using seed `0xFE7C4`, generate 2,000 topologies with `1..8` parents, `1..32` tags, and `0..256` fetch requests; for each generated topology inspect every endpoint-adjacent bucket plus 64 deterministic sampled buckets. This preserves exhaustive range coverage without multiplying 2,000 large topologies by every bucket and every request.
+
+For each selected bucket:
 
 - compare storage interval results with direct “any destination allows” evaluation;
 - compare partition equivalence vectors with every relevant constrained destination;
@@ -2098,7 +2350,11 @@ Using seed `0xFE7C4`, generate 2,000 topologies with `1..8` parents, `1..32` tag
 
 Expected: tracker, builder, session, and reference tests PASS. Verify candidate build performs no Unity call and publication never merges candidate dictionaries into live state.
 
-- [ ] **Step 9: Prepare and commit**
+- [ ] **Step 9: Run mandatory pipeline gates**
+
+Run pipeline `validate`, `build`, and `test` separately. Confirm all four generation/version rejection dimensions remain independently covered.
+
+- [ ] **Step 10: Prepare and commit**
 
 Use the nine task paths, allowed type `perf`, and exact subject:
 
@@ -2108,13 +2364,13 @@ perf: Build combined fetch temperature eligibility
 
 ---
 
-### Task 12: Per-Update Pickup Grouping Session and Exact Fallback
+### Task 13: Per-Update Pickup Grouping Session and Exact Fallback
 
 **Files:**
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/FetchEligibility/PickupTemperatureGroupingSession.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/PickupTemperatureGroupingSessionTests.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/CrossDomainTemperatureEligibilityTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/ReferenceModels/ReferenceTemperatureEligibility.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FetchTemperatureEligibility/PickupTemperatureGroupingSession.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/FetchTemperatureEligibility/PickupTemperatureGroupingSessionTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/FetchTemperatureEligibility/CanonicalTemperatureEligibilityAgreementTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/ReferenceTemperatureModels/ReferenceTemperatureEligibilityModel.cs`
 
 **Interfaces:**
 - Consumes: one captured game session, active constraint snapshot, optional combined snapshot, resolved optional parent world, and applicable requested tags.
@@ -2164,17 +2420,17 @@ Add exact tests:
 
 - [ ] **Step 3: Write exhaustive cross-domain correctness invariant**
 
-For each generated `(parent, PickupTagIdentity, applicable tags)` and each pair of the 5,002 decision buckets, evaluate every relevant destination constraint directly. Assert:
+For each generated `(parent, PickupTagIdentity, applicable tags)`, iterate the formula-derived decision buckets once in ordinal order, evaluate every relevant destination constraint directly, and retain the first direct result vector observed for each produced key. Assert:
 
 ```text
 same TemperatureEligibilityClassKey
     => identical allow/deny result for every relevant constraint
 
-identical result vector with no intervening relevant endpoint
+adjacent identical result vectors with no relevant endpoint at the boundary
     => same optimized TemperatureEligibilityClassKey
 ```
 
-Run the property once with a current optimized snapshot and once with a stale snapshot. Under stale fallback, only identical exact buckets may share a temperature class.
+Run the property once with a current optimized snapshot and once with a stale snapshot. Under stale fallback, only identical exact buckets may share a temperature class. This linear exhaustive proof is deliberately not an O(bucket-count²) pair loop.
 
 - [ ] **Step 4: Write a global-fragmentation regression**
 
@@ -2204,7 +2460,11 @@ Do not re-read the host or a snapshot during `Classify`. Cache the full `Tempera
 
 Expected: grouping and cross-domain tests PASS. Search the grouping implementation and verify it contains no `TemperatureLimit.getTemperatureIndexData`, global endpoint list, Unity type, or `ClusterManager` call.
 
-- [ ] **Step 9: Prepare and commit**
+- [ ] **Step 9: Run mandatory pipeline gates**
+
+Run pipeline `validate`, `build`, and `test` separately. Confirm stale fallback produces explicit `ExactTemperatureDecisionBucket` keys and missing primary elements produce the separate non-temperature key kind.
+
+- [ ] **Step 10: Prepare and commit**
 
 Use the four task paths, allowed type `perf`, and exact subject:
 
@@ -2214,14 +2474,14 @@ perf: Add exact fallback pickup grouping
 
 ---
 
-### Task 13: Collision-Free FastTrack Grouping-Key Allocation
+### Task 14: Collision-Free FastTrack Grouping-Key Allocation
 
 **Files:**
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/FastTrack/FastTrackPickupGroupingKeyAllocator.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/FastTrackPickupGroupingKeyAllocatorTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/PickupGroupingAdapters/FastTrackPickupGroupingKeyAllocator.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackPickupGroupingKeyAllocatorTests.cs`
 
 **Interfaces:**
-- Consumes: complete `TemperatureEligibilityClassKey` values from Task 12.
+- Consumes: complete `TemperatureEligibilityClassKey` values from Task 13.
 - Produces: update-local one-to-one mapping from `(originalTagBitsHash, temperatureClass)` to FastTrack's required integer key.
 
 - [ ] **Step 1: Write failing allocation tests**
@@ -2235,8 +2495,12 @@ public void GetOrAllocate_WhenOriginalHashMatchesButTemperatureClassDiffers_Retu
     var allocator = new FastTrackPickupGroupingKeyAllocator();
     allocator.Begin(temperatureGroupingIsActive: true);
 
-    var first = allocator.GetOrAllocate(123, new TemperatureEligibilityClassKey(7, 1));
-    var second = allocator.GetOrAllocate(123, new TemperatureEligibilityClassKey(7, 2));
+    var first = allocator.GetOrAllocate(
+        123,
+        TemperatureEligibilityClassKey.OptimizedPartitionInterval(7, 1));
+    var second = allocator.GetOrAllocate(
+        123,
+        TemperatureEligibilityClassKey.OptimizedPartitionInterval(7, 2));
 
     Assert.AreNotEqual(first, second);
 }
@@ -2255,7 +2519,7 @@ Add exact tests:
 - `Discard_WhenCalledAfterFailure_ClearsActiveState`
 - `Complete_WhenEntryCountExceededHighWater_ReplacesDictionary`
 
-Use an internal constructor that starts the next allocated integer at `int.MaxValue` for the exhaustion test. Normal production allocation starts at zero; because every candidate uses the allocator while active, allocated values cannot collide with an unallocated raw key in that update.
+Do not add a test-only constructor. Set the private next-allocation field to `int.MaxValue` with narrow reflection immediately before the exhaustion assertion. Normal production allocation starts at zero; because every candidate uses the allocator while active, allocated values cannot collide with an unallocated raw key in that update.
 
 - [ ] **Step 2: Add deterministic uniqueness stress**
 
@@ -2273,9 +2537,13 @@ Inactive mode returns the exact original hash and must leave retained entry coun
 
 - [ ] **Step 5: Run green and inspect the old collision expression boundary**
 
-Expected: all allocator tests PASS. The new domain directory must not contain `(num << 6)`, `(num << 16)`, SDBM commentary, or “extremely unlikely collision” reasoning.
+Expected: all allocator tests PASS. The new adapter directory must not contain `(num << 6)`, `(num << 16)`, SDBM commentary, or “extremely unlikely collision” reasoning.
 
-- [ ] **Step 6: Prepare and commit**
+- [ ] **Step 6: Run mandatory pipeline gates**
+
+Run pipeline `validate`, `build`, and `test` separately. Confirm inactive grouping retains no mapping entries and full composite identity is used.
+
+- [ ] **Step 7: Prepare and commit**
 
 Use the two task paths, allowed type `perf`, and exact subject:
 
@@ -2285,12 +2553,12 @@ perf: Allocate collision-free FastTrack pickup keys
 
 ---
 
-### Task 14: Patch Target and Unique-Anchor Contract Verification
+### Task 15: Harmony Target and Unique-Anchor Contract Verification
 
 **Files:**
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Patching/PatchContractViolationException.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Patching/PatchContractVerifier.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Patching/PatchContractVerifierTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/HarmonyTranspilerInfrastructure/HarmonyPatchContractViolationException.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/HarmonyTranspilerInfrastructure/HarmonyPatchContractVerifier.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/HarmonyTranspilerInfrastructure/HarmonyPatchContractVerifierTests.cs`
 
 **Interfaces:**
 - Consumes: reflection metadata and adapter-supplied instruction predicates; it has no Harmony or game compile-time dependency.
@@ -2310,7 +2578,7 @@ Define private fixture classes with overloads and add exact tests:
 Core invocation:
 
 ```csharp
-var method = PatchContractVerifier.RequireInstanceMethod(
+var method = HarmonyPatchContractVerifier.RequireInstanceMethod(
     typeof(MethodFixture),
     "Target",
     typeof(bool),
@@ -2325,8 +2593,8 @@ Use a small list of test instruction labels:
 [TestMethod]
 public void RequireSingleMatch_WhenTwoInstructionsMatch_ThrowsWithMatchCount()
 {
-    var exception = Assert.ThrowsException<PatchContractViolationException>(() =>
-        PatchContractVerifier.RequireSingleMatch(
+    var exception = Assert.ThrowsException<HarmonyPatchContractViolationException>(() =>
+        HarmonyPatchContractVerifier.RequireSingleMatch(
             ["load", "anchor", "anchor", "return"],
             instruction => instruction == "anchor",
             "Fixture.Target anchor"));
@@ -2350,9 +2618,13 @@ Expected: missing verifier and exception.
 
 - [ ] **Step 5: Run tests green and validate linked test source**
 
-Expected: `PatchContractVerifierTests` PASS under the approved test-project links. Verify the two production files import only `System`, `System.Collections.Generic`, and `System.Reflection` namespaces actually required.
+Expected: `HarmonyPatchContractVerifierTests` PASS under the approved test-project links. Verify the two production files import only `System`, `System.Collections.Generic`, and `System.Reflection` namespaces actually required.
 
-- [ ] **Step 6: Prepare and commit**
+- [ ] **Step 6: Run mandatory pipeline gates**
+
+Run pipeline `validate`, `build`, and `test` separately. Confirm the linked reflection-only files reference no Harmony, Unity, Klei, PLib, or FastTrack compile-time type.
+
+- [ ] **Step 7: Prepare and commit**
 
 Use the three task paths, allowed type `refactor`, and exact subject:
 
@@ -2362,14 +2634,14 @@ refactor: Verify Harmony patch contracts explicitly
 
 ---
 
-### Task 15: Inactive Game and World Lifecycle Adapters
+### Task 16: Inactive Game and World Lifecycle Adapters
 
 **Files:**
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Patching/DeliveryTemperatureLifecyclePatches.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Patching/WorldParentTopologyPatches.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Source/Domain/Runtime/DeliveryTemperatureGameSession.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/Domain/DeliveryTemperatureGameSessionTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/Patching/PatchContractVerifierTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/KleiImplementationAdapters/DeliveryTemperatureGameSessionLifecyclePatches.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/KleiImplementationAdapters/WorldParentTopologyPatches.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureGameSessionLifecycle/DeliveryTemperatureGameSession.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureGameSessionLifecycle/DeliveryTemperatureGameSessionTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/HarmonyTranspilerInfrastructure/HarmonyPatchContractVerifierTests.cs`
 
 **Interfaces:**
 - Consumes: verified installed methods `Game.OnLoadLevel()`, `Game.DestroyInstances()`, `ClusterManager.RegisterWorldContainer(WorldContainer)`, `ClusterManager.UnregisterWorldContainer(WorldContainer)`, and `WorldContainer.SetParentIdx(int)`.
@@ -2400,8 +2672,8 @@ The order is:
 capture old immutable topology
 mutate/publish topology
 release topology lock
-apply returned WorldParentTopologyChange to inventory
-release inventory lock
+apply returned WorldParentTopologyChange to world resource temperature amounts
+release amount-catalog lock
 record one fetch topology change if HasChanged
 ```
 
@@ -2409,9 +2681,9 @@ Reject calls after `StopAcceptingPublications`. Add comments explaining why old/
 
 - [ ] **Step 4: Write and run failing lifecycle target-contract tests**
 
-Using reflection fixtures shaped like the installed game, add exact tests for `Game.OnLoadLevel()`, `Game.DestroyInstances()`, `ClusterManager.RegisterWorldContainer(WorldContainer)`, `ClusterManager.UnregisterWorldContainer(WorldContainer)`, and `WorldContainer.SetParentIdx(int)`. Each test asserts full declaring type, static/instance form, return type, and parameter types. Mutations with an overload-only match or changed return type must fail with `PatchContractViolationException`.
+Using reflection fixtures shaped like the installed game, add exact tests for `Game.OnLoadLevel()`, `Game.DestroyInstances()`, `ClusterManager.RegisterWorldContainer(WorldContainer)`, `ClusterManager.UnregisterWorldContainer(WorldContainer)`, and `WorldContainer.SetParentIdx(int)`. Each test asserts full declaring type, static/instance form, return type, and parameter types. Mutations with an overload-only match or changed return type must fail with `HarmonyPatchContractViolationException`.
 
-Run `PatchContractVerifierTests`. Expected: the new lifecycle target-resolution assertions fail because the adapter resolution methods do not exist.
+Run `HarmonyPatchContractVerifierTests`. Expected: the new lifecycle target-resolution assertions fail because the adapter resolution methods do not exist.
 
 - [ ] **Step 5: Implement inactive lifecycle adapter methods**
 
@@ -2443,13 +2715,13 @@ internal static void SetParentIdxPostfix(WorldContainer __instance);
 
 Read `id` and resulting `ParentWorldId` only on the main thread, then pass integers to the session. Unknown/invalid world IDs produce one rate-limited diagnostic and no guessed mapping.
 
-- [ ] **Step 7: Add target-resolution methods using `PatchContractVerifier`**
+- [ ] **Step 7: Add target-resolution methods using `HarmonyPatchContractVerifier`**
 
 Each adapter exposes an `internal static MethodInfo Resolve...Target()` with the exact declaring type, return type, and parameter list. Do not use name-only `AccessTools.Method` resolution.
 
-- [ ] **Step 8: Run domain, patch-contract, and production build tests**
+- [ ] **Step 8: Run focused and mandatory pipeline gates**
 
-Run `DeliveryTemperatureGameSessionTests`, `PatchContractVerifierTests`, then the focused pipeline build command as separate commands.
+Run `DeliveryTemperatureGameSessionTests` and `HarmonyPatchContractVerifierTests`, then pipeline `validate`, `build`, and `test` as separate commands.
 
 Expected: PASS/build success. Do not install the build. Inspect the built assembly metadata or source to confirm these new classes contain no Harmony patch-discovery attributes.
 
@@ -2463,15 +2735,15 @@ perf: Add session and world lifecycle adapters
 
 ---
 
-### Task 16: Inactive Klei World Inventory and Status Adapters
+### Task 17: Inactive Klei World Inventory and Status Adapters
 
 **Files:**
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/WorldInventory/StatusTemperatureAvailability.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Patching/KleiWorldInventoryTemperaturePatches.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Patching/StatusAvailabilityPatches.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/StatusTemperatureAvailabilityTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/Domain/WorldTemperatureInventoryCatalogTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/Patching/PatchContractVerifierTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/WorldResourceTemperatureAmounts/TemperatureStatusAvailabilityDecision.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/KleiImplementationAdapters/KleiWorldInventoryTemperaturePatches.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/KleiImplementationAdapters/TemperatureStatusAvailabilityPatches.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/WorldResourceTemperatureAmounts/TemperatureStatusAvailabilityDecisionTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/WorldResourceTemperatureAmounts/WorldResourceTemperatureAmountCatalogTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/HarmonyTranspilerInfrastructure/HarmonyPatchContractVerifierTests.cs`
 
 **Interfaces:**
 - Consumes: complete-world builder/catalog contract, current collection generation, component constraints, and topology snapshot.
@@ -2487,12 +2759,12 @@ public void CalculateFetchable_WhenEligibleTotalAndRemainingAreKnown_PreservesEx
 {
     Assert.AreEqual(
         14.0f,
-        StatusTemperatureAvailability.CalculateFetchable(
+        TemperatureStatusAvailabilityDecision.CalculateFetchable(
             eligibleTotal: 7.0f,
             remaining: 20.0f));
     Assert.AreEqual(
         10.0f,
-        StatusTemperatureAvailability.CalculateFetchable(
+        TemperatureStatusAvailabilityDecision.CalculateFetchable(
             eligibleTotal: 7.0f,
             remaining: 3.0f));
 }
@@ -2527,7 +2799,7 @@ Keep it free of Unity and `Mathf`; `Math.Min(float,float)` preserves the require
 
 Add emitted/captured instruction fixtures for the installed `WorldInventory.Update` and `FetchListStatusItemUpdater.Render200ms` shapes. Require unique semantic anchors for tag start, filtered pickup contribution, tag completion, status early-insufficient branch, and the exact `fetchable` assignment point. Add zero-anchor, duplicate-anchor, wrong-`TotalAmount` getter, and reordered-status-branch mutations.
 
-Run `PatchContractVerifierTests`. Expected: new assertions fail because the Klei inventory/status target and transpiler contract methods are absent.
+Run `HarmonyPatchContractVerifierTests`. Expected: new assertions fail because the Klei inventory/status target and transpiler contract methods are absent.
 
 - [ ] **Step 6: Implement inactive Klei inventory bracketing**
 
@@ -2551,30 +2823,30 @@ When the catalog returns `false`, leave the incoming `fetchable` exactly unchang
 
 - [ ] **Step 8: Keep status installation conditional by construction**
 
-These adapter methods contain no option lookup in per-update code. Task 23's installer omits all Klei and FastTrack inventory/status patches when `Options.Instance.CheckTemperatureForStatusItems` is false.
+These adapter methods contain no option lookup in per-update code. Task 24's installer omits all Klei and FastTrack inventory/status patches when `DeliveryTemperatureLimitOptions.Instance.CheckTemperatureForStatusItems` is false.
 
 - [ ] **Step 9: Run focused tests and production build**
 
-Run status tests, catalog tests, and `PatchContractVerifierTests` separately before the pipeline build. Expected: tests pass and pipeline build succeeds. Do not install. Verify new adapters have no patch-discovery attributes, no static world/tag amount dictionary, no FastTrack reflection, and no ambiguous content-mode terminology.
+Run status tests, catalog tests, and `HarmonyPatchContractVerifierTests` separately. Then run pipeline `validate`, `build`, and `test` separately. Expected: tests and all pipeline gates pass. Do not install. Verify new adapters have no patch-discovery attributes, no static world/tag amount dictionary, no FastTrack reflection, and no ambiguous content-mode terminology.
 
 - [ ] **Step 10: Prepare and commit**
 
 Use the six task paths, allowed type `perf`, and exact subject:
 
 ```text
-perf: Add sparse status inventory adapters
+perf: Add sparse temperature status adapters
 ```
 
 ---
 
-### Task 17: Inactive Authoritative Fetch Traversal and Sweep Eligibility Adapters
+### Task 18: Inactive Authoritative Fetch Traversal and Sweep Eligibility Adapters
 
 **Files:**
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/FetchEligibility/ClearableTemperatureEligibility.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Patching/FetchTemperatureEligibilityPatches.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/ClearableTemperatureEligibilityTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/Domain/FetchTemperatureEligibilityBuilderTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/Patching/PatchContractVerifierTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FetchTemperatureEligibility/ClearableDestinationTemperatureEligibility.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/KleiImplementationAdapters/FetchTemperatureEligibilityPatches.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/FetchTemperatureEligibility/ClearableDestinationTemperatureEligibilityTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/FetchTemperatureEligibility/FetchTemperatureEligibilityBuilderTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/HarmonyTranspilerInfrastructure/HarmonyPatchContractVerifierTests.cs`
 
 **Interfaces:**
 - Consumes: `GlobalChoreProvider.fetchMap` traversal, combined builder/snapshot, component index, topology snapshot, and fetch topology tracker.
@@ -2588,7 +2860,7 @@ Pin exact decision order:
 [TestMethod]
 public void Evaluate_WhenOriginalResultIsTrueButSnapshotIsStale_ReturnsFalse()
 {
-    Assert.IsFalse(ClearableTemperatureEligibility.Evaluate(
+    Assert.IsFalse(ClearableDestinationTemperatureEligibility.Evaluate(
         originalHasDestination: true,
         hasPrimaryElement: true,
         hasCurrentEligibility: false,
@@ -2617,7 +2889,7 @@ Add exact reflection/instruction fixtures for all three topology event methods, 
 
 - [ ] **Step 4: Run domain and patch-contract tests red**
 
-Run `ClearableTemperatureEligibilityTests` and `PatchContractVerifierTests` separately. Expected: the pure decision type and inactive adapter contract entry points are missing.
+Run `ClearableDestinationTemperatureEligibilityTests` and `HarmonyPatchContractVerifierTests` separately. Expected: the pure decision type and inactive adapter contract entry points are missing.
 
 - [ ] **Step 5: Implement inactive fetch-topology event methods**
 
@@ -2646,11 +2918,11 @@ Capture the session and snapshots once. Preserve original false and zero-active 
 
 - [ ] **Step 8: Verify target and anchor contracts**
 
-Resolve exact installed signatures. Require each semantic insertion count explicitly; a zero or duplicate match throws `PatchContractViolationException`. No anchor may depend solely on local number or `operand.ToString()` text.
+Resolve exact installed signatures. Require each semantic insertion count explicitly; a zero or duplicate match throws `HarmonyPatchContractViolationException`. No anchor may depend solely on local number or `operand.ToString()` text.
 
 - [ ] **Step 9: Run focused tests and production build**
 
-Run clearable tests, builder tests, and `PatchContractVerifierTests` separately. Expected: tests pass and pipeline build succeeds. Do not install. Verify new code has no `HashSet<Tag>[]`, global band, or synchronous rebuild in setter/event hooks.
+Run clearable tests, builder tests, and `HarmonyPatchContractVerifierTests` separately. Then run pipeline `validate`, `build`, and `test` separately. Expected: focused tests and all pipeline gates pass. Do not install. Verify new code has no `HashSet<Tag>[]`, global band, complete-temperature-range scan, or synchronous rebuild in setter/event hooks.
 
 - [ ] **Step 10: Prepare and commit**
 
@@ -2662,16 +2934,16 @@ perf: Capture authoritative fetch temperature eligibility
 
 ---
 
-### Task 18: Inactive Klei Pickup Grouping Adapter
+### Task 19: Inactive Klei Pickup Grouping Adapter
 
 **Files:**
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/Runtime/ThreadConfinedSessionSlot.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Patching/KleiPickupTemperatureGroupingPatches.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/ThreadConfinedSessionSlotTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Source/Domain/FetchEligibility/FetchTemperatureEligibilitySnapshot.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/Domain/FetchTemperatureEligibilityBuilderTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/Domain/PickupTemperatureGroupingSessionTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/Patching/PatchContractVerifierTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureGameSessionLifecycle/ThreadConfinedSessionSlot.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/KleiImplementationAdapters/KleiPickupTemperatureGroupingPatches.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureGameSessionLifecycle/ThreadConfinedSessionSlotTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Source/FetchTemperatureEligibility/FetchTemperatureEligibilitySnapshot.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/FetchTemperatureEligibility/FetchTemperatureEligibilityBuilderTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/FetchTemperatureEligibility/PickupTemperatureGroupingSessionTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/HarmonyTranspilerInfrastructure/HarmonyPatchContractVerifierTests.cs`
 
 **Interfaces:**
 - Consumes: `FetchManager.FetchablesByPrefabId.UpdatePickups(Navigator,int)`, its private comparator, current combined snapshot, requested tags by parent, and pickup grouping session.
@@ -2698,7 +2970,7 @@ Return a deterministic immutable list of tags present in that parent section. Un
 - `DiscardAll_AfterException_ClearsReferences`
 - `Enter_WhenGameSessionGenerationChanges_DiscardsOldThreadStateBeforeUse`
 
-Do not use `AsyncLocal`; FastTrack/ONI worker identity is thread-based and the runtime target is `net48`.
+Do not use `AsyncLocal`; FastTrack/ONI worker identity is thread-based and the game-loaded runtime target is `netstandard2.1`.
 
 - [ ] **Step 3: Add applicable-tag caching tests**
 
@@ -2712,7 +2984,7 @@ Expected: missing slot and requested-tag API.
 
 Add exact fixtures for `FetchManager.FetchablesByPrefabId.UpdatePickups(Navigator,int)`, private `PickupComparerIncludingPriority.Compare`, and duplicate suppression. Require one comparator extension anchor and one suppression extension anchor that both consume the same full semantic key. Add mutations for changed candidate type, duplicate compare anchor, missing suppression anchor, and an installed method shape that would require an unverified Unity/native call from a worker.
 
-Run `PatchContractVerifierTests`. Expected: new Klei pickup target/anchor assertions fail because the adapter entry points are absent.
+Run `HarmonyPatchContractVerifierTests`. Expected: new Klei pickup target/anchor assertions fail because the adapter entry points are absent.
 
 - [ ] **Step 6: Implement inactive `UpdatePickups` prefix/postfix/finalizer**
 
@@ -2731,13 +3003,13 @@ For each new `PickupTagIdentity`, iterate only `snapshot.GetRequestedTags(parent
 
 - [ ] **Step 8: Patch comparator and duplicate suppression with one full key**
 
-Preserve every original comparator field/order. After original equality through priority/tag grouping, compare `PartitionDefinitionId`, then `IntervalOrdinal`. Duplicate suppression uses the same cached full key under the same update context.
+Preserve every original comparator field/order. After original equality through priority/tag grouping, compare the complete `TemperatureEligibilityClassKey` using its explicit classification-kind-aware ordering. Duplicate suppression uses that same cached full key under the same update context; it must not compare only definition/ordinal fields that are meaningless for exact or missing-primary classifications.
 
 Missing/stale/unresolved cases classify through exact buckets; zero enabled constraints add no temperature comparison.
 
 - [ ] **Step 9: Verify target/anchor contracts and build**
 
-Require exact signatures for `UpdatePickups` and private `PickupComparerIncludingPriority.Compare`. Require unique structural anchors for the comparator insertion and suppression insertion. Run affected domain tests, then pipeline build. Do not install.
+Require exact signatures for `UpdatePickups` and private `PickupComparerIncludingPriority.Compare`. Require unique structural anchors for the comparator insertion and suppression insertion. Run affected focused tests, then pipeline `validate`, `build`, and `test` separately. Do not install.
 
 - [ ] **Step 10: Prepare and commit**
 
@@ -2749,13 +3021,13 @@ perf: Add scoped Klei pickup grouping adapter
 
 ---
 
-### Task 19: Inactive Direct Eligibility and Fetch-Coalescing Adapters
+### Task 20: Inactive Direct Eligibility and Fetch-Coalescing Adapters
 
 **Files:**
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/FetchEligibility/FetchChoreConstraintCompatibility.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Patching/DirectFetchTemperatureEligibilityPatches.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/FetchChoreConstraintCompatibilityTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/Patching/PatchContractVerifierTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FetchTemperatureEligibility/FetchChoreTemperatureConstraintContainment.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/KleiImplementationAdapters/DirectFetchTemperatureEligibilityPatches.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/FetchTemperatureEligibility/FetchChoreTemperatureConstraintContainmentTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/HarmonyTranspilerInfrastructure/HarmonyPatchContractVerifierTests.cs`
 
 **Interfaces:**
 - Consumes: component index constraints and canonical direct `Allows` semantics.
@@ -2793,7 +3065,7 @@ candidate.MaximumExclusiveKelvin <= root.MaximumExclusiveKelvin
 
 Add exact reflection/instruction fixtures for all four Klei targets, including the internal `ClearableManager` type and compiler-generated candidate delegate. Require unique typed anchors and reject name-only, local-number-only, or display-class-name-only matches. Add mutations for a changed delegate closure field, two `CanReach` delegates, a missing direct-result branch, and a changed `IsFetchablePickup` return type.
 
-Run `PatchContractVerifierTests`. Expected: new direct-adapter contract tests fail because target/anchor methods are absent.
+Run `HarmonyPatchContractVerifierTests`. Expected: new direct-adapter contract tests fail because target/anchor methods are absent.
 
 - [ ] **Step 5: Implement inactive direct adapter methods**
 
@@ -2820,7 +3092,7 @@ Use exact reflected fields/methods and unique typed instruction sequences. If th
 
 - [ ] **Step 7: Run focused tests and production build**
 
-Run containment tests and `PatchContractVerifierTests` separately. Expected: tests pass and pipeline build succeeds. Do not install. Review generated code paths for boxing, LINQ, tuples allocated on the heap, or repeated component lookup.
+Run containment tests and `HarmonyPatchContractVerifierTests` separately, then pipeline `validate`, `build`, and `test` separately. Expected: focused tests and all pipeline gates pass. Do not install. Review generated code paths for boxing, LINQ, tuples allocated on the heap, repeated component lookup, or any complete-range scan.
 
 - [ ] **Step 8: Prepare and commit**
 
@@ -2832,18 +3104,27 @@ perf: Centralize direct fetch temperature checks
 
 ---
 
-### Task 20: FastTrack Feature Compatibility Inspection
+### Task 21: FastTrack 0.18.4.0 Feature Contract Verification
 
 **Files:**
-- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrack/FastTrackFeatureCompatibilityState.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrack/FastTrackCompatibilityReport.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrack/FastTrackCompatibilityInspector.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/FastTrack/FastTrackCompatibilityInspectorTests.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/FastTrack/FastTrackReflectionEmitFixture.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/Patching/PatchContractVerifierTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/FastTrackFeature.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/FastTrackFeatureCompatibilityState.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/FastTrackVerifiedMember.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/FastTrackFeatureCompatibility.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/FastTrackCompatibilityReport.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/FastTrackLoadedGameInspectionInput.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/ActiveHarmonyPatchDescriptor.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/FastTrackCompatibilityInspector.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackCompatibilityInspectorTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackReflectionEmitFixture.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackGithubReleaseAssemblyContractTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/Fixtures/ThirdParty/FastTrack/0.18.4.0/README.md`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/Fixtures/ThirdParty/FastTrack/0.18.4.0/FastTrack.dll`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/HarmonyTranspilerInfrastructure/HarmonyPatchContractVerifierTests.cs`
 
 **Interfaces:**
-- Consumes: enabled-mod evidence supplied by `Mod.OnAllModsLoaded`, loaded assembly metadata, Harmony patch-owner snapshots converted to reflection-only descriptors, and `PatchContractVerifier`.
+- Consumes: enabled-mod evidence supplied by `DeliveryTemperatureLimitMod.OnAllModsLoaded`, loaded assembly metadata, Harmony patch-owner snapshots converted to reflection-only descriptors, `HarmonyPatchContractVerifier`, and the separately provenance-pinned real FastTrack fixture.
 - Produces: one immutable compatibility report that independently classifies FastTrack world inventory, pickup grouping, and direct chore comparison as `ModNotLoaded`, `ReplacementInactive`, `Ready`, or `Incompatible`.
 
 - [ ] **Step 1: Declare the exact reflection-only compatibility contract in failing tests**
@@ -2855,7 +3136,7 @@ internal enum FastTrackFeature
 {
     WorldInventory,
     PickupGrouping,
-    DirectChoreComparison
+    DirectDeliveryEligibility
 }
 
 internal enum FastTrackFeatureCompatibilityState
@@ -2877,11 +3158,11 @@ internal sealed class FastTrackCompatibilityReport
 internal sealed class FastTrackCompatibilityInspector
 {
     internal FastTrackCompatibilityReport Inspect(
-        FastTrackRuntimeInspectionInput inspectionInput);
+        FastTrackLoadedGameInspectionInput inspectionInput);
 }
 ```
 
-`FastTrackFeatureCompatibility` must expose the feature, state, verified reflected method handles needed by its adapter, and one semantic failure code/message only when incompatible. It must not expose Harmony types. `FastTrackRuntimeInspectionInput` contains the enabled-for-active-content evidence, optional assembly, and immutable reflected active-patch descriptors prepared by the installer.
+`FastTrackFeatureCompatibility` must expose the feature, state, verified reflected method handles needed by its adapter, and one semantic failure code/message only when incompatible. It must not expose Harmony types. `FastTrackLoadedGameInspectionInput` contains the enabled-for-active-content evidence, optional assembly, and immutable `ActiveHarmonyPatchDescriptor` values prepared by the installer.
 
 Add exact tests:
 
@@ -2889,6 +3170,8 @@ Add exact tests:
 - `Inspect_WhenAssemblyIsLoadedButWorldInventoryReplacementIsInactive_ClassifiesWorldInventoryAsReplacementInactive`
 - `Inspect_WhenAssemblyIsLoadedButPickupPrefixIsNotActive_ClassifiesPickupGroupingAsReplacementInactive`
 - `Inspect_WhenFeaturesHaveDifferentActivationStates_ClassifiesEachIndependently`
+- `Inspect_WhenFileVersionIsNotExactly01840_ClassifiesActiveFeaturesAsIncompatible`
+- `Inspect_WhenAssemblyIsPresentButDisabledForLoadedGame_PerformsNoFeatureBinding`
 - `GetFeature_WhenFeatureValueIsUnknown_ThrowsArgumentOutOfRangeException`
 
 - [ ] **Step 2: Build emitted FastTrack contract fixtures without adding a dependency**
@@ -2897,13 +3180,40 @@ Add exact tests:
 
 Do not compile source text with an external compiler and do not add a mock package. Fixture method names must state the mutation, for example `CreateWithRunUpdateMissingSingleTagBranch`. Active-patch descriptors identify the exact emitted prefix method, target method, Harmony owner string, and priority using reflection-only values.
 
-- [ ] **Step 3: Run compatibility tests red**
+- [ ] **Step 3: Add the provenance-pinned real FastTrack fixture and static contracts**
+
+Obtain the latest available DLL from the official GitHub repository release asset—not from an unverified mirror—and verify before placing it in the fixture directory:
+
+```text
+release URL: https://github.com/peterhaneve/ONIMods/releases/tag/FastTrackBeta
+closest source revision: e24e8f3082a52785e971943a8f1fff8de0ca8dff
+file version: 0.18.4.0
+assembly version: 0.18.0.0
+FastTrack.dll SHA-256: D291C0D58379B77B4A60FB6D386B3783E4061E5C620DEF93502AE984CD657ADD
+download ZIP SHA-256: 8EA0263FBD64F3D94C4127A03EC15A8ED88A1DA6BBDEDDA7E8EE85C9E2B3FC1D
+```
+
+If the implementation environment cannot retrieve that official asset, stop and ask the user to supply the official ZIP/DLL or clone the named upstream repository/revision, as they offered. Verify the supplied bytes against both recorded digests before use. Do not substitute a mirror, recompile a lookalike fixture, or weaken the provenance test.
+
+The fixture README must state plainly that the actual Steam Workshop-distributed DLL could not be located or proven byte-identical; support is to this available `0.18.4.0` artifact on a best-efforts basis. `FastTrackGithubReleaseAssemblyContractTests` use `System.Reflection.Metadata`/`PEReader` to inspect the GitHub release DLL without resolving or executing its dependencies and assert every required type, field, method signature, branch/anchor shape, version, and digest.
+
+Apply the exact Task 21 configuration approval by updating, not duplicating, the SDK-default `None` item:
+
+```xml
+<None Update="Fixtures\ThirdParty\FastTrack\0.18.4.0\FastTrack.dll">
+  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+</None>
+```
+
+Do not add FastTrack as a `<Reference>`, production dependency, analyzer, or compile item. Do not copy it to production output or change either lockfile. The fixture is test input only, and the package-boundary test must prove it cannot be shipped in the mod package.
+
+- [ ] **Step 4: Run compatibility tests red**
 
 Run `FastTrackCompatibilityInspectorTests`.
 
 Expected: missing report/inspector/state types. If fixture construction fails first, correct the fixture until the intended missing-production-type failure is reached.
 
-- [ ] **Step 4: Implement exact assembly and feature activation inspection**
+- [ ] **Step 5: Implement exact assembly and feature activation inspection**
 
 The inspector must verify, by full name and exact signature, the installed equivalents of at least:
 
@@ -2915,11 +3225,11 @@ The inspector must verify, by full name and exact signature, the installed equiv
 - nested `PickupTagDict.AddItem` and `PickupTagKey` constructor/equality shape; and
 - FastTrack's direct chore-comparison target used by the current mod.
 
-Treat the installed assembly and actual active Harmony ownership as authoritative. Current upstream source is evidence for expected semantics, not permission to accept a different installed body. Assembly presence alone can produce only `ReplacementInactive`, never `Ready`.
+Treat the loaded assembly and actual active Harmony ownership as authoritative at runtime. Require file version `0.18.4.0` for a `Ready` feature, then verify structure; do not use the fixture SHA-256 as a runtime allowlist. Current upstream source and fixture are evidence for expected semantics, not permission to accept a structurally different loaded body. Assembly presence alone can produce only `ReplacementInactive`, never `Ready`.
 
 The world-inventory `Ready` contract must prove the two behavioral branches: first update iterates all inventory entries; later updates select one entry through `updateIndex`. It must also prove that removing a pickupable does not remove the dictionary key. If the latter cannot be proved, classify world inventory as `Incompatible` because a one-time coverage set could become false.
 
-- [ ] **Step 5: Write and run mutation tests for every required contract**
+- [ ] **Step 6: Write and run mutation tests for every required contract**
 
 Add exact tests:
 
@@ -2930,25 +3240,25 @@ Add exact tests:
 - `Inspect_WhenAddItemConstructorAnchorIsMissing_ClassifiesPickupGroupingAsIncompatible`
 - `Inspect_WhenAddItemConstructorAnchorIsDuplicated_ClassifiesPickupGroupingAsIncompatible`
 - `Inspect_WhenHarmonyOwnerDoesNotMatchFastTrack_ClassifiesReplacementAsInactiveRatherThanClaimingReady`
-- `Inspect_WhenDirectComparatorContractChanges_ClassifiesOnlyDirectChoreComparisonAsIncompatible`
+- `Inspect_WhenDirectComparatorContractChanges_ClassifiesOnlyDirectDeliveryEligibilityAsIncompatible`
 
 Expected: each mutation affects only the named feature. A broad catch that marks every feature incompatible is not acceptable.
 
-- [ ] **Step 6: Compute and cache diagnostic identity once**
+- [ ] **Step 7: Compute and cache diagnostic identity once**
 
-For an enabled assembly, read `AssemblyName.FullName`, `AssemblyName.Version`, and the SHA-256 digest of the assembly file once during inspection. Use the .NET Framework 4.8-compatible `SHA256.Create().ComputeHash(stream)` pattern, dispose both objects, and normalize the digest to uppercase hexadecimal; do not use a newer BCL-only convenience API. If the assembly is dynamic or has no readable location, record a semantic `DigestUnavailable` failure for an active feature; do not recompute per update or silently omit identity from an incompatibility diagnostic.
+For an enabled assembly, read `AssemblyName.FullName`, `AssemblyName.Version`, `FileVersionInfo.FileVersion`, and the SHA-256 digest of the assembly file once during inspection. Use the `netstandard2.1`-available `SHA256.Create().ComputeHash(stream)` pattern, dispose both objects, and normalize the digest to uppercase hexadecimal without a newer-runtime-only convenience API. If the assembly is dynamic or has no readable location, record a semantic `DigestUnavailable` failure for an active feature; do not recompute per update or silently omit identity from an incompatibility diagnostic.
 
 Tests use a temporary fixture file and assert the exact digest. Dispose every stream deterministically and share the immutable report thereafter.
 
-- [ ] **Step 7: Run green, then build the production mod**
+- [ ] **Step 8: Run green and mandatory pipeline gates**
 
-Run `FastTrackCompatibilityInspectorTests` and `PatchContractVerifierTests` separately, then run the pipeline `build` command. Do not install.
+Run `FastTrackCompatibilityInspectorTests`, `FastTrackGithubReleaseAssemblyContractTests`, and `HarmonyPatchContractVerifierTests` separately, then pipeline `validate`, `build`, and `test` separately. Do not install or launch ONI with FastTrack.
 
 Inspect the new production files and confirm they reference only BCL reflection/IO types plus reflection-only patch descriptors. They must not reference FastTrack, Harmony, Klei, Unity, or PLib types at compile time.
 
-- [ ] **Step 8: Prepare and commit**
+- [ ] **Step 9: Prepare and commit**
 
-Use the six task paths, allowed type `feat`, and exact subject:
+Use all fifteen exact task paths, allowed type `feat`, and exact subject:
 
 ```text
 feat: Verify active FastTrack feature contracts
@@ -2956,16 +3266,16 @@ feat: Verify active FastTrack feature contracts
 
 ---
 
-### Task 21: Inactive FastTrack Incremental World Inventory Adapter
+### Task 22: Inactive FastTrack Incremental World Inventory Adapter
 
 **Files:**
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/FastTrack/FastTrackWorldInventoryUpdateKind.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/FastTrack/FastTrackWorldInventoryPublicationResult.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/FastTrack/FastTrackWorldInventoryPublicationSession.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrack/FastTrackWorldInventoryTemperaturePatches.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/FastTrackWorldInventoryPublicationSessionTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/FastTrack/FastTrackCompatibilityInspectorTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/Patching/PatchContractVerifierTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/InventoryUpdateAdapters/FastTrackWorldInventoryUpdateKind.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/InventoryUpdateAdapters/FastTrackWorldInventoryPublicationResult.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/InventoryUpdateAdapters/FastTrackWorldInventoryPublicationSession.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/InventoryUpdateAdapters/FastTrackWorldInventoryTemperaturePatches.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackWorldInventoryPublicationSessionTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackCompatibilityInspectorTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/HarmonyTranspilerInfrastructure/HarmonyPatchContractVerifierTests.cs`
 
 **Interfaces:**
 - Consumes: a `Ready` world-inventory compatibility feature, current game session and collection generation, coverage-requirement query, sparse accumulator, and all three inventory publication contracts.
@@ -2990,7 +3300,7 @@ The result has three explicit optional members—complete world, coverage, and s
 
 - [ ] **Step 2: Run the publication-session tests red**
 
-Expected: missing FastTrack update kind, publication result, and session. Confirm existing Task 7/8 publication tests remain green before implementation.
+Expected: missing FastTrack update kind, publication result, and session. Confirm existing Task 8/9 publication/catalog tests remain green before implementation.
 
 - [ ] **Step 3: Implement the minimal session over canonical domain types**
 
@@ -3000,13 +3310,13 @@ The session must contain no alternative constraint, temperature-bucket, or avail
 
 - [ ] **Step 4: Run the session green and prove incremental isolation**
 
-Add an internal diagnostic that counts completed resource tags. Assert complete mode reports two for the fixture and incremental mode reports exactly one. Mutate an unrelated tag's fixture collection and prove the incremental result does not contain or retain it.
+Assert complete mode's immutable result contains the two fixture tags and incremental mode's result contains exactly its one named resource-tag publication. Mutate an unrelated fixture collection and prove the incremental result does not contain or retain it. Do not add a production diagnostic counter or test branch.
 
 Expected: session tests pass with no complete-world dictionary allocation in the incremental mode.
 
 - [ ] **Step 5: Add failing installed-shape anchor tests**
 
-Using the emitted fixtures from Task 20, require unique typed anchors for:
+Using the emitted and real-assembly fixtures from Task 21, require unique typed anchors for:
 
 1. reading the pre-call `firstUpdate` field;
 2. entering each `inventory` key/value pair before `SumTotal`;
@@ -3046,9 +3356,9 @@ This is a structural test, not a wall-clock benchmark. Also assert DeliveryTempe
 
 - [ ] **Step 8: Run focused tests and production build**
 
-Run `FastTrackWorldInventoryPublicationSessionTests`, `FastTrackCompatibilityInspectorTests`, `WorldTemperatureInventoryCatalogTests`, and `PatchContractVerifierTests` separately. Run pipeline `build`; do not install.
+Run `FastTrackWorldInventoryPublicationSessionTests`, `FastTrackCompatibilityInspectorTests`, `FastTrackGithubReleaseAssemblyContractTests`, `WorldResourceTemperatureAmountCatalogTests`, and `HarmonyPatchContractVerifierTests` separately. Then run pipeline `validate`, `build`, and `test`; do not install.
 
-Expected: all pass, and the build contains the inactive patch class without any patch-discovery attribute. Review all worker code against the captured-field rule; if safe access to the cached primary element cannot be proved for the installed ONI/FastTrack build, classify this feature incompatible and use the Task 23 fallback rather than weakening the rule.
+Expected: all pass, and the build contains the inactive patch class without any patch-discovery attribute. Review all worker code against the captured-field rule; if safe access to the cached primary element cannot be proved for the installed ONI/FastTrack contract, classify this feature incompatible. Task 24 must then abort coherent activation when the active feature is required; do not weaken the rule or unpatch FastTrack.
 
 - [ ] **Step 9: Prepare and commit**
 
@@ -3060,20 +3370,20 @@ perf: Preserve FastTrack incremental inventory updates
 
 ---
 
-### Task 22: Inactive FastTrack Pickup Grouping and Direct Eligibility Adapters
+### Task 23: Inactive FastTrack Pickup Grouping and Direct Delivery Eligibility Adapters
 
 **Files:**
-- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrack/FastTrackPickupTemperaturePatches.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrack/FastTrackDirectFetchTemperaturePatches.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/FastTrack/FastTrackPickupTemperaturePatchContractTests.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/FastTrack/FastTrackFallbackContractTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/Domain/FastTrackPickupGroupingKeyAllocatorTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/Domain/PickupTemperatureGroupingSessionTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/FastTrack/FastTrackCompatibilityInspectorTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/PickupGroupingAdapters/FastTrackPickupTemperaturePatches.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/DirectDeliveryEligibilityAdapters/FastTrackDirectDeliveryEligibilityPatches.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackPickupTemperaturePatchContractTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackDirectDeliveryEligibilityPatchContractTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackPickupGroupingKeyAllocatorTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/FetchTemperatureEligibility/PickupTemperatureGroupingSessionTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackCompatibilityInspectorTests.cs`
 
 **Interfaces:**
-- Consumes: `Ready` pickup/direct FastTrack feature reports, canonical grouping session, collision-free key allocator, direct constraint checks, and verified Klei pickup-path fallback.
-- Produces: collision-free FastTrack grouping with exact lifecycle cleanup, canonical direct chore comparison, and a tested safe fallback contract; inactive until Gate D.
+- Consumes: `Ready` pickup/direct-delivery FastTrack feature reports, canonical grouping session, collision-free key allocator, and canonical direct constraint checks.
+- Produces: collision-free FastTrack grouping with exact lifecycle cleanup and canonical direct delivery eligibility; inactive until Gate D. It does not modify, suppress, or unpatch FastTrack.
 
 - [ ] **Step 1: Write failing full-key allocation integration tests**
 
@@ -3082,7 +3392,7 @@ Exercise the allocator through a pure representation of `PickupTagDict.AddItem` 
 - `Allocate_WhenOriginalHashesDifferAndTemperatureClassMatches_ReturnsDifferentKeys`
 - `Allocate_WhenOriginalHashMatchesAndTemperatureClassesDiffer_ReturnsDifferentKeys`
 - `Allocate_WhenCompositeIdentityRepeats_ReturnsSameKey`
-- `Allocate_WhenPrimaryElementIsMissing_UsesAReservedDistinctTemperatureClass`
+- `Allocate_WhenPrimaryElementIsMissing_UsesDedicatedNonTemperatureClass`
 - `Allocate_WhenScopedSnapshotIsStale_UsesExactDecisionBucketClass`
 - `Allocate_WhenTemperatureGroupingIsInactive_ReturnsOriginalHashWithoutDictionaryEntry`
 - `Allocate_WhenIntegerSpaceIsExhausted_ThrowsWithoutReusingAKey`
@@ -3105,34 +3415,33 @@ Expected: failures identify missing inactive adapters or missing integration ent
 
 The prefix captures the current game session, active constraint snapshot, parent world resolved from the navigator anchor, and combined fetch eligibility snapshot exactly once. It enters one `PickupTemperatureGroupingSession` and one `FastTrackPickupGroupingKeyAllocator` in thread-confined slots.
 
-For each candidate, form `PickupTagIdentity` from the original tag-bits hash plus verified prefab tag. Resolve applicable requested tags once per identity and cache the result for the update. Read temperature through the verified cached `PrimaryElement` reference only; never call `GetComponent` or query mutable world topology from the worker. If that cached-read safety contract is not verified, mark the adapter incompatible and route to the Klei pickup grouping path.
+For each candidate, form `PickupTagIdentity` from the original tag-bits hash plus verified prefab tag. Resolve applicable requested tags once per identity and cache the result for the update. Read temperature through the verified cached `PrimaryElement` reference only; never call `GetComponent` or query mutable world topology from the worker. If that cached-read safety contract is not verified, mark the active adapter incompatible; Task 24 aborts coordinated activation rather than silently changing implementation paths.
 
 Every candidate passes the complete composite identity to the allocator while grouping is active, including missing-primary-element candidates. The transpiler replaces only the constructor argument; it does not modify the fetchable, candidate, `KPrefabID`, or FastTrack dictionary implementation.
 
 - [ ] **Step 5: Implement exception-safe completion and retained-capacity release**
 
-Postfix completes both sessions. Finalizer discards both and restores any nested prior context while preserving the original exception. After `MaximumRetainedFastTrackGroupingKeyCount` is exceeded, the allocator replaces its variable dictionary before the next session. Add an exact test with an injected limit of four.
+Postfix completes both sessions. Finalizer discards both and restores any nested prior context while preserving the original exception. After `MaximumRetainedFastTrackGroupingKeyCount` is exceeded, the allocator replaces its variable dictionary before the next session. Test the real named threshold with threshold-plus-one lightweight composite keys and private-reference inspection; do not inject a production test limit.
 
 - [ ] **Step 6: Implement the inactive direct FastTrack chore adapter**
 
-Patch the exact installed FastTrack chore comparator target only when `DirectChoreComparison` is `Ready`. Preserve an existing false result, resolve the destination through the component index, bypass disabled/missing constraints, preserve characterized missing-primary behavior, and call `DeliveryTemperatureConstraint.Allows` once. No alternative boundary calculation, global snapshot reconstruction, or per-call reflection is permitted.
+Patch the exact installed FastTrack chore comparator target only when `DirectDeliveryEligibility` is `Ready`. Preserve an existing false result, resolve the destination through the component index, bypass disabled/missing constraints, preserve characterized missing-primary behavior, and call `DeliveryTemperatureConstraint.Allows` once. No alternative boundary calculation, global snapshot reconstruction, or per-call reflection is permitted.
 
-- [ ] **Step 7: Write and implement the safe pickup fallback contract**
+- [ ] **Step 7: Prove fail-closed ownership and non-interference**
 
-Preferred fallback patches FastTrack's exact `BeforeUpdatePickups` guard so the guard returns `true` without executing its replacement body, causing Klei `UpdatePickups` to run. The fallback is valid only after verifying:
+Add exact tests proving:
 
-- the method is the active FastTrack prefix on the exact Klei target;
-- forcing `true` reaches the original Klei body;
-- the Klei pickup grouping adapter can be installed completely; and
-- no second active prefix will still suppress or replace the original.
+- adapter binding is attempted only for a `Ready` feature;
+- `ModNotLoaded` and `ReplacementInactive` select no FastTrack patch methods;
+- an `Incompatible` active pickup or direct-delivery feature yields a release-blocking compatibility result consumed by Task 24;
+- installer rollback metadata names only this mod's exact patch methods and Harmony owner; and
+- no code calls Harmony unpatch APIs for a FastTrack method or owner.
 
-If guard interception is impossible, exact-prefix removal is permitted only for the verified FastTrack owner/method pair and only before gameplay starts. Never unpatch by owner wildcard and never remove another mod's patch. `FastTrackFallbackContractTests` cover wrong owner, extra replacement prefix, missing guard, duplicate guard, and successful fallback.
-
-If neither strategy can be proved, throw `PatchContractViolationException` during coordinated activation with one rate-limited diagnostic containing feature, assembly identity, version, SHA-256, failed contract, and attempted fallback. Do not permit temperature-unaware FastTrack collapsing to run.
+There is no Klei fallback shim for an active incompatible FastTrack replacement. The coherent activation exception is implemented and tested in Task 24.
 
 - [ ] **Step 8: Run focused tests and production build**
 
-Run both new FastTrack test classes, allocator tests, grouping-session tests, and compatibility-inspector tests separately. Run pipeline `build`; do not install.
+Run both new FastTrack test classes, allocator tests, grouping-session tests, real-DLL contracts, and compatibility-inspector tests separately. Then run pipeline `validate`, `build`, and `test`; do not install or launch ONI with FastTrack.
 
 Expected: all pass. Verify there is no per-candidate reflection, option lookup, assembly lookup, logging, complete snapshot build, original-hash mutation, or unbounded dictionary retention.
 
@@ -3146,33 +3455,38 @@ perf: Add collision-free FastTrack pickup adapters
 
 ---
 
-### Task 23: Coordinated Big-Bang Runtime Activation and Legacy Removal
+### Task 24: Coordinated Big-Bang Runtime Activation and Legacy Removal
 
 **Files:**
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/Runtime/InventoryImplementationPath.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/Runtime/PickupGroupingImplementationPath.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Domain/Runtime/DeliveryTemperaturePatchActivationPlan.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Patching/DeliveryTemperaturePatchInstaller.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/Patching/CodeInstructionFactory.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/TemperatureLimit.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Source/Mod.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Source/Buildings.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Source/Construction.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Source/Widget.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Source/SideScreen.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Source/Options.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Source/Strings.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureLimit.csproj`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureGameSessionLifecycle/InventoryImplementationPath.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureGameSessionLifecycle/PickupGroupingImplementationPath.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureGameSessionLifecycle/DeliveryTemperatureRuntimePatchPlan.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureGameSessionLifecycle/FastTrackDeliveryEligibilityCompatibilityException.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/KleiImplementationAdapters/DeliveryTemperatureRuntimePatchInstaller.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/HarmonyTranspilerInfrastructure/HarmonyCodeInstructionFactory.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/TemperatureLimitedDeliveryTargets/TemperatureLimit.cs`
+- Move: `mods/delivery-temperature-limit-supercooled/Source/Mod.cs` to `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureLimitMod.cs`
+- Move: `mods/delivery-temperature-limit-supercooled/Source/Buildings.cs` to `mods/delivery-temperature-limit-supercooled/Source/TemperatureLimitedDeliveryTargets/TemperatureLimitedDeliveryTargetPrefabConfigurator.cs`
+- Move: `mods/delivery-temperature-limit-supercooled/Source/Construction.cs` to `mods/delivery-temperature-limit-supercooled/Source/TemperatureLimitedDeliveryTargets/ConstructionMaterialTemperatureLimit.cs`
+- Move: `mods/delivery-temperature-limit-supercooled/Source/Widget.cs` to `mods/delivery-temperature-limit-supercooled/Source/TemperatureLimitUserInterface/TemperatureLimitWidget.cs`
+- Move: `mods/delivery-temperature-limit-supercooled/Source/SideScreen.cs` to `mods/delivery-temperature-limit-supercooled/Source/TemperatureLimitUserInterface/TemperatureLimitSideScreen.cs`
+- Move: `mods/delivery-temperature-limit-supercooled/Source/Options.cs` to `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureLimitOptions.cs`
+- Move: `mods/delivery-temperature-limit-supercooled/Source/Strings.cs` to `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureLimitStrings.cs`
 - Delete: `mods/delivery-temperature-limit-supercooled/Source/Limits.cs`
 - Delete: `mods/delivery-temperature-limit-supercooled/Source/Patch.cs`
 - Delete: `mods/delivery-temperature-limit-supercooled/Source/PatchFastTrack.cs`
 - Delete: `mods/delivery-temperature-limit-supercooled/Source/StatusItems.cs`
 - Delete: `mods/delivery-temperature-limit-supercooled/Source/Harmony.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/DeliveryTemperaturePatchActivationPlanTests.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/IntentionalRuntimeContract.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/ModBuildContractTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/PublicAssemblySurface.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/BuildingsEligibilityTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/Patching/PatchContractVerifierTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureGameSessionLifecycle/DeliveryTemperatureRuntimePatchPlanTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackCoherentActivationContractTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureAssemblyContracts/IntentionalRuntimeContractTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureAssemblyContracts/MergedDeliveryTemperatureAssemblyContractTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureAssemblyContracts/DeliveryTemperatureAssemblyMetadataReader.cs`
+- Move: `mods/delivery-temperature-limit-supercooled/Tests/BuildingsEligibilityTests.cs` to `mods/delivery-temperature-limit-supercooled/Tests/TemperatureLimitedDeliveryTargets/TemperatureLimitedDeliveryTargetPrefabConfiguratorTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/TemperatureLimitedDeliveryTargets/TemperatureLimitedDeliveryTargetPrefabConfiguratorTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/HarmonyTranspilerInfrastructure/HarmonyPatchContractVerifierTests.cs`
 
 **Interfaces:**
 - Consumes: every Gate A–C module and compatibility report.
@@ -3180,7 +3494,7 @@ perf: Add collision-free FastTrack pickup adapters
 
 - [ ] **Step 1: Write failing implementation-path selection tests**
 
-`DeliveryTemperaturePatchActivationPlan.Create` takes the startup status option plus the three FastTrack feature states. Base-game versus Spaced Out content mode is deliberately not an input because adapter selection is orthogonal to content mode.
+`DeliveryTemperatureRuntimePatchPlan.Create` takes the startup status option plus the immutable FastTrack compatibility report. Base-game versus Spaced Out content mode is deliberately not an input because adapter selection is orthogonal to content mode. It does not take “fallback verified” booleans because an active incompatible replacement is never neutralized or unpatched by this mod.
 
 Add exact tests:
 
@@ -3190,32 +3504,36 @@ Add exact tests:
 - `Create_WhenFastTrackPickupGroupingIsReady_SelectsFastTrackPickupPath`
 - `Create_WhenStatusOptionIsDisabled_SelectsNoInventoryOrStatusInstrumentation`
 - `Create_WhenStatusOptionIsDisabledAndFastTrackWorldInventoryIsIncompatible_DoesNotBlockAnUnusedStatusFeature`
-- `Create_WhenPickupFeatureIsIncompatibleAndKleiFallbackIsVerified_SelectsKleiPickupPath`
-- `Create_WhenPickupFeatureIsIncompatibleAndFallbackIsUnverified_ThrowsPatchContractViolation`
-- `Create_WhenInventoryFeatureIsIncompatibleAndKleiFallbackIsVerified_SelectsKleiInventoryPath`
-- `Create_WhenInventoryFeatureIsIncompatibleAndFallbackIsUnverified_DisablesStatusReplacementAndReportsReleaseBlockingIncompatibility`
-- `Create_WhenDirectComparatorIsInactive_OmitsOnlyFastTrackDirectAdapter`
+- `Create_WhenActivePickupFeatureIsIncompatible_ThrowsFastTrackDeliveryEligibilityCompatibilityException`
+- `Create_WhenActiveDirectDeliveryFeatureIsIncompatible_ThrowsFastTrackDeliveryEligibilityCompatibilityException`
+- `Create_WhenStatusIsEnabledAndWorldInventoryFeatureIsIncompatible_OmitsOnlyStatusIntegrationAndReturnsDiagnostic`
+- `Create_WhenDirectDeliveryFeatureIsInactive_OmitsOnlyFastTrackDirectAdapter`
+- `Create_WhenFastTrackIsDisabledForLoadedGame_SelectsKleiPathsWithoutFastTrackAdapterState`
 
 Use explicit enum members `Klei` and `FastTrack`; do not use booleans or the prohibited ambiguous terminology.
 
 - [ ] **Step 2: Run selection tests red, then implement the immutable activation plan**
 
-Expected red: missing path and activation-plan types. Implement only the selection matrix and rerun green before editing `Mod.cs`.
+Expected red: missing path, runtime-patch-plan, and semantic compatibility-exception types. Implement only the selection matrix and rerun green before editing the mod entrypoint.
 
-The activation plan lists exact patch groups, not individual booleans scattered across the installer. Its constructor validates impossible combinations, such as selecting FastTrack inventory when the status option is disabled or when compatibility is not `Ready`.
+The runtime patch plan lists exact patch groups, not individual booleans scattered across the installer. Its constructor validates impossible combinations, such as selecting FastTrack inventory when the status option is disabled or when compatibility is not `Ready`. Critical failure messages name feature, file/assembly version, digest if available, exact failed member/anchor, and the best-efforts `0.18.4.0` support qualification.
 
 - [ ] **Step 3: Write failing curated runtime/serialization contract tests**
 
 Replace whole-assembly equality with `IntentionalRuntimeContract`. Assert that the only intentionally public or nested-public types declared by this assembly are:
 
 ```text
-DeliveryTemperatureLimit.Mod
-DeliveryTemperatureLimit.Options
+DeliveryTemperatureLimit.DeliveryTemperatureLimitMod
+DeliveryTemperatureLimit.DeliveryTemperatureLimitOptions
 DeliveryTemperatureLimit.TemperatureLimit
 STRINGS.TEMPERATURELIMIT
 ```
 
-Permit the existing semantically accurate `TemperatureLimit` component operations: `MinValue`, `MaxValue`, `IsDisabled`, `LowLimit`, `HighLimit`, `Get(GameObject)`, `CopySettings`, `SetLowLimit`, `SetHighLimit`, `Disable`, and `AllowedByTemperature`. Permit the required `Mod`, `Options`, and localization members with their current signatures. `TemperatureLimitWidget`, `TemperatureLimitSideScreen`, every patch class, every domain type, and every compatibility type must be internal.
+Permit the existing semantically accurate `TemperatureLimit` component operations: `MinValue`, `MaxValue`, `IsDisabled`, `LowLimit`, `HighLimit`, `Get(GameObject)`, `CopySettings`, `SetLowLimit`, `SetHighLimit`, `Disable`, and `AllowedByTemperature`. Assert `MinValue == 0` and `MaxValue == OniStorableTemperatureBounds.MaximumTemperatureKelvin == 10000`. Permit only required mod-entrypoint and options members.
+
+Preserve `STRINGS.TEMPERATURELIMIT` plus its existing public static `LocString` fields `LABEL`, `RANGE_SEPARATOR`, `TOOLTIP_RANGE`, `TOOLTIP_NOTSET`, and `SIDESCREEN_TITLE` because their full Klei localization paths are intentional external keys. `Source/DeliveryTemperatureLimitStrings.cs` is the precise responsibility-oriented filename; it must not introduce a parallel `DeliveryTemperatureLimitStrings` facade/type or duplicate the fields under a new key. This retained Klei contract is not a shim. `TemperatureLimitWidget`, `TemperatureLimitSideScreen`, every adapter, every pure domain type, and every compatibility type must be internal.
+
+Assert that `DeliveryTemperatureLimitOptions` retains opt-in JSON serialization, shared `config.json` location semantics, restart requirement, and the exact four public JSON property names/types/defaults: `CheckTemperatureForStatusItems`, `UnderConstructionLimit`, `MaxConstructionTemperature`, and `MinConstructionTemperature`. Verify `DeliveryTemperatureLimitMod` registers that exact type with PLib. The type rename must not rename JSON properties, change the primary assembly/static ID, introduce a second config file, or migrate settings through a shim.
 
 Add metadata assertions that `TemperatureLimit` still contains private `int lowLimit` and `int highLimit` with both `[KSerialization.Serialize]` and `[UnityEngine.SerializeField]`. Assert the absence of nested `TemperatureIndexData` and `getTemperatureIndexData` by exact metadata name.
 
@@ -3233,25 +3551,27 @@ Update each caller to use the new component methods and canonical constraints wi
 
 - [ ] **Step 6: Implement two-phase patch installation**
 
-`DeliveryTemperaturePatchInstaller` first resolves and verifies every exact target, signature, typed anchor, Harmony owner, path selection, and fallback needed by the immutable activation plan. It applies nothing during this verification phase.
+`DeliveryTemperatureRuntimePatchInstaller` first resolves and verifies every exact target, signature, typed anchor, Harmony owner, and path selection needed by the immutable runtime patch plan. It applies nothing during this verification phase.
 
-Before claiming that a Klei implementation path is authoritative, inspect the actual prefix topology on its target. An unrelated postfix or non-skipping observer is permitted only when its semantics do not replace the method. An unknown prefix capable of suppressing/replacing `WorldInventory.Update` or `UpdatePickups` makes Klei authority unproved; fail activation for the affected required behavior instead of treating “not FastTrack” as “Klei.” Extend `PatchContractVerifierTests` with `VerifyKleiAuthority_WhenUnknownSkippingPrefixIsActive_ReturnsFalse`, `VerifyKleiAuthority_WhenOnlyObserverPostfixIsActive_ReturnsTrue`, and `VerifyKleiAuthority_WhenFastTrackAssemblyExistsButReplacementIsInactive_ReturnsTrue`.
+Before claiming that a Klei implementation path is authoritative, inspect the actual prefix topology on its target. An unrelated postfix or non-skipping observer is permitted only when its semantics do not replace the method. An unknown prefix capable of suppressing/replacing `WorldInventory.Update` or `UpdatePickups` makes Klei authority unproved; fail activation for the affected required behavior instead of treating “not FastTrack” as “Klei.” Extend `HarmonyPatchContractVerifierTests` with `VerifyKleiAuthority_WhenUnknownSkippingPrefixIsActive_ReturnsFalse`, `VerifyKleiAuthority_WhenOnlyObserverPostfixIsActive_ReturnsTrue`, and `VerifyKleiAuthority_WhenFastTrackAssemblyExistsButReplacementIsInactive_ReturnsTrue`.
 
-Only after all required contracts pass may it apply patch groups. Record every exact `(target, patch method)` installed by this mod. If application throws, remove only methods recorded for this attempt and rethrow the semantic contract violation. Never call broad `UnpatchAll`, never unpatch another owner, and never continue after a partially installed required group.
+Only after all required contracts pass may it apply patch groups. Record every exact `(target, patch method)` installed by this mod. If application throws, remove only methods recorded for this attempt under this mod's own Harmony owner and rethrow the semantic contract violation. Never call broad `UnpatchAll`, never unpatch FastTrack or another owner, and never continue after a partially installed required group.
 
 Always-on groups include lifecycle, topology, authoritative fetch snapshot, direct eligibility, construction/building/UI behavior, and selected pickup path. Status-enabled plans install the shared status hook plus exactly one inventory publication path. Status-disabled plans install neither Klei nor FastTrack inventory/status instrumentation and allocate no catalog buffers merely for status.
 
 - [ ] **Step 7: Replace automatic discovery with explicit startup sequencing**
 
-`Mod.OnLoad` retains PLib initialization, localization, and options registration, then installs only groups whose contracts do not depend on the complete loaded-mod topology. `Mod.OnAllModsLoaded` builds one FastTrack compatibility report from enabled-for-active-content mods and actual Harmony ownership, creates one activation plan, preverifies remaining groups, and installs them once.
+`DeliveryTemperatureLimitMod.OnLoad` retains PLib initialization, localization, and options registration, then installs only groups whose contracts do not depend on the complete loaded-mod topology. `DeliveryTemperatureLimitMod.OnAllModsLoaded` first performs the cold FastTrack presence/enabled/replacement gate, builds a compatibility report only for relevant active features, creates one runtime patch plan, preverifies remaining groups, and installs them once.
 
 Do not call blanket `PatchAll`. Guard duplicate callbacks with an installer state machine that distinguishes `NotStarted`, `Verifying`, `Installed`, and `Failed`; a second successful call is an idempotent no-op, while reentry during verification or after failure throws a diagnostic lifecycle violation.
 
-- [ ] **Step 8: Prove the Klei/FastTrack inventory fallback is complete or release-blocking**
+- [ ] **Step 8: Prove coherent FastTrack failure behavior without fallback shims**
 
-For an incompatible active FastTrack inventory replacement, a Klei inventory fallback is valid only if the installer can neutralize the exact FastTrack `WorldInventory.Update` replacement and its background scheduling entry point before gameplay, verify that no other replacement suppresses Klei enumeration, and install the complete Klei inventory adapter. If all conditions hold, select the Klei inventory update path.
+For an incompatible active FastTrack pickup-grouping or direct-delivery replacement, `DeliveryTemperatureRuntimePatchPlan.Create` throws `FastTrackDeliveryEligibilityCompatibilityException` before the installer applies any Delivery Temperature Limit patch group. The exception and one rate-limited diagnostic contain the exact structural failure and best-efforts version qualification. No Klei fallback is selected because FastTrack remains the active replacement.
 
-If they do not all hold, omit the temperature status replacement so existing ONI availability remains unchanged, emit one diagnostic, and mark the activation report release-blocking. Do not combine partial FastTrack deltas with a Klei complete-world candidate, do not run two inventory enumerations, and do not claim the status option is functioning. Task 27 acceptance must fail until a supported adapter or proved fallback exists.
+For an incompatible active FastTrack world-inventory feature when status-temperature accounting is requested, install coherent delivery/pickup behavior, omit both FastTrack/Klei temperature inventory instrumentation and the temperature-aware status replacement, leave ONI's existing status availability unchanged, and emit one status-only diagnostic. Do not combine partial FastTrack deltas with a Klei complete-world candidate, run two inventory enumerations, or claim temperature-aware lacks-resources status is active.
+
+`FastTrackCoherentActivationContractTests` verify both cases and prove the source contains no FastTrack unpatch, guard-forcing, or compatibility-facade code.
 
 - [ ] **Step 9: Delete the obsolete implementation in the same change**
 
@@ -3259,21 +3579,27 @@ After every caller compiles against the new services, delete the five listed leg
 
 Run `rg` for exact removed symbols and semantic equivalents. A match in the approved design/plan explaining removal is allowed; a production or test fixture implementation match is not.
 
-- [ ] **Step 10: Run focused activation and build-contract tests**
+- [ ] **Step 10: Complete the approved nullable transition and exact test link rename**
+
+Add `<Nullable>enable</Nullable>` to `Source/DeliveryTemperatureLimit.csproj`. Replace `<Nullable>annotations</Nullable>` with `<Nullable>enable</Nullable>` in `Tests/DeliveryTemperatureLimit.Tests.csproj`. Replace the explicit legacy `..\Source\Buildings.cs` link with the semantically named `..\Source\TemperatureLimitedDeliveryTargets\TemperatureLimitedDeliveryTargetPrefabConfigurator.cs` link and a matching semantic `Production\TemperatureLimitedDeliveryTargets\...` link path.
+
+Resolve every nullable error through precise types, guards, ownership, or lifecycle invariants. Do not use null-forgiving operators without an adjacent proven invariant, broad `#nullable disable`, warning suppression, `LangVersion`, or a test/production framework conditional. Confirm `Source/packages.lock.json`, package versions, and `oni-mod-pipeline.toml` remain unchanged.
+
+- [ ] **Step 11: Run focused activation and build-contract tests**
 
 Run, separately:
 
-- `DeliveryTemperaturePatchActivationPlanTests`;
+- `DeliveryTemperatureRuntimePatchPlanTests`;
 - `DeliveryTemperatureGameSessionTests`;
 - `TemperatureLimitComponentIndexTests`;
-- `BuildingsEligibilityTests`;
-- `ModBuildContractTests`;
+- `TemperatureLimitedDeliveryTargetPrefabConfiguratorTests`;
+- `MergedDeliveryTemperatureAssemblyContractTests`;
 - both FastTrack contract classes; and
-- `PatchContractVerifierTests`.
+- `HarmonyPatchContractVerifierTests`.
 
-Then run pipeline `build`. This is the first build permitted to be installed later, but do not install it yet. Expected: all focused tests pass, the merged DLL contains only the curated public contract, and no obsolete source is compiled.
+Then run pipeline `validate`, `build`, and `test` separately. This is the first build permitted to be installed later, but do not install it yet. Expected: all focused tests and pipeline gates pass, both projects have nullable enabled, the merged DLL contains only the curated public contract, and no obsolete source is compiled.
 
-- [ ] **Step 11: Review the big-bang boundary before commit**
+- [ ] **Step 12: Review the big-bang boundary before commit**
 
 Inspect every task path and confirm:
 
@@ -3282,10 +3608,10 @@ Inspect every task path and confirm:
 - the status-off selection installs no inventory instrumentation;
 - Klei implementation paths contain no FastTrack compatibility work;
 - content mode is not used to select implementation path;
-- comments document every non-obvious ownership and fallback invariant; and
+- comments document every non-obvious ownership and fail-closed compatibility invariant; and
 - all deleted responsibilities have a named new owner.
 
-- [ ] **Step 12: Prepare and commit**
+- [ ] **Step 13: Prepare and commit**
 
 Use every exact path listed by this task, allowed types `feat` and `refactor`, and exact subject:
 
@@ -3295,20 +3621,21 @@ feat: Activate scoped delivery temperature runtime
 
 ---
 
-### Task 24: Exhaustive Architecture, Correctness, and Performance-Shape Contracts
+### Task 25: Exhaustive Architecture, Correctness, and Performance-Shape Contracts
 
 **Files:**
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Architecture/NoShimArchitectureContractTests.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Architecture/ImplementationTerminologyContractTests.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Architecture/PerformanceArchitectureContractTests.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/Domain/CrossDomainTemperatureEligibilityTests.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/ReferenceModels/ReferenceWorldTemperatureInventory.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/ReferenceModels/ReferenceTemperatureEligibility.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/ModBuildContractTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureAssemblyContracts/NoShimArchitectureContractTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureAssemblyContracts/ImplementationTerminologyContractTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureAssemblyContracts/PerformanceArchitectureContractTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackInactivePathArchitectureContractTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/FetchTemperatureEligibility/CanonicalTemperatureEligibilityAgreementTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/ReferenceTemperatureModels/ReferenceWorldResourceTemperatureAmounts.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/ReferenceTemperatureModels/ReferenceTemperatureEligibilityModel.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureAssemblyContracts/MergedDeliveryTemperatureAssemblyContractTests.cs`
 
 **Interfaces:**
 - Consumes: the fully activated Gate D implementation.
-- Produces: automated proof that removed architecture cannot silently return, all canonical representations agree over 5,002 classes, and hot-path structural invariants remain enforced.
+- Produces: automated proof that removed architecture cannot silently return, all canonical representations agree over every formula-derived bucket (`10,002` for build `744825`), unused buckets add no recurring work, and hot-path structural invariants remain enforced.
 
 - [ ] **Step 1: Write and run the no-shim architecture tests red**
 
@@ -3322,7 +3649,7 @@ Scan production syntax/metadata, not documentation prose, and assert absence of:
 - a public domain/patch/FastTrack type outside `IntentionalRuntimeContract`; and
 - any type forwarding, `[Obsolete]` forwarding member, alias, wrapper, or facade preserving a removed symbol.
 
-Expected red should identify any residue left by Task 23. Remove residue in the relevant production owner; do not weaken the test with an allowlist unless the user approves a full shim-exception dossier.
+Expected red should identify any residue left by Task 24. Remove residue in the relevant production owner; do not weaken the test with an allowlist unless the user approves a full shim-exception dossier.
 
 - [ ] **Step 2: Enforce semantic terminology mechanically**
 
@@ -3339,18 +3666,24 @@ Add exact tests:
 - `KleiInventoryPublication_WhenOneUpdateRuns_EnumeratesEachContributingPickupableOnce`
 - `FastTrackIncrementalPublication_WhenOneTagRuns_DoesNotConstructCompleteWorldPublication`
 - `FastTrackIncrementalPublication_WhenOneTagRuns_RebuildsOneParentTagAggregate`
-- `DirectEligibilityPath_AfterWarmup_AllocatesNoManagedObjectInPureHarness`
-- `PickupComparator_WhenOneComparisonRuns_CapturesNoNewSnapshotAndAllocatesNoCollection`
+- `DirectEligibilityPath_WhenInspected_CallsNoAllocatorReflectionOrSnapshotRebuild`
+- `PickupComparator_WhenInspected_CapturesNoNewSnapshotAndCreatesNoCollection`
 - `StatusOptionDisabled_WhenActivationPlanIsInspected_ContainsNoInventoryOrStatusPatchGroup`
 - `RetainedCollections_WhenHighWaterLimitWasExceeded_ReplaceVariableCapacityStorage`
+- `UnusedDecisionBuckets_WhenHotMethodsAreInspected_CauseNoCompleteRangeLoop`
+- `TemperatureAmountAccumulator_WhenOneBucketIsObserved_TouchesOnlyThatBucket`
+- `KleiImplementationPaths_WhenFastTrackIsAbsent_ReferenceNoFastTrackHotPathMethod`
+- `FastTrackFixture_WhenPackageBoundaryIsInspected_IsNeverPackaged`
 
-Use metadata call inspection and deterministic diagnostic counters for structure. Use `GC.GetAllocatedBytesForCurrentThread` only in the pure single-thread harness after warm-up; repeat enough operations to avoid timer dependence and assert exactly zero delta for the direct method. Ordinary tests must not assert elapsed milliseconds.
+Use metadata call inspection, source-syntax/control-flow inspection, immutable-reference identity, and semantic output counts. Do not add production diagnostic counters, elapsed-time assertions, `GC.GetAllocatedBytesForCurrentThread`, BenchmarkDotNet, profiler hooks, or repeated timing loops.
+
+`FastTrackInactivePathArchitectureContractTests` owns the last two-path separation proofs: for `ModNotLoaded`, disabled-for-active-content, and `ReplacementInactive`, the immutable plan selects Klei directly; the selected Klei patch methods have no call edge to the compatibility inspector, FastTrack publication sessions, coverage state, reflected member handles, or FastTrack key allocator. A single cold call in `OnAllModsLoaded` may establish the startup report; no selected per-update method may branch on that report.
 
 - [ ] **Step 4: Write exhaustive cross-domain equivalence tests**
 
-For every decision bucket ordinal `0..5001`, compare direct `DeliveryTemperatureConstraint.Allows`, normalized interval membership, pickup partition classification/equivalence, sparse amount-series queries, and the independent reference model. Include missing-primary-element as a separate case, not ordinal 0.
+For every decision bucket from `BelowMinimumConfigurableKelvinOrdinal` through `AtOrAboveMaximumConfigurableExclusiveKelvinOrdinal`, compare direct `DeliveryTemperatureConstraint.Allows`, normalized interval membership, pickup partition classification/equivalence, sparse amount-series queries, and the independent reference model. Include missing-primary-element as a separate classification, not a temperature ordinal.
 
-For every pair of constraints drawn from endpoints `{0, 1, 273, 274, 4999, 5000}` plus disabled and empty cases, prove:
+For representative constraint sets drawn from endpoints `{0, 1, 273, 274, 5000, 5017, 5100, 6203, 9999, 10000}` plus disabled and empty cases, run a linear ordinal pass and prove:
 
 - equal partition classes imply equal eligibility vectors for every applicable destination;
 - unequal eligibility vectors never share an optimized class;
@@ -3369,17 +3702,17 @@ Run:
 dotnet test --project mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj --no-restore
 ```
 
-Expected: all tests pass with zero skipped tests unless a test is explicitly platform-inapplicable and states why in its assertion output. Any failure returns to a focused red-green-refactor correction and its own meaningful commit before rerunning this full command.
+Expected: all tests pass with zero failed, skipped, or inconclusive cases. A platform-dependent contract must assert the observed supported platform facts or pass through an explicit non-applicable data case; it must not disappear through a skip. Any failure returns to a focused red-green-refactor correction and its own meaningful commit before rerunning this full command.
 
 - [ ] **Step 7: Run production build and source audits**
 
-Run pipeline `build`, `rg` removed-symbol audits, `rg` ambiguous-terminology audits, and `git diff --check` as separate commands. Do not install.
+Run pipeline `validate`, `build`, and `test`, then `rg` removed-symbol audits, `rg` ambiguous-terminology audits, and `git diff --check` as separate commands. Do not install.
 
 Expected: build succeeds; structural tests and searches agree; no generated build artifact is staged.
 
 - [ ] **Step 8: Prepare and commit**
 
-Use the seven test paths, allowed type `test`, and exact subject:
+Use the eight test paths, allowed type `test`, and exact subject:
 
 ```text
 test: Enforce temperature performance architecture
@@ -3387,64 +3720,105 @@ test: Enforce temperature performance architecture
 
 ---
 
-### Task 25: Approved ONI Mod Pipeline Acceptance Contract
+### Task 26: Immutable ONI Mod Pipeline Profile and Provenance-Bound Assembly Contract
 
 **Files:**
-- Create: `mods/delivery-temperature-limit-supercooled/Tests/PipelineAcceptanceProfileTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/oni-mod-pipeline.toml`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/OniModPipelineIntegration/OniModPipelineProfileInvarianceTests.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Tests/OniModPipelineIntegration/PipelineProvenanceBoundAssemblyLocator.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureAssemblyContracts/MergedDeliveryTemperatureAssemblyContractTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureAssemblyContracts/DeliveryTemperaturePackageBoundaryContractTests.cs`
+- Inspect only: `mods/delivery-temperature-limit-supercooled/oni-mod-pipeline.toml`
 
 **Interfaces:**
-- Consumes: the exact configuration approval obtained in Task 0 and the complete Gate D behavior.
-- Produces: required digest-bound acceptance checks for every content-mode/implementation-path combination and final profiling evidence.
+- Consumes: the Task 0 profile bytes/hash, exact pipeline build-result path, and complete Gate D implementation.
+- Produces: a byte-for-byte profile invariant and static proof against either an exact pipeline build or an exact manifest/provenance-bound release candidate. It creates no new pipeline profile requirement.
 
-- [ ] **Step 1: Revalidate exact configuration authorization before editing**
+- [ ] **Step 1: Write the profile-invariance test red before adding artifact lookup**
 
-Compare the current profile with the Configuration Approval Dossier byte-for-byte for the proposed append. If the user approved a different set, if another edit changed the insertion context, or if approval did not explicitly cover all four matrix cases and remaining checks, stop and request renewed exact approval. Do not infer configuration authority from approval of this plan.
+`OniModPipelineProfileInvarianceTests` reads the repository file as bytes, compares its SHA-256 and byte sequence with Task 0, and parses a second in-memory copy to assert the already-existing semantic declarations:
 
-- [ ] **Step 2: Write failing profile-contract tests**
+- source entrypoint `Source/DeliveryTemperatureLimit.csproj` and Release configuration;
+- game managed-directory property and merged `DeliveryTemperatureLimit.dll` primary output;
+- `PLib` as the only merge input;
+- exactly three package mappings: `mod.yaml`, `mod_info.yaml`, and the merged DLL;
+- local-install directory `DeliveryTemperatureLimit`;
+- required test project ID `delivery-temperature-limit-regressions`; and
+- every existing required acceptance-check ID, including the non-publishing Windows Uploader representation check.
 
-`PipelineAcceptanceProfileTests` loads the TOML as UTF-8 text without adding a TOML package and asserts each exact new ID occurs once, has `required = true`, and contains its distinguishing content-mode and implementation-path terminology. It also rejects the earlier ambiguous IDs and the false statement that every FastTrack background publication is a complete world.
+The test must distinguish a byte change from a semantic declaration change in its failure. Never update the expected bytes/digest merely to accommodate implementation work. A genuine pipeline-profile requirement is a specification/configuration decision that requires the user's new exact approval.
 
-Run the focused class. Expected: failure listing the missing approved IDs.
+- [ ] **Step 2: Write the exact provenance-bound assembly locator red**
 
-- [ ] **Step 3: Append exactly the approved acceptance blocks**
+`PipelineProvenanceBoundAssemblyLocator` exposes four deliberately distinct operations:
 
-Append the complete TOML block from the Configuration Approval Dossier. Do not reformat existing checks, change ordering/settings elsewhere, change metadata/build/package/test declarations, or edit pipeline source. Preserve UTF-8 and the repository's existing line-ending policy.
+1. a build-data-row probe that returns no build row only when `DELIVERY_TEMPERATURE_LIMIT_BUILD_RESULT_PATH` is absent or whitespace;
+2. a required build resolver that rejects absence and every invalid supplied build value with a semantic exception;
+3. a release-candidate-data-row probe that returns no candidate row only when `DELIVERY_TEMPERATURE_LIMIT_RELEASE_CANDIDATE_DIRECTORY` is absent or whitespace; and
+4. a required release-candidate resolver that rejects absence and every invalid supplied candidate value with a semantic exception.
 
-- [ ] **Step 4: Run profile tests and pipeline validation green**
+When the build variable contains any value, the build resolver requires one explicit rooted `build-result.json` path. It rejects a relative path, nonexistent file, wrong filename/schema, symlink or reparse-point escape, path outside the pipeline-diagnosed artifacts root, mismatched mod static ID, mismatched source commit/fingerprint, missing primary output, primary output outside the declared build output, or output length/SHA-256 mismatch.
 
-Run `PipelineAcceptanceProfileTests`, then:
+When the release-candidate variable contains any value, the candidate resolver requires one explicit rooted immutable candidate directory. It binds `workshop-content/DeliveryTemperatureLimit.dll` through `release-evidence/release-content-manifest.json` and `release-evidence/build-provenance.json`, and rejects a relative/nonexistent/wrong-layout path, symlink/reparse escape, wrong static ID/source commit, mismatched release-content digest, primary-output mismatch, or DLL length/SHA-256 mismatch. This is an assembly-binding check, not a substitute for pipeline candidate preparation, installation, acceptance, or `verify-release`.
+
+Both resolvers canonicalize paths segment by segment with .NET 10 APIs; string-prefix containment alone is insufficient. Neither may enumerate artifact directories, sort timestamps, consult “latest,” fall back to the tracked root DLL, or accept a caller-supplied DLL unbound to pipeline provenance.
+
+Extend the assembly/package tests with a dynamic data source that always yields `PublishedBaseline`, yields `ExactPipelineBuild` only after validating the build-result variable, and yields `ExactReleaseCandidate` only after validating the candidate-directory variable. Ordinary pipeline `test` therefore has a complete zero-skipped suite without claiming external artifact evidence. Tasks 26/27 must prove the build row executes; Task 28 must prove the release-candidate row executes.
+
+- [ ] **Step 3: Prove invalid supplied input fails rather than disappearing**
+
+Open one persistent PowerShell session. As one command, assign `DELIVERY_TEMPERATURE_LIMIT_BUILD_RESULT_PATH` a rooted existing repository Markdown file. As a separate command in that same session, run `MergedDeliveryTemperatureAssemblyContractTests`.
+
+Expected red: the external-data-source discovery reports a semantic invalid-build-result error naming the supplied path. The baseline row may pass; the process must fail overall. Clear the environment variable with a separate command before continuing. A missing error in this exercise is a failed test design.
+
+Unit-test the candidate resolver with a semantically named temporary candidate layout: one valid manifest/provenance-bound DLL case and mutations for path escape, wrong static ID, changed candidate DLL, changed primary-output digest, and undeclared package file. These are data-binding fixtures only; do not fabricate an `awaiting-acceptance` or `ready-for-upload` pipeline state.
+
+- [ ] **Step 4: Build through the authoritative pipeline and retain only its exact result path**
+
+Run pipeline `build` once and copy the exact rooted `build-result.json` path printed by that invocation into the task notes. Do not discover it again from the filesystem, and do not install the build. Confirm the path is under the artifacts root reported by pipeline diagnosis and the result identifies the current committed source plus current working-tree fingerprint according to the pipeline schema.
+
+- [ ] **Step 5: Inspect the exact merged pipeline build through the declared test project**
+
+In one persistent PowerShell session, set `DELIVERY_TEMPERATURE_LIMIT_BUILD_RESULT_PATH` to the exact Step 4 path as one command. Run `MergedDeliveryTemperatureAssemblyContractTests` and `DeliveryTemperaturePackageBoundaryContractTests` as separate commands. Require the output to name `ExactPipelineBuild`, then require:
+
+- target framework exactly `.NETStandard,Version=v2.1` for `ExactPipelineBuild` and the characterized legacy target only for `PublishedBaseline`;
+- current intentional public/serialized surface, including private serialized `lowLimit`/`highLimit`, and exact absence of `TemperatureIndexData`/`getTemperatureIndexData`;
+- no direct `System.IO.Compression` or `System.Net.Http` assembly reference;
+- no legacy global-index, dense-band, old status, or old patch implementation type;
+- expected PLib merge presence according to the existing ILRepack contract, with no separate PLib package file;
+- no FastTrack compile reference, fixture bytes, fixture digest, or fixture resource in the merged DLL;
+- package declarations and build-result outputs consistent with exactly `mod.yaml`, `mod_info.yaml`, and merged `DeliveryTemperatureLimit.dll`; and
+- no framework DLL, test assembly, fixture, `.config`, `.pdb`, sidecar, or undeclared file in the package inventory.
+
+Clear the variable as a separate command. Do not retain it for ordinary pipeline testing, where it could accidentally bind later tests to stale evidence.
+
+- [ ] **Step 6: Run mandatory gates on the unchanged task snapshot**
+
+Run pipeline `validate`, `build`, and `test` separately. The ordinary pipeline suite must have no failed, skipped, or inconclusive tests; it executes the baseline row and all static/source contracts but makes no candidate claim. Hash `oni-mod-pipeline.toml` again and compare bytes and SHA-256 with Task 0. Inspect `git diff --name-only`; the profile must not appear.
+
+- [ ] **Step 7: Prepare and commit**
+
+Use the four modified/created test paths only, allowed type `test`, and exact subject:
 
 ```text
-dotnet run --project tools/oni-mod-pipeline/src/OniModPipeline/OniModPipeline.csproj --no-restore -- validate --mod mods/delivery-temperature-limit-supercooled
-```
-
-Expected: test and validation pass, and validation recognizes every required check. Inspect the diff to confirm it is append-only apart from the new test file.
-
-- [ ] **Step 5: Prepare and commit**
-
-Use the two task paths, allowed type `test`, and exact subject:
-
-```text
-test: Require large-colony acceptance matrix
+test: Verify pipeline-built delivery temperature artifacts
 ```
 
 ---
 
-### Task 26: Final Automated Pipeline Gate
+### Task 27: Final Automated Pipeline Gate
 
 **Files:**
 - Inspect only; do not modify source, configuration, tests, candidate artifacts, or installations unless a failure begins a new focused TDD correction chunk.
 
 **Interfaces:**
-- Consumes: a clean committed Gate D implementation and approved acceptance profile.
-- Produces: fresh automated evidence and exact build/test paths suitable for release-candidate preparation.
+- Consumes: a clean committed Gate D implementation, Task 26 artifact contracts, and the unchanged production pipeline profile.
+- Produces: fresh authoritative pipeline evidence plus an exact statically inspected build artifact suitable for release-candidate preparation.
 
 - [ ] **Step 1: Verify committed source and preserve unrelated work**
 
 Run `git status --short`. Every contributing implementation/configuration/test change must already be committed; user-owned unrelated paths may remain untracked only if the pipeline's relevant-source rules permit them. If candidate preparation would reject a contributing untracked file, resolve ownership with the user rather than deleting or committing it implicitly.
 
-- [ ] **Step 2: Run locked restore and the full mod suite**
+- [ ] **Step 2: Run locked restore and the full direct suite as supplemental developer evidence**
 
 Run as separate commands:
 
@@ -3456,7 +3830,7 @@ dotnet restore mods/delivery-temperature-limit-supercooled/Tests/DeliveryTempera
 dotnet test --project mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj --no-restore
 ```
 
-Expected: restore makes no lockfile change; every required test passes. Record the total/passed/failed/skipped counts from fresh output.
+Expected: restore makes no lockfile change; every test passes with zero skipped/inconclusive cases. Record total/passed/failed/skipped counts from fresh output. This command is useful developer evidence, but it does not replace the pipeline-declared `test` operation below.
 
 - [ ] **Step 3: Run repository-local environment diagnosis**
 
@@ -3466,7 +3840,7 @@ dotnet run --project tools/oni-mod-pipeline/src/OniModPipeline/OniModPipeline.cs
 
 Expected: the intended game, managed-assembly, user-data, Dev/Local, SDK, and artifact paths resolve. Do not alter configuration to hide a diagnostic.
 
-- [ ] **Step 4: Validate, build, and test through the pipeline**
+- [ ] **Step 4: Validate, build, and test through the authoritative pipeline**
 
 Run each command separately in this exact order:
 
@@ -3482,164 +3856,215 @@ dotnet run --project tools/oni-mod-pipeline/src/OniModPipeline/OniModPipeline.cs
 dotnet run --project tools/oni-mod-pipeline/src/OniModPipeline/OniModPipeline.csproj --no-restore -- test --mod mods/delivery-temperature-limit-supercooled
 ```
 
-Expected: all commands succeed. Retain the exact printed `build-result.json` and automated-test evidence directory. Never substitute a path selected by timestamp or a source-root DLL.
+Expected: all commands succeed. Copy the exact rooted `build-result.json` printed by this specific `build` invocation and the exact automated-test evidence directory printed by the pipeline. Never substitute a path selected by timestamp, directory enumeration, another build, or the tracked source-root DLL. Hash `oni-mod-pipeline.toml` and require the Task 0 bytes/digest.
 
-- [ ] **Step 5: Treat any failure as a new TDD correction, not a pipeline workaround**
+- [ ] **Step 5: Bind candidate-specific static tests to that exact build result**
 
-For a failure, identify the smallest owning behavior, add or refine a focused failing test, implement the correction, run focused and complete tests, prepare a meaningful commit with exact authorization, and restart Task 26 from Step 1. Do not edit generated evidence, relax acceptance, change warnings, or bypass locked restore.
+In one persistent PowerShell session, assign `DELIVERY_TEMPERATURE_LIMIT_BUILD_RESULT_PATH` the exact Step 4 path as one command. Run `MergedDeliveryTemperatureAssemblyContractTests` and `DeliveryTemperaturePackageBoundaryContractTests` as separate commands. Confirm each relevant output contains the named `ExactPipelineBuild` row and that every assertion passes. Clear the variable as a separate command.
 
-There is no commit for a successful Task 26 because it creates evidence only.
+Review the fresh production build output for the two characterized MSB3277 conflict roots only:
+
+- `System.IO.Compression` `4.1.3.0` versus ONI `4.2.0.0`; and
+- `System.Net.Http` `4.1.2.0` versus ONI `4.2.0.0`.
+
+A missing root, changed version, third root, suppressed warning, or direct reference workaround is a contract failure, not an opportunity to relax the test.
+
+- [ ] **Step 6: Treat any failure as a new TDD correction, not a pipeline workaround**
+
+For a failure, identify the smallest owning behavior, add or refine a focused failing test, implement the correction, run focused and complete tests, prepare a meaningful commit with exact snapshot/message authorization, and restart Task 26 at its mandatory-gate step before rerunning this entire task. Do not edit generated evidence, relax acceptance, change the profile, suppress warnings, or bypass locked restore.
+
+There is no commit for a successful Task 27 because it creates evidence only.
 
 ---
 
-### Task 27: One Final Exact-Candidate Deep Validation Campaign
+### Task 28: Final Exact-Candidate Static and Four-Run Manual Validation
 
-**Files:**
+**Files and external evidence:**
 - Read: `docs/guides/preparing-oni-mod-releases.md`
-- Read: candidate-generated acceptance plan and build provenance.
-- Write only through ONI Mod Pipeline's immutable candidate, installation receipt, acceptance recorder, and verification outputs. Do not edit candidate files manually.
+- Read: the candidate's generated build provenance, content manifest, acceptance plan, release summary, and uploader checklist.
+- Read: `mods/delivery-temperature-limit-supercooled/Tests/Fixtures/ThirdParty/FastTrack/0.18.4.0/README.md` and its statically inspected DLL only; do not load it into ONI.
+- Inspect: the exact published-baseline package, exact release candidate, four derivative save files, and `Player.log` captured after each game session.
+- Optional write: `docs/performance-results/<release-version>-delivery-temperature-limit-indicative-comparison.md` only if the user wants a durable summary. Its absence is explicitly not a publication blocker.
+- Write candidate lifecycle files only through ONI Mod Pipeline. Never hand-edit immutable candidate content or evidence.
 
 **Interfaces:**
-- Consumes: the fully committed implementation and fresh Task 26 evidence.
-- Produces: one immutable exact candidate tested across all required gameplay/performance/lifecycle cases and a deterministic release-readiness result. It does not upload or publish the mod.
+- Consumes: fresh Task 27 evidence, the published baseline identity, two user-selected late-game colonies, and clean committed release inputs.
+- Produces: an exact static baseline/candidate comparison, exactly four one-pass Klei-path manual game sessions, truthful pipeline acceptance evidence, and a deterministic release-readiness result. It does not test FastTrack in game, upload, publish, or push.
 
-- [ ] **Step 1: Prepare one immutable candidate from clean committed inputs**
+- [ ] **Step 1: Verify the comparison control before preparing or installing anything**
 
-Run:
+Use only the already-published Delivery Temperature Limit package as the runtime baseline. Its `DeliveryTemperatureLimit.dll` must match every recorded fact:
+
+```text
+source commit: 5f7bf43aa823bbb4771936b058c6d573484b6d91
+file version: 2026.8.26.0
+SHA-256: 02A14F2E123F42BDD87847C15AB434DAFC8A4D4BC92B465F9DCD367364BF465E
+```
+
+Prefer the installed official Steam Workshop copy because the user confirmed this version was published. Verify its `mod.yaml` static ID and DLL digest before launch. If the Workshop copy is unavailable, differs, or cannot be identified unambiguously, stop and ask the user how to obtain the published bytes; do not rebuild the baseline from source, substitute a later DLL, or silently assemble a new control package.
+
+Record the baseline package directory, version, DLL length/hash, ONI changelist, and enabled content pack for each colony. FastTrack and every mod other than this exact baseline must be disabled. The baseline comparison is a control exercise; it does not bypass the pipeline requirement for the new implementation.
+
+- [ ] **Step 2: Create four derivative saves from two untouched originals**
+
+Exit ONI before copying. Preserve the user's original late-game base-game content-mode and Spaced Out content-mode saves byte-for-byte. From each original load point, create two separately named derivative copies before either is opened:
+
+```text
+BaseGameContentMode_PublishedBaseline
+BaseGameContentMode_ReleaseCandidate
+SpacedOutContentMode_PublishedBaseline
+SpacedOutContentMode_ReleaseCandidate
+```
+
+Names may include the colony name, but they must retain the explicit content-mode and package-role meaning. Record each original and derivative path, byte length, and SHA-256 so both members of a pair are demonstrably based on the same starting save. Do not rely on Steam Cloud to create the comparison copies. Never overwrite or save into an original; allow autosaves only in the corresponding derivative's own history.
+
+Before the first game session, write one short scenario sheet used unchanged for all four sessions:
+
+- selected simulation speed;
+- camera location and representative busy-colony workload;
+- a fixed 60-second settling interval after the colony becomes interactive;
+- one fixed 120-second observation interval measured once, with start/end displayed colony-cycle time recorded;
+- one existing or deliberately created in-range and out-of-range delivery case;
+- the same temperature-limit settings and relevant gameplay options; and
+- the UI/status/error observations listed below.
+
+Do not add a profiler, instrumentation mod, benchmark mod, scripted input, automated game control, repeated sample, or timing threshold. If an exact scenario is unavailable in one content mode, record the semantically equivalent scenario selected before either package is tested in that content mode.
+
+- [ ] **Step 3: Confirm release inputs, then prepare one immutable release candidate through the real pipeline**
+
+Follow the release guide's input review. This performance rewrite does not itself authorize an inferred version bump, change-note rewrite, preview change, or listing change. If the intended release version or release notes are not already explicitly approved and committed, pause for the user's exact approval of those specific release-input changes before running release preparation. The release is a normal release, not a beta.
+
+Run as separate commands:
+
+```text
+dotnet run --project tools/oni-mod-pipeline/src/OniModPipeline/OniModPipeline.csproj --no-restore -- validate --mod mods/delivery-temperature-limit-supercooled --for-release
+```
 
 ```text
 dotnet run --project tools/oni-mod-pipeline/src/OniModPipeline/OniModPipeline.csproj --no-restore -- prepare-release --mod mods/delivery-temperature-limit-supercooled
 ```
 
-Expected: success prints one exact candidate directory, content digest, and `awaiting-acceptance` state. Record them exactly. Preparation reruns locked build/tests; do not replace its evidence with Task 26 output.
+Expected: relevant inputs are clean and committed; preparation reruns locked build/tests and prints one exact candidate directory, release-content digest, and `awaiting-acceptance` state. Record them verbatim. Inspect the generated manifest, provenance, acceptance plan, summary, and uploader checklist. Require the intended commit, current ONI support metadata, release version, target framework, package inventory, automated-test success, and exactly unchanged profile semantics. Never modify or reuse the candidate after preparation.
 
-- [ ] **Step 2: Install that exact candidate once to the guarded Local target**
+- [ ] **Step 4: Statically bind the prepared candidate to Task 27 and compare it with the baseline**
 
-First follow the guide's duplicate-copy checklist: the subscribed Workshop copy and competing Dev/Local copies must be disabled manually; the pipeline does not change subscriptions or enabled-mod state. Then run:
+Before launching ONI, validate the prepared candidate through the pipeline and its evidence. Require:
+
+- `workshop-content/DeliveryTemperatureLimit.dll` matches both the release-content manifest and `BuildProvenance.PrimaryOutput` by byte length and SHA-256;
+- repository commit and every relevant build-input/game-reference digest match the intended clean commit and current ONI installation;
+- the package inventory is exactly `mod.yaml`, `mod_info.yaml`, and `DeliveryTemperatureLimit.dll`; and
+- no test fixture, FastTrack DLL, framework DLL, symbols, application configuration, sidecar, or ownership marker is inside `workshop-content`.
+
+In one persistent PowerShell session, assign `DELIVERY_TEMPERATURE_LIMIT_RELEASE_CANDIDATE_DIRECTORY` the exact Step 3 candidate directory as one command. Run `MergedDeliveryTemperatureAssemblyContractTests` and `DeliveryTemperaturePackageBoundaryContractTests` separately. Require the named `ExactReleaseCandidate` row and all candidate-specific assertions to pass, then clear the variable as a separate command. This inspects the actual packaged bytes even if ILRepack gives separate builds different MVIDs or hashes; never require byte identity with Task 27 merely because both derive from the same source.
+
+Create a concise static comparison in task notes—not necessarily a repository file—covering baseline and exact release-candidate DLL hash, length, file/assembly version, target-framework metadata, direct assembly references, declared public types/members, and presence/absence of the legacy global temperature-index/status/patch types. Reuse the metadata reader and provenance-bound test output; do not write an ad-hoc parser or execute either assembly.
+
+Also attach the fresh static-contract conclusions:
+
+- current ONI changelist `744825`, `Sim.MaxTemperature == 10000`, inclusive game validity, and the high-exclusive mod rule;
+- formula-derived `10,002` decision buckets and `10,001` endpoint counters;
+- fixed-memory increase only, with no ordinary work for untouched upper buckets and no full-range recurring scan;
+- absence of direct `System.IO.Compression`/`System.Net.Http` dependencies despite the two bounded resolution warnings; and
+- FastTrack best-efforts support only for the GitHub release artifact with file version `0.18.4.0`, explicitly not proven byte-identical to the Steam Workshop-distributed DLL.
+
+No failure to observe a dramatic file-size reduction is meaningful; this check proves structure and artifact identity, not a performance threshold.
+
+- [ ] **Step 5: Run the two published-baseline sessions exactly once**
+
+With ONI closed, ensure no Local/Dev candidate copy exists or is enabled. Enable only the verified published baseline. Start ONI and confirm the enabled-mod screen identifies only Delivery Temperature Limit plus the game/content pack itself.
+
+Run exactly once, in this order:
+
+1. `BaseGameContentMode_PublishedBaseline`; and
+2. `SpacedOutContentMode_PublishedBaseline`.
+
+For each derivative, follow the unchanged scenario sheet. After the settling interval, record the displayed start/end colony-cycle time across the single observation interval and concise factual observations about whether the chosen simulation speed remained usable, delivery errands responded, the side screen/status remained responsive, and visible stalls occurred. Exercise one in-range control and one out-of-range rejection without trying to exhaust every boundary. Exit ONI after each session and preserve a separately named copy of that session's `Player.log` before the next launch overwrites it.
+
+Do not repeat a baseline session to reduce noise, improve a result, or obtain an average. An interruption that invalidates a session invalidates the campaign; it is not permission to select the more favorable observation.
+
+- [ ] **Step 6: Make the candidate the only enabled copy and install it exactly once**
+
+Exit ONI. Follow the release guide's duplicate-copy checklist. Disable the subscribed Workshop baseline and any competing Dev/Local copy; the pipeline never changes subscriptions or enabled-mod state. If the intended Local destination is unowned or hand-maintained, move it aside manually and record what was moved rather than asking the pipeline to adopt or erase it.
+
+Run:
 
 ```text
 dotnet run --project tools/oni-mod-pipeline/src/OniModPipeline/OniModPipeline.csproj --no-restore -- install --candidate <exact-candidate-directory> --target local
 ```
 
-Replace the angle-bracket token with the exact Step 1 path. Expected: candidate verification succeeds, one ownership-guarded Local installation and candidate receipt are created, and the installed runtime hashes match the candidate. Never reinstall or edit this candidate after a receipt exists.
+Replace the token with the exact Step 3 directory. Expected: the pipeline re-verifies the candidate, creates one ownership-guarded Local installation and one write-once installation receipt, and proves every installed runtime hash matches the candidate. Never reinstall, edit, repair, or replace bytes within this candidate or its managed installation.
 
-- [ ] **Step 3: Record the fixed test environment before starting ONI**
+- [ ] **Step 7: Run the two release-candidate sessions exactly once and perform declared gameplay acceptance**
 
-Record in acceptance notes:
+Start ONI and confirm only the exact Local release candidate is enabled. FastTrack and every other mod remain disabled, so these sessions exercise the Klei inventory update and Klei pickup grouping paths in both content modes.
 
-- exact candidate path and digest;
-- ONI build and all enabled DLC/content packs;
-- base-game or Spaced Out content mode for each run;
-- enabled mod IDs and versions;
-- FastTrack assembly identity, version, options, Harmony feature states, and SHA-256 for FastTrack runs;
-- large-colony save identity;
-- simulation speed, warm-up duration, measurement duration, and profiler tool/version; and
-- active destinations, enabled/empty/disabled constraints, distinct endpoints, pickupables, requested tags, authoritative worlds, parent groups, and rocket interiors.
+Run exactly once, in this order:
 
-Use the same candidate bytes in every combination. Changing source, DLLs, config files, candidate files, or profiler instrumentation that alters runtime code invalidates the campaign and requires a new candidate.
+1. `BaseGameContentMode_ReleaseCandidate`; and
+2. `SpacedOutContentMode_ReleaseCandidate`.
 
-- [ ] **Step 4: Execute the four independent content/path combinations**
+Use the same scenario sheet and one observation interval per derivative. Record the same colony-cycle and responsiveness observations as the corresponding baseline. In the candidate sessions, also complete every applicable game-based acceptance action declared by the immutable pipeline plan:
 
-Run and record separately:
+- bounded Storage Bin rejects the out-of-range delivery while an in-range control remains deliverable;
+- construction-material option blocks and then restores the declared control behavior;
+- side-screen high-first editing, ordinary editing, Del-to-clear, and keyboard/camera focus behave normally;
+- a configured limit survives the required save/main-menu/reload sequence within the derivative save; and
+- in Spaced Out content mode, the rocket-interior Storage Tile check exercises both out-of-range rejection and in-range control.
 
-1. base-game content mode + Klei inventory and pickup grouping paths;
-2. base-game content mode + verified FastTrack inventory and pickup grouping paths;
-3. Spaced Out content mode + Klei inventory and pickup grouping paths; and
-4. Spaced Out content mode + verified FastTrack inventory and pickup grouping paths.
+The save/load action is part of the one candidate content-mode session, not a second performance sample; do not rerun the 120-second observation interval after reload. Where a declared acceptance scenario is structurally inapplicable to base-game content mode, execute it in the Spaced Out session and state the exact reason rather than fabricating a base-game substitute.
 
-Verify actual Harmony ownership/activation in each run; do not infer path from installed DLL presence. If a topology scenario is structurally inapplicable to base-game content mode, mark only that sub-scenario inapplicable with the authoritative reason and still run every applicable behavior. Do not collapse the four combinations into “modded/unmodded.”
+After each session, exit ONI and preserve that session's `Player.log` under an unambiguous content-mode/package-role name. Review it for DeliveryTemperatureLimit initialization, Harmony contract/lifecycle messages, repeated diagnostics, Unity exceptions, and unhandled exceptions. FastTrack messages are neither expected nor evidence because FastTrack is disabled.
 
-- [ ] **Step 5: Run correctness scenarios in every applicable combination**
+- [ ] **Step 8: Interpret the indicative comparison without overstating it**
 
-Exercise:
+Compare each candidate observation only with its same-content-mode baseline. Report the two start/end colony-cycle deltas and concise visible responsiveness notes. These four one-pass sessions are intentionally indicative and non-statistical:
 
-- storage, sweeping, construction, fetch coalescing, and direct delivery at inclusive-low/exclusive-high boundaries;
-- underflow-adjacent, `0 K`, `4999 K`, `5000 K`, overflow, disabled, and enabled-empty constraints;
-- multi-tag pickupables and destinations with overlapping/disjoint constraints;
-- side-screen editing, clearing, copy settings, and save persistence;
-- current-parent-only status totals across every authoritative member world;
-- world registration, removal, and supported parent reassignment/rocket-interior lifecycle;
-- active constraint edits while fetch and inventory updates are running; and
-- missing/stale snapshot windows, confirming subsystem-specific conservative behavior rather than fabricated eligibility or zero availability.
+- no CPU attribution, allocation count, garbage-collection count, lock profile, benchmark confidence interval, or universal speedup percentage may be claimed;
+- an inconclusive or noisy visible delta is not a release failure when structural tests pass and there is no obvious regression;
+- absence of an optional Markdown performance report is not a release or publication blocker; and
+- a reproducible correctness failure, crash, relevant exception, warning storm, or obvious candidate-only slowdown is a real failure and must not be waived as noise.
 
-Compare corresponding Klei and FastTrack implementation-path eligibility outcomes for equivalent content-mode scenarios. The implementation mechanism may differ; the gameplay decision may not.
+The defensible performance conclusion comes from static/TDD proof that avoidable scaling work was removed, supplemented—not established—by these colony observations.
 
-- [ ] **Step 6: Run status-enabled and status-disabled restart-separated scenarios**
+- [ ] **Step 9: Complete the remaining immutable pipeline acceptance check without publishing**
 
-With status accounting enabled, verify complete Klei publications and FastTrack coverage/pending/single-tag convergence. With the option disabled, restart ONI as required and prove through Harmony ownership and profiler traces that no Klei/FastTrack inventory temperature hook, coverage scan, status accumulator, amount-series publication, or catalog query runs.
+Complete the candidate's required Windows Uploader representation check exactly as the release guide specifies: open the generated description in current Windows Notepad, open the authenticated ONI Uploader Edit Mod form, leave every update checkbox disabled, paste into Description, verify line structure, record the Notepad/Uploader versions, and cancel. Do not select Publish, Update Data, or any update checkbox. This is a representation check required by the existing unchanged pipeline profile, not publication authorization.
 
-Direct delivery temperature checks must remain active in status-disabled mode. Re-enabling the option requires another restart before subsequent status-enabled evidence.
+Confirm every immutable acceptance-plan check now has a truthful observation. Baseline performance notes are supplemental and must not be presented as candidate acceptance evidence.
 
-- [ ] **Step 7: Profile the fixed large-colony intervals**
+- [ ] **Step 10: Record acceptance once and verify release readiness**
 
-After a recorded warm-up, capture equal fixed intervals at the same simulation speed for each combination. Collect CPU samples, managed allocation samples, generation-zero collection counts, retained collection capacities, lock contention, and relevant call counts.
-
-Pass requires all structural budgets below:
-
-- constraint reads perform no sort, endpoint rebuild, or global-limit scan;
-- Klei inventory accumulation adds at most one mod observation per Klei-contributing pickupable and performs no second pickupable enumeration;
-- a FastTrack steady-state inventory invocation publishes at most one resource tag and performs no unrelated complete-world reconstruction;
-- status queries perform no `WorldContainer` enumeration and no scan proportional to all registered worlds times all temperature bands;
-- direct eligibility allocates zero after warm-up;
-- pickup comparison performs no snapshot capture, reflection, log, or collection allocation per comparison;
-- fixed arrays remain exactly 5,001 endpoint counts and 5,002 decision-bucket slots per retained accumulator;
-- variable collections exceeding named high-water limits are replaced at the documented safe boundary;
-- no mod-attributed warning storm, unbounded retained growth, or unexplained lock contention occurs; and
-- any mod-attributed frame/tick cost at or above either 1% of sampled CPU or 0.5 ms in a 200 ms status update is isolated, explained as unavoidable input-proportional work, and explicitly accepted by the user or corrected before release.
-
-These are profiler-review gates, not flaky unit-test timing assertions. Record FastTrack's own `BackgroundInventoryUpdater.StartUpdateAll` world scan separately from DeliveryTemperatureLimit attribution. If it is material, document it as an upstream FastTrack opportunity with evidence; do not patch a third party's general scheduling policy as part of this rewrite.
-
-- [ ] **Step 8: Prove FastTrack publication behavior directly**
-
-In both FastTrack combinations, record counters/traces showing:
-
-- whether the observed first update was a true complete update;
-- when a new mod collection generation required one key-only coverage enumeration per world;
-- coverage excluded tags becoming known zero;
-- coverage-present tags remaining incomplete until their series arrived;
-- each later `RunUpdate` selecting and publishing one resource tag;
-- a newly observed tag becoming present/current atomically on its first series publication; and
-- no per-update assembly inspection, option reflection, all-tag rebuild, or all-world aggregation.
-
-If actual installed behavior differs from the verified contract, stop. Preserve logs, mark acceptance failed, and begin a new specification/TDD/commit/candidate cycle; do not patch the immutable candidate.
-
-- [ ] **Step 9: Execute lifecycle and failure diagnostics**
-
-Load colony A, return to main menu, load colony B, reload B, and repeat across the four content-mode/implementation-path combinations. Confirm old-session worker publications are rejected, state/capacity does not cross sessions semantically, cleanup is idempotent, and diagnostics are rate-limited.
-
-Inspect `Player.log` after each run for DeliveryTemperatureLimit, Harmony, FastTrack, lifecycle, worker, and unhandled exceptions. A release-blocking compatibility state, fallback activation not present in the recorded plan, relevant exception, or repeated warning fails acceptance.
-
-- [ ] **Step 10: Handle any failure immutably**
-
-Record the check as failed and preserve candidate/evidence. Add a focused failing automated test, implement the smallest correction, run the focused/full/pipeline gates, commit the meaningful chunk after exact authorization, and prepare a new candidate with a new run ID. Never edit/delete acceptance evidence, reinstall the failed candidate, replace candidate bytes, or change a result to passed.
-
-- [ ] **Step 11: Record acceptance once and verify release readiness**
-
-Only after every required check was genuinely executed, run in an interactive terminal:
+Only after every required acceptance check was genuinely executed, run in an interactive terminal:
 
 ```text
 dotnet run --project tools/oni-mod-pipeline/src/OniModPipeline/OniModPipeline.csproj --no-restore -- record-acceptance --candidate <exact-candidate-directory> --tester <tester-display-name>
 ```
 
-Enter factual `passed`/`failed` results and notes; do not pre-author answers. Then run:
+Enter factual `passed` or `failed` results and concise notes; do not pre-author, infer, or overwrite answers. Then run:
 
 ```text
 dotnet run --project tools/oni-mod-pipeline/src/OniModPipeline/OniModPipeline.csproj --no-restore -- verify-release --candidate <exact-candidate-directory>
 ```
 
-Expected: verification reports the ready state and exact summary/checklist paths. This plan does not authorize ONI Uploader use, Workshop publication, Git push, or release upload.
+Expected for a successful candidate: `ready-for-upload`, with exact summary/checklist/report paths. “Ready for upload” is a pipeline lifecycle state, not authorization to upload or publish.
 
-There is no source commit for a successful Task 27 because candidate evidence is generated and immutable.
+- [ ] **Step 11: Handle failures immutably and without selective repetition**
+
+If any required check fails, record the truthful failed result if acceptance recording has begun and preserve the candidate, receipt, saves, logs, and evidence. Add or refine the smallest failing automated test, correct tracked source through TDD, run all commit gates, obtain exact commit authorization, and prepare a new candidate with a new run ID. Never edit/delete acceptance evidence, reinstall a candidate with a receipt, replace candidate bytes, or change a failed answer.
+
+Do not repeat a run on the same candidate to seek a better result. A corrected candidate starts a new four-session campaign from fresh derivatives of the original saves; the prior failed campaign remains evidence and is not averaged into the new one.
+
+There is no source commit for a successful Task 28 because candidate and acceptance evidence are generated and immutable. There is no upload, publication, or Git push in this task.
 
 ---
 
-### Task 28: Final Evidence Review and Handoff
+### Task 29: Final Evidence Review and Handoff
 
 **Files:**
 - Inspect only. Do not modify committed source or immutable candidate evidence.
 
 **Interfaces:**
-- Consumes: fresh Task 26 automated output and Task 27 verified candidate evidence.
+- Consumes: fresh Task 27 automated/static output and Task 28 verified candidate/manual evidence.
 - Produces: a precise completion report with no unsupported performance claim.
 
 - [ ] **Step 1: Load and follow verification-before-completion instructions**
@@ -3648,11 +4073,11 @@ Read `C:\Users\maksy\.agents\skills\verification-before-completion\SKILL.md` com
 
 - [ ] **Step 2: Re-read the approved specification acceptance criteria**
 
-Map every numbered criterion to fresh automated output, an acceptance result, profiler evidence, source/metadata inspection, or exact candidate verification. A criterion without evidence is incomplete; do not infer it from a neighboring check.
+Map every numbered criterion to fresh automated output, an immutable acceptance result, static source/metadata inspection, one of the four approved manual sessions, or exact candidate verification. A criterion without evidence is incomplete; do not infer it from a neighboring check or substitute a performance impression for a correctness proof.
 
 - [ ] **Step 3: Verify repository and candidate identity one final time**
 
-Run `git status --short` and `verify-release` again as separate commands. Confirm unrelated user-owned paths remain untouched, every contributing change is committed, the installed receipt still matches the exact candidate, and no evidence/candidate byte changed after acceptance.
+Run `git status --short` and `verify-release` again as separate commands. Confirm unrelated user-owned paths remain untouched, every contributing change is committed, the installed receipt still matches the exact candidate, and no immutable evidence/candidate byte changed after acceptance. Confirm `oni-mod-pipeline.toml` still matches the Task 0 bytes/hash.
 
 - [ ] **Step 4: Report outcome, evidence, and residual limits**
 
@@ -3661,14 +4086,20 @@ Lead with pass/fail. Include:
 - exact candidate path and digest;
 - commit IDs for every meaningful implementation chunk;
 - automated test totals and pipeline evidence paths;
-- all four content/path matrix results;
-- recorded FastTrack identity/digest and per-feature state;
-- measured CPU/allocation/GC/retention/lock findings;
+- exact baseline identity and all four content-mode/package-role session results;
+- the two simple same-content-mode cycle-progress/responsiveness comparisons, expressly labelled indicative and non-statistical;
+- current ONI build/reference identity and the exact `netstandard2.1` game-loaded target;
+- FastTrack fixture provenance, version/digest, per-feature static contract result, and the qualification that the actual Steam Workshop DLL was unavailable and no FastTrack game run occurred;
 - confirmation that no unqualified ambiguous terminology or shim remains;
 - confirmation that the Klei inventory update path pays no FastTrack delta/coverage overhead;
 - confirmation that the FastTrack inventory update path does not reconstruct complete worlds for steady-state tag updates; and
-- any unavoidable ONI input-proportional cost or inapplicable scenario with its exact reason.
+- confirmation that untouched decision buckets above observed material temperatures add fixed memory only, not ordinary recurring work;
+- exact bounded array sizes (`10,001` endpoints and `10,002` decision buckets for ONI changelist `744825`) plus the prohibition/proof against complete-range hot-path scans;
+- any unavoidable ONI input-proportional cost or inapplicable scenario with its exact reason; and
+- the pipeline lifecycle state, while making clear that upload/publication/push remain separately authorized actions.
 
-Do not say “as fast as possible” as an absolute theorem. The defensible completion claim is that the approved avoidable scaling mechanisms were removed, every remaining material mod-attributed cost was profiled and explained, and no further mitigation was identified within the preserved behavior and verified patch contracts.
+Do not say “as fast as possible,” “proven faster in every colony,” or quote a universal percentage. The defensible completion claim is that the approved avoidable scaling mechanisms were removed or bounded by static structure and exhaustive TDD; runtime work is proportional to actual constraints, touched buckets, relevant worlds/tags, and queried pickupables rather than the unused configured range; the two one-pass late-game comparisons revealed no named candidate-only regression (if that is what was actually observed); and no further low-risk mitigation was identified within preserved behavior and verified patch contracts.
 
-There is no commit or push in Task 28.
+If the optional concise Markdown performance result was not created, state that the observations are captured in the final handoff and immutable pipeline acceptance evidence where applicable; do not downgrade an otherwise ready candidate for that absence.
+
+There is no commit, push, upload, or publication in Task 29.

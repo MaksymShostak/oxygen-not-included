@@ -1,13 +1,14 @@
 # Delivery Temperature Limit: Large-Colony Performance Rewrite Design
 
-- **Status:** Approved architecture and written specification; implementation plan prepared for adversarial review
+- **Status:** Approved architecture and implementation plan; adversarial grilling decisions integrated
 - **Date:** 2026-08-29
 - **Mod:** Delivery Temperature Limit (Supercooled)
-- **Runtime target:** .NET Framework 4.8 inside Oxygen Not Included
+- **Game-loaded runtime target:** .NET Standard 2.1 inside ONI's Unity/Mono runtime
+- **Test and static-analysis target:** .NET 10
 - **Development pipeline:** repository-local ONI Mod Pipeline
 - **Release strategy:** one coordinated performance rewrite; no partially migrated release
-- **Test strategy:** focused TDD throughout; one deep integration and performance campaign after all rewrite chunks are integrated
-- **Compatibility strategy:** preserve intentional player/save/runtime contracts; remove accidental implementation surface and compatibility shims
+- **Test strategy:** focused TDD throughout; the pipeline's `validate`, `build`, and `test` gates before every meaningful implementation commit; one modest manual baseline/candidate comparison after all rewrite chunks are integrated
+- **Compatibility strategy:** preserve intentional player/save/runtime contracts; remove accidental implementation surface and compatibility shims; provide best-efforts support for the specifically verified FastTrack `0.18.4.0` contract only
 
 ## 1. Executive summary
 
@@ -16,8 +17,8 @@ The current mod avoids several obvious hot-path costs, but its central optimizat
 The rewrite replaces that model with immutable, scoped, purpose-built representations:
 
 - exact immutable delivery constraints registered by component identity;
-- fixed-size endpoint reference counts for cheap constraint updates;
-- one canonical 5,002-class temperature decision model covering missing elements, underflow, integer Kelvin `0..4999`, and overflow;
+- fixed-size endpoint reference counts for cheap constraint updates outside hot readers;
+- one canonical `10,002`-bucket temperature decision model covering values below the configurable range, integer Kelvin `0..9999`, and values at or above the maximum configurable exclusive endpoint; missing primary elements remain a separate non-temperature classification;
 - sparse, prefix-summed temperature amount series for status availability;
 - normalized allowed-temperature interval sets for storage destinations;
 - tag- and parent-world-specific pickup partitions derived from the same authoritative fetch traversal;
@@ -28,7 +29,9 @@ The rewrite replaces that model with immutable, scoped, purpose-built representa
 
 The design deliberately does **not** retain `TemperatureLimit.TemperatureIndexData`, `TemperatureLimit.getTemperatureIndexData()`, the global operational-band model, or an exact whole-assembly public-surface compatibility test. No known external consumer uses those members. FastTrack does not call them; this mod only uses them internally while patching FastTrack. Keeping them would require maintaining the obsolete global model or presenting misleading semantics under an old name.
 
-The implementation will be test-driven at every focused change. Each meaningful, internally complete chunk will be committed separately after its focused tests pass and its source remains buildable. The expensive whole-mod pipeline, installed-game, four-way base-game/Spaced-Out and Klei/FastTrack matrix, large-colony, profiler, allocation, garbage-collection, save/load, and lifecycle validation campaign will run once, after every planned fix is integrated.
+The implementation will be test-driven at every focused change. Each meaningful, internally complete chunk will be committed separately only after its focused tests pass and the repository-local pipeline passes `validate`, `build`, and `test`. Final exact-candidate validation is deferred until the complete big-bang rewrite exists, but the production pipeline is not deferred: it is the mandatory integration gate throughout development.
+
+The final game exercise is intentionally modest and indicative. The user will compare the published baseline package with the release candidate using two original late-game colonies: one base-game content-mode colony and one Spaced Out content-mode colony. Each original is preserved and copied into separate baseline-role and candidate-role derivatives, producing exactly four one-pass game sessions. Every other mod, including FastTrack, is disabled. There is no automated game control, FastTrack game run, CPU-profiler campaign, allocation/GC campaign, beta release, or repeated timing series.
 
 ## 2. Scope and current-state findings
 
@@ -53,9 +56,31 @@ The investigation also checked current FastTrack source for its pickup grouping 
 - [BackgroundWorldInventory.cs](https://github.com/peterhaneve/ONIMods/blob/main/FastTrack/UIPatches/BackgroundWorldInventory.cs)
 - [FastTrackCompat.cs](https://github.com/peterhaneve/ONIMods/blob/main/FastTrack/FastTrackCompat.cs)
 
-Current upstream source is compatibility evidence, not a permanent binary contract. Final validation records the exact installed FastTrack assembly version and SHA-256 digest.
+Current upstream source is compatibility evidence, not a permanent binary contract. No official Workshop-distributed FastTrack DLL could be obtained or proven byte-identical during planning. Static compatibility tests therefore use the latest available GitHub release asset described in section 15, with an explicit best-efforts qualification; the release does not require or perform an in-game FastTrack run.
 
-### 2.2 Existing strengths that remain requirements
+### 2.2 Evidence baselines and authoritative installed build
+
+The implementation must preserve these planning facts as named static contracts rather than relying on memory:
+
+- published Delivery Temperature Limit source baseline commit: `5f7bf43aa823bbb4771936b058c6d573484b6d91`;
+- published baseline assembly version: `2026.8.26.0`;
+- published baseline `DeliveryTemperatureLimit.dll` SHA-256: `02A14F2E123F42BDD87847C15AB434DAFC8A4D4BC92B465F9DCD367364BF465E`;
+- installed public ONI changelist: `744825`;
+- installed ONI build branch: `release`;
+- installed Unity version: `6000.3.5f2`;
+- installed runtime family: Unity `MonoBleedingEdge`;
+- installed `Assembly-CSharp.dll` SHA-256: `A58E04D0FFDF89B86FB28B71AD900625B3B539DB30D67F8C6269F73A9F5AE599`; and
+- installed `Sim.MaxTemperature`: exactly `10000f`.
+
+The runtime-target rationale is grounded in Klei's Unity 6 transition discussion: Klei developer EricKlei confirmed that ONI's Unity assemblies require .NET Standard 2.1 features ([Klei forum developer response](https://kleiforums.com/forums/topic/170067-modders-now-face-a-dilemma-with-unity-6/?comment=1854227&do=findComment)). PLib's official build guidance likewise documents `CopyLocalLockFileAssemblies` for a .NET Standard 2.1 ILRepack build ([PLib README](https://github.com/peterhaneve/ONIMods/blob/main/PLib/README.md#usage)). The installed Unity `6000.3.5f2` assemblies are the local build-time authority. External guidance explains the target/build settings; the project and installed-assembly contract tests enforce them for this release.
+
+`KleiVersion.ChangeList` and `KleiVersion.BuildBranch` are the authoritative source for the supported public build. `Sim.MaxTemperature`, the inclusive validity checks in `PrimaryElement.OnDeserialized`, and the matching range check in `SimMessages.ModifyCell` are the authoritative sources for the maximum temperature ONI accepts. Exact `10000 K` is valid ONI state; it is nevertheless rejected by every enabled Delivery Temperature Limit range because this mod deliberately preserves an exclusive high endpoint whose maximum configurable value is `10000`.
+
+The installed element data also disproves the assumption that every applicable material lies below `5000 K`. Examples in `StreamingAssets/elements` include `MoltenCarbon` through `5100 K`, `MoltenNiobium` through `5017 K`, `MoltenTungsten` through `6203 K`, and gas phases whose defaults include `CarbonGas` at `5700 K`, `NiobiumGas` at `5500 K`, and `TungstenGas` at `6500 K`. Because the mod evaluates `Pickupable.PrimaryElement`, its semantics include bottled liquids, canistered gases, and heated debris where ONI represents them as pickupables.
+
+If the installed public ONI changelist, release branch, maximum temperature contract, or referenced method signatures change before release, implementation stops and requests a design/update decision. It must not silently broaden the advertised compatibility range or rewrite the fixture expectation.
+
+### 2.3 Existing strengths that remain requirements
 
 The current implementation already recognizes several important performance facts:
 
@@ -68,7 +93,7 @@ The current implementation already recognizes several important performance fact
 
 The rewrite preserves those intentions while replacing representations whose scaling or correctness properties are inadequate.
 
-### 2.3 Existing large-colony slowdown mechanisms
+### 2.4 Existing large-colony slowdown mechanisms
 
 | Existing mechanism | Scaling trigger | Consequence in a very large colony |
 |---|---|---|
@@ -87,7 +112,7 @@ The rewrite preserves those intentions while replacing representations whose sca
 | Per-component `OnLoadLevel` clears shared collections | Save reload and Unity callback ordering | One component can erase registrations established by another; stale component/world references may survive other lifecycle paths. |
 | World discovery scan in FastTrack `StartUpdateAll` | Every background update | Repeated O(world count) main-thread setup and unbounded lifecycle ambiguity; the source itself contains a TODO suggesting event-driven registration. |
 
-### 2.4 What cannot be optimized away
+### 2.5 What cannot be optimized away
 
 The mod changes fetch eligibility. It must therefore preserve at least one representative for each class of pickup that can produce a different answer for an active destination constraint. No sound implementation can always collapse every temperature to the original ONI tag-only grouping.
 
@@ -106,7 +131,7 @@ The rewrite must:
 
 1. Preserve intentional save, player-visible, option, and delivery semantics.
 2. Make hot reads lock-free through immutable snapshot capture.
-3. Make component add, update, and remove O(1), excluding bounded snapshot reconstruction.
+3. Make endpoint reference-count mutation O(1); perform any immutable-snapshot reconstruction eagerly on the mutating main thread, never lazily in a pickup, inventory, status, comparator, or other hot reader.
 4. Prevent unrelated tags and worlds from fragmenting pickup temperature partitions.
 5. Prevent status memory from scaling as a dense product of worlds, tags, and bands.
 6. Replace repeated range summation with sparse prefix-sum queries.
@@ -118,24 +143,29 @@ The rewrite must:
 12. Make lifecycle cleanup deterministic, idempotent, and owned by one game-session boundary.
 13. Bound retained thread-local and reusable collection capacity.
 14. Remove obsolete representations rather than retaining unproved compatibility shims.
-15. Provide exhaustive deterministic domain tests across every temperature decision class.
-16. Integrate all automated and manual validation through the repository's ONI Mod Pipeline.
+15. Provide exhaustive deterministic domain tests across every temperature decision bucket.
+16. Compile the game-loaded assembly for `netstandard2.1`, compile pure linked production sources and analysis fixtures under `net10.0`, and statically inspect the actual merged production DLL.
+17. Integrate development and release evidence through the existing repository-local ONI Mod Pipeline without modifying its profile.
+18. Keep FastTrack discovery and adaptation entirely off the normal Klei implementation paths when FastTrack is absent, disabled, or inactive for the loaded game.
 
 ## 4. Non-goals
 
 The rewrite will not:
 
 - change the serialized field names or type identity of `TemperatureLimit`;
-- change the mod options, defaults, localized player-facing meaning, or supported DLC metadata;
+- change the mod options, defaults, localized player-facing meaning, or `supportedContent: ALL` metadata;
 - change the integer truncation rule used by delivery eligibility;
-- broaden accepted temperature bounds beyond `0..5000 K`;
+- expose a configurable endpoint above ONI's current `10000 K` maximum;
+- claim compatibility with historical ONI builds or implement a historical-signature compatibility analyzer;
 - modify ONI's simulation, inventory enumeration cadence, or FastTrack's general scheduling strategy;
 - introduce a general-purpose compatibility framework for hypothetical mods;
 - expose the new domain model as a public extension API;
 - keep the old global band model behind an adapter;
 - add a third-party property-testing, benchmarking, or mocking dependency merely for convenience;
 - make wall-clock timing assertions part of ordinary unit tests;
-- perform expensive installed-game validation after each code chunk; or
+- automate ONI gameplay, run an in-game FastTrack validation, require repeated timing samples, or conduct a CPU/allocation/GC profiling campaign;
+- make a concise Markdown performance-result record a release or publishing blocker;
+- publish a beta; or
 - publish or upload a Workshop release.
 
 ## 5. Non-negotiable architecture principles
@@ -193,6 +223,12 @@ Mutable state has exactly one owner. Published state is immutable. Readers captu
 
 An optimized snapshot may be used only when its complete validity can be proved. Missing, stale, incomplete, or unverifiable data invokes the designated correctness-preserving behavior. It never invokes the old global optimization as a compatibility fallback.
 
+### 5.6 Runtime, tooling, and pipeline boundaries
+
+The game-loaded assembly targets exactly `netstandard2.1`, following current ONI mod-development guidance and the installed game's supported API surface. It must not target .NET 8, .NET 9, .NET 10, or multiple frameworks; it must not ship a modern-runtime sidecar. The `net10.0` test project may use `System.Reflection.Metadata` and other framework-provided tooling APIs for static analysis, but no game-loaded source may depend on those APIs unless they are part of the `netstandard2.1` contract and present in ONI's runtime.
+
+The pipeline is authoritative during development, not merely for the eventual release candidate. Direct filtered `dotnet test` commands are permitted for the inner red/green loop, but every meaningful commit boundary requires fresh successful pipeline `validate`, `build`, and `test` runs. The pipeline-declared test project remains the single authoritative automated suite. `oni-mod-pipeline.toml` remains byte-for-byte unchanged.
+
 ## 6. Intentional compatibility contract
 
 ### 6.1 Preserve
@@ -201,17 +237,21 @@ The rewrite preserves:
 
 - the public `DeliveryTemperatureLimit.TemperatureLimit` component identity required by serialized saves;
 - private serialized fields named `lowLimit` and `highLimit`, with their existing integer representation;
-- `MinValue = 0` and `MaxValue = 5000` unless separate migration approval is obtained;
+- public bound members retained for intentional compatibility, with `MinValue = 0` and `MaxValue = OniStorableTemperatureBounds.MaximumTemperatureKelvin` (`10000` for ONI build `744825`);
 - disabled behavior when the normalized high limit is zero;
 - inclusive lower and exclusive upper delivery eligibility;
 - C# integer truncation toward zero before comparison;
 - enabled-but-empty constraints when `lowLimit >= highLimit` and `highLimit > 0`;
 - construction-material option behavior;
 - status-temperature option behavior;
+- opt-in JSON property identities/types/defaults and PLib's shared `config.json` location under the unchanged mod assembly/static ID;
 - copy-settings behavior;
 - storage, sweeping, fetch coalescing, and direct delivery decisions;
-- Klei/FastTrack implementation-path feature parity in both base-game and Spaced Out content modes; and
-- the mod entrypoint and Unity/Klei/PLib/Harmony-required callbacks.
+- equivalent delivery decisions for a structurally verified FastTrack `0.18.4.0` contract on a best-efforts basis; this is not a promise for other FastTrack releases or proof of the Workshop DLL; and
+- the mod entrypoint and Unity/Klei/PLib/Harmony-required callbacks; and
+- public `STRINGS.TEMPERATURELIMIT` plus its existing `LABEL`, `RANGE_SEPARATOR`, `TOOLTIP_RANGE`, `TOOLTIP_NOTSET`, and `SIDESCREEN_TITLE` `LocString` fields, whose full names are intentional Klei localization keys.
+
+The localization identifier is a Klei ecosystem contract, not a legacy shim. Its source file is semantically renamed to `DeliveryTemperatureLimitStrings.cs`, but no parallel `DeliveryTemperatureLimitStrings` type or duplicate localization-key tree is introduced.
 
 ### 6.2 Remove
 
@@ -243,7 +283,19 @@ If a later named external mod is proven to consume the member, implementation st
 
 ## 7. Canonical temperature semantics
 
-### 7.1 `DeliveryTemperatureConstraint`
+### 7.1 `OniStorableTemperatureBounds`
+
+`OniStorableTemperatureBounds` is a pure internal source file shared verbatim by the `netstandard2.1` production project and the `net10.0` test project. Its named constant is:
+
+```csharp
+internal const int MaximumTemperatureKelvin = 10000;
+```
+
+The adjacent comment must cite the current binary evidence precisely: ONI release changelist `744825`, `Sim.MaxTemperature == 10000f`, inclusive acceptance by `PrimaryElement.OnDeserialized`, and the corresponding `SimMessages.ModifyCell` range check. The code must not call the game to discover this value during play. `OniStorableTemperatureBoundsContractTests` inspect the installed `Assembly-CSharp.dll` through `System.Reflection.Metadata` and fail with the observed build, field, value, assembly version, and digest if the contract changes.
+
+The constant is a reviewed compile-time compatibility boundary, not an evergreen claim. A future public ONI update that changes it requires a source review and a new release decision.
+
+### 7.2 `DeliveryTemperatureConstraint`
 
 `DeliveryTemperatureConstraint` is an internal immutable value describing a destination's exact configured behavior:
 
@@ -253,7 +305,7 @@ If a later named external mod is proven to consume the member, implementation st
 - `IsEmpty`; and
 - `Allows(float temperatureKelvin)`.
 
-Normalization clamps both serialized integer fields to `0..5000`. `MaximumExclusiveKelvin == 0` means disabled. An enabled constraint with `MinimumInclusiveKelvin >= MaximumExclusiveKelvin` is empty and rejects every temperature. Empty and disabled are not interchangeable.
+Normalization clamps both serialized integer fields to `0..OniStorableTemperatureBounds.MaximumTemperatureKelvin`, currently `0..10000`. `MaximumExclusiveKelvin == 0` means disabled. An enabled constraint with `MinimumInclusiveKelvin >= MaximumExclusiveKelvin` is empty and rejects every temperature. Empty and disabled are not interchangeable.
 
 `Allows` must apply the exact existing conversion before comparison:
 
@@ -261,29 +313,36 @@ Normalization clamps both serialized integer fields to `0..5000`. `MaximumExclus
 int truncatedKelvin = (int)temperatureKelvin;
 ```
 
-No caller may independently round, floor, clamp, or convert through Celsius.
+No caller may independently round, floor, clamp, or convert through Celsius. The upper comparison remains exclusive. Consequently, a storable at exactly `10000 K` is valid ONI state but cannot be accepted by an enabled Delivery Temperature Limit range; a disabled constraint preserves ordinary ONI behavior.
 
-### 7.2 `TemperatureDecisionBucket`
+### 7.3 `TemperatureDecisionBucket`
 
-`TemperatureDecisionBucket` is the one canonical classification used wherever a full optimized partition is unavailable or where amounts need stable integer-temperature identity.
+`TemperatureDecisionBucket` is the one canonical classification used wherever a full optimized partition is unavailable or where amounts need stable integer-temperature identity. Its bucket count is defined by the formula:
 
-It contains exactly 5,002 material-temperature classes plus a separate missing-primary-element classification at APIs that operate on pickupables:
+```text
+1 below-range bucket
++ OniStorableTemperatureBounds.MaximumTemperatureKelvin individual integer buckets
++ 1 at-or-above-maximum bucket
+= 10,002 buckets for ONI build 744825
+```
 
-1. **Underflow:** `truncatedKelvin < 0`.
-2. **Integer Kelvin:** one class for each value `0..4999`.
-3. **Overflow:** `truncatedKelvin >= 5000`.
+The buckets are:
+
+1. **`BelowMinimumConfigurableKelvin`:** `truncatedKelvin < 0`.
+2. **Integer Kelvin:** one bucket for each value from `0` through `OniStorableTemperatureBounds.MaximumTemperatureKelvin - 1`, currently `0..9999`.
+3. **`AtOrAboveMaximumConfigurableExclusiveKelvin`:** `truncatedKelvin >= OniStorableTemperatureBounds.MaximumTemperatureKelvin`, currently `>= 10000`.
 
 The apparent asymmetry is intentional:
 
-- `0 K` through `4999 K` can be distinguished by a valid configured endpoint and therefore require separate classes;
+- each current integer Kelvin value `0..9999` can be distinguished by a valid configured endpoint and therefore requires a separate bucket;
 - every truncated value below `0 K` is rejected by every enabled nonempty valid constraint, so those values are behaviorally equivalent;
-- every truncated value at or above `5000 K` is rejected by every enabled nonempty valid constraint because the maximum is exclusive and cannot exceed `5000`;
-- ordinary negative Celsius temperatures are not negative Kelvin. The physical span from absolute zero through `0 °C` maps to Kelvin buckets `0..273` and is already represented individually; and
-- values between `-1 K` and `0 K` truncate to zero under C# rules and therefore belong to the `0 K` class rather than underflow.
+- every truncated value at or above `10000 K` is rejected by every enabled nonempty valid constraint because the maximum endpoint is exclusive and cannot exceed ONI's reviewed maximum;
+- ordinary negative Celsius temperatures are not negative Kelvin. The physical span from absolute zero through `0 °C` maps to integer Kelvin buckets `0..273`; and
+- values greater than `-1 K` but less than `0 K` truncate to zero under C# rules and therefore belong to the `0 K` bucket.
 
-`TemperatureDecisionBucket.FromTemperature(float temperatureKelvin)` is the only permitted conversion function. Tests pin `-1.0`, values just above `-1`, negative fractional values truncating to zero, `0`, each endpoint-adjacent case, `4999`, values just below `5000`, `5000`, and overflow.
+`TemperatureDecisionBucket.FromTemperature(float temperatureKelvin)` is the only permitted conversion function. Tests pin `-1.0`, values immediately above `-1`, negative fractional values truncating to zero, `0`, every configured-boundary adjacency, `9999`, values immediately below `10000`, exact `10000`, and values above the maximum. Exhaustive loops derive their upper bound from named constants; they must not repeat the literal `10002` throughout the code.
 
-Missing `PrimaryElement` is not assigned an invented Kelvin value. It receives a distinct pickup eligibility classification so null behavior remains explicit and characterizable.
+Missing `PrimaryElement` is not assigned an invented Kelvin value or a synthetic bucket ordinal. APIs operating on pickupables use a distinct `MissingPrimaryElement` classification so null behavior remains explicit and cannot collide with a real temperature.
 
 ## 8. Constraint registration and component lookup
 
@@ -298,7 +357,7 @@ It provides:
 - exact enabled-constraint count;
 - exact enabled-nonempty-constraint count;
 - a monotonic constraint generation;
-- fixed endpoint reference counts for `0..5000`, inclusive; and
+- fixed endpoint reference counts for every configurable endpoint from `0` through `OniStorableTemperatureBounds.MaximumTemperatureKelvin`, inclusive; and
 - eager immutable `ActiveTemperatureConstraintSnapshot` publication on the mutating thread.
 
 Endpoint counts include only enabled, nonempty constraints because disabled and empty constraints cannot create a temperature eligibility boundary. Empty constraints remain in the snapshot because they still reject every temperature.
@@ -311,7 +370,7 @@ Mutation rules are:
 - no public method exposes the mutable dictionary or endpoint array; and
 - callbacks are emitted only after the registry lock is released.
 
-The active snapshot contains immutable constraints and a deterministically reconstructed sorted endpoint array. There is no dirty flag and no worker-triggered rebuild.
+The active snapshot contains immutable constraints and a deterministically reconstructed sorted endpoint array. There is no dirty flag and no worker-triggered rebuild. Endpoint-count updates are direct array operations. A parallel fixed membership bitset changes only when an endpoint count crosses zero; snapshot reconstruction enumerates its set bits in ascending word order (currently `157` words), never all `10,001` counters. Even this bounded work occurs only on a genuine constraint mutation. No per-pickup, per-tag, per-world, per-status, per-comparator, or per-frame path may scan the complete configurable range. Static architecture tests enforce both rules.
 
 ### 8.2 `TemperatureLimitComponentIndex`
 
@@ -342,7 +401,7 @@ The existing per-component `OnLoadLevel` global reset is deleted.
 - `TemperatureConstraintRegistry`;
 - `TemperatureLimitComponentIndex`;
 - `WorldParentTopologyCatalog`;
-- `WorldTemperatureInventoryCatalog`;
+- `WorldResourceTemperatureAmountCatalog`;
 - `FetchRequestTopologyTracker`;
 - the current combined fetch eligibility snapshot;
 - FastTrack adapter status; and
@@ -366,7 +425,7 @@ The intended authoritative hooks are:
 
 `TemperatureLimit.OnSpawn()` invokes the same idempotent `EnsureGameSession` operation so correctness does not depend on undocumented callback order. This is one lifecycle operation with multiple callers, not a parallel compatibility subsystem.
 
-The implementation must characterize installed-game callback order during the one final deep validation. If `Game.DestroyInstances()` does not cover a supported exit path, implementation stops for an explicit design amendment rather than adding speculative cleanup hooks.
+Static installed-game contracts must verify the lifecycle signatures before activation. The final candidate's required save/main-menu/reload exercise and `Player.log` review must then provide a simple runtime sanity check that shutdown and re-entry behave coherently. If `Game.DestroyInstances()` does not cover an observed supported exit path, implementation stops for an explicit design amendment rather than adding speculative cleanup hooks.
 
 ### 9.4 Synchronization rules
 
@@ -403,19 +462,19 @@ The verified installed-game seams are:
 
 Each effective mapping change increments a topology version exactly once. World removal also removes that world's inventory contribution and invalidates affected parent/tag aggregates. Parent reassignment invalidates both the old and new parent aggregates; data is not blindly transferred between parents.
 
-Worker code resolves world-to-parent relationships only through a captured immutable snapshot. An unresolved world never defaults to parent zero, the active world, or its own raw world ID. Acceptance must exercise all four independent combinations: base-game content mode with the Klei inventory update path, base-game content mode with the FastTrack inventory update path, Spaced Out content mode with the Klei inventory update path, and Spaced Out content mode with the FastTrack inventory update path.
+Worker code resolves world-to-parent relationships only through a captured immutable snapshot. An unresolved world never defaults to parent zero, the active world, or its own raw world ID. Automated topology tests cover both base-game and Spaced Out content-mode shapes independently of implementation-path selection. The final manual comparison exercises the Klei implementation paths in one late-game colony of each content mode; FastTrack remains a static compatibility contract for this release.
 
 ## 11. Sparse status-temperature inventory
 
 ### 11.1 `TemperatureAmountAccumulator`
 
-This reusable, thread-confined collector uses fixed arrays for the 5,002 `TemperatureDecisionBucket` values:
+This reusable, thread-confined collector uses fixed arrays whose length is `TemperatureDecisionBucket.BucketCount` (`10,002` for the reviewed ONI build):
 
 - accumulated amount by bucket;
 - generation stamp by bucket; and
 - touched-bucket indices.
 
-Starting a new tag advances a local stamp. Only touched entries are emitted; no 5,002-entry clear or write occurs per tag. Stamp wraparound performs one explicit full reset and is tested.
+Starting a new tag advances a local stamp. Only touched entries are emitted; no complete-range clear, scan, or write occurs per tag. Stamp wraparound performs one explicit full reset and is tested. The larger current upper bound therefore adds bounded reusable memory and a vanishingly rare reset cost, but it does not add work for unused buckets during ordinary game updates.
 
 The Klei inventory update path uses a main-thread instance. The FastTrack inventory update path uses a thread-static instance with finalizer cleanup and game-session generation checks.
 
@@ -428,7 +487,7 @@ Published amounts use a sparse immutable series:
 
 An inclusive-low/exclusive-high amount query uses two binary searches plus prefix subtraction. Underflow and overflow participation follows the exact constraint semantics. Empty constraints return zero without searching. Disabled constraints do not request temperature-specific replacement.
 
-### 11.3 `WorldTemperatureInventoryCatalog`
+### 11.3 `WorldResourceTemperatureAmountCatalog`
 
 The catalog owns:
 
@@ -642,7 +701,7 @@ Ordinals from different partition definitions are never equal merely because the
 - navigator anchor/current world; and
 - whether the optimized snapshot is current.
 
-It resolves the navigator's parent world once at update entry using `Navigator.GetAnchorCell()` and then uses immutable topology/snapshot data for every candidate. Patch verification must characterize whether the installed Klei or FastTrack pickup grouping invocation runs on a worker. Worker-capable code never enumerates Unity objects, performs `GetComponent`, or queries `ClusterManager`. It may read only the exact candidate fields and cached `PrimaryElement` temperature whose installed managed-field access and cross-thread stability were verified before activation; if that proof fails, the affected FastTrack pickup grouping path is incompatible and must use the proved Klei pickup grouping path.
+It resolves the navigator's parent world once at update entry using `Navigator.GetAnchorCell()` and then uses immutable topology/snapshot data for every candidate. Patch verification must characterize whether the installed Klei or FastTrack pickup grouping invocation runs on a worker. Worker-capable code never enumerates Unity objects, performs `GetComponent`, or queries `ClusterManager`. It may read only the exact candidate fields and cached `PrimaryElement` temperature whose installed managed-field access and cross-thread stability were verified before activation. If that proof fails for an active FastTrack pickup replacement, coordinated Delivery Temperature Limit activation aborts before patching; it must not select a Klei path that FastTrack still suppresses.
 
 Classification is:
 
@@ -664,6 +723,8 @@ Comparator equality and suppression equality must use the same semantic key. No 
 ### 15.1 Adapter boundary
 
 FastTrack support is an optional named adapter over the canonical pickup grouping algorithm. It does not own an alternate temperature partition, fallback rule, or constraint representation.
+
+This specific compatibility work is justified because FastTrack is aimed at the same very-large-colony audience and actively replaces the exact Klei inventory, pickup-grouping, and delivery-comparison seams this mod must observe. Ignoring an active replacement would not merely omit an optimization: it could bypass temperature eligibility or merge eligibility-distinct pickups. That concrete overlap justifies one narrowly verified adapter. It does not justify a generic compatibility framework, support for unverified releases, or any hot-path cost when FastTrack is absent, disabled, or inactive.
 
 Adapter state is explicit per FastTrack feature:
 
@@ -697,23 +758,47 @@ Rules are:
 - with zero enabled constraints, the original hash is returned and no allocation occurs; and
 - integer exhaustion fails explicitly and never wraps, reuses, or silently collapses a class.
 
-### 15.3 Compatibility verification and safe fallback
+### 15.3 Compatibility verification and coherent activation policy
 
-At `OnAllModsLoaded`, the adapter verifies exactly once:
+FastTrack discovery has a cold-path gate before any reflective feature inspection:
 
-- expected FastTrack type identity;
-- method signatures;
-- unique IL anchor;
-- required prefix/postfix/finalizer session hooks; and
-- availability of the canonical Klei pickup grouping path.
+1. Determine whether FastTrack is present in the loaded mod set.
+2. Determine whether it is enabled for the currently loaded game/content configuration.
+3. Inspect the relevant FastTrack option and active Harmony replacement ownership.
+4. If the mod is absent, disabled, or the relevant replacement is inactive, select the corresponding Klei implementation path and allocate/install no FastTrack adapter state for that feature.
+5. Only an active replacement proceeds to structural verification.
 
-A missing or duplicated anchor marks the adapter `Incompatible`; warning-and-continue is forbidden.
+Consequently, ordinary Klei implementation paths remain the most direct path. They do not perform a FastTrack dictionary lookup, reflection call, option check, compatibility branch, allocation, or adapter dispatch per pickup, inventory item, status query, or update. The one cold startup presence check is not a colony-scaling cost and must be covered by `FastTrackInactivePathArchitectureContractTests`.
 
-Preferred fallback patches FastTrack's `BeforeUpdatePickups` guard so it requests execution of the original Klei `UpdatePickups` and skips the incompatible replacement body. If that guard cannot be installed, exact-prefix removal is allowed only after verifying Harmony owner and target method metadata. It must never unpatch another mod's prefix.
+For an active replacement, `OnAllModsLoaded` verifies exactly once:
 
-If neither fallback can be proved, the adapter fails closed with one diagnostic containing FastTrack version, assembly digest, failed contract, and attempted fallback. It must not run temperature-unaware pickup collapsing.
+- supported FastTrack file version `0.18.4.0` on a best-efforts basis;
+- expected type identities and assembly identity;
+- exact required method and field signatures;
+- unique semantic IL anchors;
+- active Harmony owner/target relationships; and
+- every required prefix/postfix/finalizer session hook.
 
-Nested/reentrant FastTrack sessions restore prior state exactly and always clean up through finalizers.
+The runtime verifier is structural and does not use a DLL hash allowlist. The recorded fixture hash proves which GitHub artifact the tests inspected; it does not authorize an unknown binary merely because a filename/version string matches.
+
+If an active FastTrack mismatch can alter direct delivery eligibility or pickup grouping, coordinated Delivery Temperature Limit activation aborts before installing any of its runtime patch set and throws `FastTrackDeliveryEligibilityCompatibilityException`. The one diagnostic names the FastTrack version, observed digest when available, feature, member/anchor contract, and why continuing would produce temperature-unaware behavior. Warning-and-continue, third-party unpatching, and an unproved Klei fallback are forbidden.
+
+If only the optional status adapter is incompatible while direct delivery eligibility and pickup grouping remain coherent, activation installs the coherent delivery patches, leaves ONI's existing lacks-resources availability behavior unchanged, and emits one rate-limited status-compatibility diagnostic. It must not publish partial or fabricated temperature inventory.
+
+If this mod must roll back after a partial exception during its own installer, it removes only the exact methods it installed under its own Harmony owner. It never unpatches FastTrack or another mod. Nested/reentrant FastTrack sessions restore prior Delivery Temperature Limit state exactly and always clean up through finalizers.
+
+### 15.4 Static FastTrack fixture provenance
+
+The static contract fixture is the latest available DLL from FastTrack's official GitHub repository release asset, not a proven copy of the Steam Workshop distribution:
+
+- supported file version: `0.18.4.0`;
+- assembly version: `0.18.0.0`;
+- source revision closest to that artifact: `e24e8f3082a52785e971943a8f1fff8de0ca8dff`;
+- release page: `https://github.com/peterhaneve/ONIMods/releases/tag/FastTrackBeta`;
+- fixture DLL SHA-256: `D291C0D58379B77B4A60FB6D386B3783E4061E5C620DEF93502AE984CD657ADD`; and
+- downloaded ZIP SHA-256: `8EA0263FBD64F3D94C4127A03EC15A8ED88A1DA6BBDEDDA7E8EE85C9E2B3FC1D`.
+
+The word `Beta` appears only because it is part of the upstream release URL/tag; this mod itself has no beta stage. The fixture directory and README must state that the actual Workshop-distributed DLL could not be found, so compatibility is to this available artifact/version on a best-efforts basis. The test project copies the DLL as a non-reference data item and reads it with `System.Reflection.Metadata`; it never links or executes it. The released Delivery Temperature Limit package must contain no FastTrack fixture bytes or full FastTrack mod package.
 
 ## 16. Direct eligibility and fetch-coalescing patches
 
@@ -771,7 +856,8 @@ An enabled empty constraint counts as active because it affects its destination,
 | Duplicate identical registration/publication | Idempotent no-op. |
 | Conflicting replacement registration | Replace atomically and emit a diagnostic in diagnostic builds. |
 | Unknown removal | Idempotent; diagnostic only in diagnostic builds. |
-| FastTrack binary mismatch | Disable only the incompatible replacement and prove the corresponding Klei implementation path. |
+| Active FastTrack direct-eligibility or pickup-grouping mismatch | Abort coherent Delivery Temperature Limit activation before patching with `FastTrackDeliveryEligibilityCompatibilityException`. |
+| FastTrack status-only mismatch | Install coherent delivery behavior, omit only the temperature-aware status adapter, preserve ONI's existing availability result, and emit one rate-limited diagnostic. |
 | FastTrack key-space exhaustion | Fail explicitly; never collide through wraparound. |
 | Harmony update session throws | Finalizer clears/discards all thread-confined state. |
 | Status option disabled | Install no status/inventory hooks and allocate no status structures. |
@@ -780,7 +866,11 @@ Diagnostics are rate-limited by game session and diagnostic key so a single stal
 
 ## 19. Bounded resource policy
 
-The endpoint reference array contains 5,001 integers, approximately 20 KiB. The decision-bucket accumulator uses fixed arrays for 5,002 classes. These bounded arrays may be retained and reused.
+The endpoint reference array contains `OniStorableTemperatureBounds.MaximumTemperatureKelvin + 1` integers: `10,001` entries and approximately `39.1 KiB` of element storage for ONI build `744825`. A decision-bucket accumulator has `TemperatureDecisionBucket.BucketCount` entries in each amount, generation-stamp, and touched-ordinal array: `10,002` entries and approximately `117.2 KiB` of element storage across `float[]`, `int[]`, and `int[]`, excluding array headers. Moving from the legacy `5000 K` limit therefore adds approximately `19.5 KiB` per endpoint-count array and `58.6 KiB` per retained accumulator. These are small bounded reusable costs, not per-world/tag/pickup allocations.
+
+Sizing to the current ONI bound is not speculative padding: current element definitions include pickupable-relevant phases above `5000 K`, as section 2.2 records. A colony that never observes or configures those temperatures still pays only the fixed allocation above; it does not execute work for those unused indices.
+
+Unused temperature buckets add no ordinary hot-path iteration. Classification remains one truncation plus constant-time bound/ordinal logic. Accumulation touches only observed buckets; published amount series include only occupied buckets; partition definitions include only configured endpoints relevant to the parent world and tag; registry snapshots enumerate set bits rather than all counters; queries use binary search. A complete-range scan is permitted only for the accumulator's explicit generation-stamp wraparound reset and exhaustive tests. Static performance-shape tests reject complete-range loops in per-pickup, per-tag, per-world, comparator, suppression, status-query, recurring update, and ordinary constraint-mutation methods.
 
 Sparse published structures allocate only occupied temperature classes or actual interval endpoints. Variable-capacity dictionaries and lists are reusable below named high-water thresholds and replaced above them after publication/cleanup.
 
@@ -789,7 +879,7 @@ Thresholds must be:
 - named for the retained resource;
 - justified in comments;
 - covered by tests; and
-- measured during final profiling.
+- justified by deterministic structure/capacity tests and, where visible during the manual comparison, recorded as an indicative observation rather than a profiler threshold.
 
 No arbitrary timer-based eviction, weak-reference cache, global LRU, or background cleanup thread is introduced.
 
@@ -810,11 +900,11 @@ Every behavioral chunk follows:
 9. Perform the shim scan and incomplete-work scan.
 10. Commit the meaningful chunk.
 
-Focused tests are not deferred. Only the expensive deep validation campaign is deferred.
+Focused tests are not deferred. Only final exact-candidate static and four-session manual validation is deferred.
 
 ### 20.2 Deterministic exhaustive tests
 
-Tests cover all 5,002 temperature decision classes where the relevant property is finite. Randomized tests use fixed, named seeds and report the seed and generated case on failure. No external property-testing package is required.
+Tests cover every `TemperatureDecisionBucket` from `BelowMinimumConfigurableKelvin` through `AtOrAboveMaximumConfigurableExclusiveKelvin`; for build `744825`, that is `10,002` buckets. Randomized tests use fixed, named seeds and report the seed and generated case on failure. No external property-testing package is required.
 
 Required property families include:
 
@@ -838,30 +928,38 @@ Pure-domain tests use small, obviously correct reference implementations local t
 
 Game and FastTrack adapter tests use semantically named stubs or captured IL fixtures. Tests must not rely solely on source text matching when reflection or instruction-shape verification can assert the actual contract.
 
-### 20.4 Deep validation boundary
+### 20.4 Static runtime and artifact contracts
 
-Only after all rewrite chunks are integrated will the implementation run the complete campaign:
+The required `net10.0` test project statically verifies all of the following without launching ONI:
 
-- full mod test project;
-- ONI Mod Pipeline `diagnose`;
-- ONI Mod Pipeline `validate`;
-- ONI Mod Pipeline `build`;
-- ONI Mod Pipeline `test`;
-- exact build-result installation to the guarded development target;
-- base-game content mode with the Klei inventory and pickup grouping paths;
-- base-game content mode with the FastTrack inventory and pickup grouping paths;
-- Spaced Out content mode with the Klei inventory and pickup grouping paths;
-- Spaced Out content mode with the FastTrack inventory and pickup grouping paths;
-- option-on/option-off combinations;
-- save/load/main-menu/new-load lifecycle matrix;
-- large-colony functional scenarios;
-- CPU profiling;
-- allocation and GC profiling;
-- retained-memory/high-water checks;
-- Harmony and exception log review; and
-- comparison against recorded performance budgets and correctness invariants.
+- installed public ONI build/branch, `Sim.MaxTemperature`, relevant `PrimaryElement`/`SimMessages` semantics, and every Harmony target signature used by the mod;
+- production project target `netstandard2.1`, locked restore, `CopyLocalLockFileAssemblies=true`, compiler warnings as errors, and the approved staged nullable state;
+- the exact two known reference-resolution roots while targeting the current ONI DLLs: `System.IO.Compression` reference `4.1.3.0` versus game `4.2.0.0`, and `System.Net.Http` reference `4.1.2.0` versus game `4.2.0.0`;
+- absence of warning suppression, binding redirects, `AutoUnify=false`, direct replacement framework references, or package changes intended to hide those two visible MSBuild warnings;
+- the merged `DeliveryTemperatureLimit.dll` directly references neither `System.IO.Compression` nor `System.Net.Http`;
+- the merged output contains the intended PLib merge input but the pipeline package contains only `DeliveryTemperatureLimit.dll`, `mod.yaml`, and `mod_info.yaml`—never framework DLLs or an application configuration file;
+- serialized and curated public assembly contracts, including the deliberate absence of `TemperatureIndexData` and its getter;
+- linked algorithm/session sources invoke no Unity, Klei, Harmony, PLib, or FastTrack APIs and contain no conditional framework branches; only the exact value/identity boundary types named in the plan may be supplied by test stubs;
+- the GitHub FastTrack `0.18.4.0` fixture has the recorded identity/digest and satisfies the expected structural contract; and
+- the actual pipeline-built merged candidate, not merely a test assembly or copied source, satisfies all architecture/reference/package checks.
 
-A failure in this campaign is fixed with focused TDD and then the affected final gates are rerun. The rewrite is not released in a partially migrated state.
+The two reference warnings remain visible evidence. `TreatWarningsAsErrors` applies to compiler warnings; implementation must not claim the two MSBuild unification warnings were eliminated. An unexpected third root, a version change, or a new direct merged reference fails the contract and requires review.
+
+### 20.5 Final exact-candidate validation boundary
+
+Only after all fixes are integrated and committed will the implementation perform the final release-candidate validation:
+
+- fresh pipeline `diagnose`, `validate`, `build`, and `test`;
+- static baseline-versus-candidate assembly comparison using the published baseline DLL and actual merged candidate;
+- exact candidate preparation/installation through the repository-local pipeline;
+- separate published-baseline and release-candidate derivatives copied from the same untouched late-game base-game content-mode colony, with all other mods disabled, each run once;
+- separate published-baseline and release-candidate derivatives copied from the same untouched late-game Spaced Out content-mode colony, with all other mods disabled, each run once;
+- one fixed short settling/observation scenario per content mode, recording displayed colony-cycle progress, errand/UI responsiveness, representative delivery outcomes, status behavior, required save/load behavior, and relevant `Player.log` exceptions; and
+- optional concise Markdown recording of those observations when convenient.
+
+The original colony saves are never used as mutable test subjects. Each package receives a separate derivative copied from the same original save state and the same short scenario in each content mode. There are exactly four manual runs—no repetitions for the same candidate—and the comparison is explicitly indicative rather than a statistically controlled benchmark. No FastTrack-enabled game run, automated gameplay, CPU sampling, allocation measurement, GC dissection, or beta stage is required. An inconclusive visible delta and absence of a concise Markdown result record do not block publishing when structural evidence passes and no obvious regression is observed; a functional failure, pipeline failure, static-contract failure, obvious candidate-only slowdown, or relevant new log exception does.
+
+A failure is fixed with focused TDD; the pipeline gates and affected final comparison are then rerun. The rewrite is never released in a partially migrated state.
 
 ## 21. ONI Mod Pipeline integration
 
@@ -874,7 +972,7 @@ path = "Tests/DeliveryTemperatureLimit.Tests.csproj"
 required = true
 ```
 
-The rewrite expands that required project; it does not create an unregistered side test command.
+The rewrite expands that required project; it does not create an unregistered side test command. Pure production sources are linked into this project from their real locations, so the game-loaded and test assemblies compile the same physical files rather than copies.
 
 Normal focused TDD uses `dotnet test` filters against the test project. Final integration uses the pipeline from the repository root. If `oni-mod-pipeline` is not installed on `PATH`, the checkout-local equivalent is:
 
@@ -882,21 +980,11 @@ Normal focused TDD uses `dotnet test` filters against the test project. Final in
 dotnet run --project tools/oni-mod-pipeline/src/OniModPipeline/OniModPipeline.csproj --no-restore -- <command> --mod mods/delivery-temperature-limit-supercooled
 ```
 
-The exact build-result path printed by `build` is carried into `install`; the implementer must not substitute “latest” or copy the source-root DLL.
+The exact build-result path printed by `build` is carried into static artifact inspection. Release preparation prints a separate exact immutable candidate directory, and that exact directory is carried into candidate installation. The implementer must not substitute “latest,” a different build, or the source-root DLL at either boundary.
 
-The pipeline profile will require additional manual acceptance cases for:
+Before every meaningful commit—not only the final candidate—the implementer runs, in order, pipeline `validate`, pipeline `build`, and pipeline `test` against the complete current working tree. Filtered direct tests may precede those commands but may not replace them. A pipeline failure belongs to the current chunk and must be fixed before preparing a commit.
 
-- base-game content mode with Klei inventory/pickup paths under large-colony temperature grouping and status load;
-- base-game content mode with verified FastTrack pickup/background-inventory replacements;
-- Spaced Out content mode with Klei inventory/pickup paths and authoritative multi-world topology;
-- Spaced Out content mode with verified FastTrack pickup/background-inventory replacements and authoritative multi-world topology;
-- status option disabled with no temperature instrumentation work;
-- multiple asteroid and rocket-interior parent-world aggregation;
-- constraint edits while fetch updates are active;
-- main-menu/load and save-reload lifecycle cleanup; and
-- profiler/allocation evidence tied to the exact installed build result.
-
-These are profile configuration changes and require exact configuration approval before implementation.
+The existing `oni-mod-pipeline.toml` is sufficient and remains byte-for-byte unchanged. The two-colony performance comparison is deliberately supplemental release evidence, not a new required profile acceptance check. This avoids turning an optional concise result record into a publishing blocker while still ensuring that the mod itself always passes through the production pipeline.
 
 ## 22. Meaningful chunk and commit policy
 
@@ -920,66 +1008,62 @@ The user has approved the strategy of committing each meaningful implementation 
 
 ## 23. Planned source-module shape
 
-The implementation plan may refine filenames while preserving these module boundaries:
+The following directory names are part of the approved semantic architecture and are not placeholders. The implementation plan defines the complete file list within them. An implementer must not abbreviate them to `Domain`, `Runtime`, `Patches`, `FastTrack`, `WorldTopology`, `WorldInventory`, `Helpers`, or another less precise container without a reviewed plan amendment.
 
 ```text
 Source/
+  DeliveryTemperatureLimitMod.cs
+  DeliveryTemperatureLimitOptions.cs
+  DeliveryTemperatureLimitStrings.cs
   TemperatureConstraints/
-    DeliveryTemperatureConstraint.cs
-    TemperatureDecisionBucket.cs
-    ActiveTemperatureConstraintSnapshot.cs
-    TemperatureConstraintRegistry.cs
-    TemperatureLimitComponentIndex.cs
-  WorldTopology/
-    WorldParentTopologySnapshot.cs
-    WorldParentTopologyCatalog.cs
-  WorldInventory/
-    TemperatureAmountAccumulator.cs
-    TemperatureAmountSeries.cs
-    CompleteWorldResourceTemperatureAmounts.cs
-    WorldResourceTagCoverage.cs
-    WorldResourceTemperatureSeriesPublication.cs
-    CompleteWorldResourceTemperatureAmountsBuilder.cs
-    WorldTemperatureInventoryCatalog.cs
-  FetchEligibility/
-    AllowedTemperatureIntervalSet.cs
-    TemperaturePartitionDefinition.cs
-    TemperatureEligibilityClassKey.cs
-    PickupTemperaturePartitionCatalog.cs
-    FetchRequestTopologyTracker.cs
-    FetchTemperatureEligibilitySnapshot.cs
-    FetchTemperatureEligibilityBuilder.cs
-  Runtime/
-    DeliveryTemperatureGameSession.cs
-    DeliveryTemperatureGameSessionHost.cs
-  Patches/
-    DirectFetchEligibilityPatches.cs
-    FetchTemperatureSnapshotPatches.cs
-    KleiWorldInventoryTemperaturePatches.cs
-    KleiPickupTemperatureGroupingPatches.cs
-  FastTrack/
-    FastTrackFeatureCompatibilityState.cs
-    FastTrackCompatibilityReport.cs
-    FastTrackCompatibilityInspector.cs
-    FastTrackPickupGroupingKeyAllocator.cs
-    FastTrackWorldInventoryTemperaturePatches.cs
-    FastTrackPickupTemperaturePatches.cs
+  WorldParentTopology/
+  WorldResourceTemperatureAmounts/
+  FetchTemperatureEligibility/
+  DeliveryTemperatureGameSessionLifecycle/
+  TemperatureLimitedDeliveryTargets/
+  KleiImplementationAdapters/
+  FastTrackCompatibility/
+    FeatureContractVerification/
+    InventoryUpdateAdapters/
+    PickupGroupingAdapters/
+    DirectDeliveryEligibilityAdapters/
+  TemperatureLimitUserInterface/
+  HarmonyTranspilerInfrastructure/
 ```
 
-The old `Patch.cs`, `PatchFastTrack.cs`, and `StatusItems.cs` responsibilities should be split rather than becoming parallel legacy entry points. Once call sites migrate, obsolete types are deleted in the same rewrite.
+The tests mirror those semantic production directories and add only these purpose-specific roots:
+
+```text
+Tests/
+  DeliveryTemperatureAssemblyContracts/
+  OniModPipelineIntegration/
+  ReferenceTemperatureModels/
+  TestDoubles/
+  Fixtures/
+    ThirdParty/
+      FastTrack/
+        0.18.4.0/
+```
+
+The linked test boundary comprises `TemperatureConstraints`, `WorldParentTopology`, `WorldResourceTemperatureAmounts`, `FetchTemperatureEligibility`, `DeliveryTemperatureGameSessionLifecycle`, the explicitly named pure FastTrack publication/key-allocation files, and reflection-only contract types under `FastTrackCompatibility/FeatureContractVerification` and `HarmonyTranspilerInfrastructure`. The exact globs/files are enumerated in Task 1; runtime Harmony adapter files are never pulled in by a broad glob. A static boundary test fails if linked algorithm/session files invoke Unity, Klei, Harmony, PLib, or FastTrack APIs, reference those assemblies under the test build, contain `#if`/`#elif` framework forks, or add test-only production branches. The few plan-named value/identity types supplied by `TestDoubles/OniGameTypeStubs.cs` are boundary contracts, not permission for game-object traversal in domain code.
+
+The old `Patch.cs`, `PatchFastTrack.cs`, `StatusItems.cs`, `Limits.cs`, `Harmony.cs`, vague filenames (`Mod.cs`, `Options.cs`, `Strings.cs`), and their obsolete responsibilities are removed or semantically renamed at coordinated activation. They do not remain as forwarding files, aliases, partial-class facades, or compatibility shims.
 
 ## 24. Configuration approval dossier
 
-This specification approves architecture, not configuration edits. Repository policy requires exact approval before implementation changes either file below.
+The grilling recorded explicit approval for the exact staged changes below. Before editing, the implementer must compare the live file with the expected starting content; a changed context or broader delta requires renewed approval.
 
-| Configuration file | Exact intended setting change | Behavioral and pipeline impact | Smallest viable change |
+| Configuration or policy file | Exact approved change | Behavioral and pipeline impact | Defensive limit |
 |---|---|---|---|
-| `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj` | Add `<Compile Include="..\Source\..." Link="Production\..." />` entries for each new pure-domain production source file required by the tests; add no new package unless a separately approved need is demonstrated | Makes the existing required test project compile and exercise the actual domain implementation under MSTest; preserves the existing pipeline test-project ID | Add only explicit source links needed by tests; retain `net10.0`, MSTest SDK, nullable annotations, warnings-as-errors, and locked restore |
-| `mods/delivery-temperature-limit-supercooled/oni-mod-pipeline.toml` | Append specifically named required `[[acceptance-checks]]` entries for the final performance, FastTrack, status-disabled, multi-world, concurrent-edit, and lifecycle scenarios | Makes the final deep manual validation part of the digest-bound pipeline acceptance contract rather than an undocumented checklist | Append acceptance entries only; do not change build, package, listing, installation, or existing acceptance settings |
+| `Source/DeliveryTemperatureLimit.csproj` | First implementation chunk: replace `<TargetFramework>net48</TargetFramework>` with `netstandard2.1`; add `<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>` and `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`. Coordinated activation: add `<Nullable>enable</Nullable>`. | Produces a game-loadable .NET Standard assembly, makes PLib available to the existing merge target, treats compiler warnings as errors, and adopts complete nullable analysis only when legacy files are removed. | Do not add `LangVersion`, multi-targeting, `NoWarn`, binding redirects, `AutoUnify`, direct framework-assembly overrides, a modern-runtime sidecar, or package changes. Every new source file starts with `#nullable enable` before project-wide nullable is activated. |
+| `Source/packages.lock.json` | Refresh only the target-framework restore graph required by the `net48` to `netstandard2.1` retarget. | Keeps `--locked-mode` authoritative under the new target. | PLib remains `4.24.0`; ILRepack remains `2.0.34`; no direct or transitive version is deliberately upgraded/downgraded. Any unrelated graph/version change stops the task. |
+| `Tests/DeliveryTemperatureLimit.Tests.csproj` | First implementation chunk: add linked compile items for the exact pure/session production roots and reflection-only contract files in the plan. Task 21 only: update the SDK-default FastTrack fixture `None` item with `CopyToOutputDirectory=PreserveNewest`. Retain `net10.0`, MSTest.Sdk `4.3.3`, warnings as errors, and locked restore. Retain `<Nullable>annotations</Nullable>` while the legacy linked `Buildings.cs` remains; replace it with `<Nullable>enable</Nullable>` in coordinated activation after that legacy link/file is removed or rewritten. | Tests the same physical sources under modern tooling, enables static metadata/artifact contracts, and makes the FastTrack DLL available only as inert test data. | No copied production source, FastTrack compile reference/execution, production-output copy, package addition, alternate test project, conditional framework code, or unregistered suite. |
+| `mod_info.yaml` | Replace `minimumSupportedBuild: 596100` with `minimumSupportedBuild: 744825`; retain `supportedContent: ALL`, `version: 2026.8.26`, and `APIVersion: 2` until normal release versioning is separately authorized. | States support for the current public ONI build used to compile and verify the rewrite. | Do not add `archived_versions` or claim historical/future build compatibility. If public ONI changes before release, stop. |
+| `oni-mod-pipeline.toml` | **No change; byte-for-byte invariant:** 5,413 LF bytes, SHA-256 `5A03C7656F75B539B226C1CD6FF231D85C7DE200E701B5274751F09F00739AFD`. | The existing profile already registers the authoritative build, package, test project, installation, and acceptance paths. | Static contract tests compare its digest/content. Do not append performance checks or modify any setting. |
 
-No change is currently required to `Source/DeliveryTemperatureLimit.csproj` because SDK default item inclusion will compile new production `.cs` files. No package, lockfile, build target, pipeline source, or CI change is approved by this design.
+The known `System.IO.Compression` and `System.Net.Http` reference-resolution warnings are not configuration defects to conceal. The approved policy is to leave them visible and guard their exact roots/versions plus the final merged/package surface through static tests. Downgrading or directly pinning `System.IO.Compression` to `4.1.3.0` was explicitly rejected because it did not remove the game-side `4.2.0.0` reference graph and would make the source project own a framework assembly it does not ship.
 
-If implementation discovers a need for another configuration edit, it must stop and present the exact file, setting, effect, and smallest alternative before editing.
+If implementation discovers a need for any other configuration, package, lockfile, warning-policy, pipeline, CI, or metadata edit, it must stop and present the exact file, setting, effect, and smallest alternative before editing.
 
 ## 25. Acceptance criteria
 
@@ -988,7 +1072,7 @@ The rewrite is complete only when all of the following are true:
 1. Intentional serialization, options, and player-visible behaviors remain compatible.
 2. `TemperatureIndexData`, its getter, and the global band model are absent.
 3. No unapproved shim or parallel legacy algorithm remains.
-4. Constraint add/replace/remove is O(1) and effective no-ops do not increment generation.
+4. Endpoint reference-count mutation is O(1), effective no-ops do not increment generation, and immutable reconstruction occurs only on the mutating path.
 5. Hot readers never rebuild constraint indexes.
 6. Every temperature conversion uses the canonical truncation and decision-bucket implementation.
 7. Storage eligibility uses normalized interval sets, not per-band tag sets.
@@ -1002,20 +1086,23 @@ The rewrite is complete only when all of the following are true:
 15. Pickup partitions are scoped by parent world and requested tags.
 16. Unrelated constraints cannot fragment a pickup's optimized partition.
 17. Missing/stale pickup partitions use exact decision classes and remain correct.
-18. Optimized partition equivalence and minimal fragmentation pass exhaustive tests over all 5,002 classes.
+18. Optimized partition equivalence and minimal fragmentation pass exhaustive tests over every canonical decision bucket (`10,002` for build `744825`).
 19. The combined fetch snapshot publishes only when every captured generation/version remains current.
 20. FastTrack uses collision-free update-local key allocation.
-21. A FastTrack mismatch cannot silently run a temperature-unaware replacement path.
+21. FastTrack-absent, disabled, and inactive games have no FastTrack hot-path work; an active critical mismatch aborts coherent activation before patching; a status-only mismatch disables only the optional status adapter.
 22. Worker code reads immutable world topology and does not call Unity or `ClusterManager`.
 23. Late old-session publications are rejected.
 24. Game-session shutdown and repeated component/world cleanup are idempotent.
-25. Fixed reusable buffers are bounded and oversized variable collections are released.
+25. Fixed reusable buffers are bounded; unused temperature buckets do not create hot-path scans or sparse publications; oversized variable collections are released.
 26. Status-disabled mode installs no status/inventory hooks and performs no associated allocations.
-27. Every implementation chunk has focused red/green/refactor evidence and a coherent commit.
-28. The existing required pipeline test project contains the complete automated suite.
-29. The one final pipeline/deep-validation campaign passes against the exact installed build result for all four base-game/Spaced-Out and Klei/FastTrack combinations.
-30. Player logs contain no new relevant lifecycle, Harmony, FastTrack, worker, or unhandled exceptions.
-31. Final profiler evidence shows no remaining avoidable dense `world × tag × temperature` work, no hot-path constraint rebuild, no global unrelated-tag partition fragmentation, no per-FastTrack-delta complete-world reconstruction, and no unbounded retained collection growth.
+27. Every implementation chunk has focused red/green/refactor evidence, fresh pipeline `validate`/`build`/`test` evidence, and a coherent signed commit prepared from an exactly approved snapshot/message.
+28. The existing required pipeline test project contains the complete automated suite by linking the real pure production sources; no copied algorithm or side test project exists.
+29. The game-loaded assembly targets exactly `netstandard2.1`; tooling/tests target `net10.0`; the final projects have nullable enabled and compiler warnings as errors.
+30. Static contracts prove the current ONI build/max-temperature/method signatures, exact known two-warning reference roots, merged-assembly references, package boundary, intentional serialization/public surface, pipeline-profile invariance, and best-efforts FastTrack `0.18.4.0` fixture contract.
+31. The final static baseline/candidate diff passes and exactly four indicative manual sessions complete without a functional failure, relevant exception, or obvious candidate-only slowdown: separate baseline-role and candidate-role derivatives copied from each of the user's untouched late-game base-game and Spaced Out content-mode saves, every other mod disabled. A noisy or inconclusive magnitude of improvement is not itself a failure.
+32. Player logs contain no new relevant lifecycle, Harmony, worker, or unhandled exceptions in those candidate runs.
+33. The source and static performance-shape evidence show no avoidable dense `world × tag × temperature` work, no hot-path constraint rebuild or complete-range scan, no unrelated-tag partition fragmentation, no per-FastTrack-delta complete-world reconstruction, and no unbounded retained collection growth.
+34. Release artifacts are release-version artifacts only; no beta is created, and publishing/uploading still requires separate explicit authorization.
 
 ## 26. Rejected alternatives
 
@@ -1027,9 +1114,9 @@ Rejected because no named consumer was found and a facade would either preserve 
 
 Rejected because valid constraints cannot distinguish any truncated value below `0 K`. Negative Celsius values above absolute zero are already represented by Kelvin buckets `0..273`.
 
-### 26.3 Keep dense arrays because 5,000 is small
+### 26.3 Keep dense arrays because the temperature range is bounded
 
-Rejected because 5,000 is small only in isolation. Multiplication by tags, worlds, inventory refreshes, status items, and mutable dictionary overhead is precisely the large-colony failure mode.
+Rejected for published world/tag data because even a bounded `10,002`-bucket range becomes large when multiplied by tags, worlds, refreshes, status items, and mutable dictionary overhead. Fixed arrays remain appropriate only for the small number of reusable, thread-confined accumulators and endpoint counts whose hot paths touch observed entries rather than scanning the full range.
 
 ### 26.4 Rebuild optimized data immediately in every setter
 
@@ -1059,8 +1146,32 @@ Rejected because the user requires a commit after every meaningful complete chun
 
 Rejected because current FastTrack performs one complete update after prefab initialization and then refreshes only one resource tag per `RunUpdate`. Reconstructing every world/tag contribution for each later invocation would add precisely the large-colony work FastTrack removes. The adapter publishes complete-world, coverage, and single-tag contracts according to the authoritative enumeration that actually occurred.
 
+### 26.11 Keep .NET Framework 4.8 or target a modern .NET runtime directly
+
+Both are rejected. `net48` does not follow the current ONI developer guidance selected by the user; .NET 8/9/10 game assemblies are not loadable contracts for ONI's Unity/Mono environment. The correct separation is `netstandard2.1` for the game-loaded DLL and `net10.0` for tests/static tooling.
+
+### 26.12 Multi-target or ship a reflection-metadata sidecar
+
+Rejected as unnecessary complexity and a deployment risk. The pipeline packages one merged game DLL. Static analysis belongs in the development test process, where `System.Reflection.Metadata` is available without imposing it on ONI.
+
+### 26.13 Support old ONI builds through inferred signature compatibility
+
+Rejected because Steam normally updates ONI, offline users can deliberately remain behind, and compatible method signatures alone cannot prove behavioral compatibility. This release deliberately supports the current public build `744825`; it does not claim that an old offline installation is safe.
+
+### 26.14 Hide the two framework-reference warnings
+
+Rejected. Direct assembly pins, binding redirects, `AutoUnify=false`, and downgrading `System.IO.Compression` did not produce a cleaner or more truthful artifact contract. The merged DLL directly references neither disputed assembly, so visible exact-root warnings plus static output/package tests are the safer policy.
+
+### 26.15 Modify the pipeline profile for performance evidence
+
+Rejected because the current pipeline already governs build, test, package, install, and acceptance. The simple two-colony comparison is supplemental and its concise Markdown record is explicitly non-blocking; changing `oni-mod-pipeline.toml` would incorrectly make that record part of the required release contract.
+
+### 26.16 Run automated ONI, a profiler campaign, or repeated benchmarks
+
+Rejected as disproportionate for a community mod. Deterministic structural tests and static baseline/candidate analysis prove the intended performance shape; four simple manual runs provide an understandable indicative check without pretending to be a statistically isolated CPU benchmark.
+
 ## 27. Final decision
 
-Implement one coordinated rewrite based on scoped immutable constraints, sparse temperature amount series, explicit complete-world/coverage/single-tag inventory publications, normalized storage intervals, parent-world/tag pickup partitions, collision-free FastTrack keys, authoritative content-neutral world topology, and game-session generation safety. Preserve intentional saves and gameplay; remove the old global temperature-index subsystem and accidental public surface. Use exact decision-bucket fallback whenever optimized data cannot be proved current. Develop through focused TDD and coherent chunk commits, then run the repository-local ONI Mod Pipeline and the complete four-combination base-game/Spaced-Out and Klei/FastTrack large-colony validation campaign once all fixes are integrated.
+Implement one coordinated rewrite based on scoped immutable constraints, the current ONI `10000 K` storable-temperature bound, sparse temperature amount series, explicit complete-world/coverage/single-tag inventory publications, normalized storage intervals, parent-world/tag pickup partitions, collision-free FastTrack keys, authoritative content-neutral world topology, and game-session generation safety. Preserve intentional saves and gameplay; remove the old global temperature-index subsystem and accidental public surface. Use exact decision-bucket fallback whenever optimized data cannot be proved current. Compile the game-loaded assembly for `netstandard2.1`, link pure production sources into the `net10.0` pipeline test project, and keep `oni-mod-pipeline.toml` unchanged. Develop through focused TDD, mandatory pipeline gates, and coherent signed chunk commits. After all fixes are integrated, perform static baseline/candidate analysis and the four approved Klei-path manual runs in derivative base-game and Spaced Out colonies. Treat FastTrack `0.18.4.0` support as a structurally verified, best-efforts static contract rather than a release-wide in-game validation matrix.
 
 No open architecture decisions remain in this specification.
