@@ -144,24 +144,60 @@ public sealed class LinkedProductionSourceBoundaryContractTests
             tagType.CustomAttributes.Any(attribute =>
                 attribute.AttributeType == typeof(IsReadOnlyAttribute)),
             "The global Tag test double must be readonly.");
-        Assert.IsEmpty(tagType.GetFields(
+        CollectionAssert.AreEquivalent(
+            new[] { typeof(IEquatable<global::Tag>) },
+            tagType.GetInterfaces());
+
+        var tagFields = tagType.GetFields(
             BindingFlags.Public
             | BindingFlags.NonPublic
             | BindingFlags.Instance
             | BindingFlags.Static
-            | BindingFlags.DeclaredOnly));
+            | BindingFlags.DeclaredOnly);
+        Assert.HasCount(1, tagFields);
+        Assert.AreEqual("value", tagFields[0].Name);
+        Assert.AreEqual(typeof(string), tagFields[0].FieldType);
+        Assert.IsTrue(tagFields[0].IsPrivate);
+        Assert.IsTrue(tagFields[0].IsInitOnly);
+        Assert.IsFalse(tagFields[0].IsStatic);
+
         Assert.IsEmpty(tagType.GetProperties(
             BindingFlags.Public
             | BindingFlags.NonPublic
             | BindingFlags.Instance
             | BindingFlags.Static
             | BindingFlags.DeclaredOnly));
-        Assert.IsEmpty(tagType.GetMethods(
+
+        var tagConstructors = tagType.GetConstructors(
+            BindingFlags.Public
+            | BindingFlags.NonPublic
+            | BindingFlags.Instance
+            | BindingFlags.DeclaredOnly);
+        Assert.HasCount(1, tagConstructors);
+        Assert.IsTrue(tagConstructors[0].IsPublic);
+        Assert.AreSequenceEqual(
+            new[] { typeof(string) },
+            tagConstructors[0]
+                .GetParameters()
+                .Select(parameter => parameter.ParameterType)
+                .ToArray());
+
+        var tagMethodSignatures = tagType.GetMethods(
             BindingFlags.Public
             | BindingFlags.NonPublic
             | BindingFlags.Instance
             | BindingFlags.Static
-            | BindingFlags.DeclaredOnly));
+            | BindingFlags.DeclaredOnly)
+            .Select(MethodSignature)
+            .ToArray();
+        CollectionAssert.AreEquivalent(
+            new[]
+            {
+                "Equals(System.Object):System.Boolean",
+                "Equals(Tag):System.Boolean",
+                "GetHashCode():System.Int32"
+            },
+            tagMethodSignatures);
 
         var temperatureLimitType = typeof(global::DeliveryTemperatureLimit.TemperatureLimit);
         Assert.AreEqual(
@@ -286,6 +322,15 @@ public sealed class LinkedProductionSourceBoundaryContractTests
             && !relativePath.StartsWith(
                 $"..{Path.DirectorySeparatorChar}",
                 StringComparison.Ordinal);
+    }
+
+    private static string MethodSignature(MethodInfo method)
+    {
+        var parameterTypes = string.Join(
+            ",",
+            method.GetParameters().Select(parameter =>
+                parameter.ParameterType.FullName));
+        return $"{method.Name}({parameterTypes}):{method.ReturnType.FullName}";
     }
 
     private static string TestProjectPath() =>

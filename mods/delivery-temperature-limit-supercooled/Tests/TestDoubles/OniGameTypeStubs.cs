@@ -1,4 +1,21 @@
-public readonly struct Tag { }
+public readonly struct Tag : IEquatable<Tag>
+{
+    // This private identity is the smallest value model needed by linked pure
+    // production sources. It deliberately does not imitate ONI's unrelated Tag
+    // presentation, serialization, conversion, or ordering surface.
+    private readonly string value;
+
+    public Tag(string value) => this.value = value;
+
+    public bool Equals(Tag other) =>
+        StringComparer.Ordinal.Equals(value, other.value);
+
+    public override bool Equals(object? obj) =>
+        obj is Tag other && Equals(other);
+
+    public override int GetHashCode() =>
+        StringComparer.Ordinal.GetHashCode(value ?? string.Empty);
+}
 
 namespace HarmonyLib
 {
