@@ -1,10 +1,11 @@
 # Delivery Temperature Limit: Large-Colony Performance Rewrite Design
 
-- **Status:** Approved architecture and implementation plan; adversarial grilling decisions integrated
+- **Status:** Approved architecture and implementation plan; adversarial grilling and independent validation amendments integrated
 - **Date:** 2026-08-29
 - **Mod:** Delivery Temperature Limit (Supercooled)
 - **Game-loaded runtime target:** .NET Standard 2.1 inside ONI's Unity/Mono runtime
-- **Test and static-analysis target:** .NET 10
+- **Production language ceiling:** C# 8 from the `netstandard2.1` SDK default, including production files linked into tests
+- **Test and static-analysis target:** .NET 10 with test-only C# 14
 - **Development pipeline:** repository-local ONI Mod Pipeline
 - **Release strategy:** one coordinated performance rewrite; no partially migrated release
 - **Test strategy:** focused TDD throughout; the pipeline's `validate`, `build`, and `test` gates before every meaningful implementation commit; one modest manual baseline/candidate comparison after all rewrite chunks are integrated
@@ -16,12 +17,12 @@ The current mod avoids several obvious hot-path costs, but its central optimizat
 
 The rewrite replaces that model with immutable, scoped, purpose-built representations:
 
-- exact immutable delivery constraints registered by component identity;
+- exact immutable delivery constraints registered by token-owned component identity;
 - fixed-size endpoint reference counts for cheap constraint updates outside hot readers;
 - one canonical `10,002`-bucket temperature decision model covering values below the configurable range, integer Kelvin `0..9999`, and values at or above the maximum configurable exclusive endpoint; missing primary elements remain a separate non-temperature classification;
 - sparse, prefix-summed temperature amount series for status availability;
 - normalized allowed-temperature interval sets for storage destinations;
-- tag- and parent-world-specific pickup partitions derived from the same authoritative fetch traversal;
+- tag- and parent-world-specific endpoint facts derived from the same authoritative fetch traversal, with partition definitions interned only inside one pickup-update grouping session;
 - collision-free FastTrack grouping-key allocation rather than hash mixing;
 - immutable snapshots with explicit constraint, fetch-topology, world-topology, and game-session generations;
 - correctness-preserving exact-temperature-class fallback whenever an optimized snapshot cannot be proved current; and
@@ -144,7 +145,7 @@ The rewrite must:
 13. Bound retained thread-local and reusable collection capacity.
 14. Remove obsolete representations rather than retaining unproved compatibility shims.
 15. Provide exhaustive deterministic domain tests across every temperature decision bucket.
-16. Compile the game-loaded assembly for `netstandard2.1`, compile pure linked production sources and analysis fixtures under `net10.0`, and statically inspect the actual merged production DLL.
+16. Compile the game-loaded assembly for `netstandard2.1` with a strict C# 8 production ceiling, compile test-only analysis/fixture code under `net10.0`/C# 14, compile the same linked production sources without post-C#-8 syntax, and statically inspect the actual merged production DLL.
 17. Integrate development and release evidence through the existing repository-local ONI Mod Pipeline without modifying its profile.
 18. Keep FastTrack discovery and adaptation entirely off the normal Klei implementation paths when FastTrack is absent, disabled, or inactive for the loaded game.
 
@@ -190,7 +191,10 @@ Names must state the domain concept and its semantics. Required examples include
 - `TemperatureAmountSeries`, not `sums`;
 - `AllowedTemperatureIntervalSet`, not `validRanges`;
 - `FetchTemperatureEligibilitySnapshot`, not `fetchData`;
-- `PickupTemperaturePartitionCatalog`, not `groupCache`;
+- `PickupTemperatureGroupingSession`, not `groupCache`;
+- `TemperatureConstraintRegistrationToken`, not `RegistrationData`;
+- `GameSessionTemperatureLimitRegistrationToken`, not `TemperatureLimitRegistration`;
+- `ClearableDestinationSweepEligibility`, not a generic `EligibilityHelper`;
 - `FastTrackPickupGroupingKeyAllocator`, not `HashHelper`; and
 - `DeliveryTemperatureGameSession`, not `GlobalState`.
 
@@ -225,7 +229,7 @@ An optimized snapshot may be used only when its complete validity can be proved.
 
 ### 5.6 Runtime, tooling, and pipeline boundaries
 
-The game-loaded assembly targets exactly `netstandard2.1`, following current ONI mod-development guidance and the installed game's supported API surface. It must not target .NET 8, .NET 9, .NET 10, or multiple frameworks; it must not ship a modern-runtime sidecar. The `net10.0` test project may use `System.Reflection.Metadata` and other framework-provided tooling APIs for static analysis, but no game-loaded source may depend on those APIs unless they are part of the `netstandard2.1` contract and present in ONI's runtime.
+The game-loaded assembly targets exactly `netstandard2.1`, following current ONI mod-development guidance and the installed game's supported API surface. Its target-framework-derived language ceiling is exactly C# 8, consistent with Microsoft's target-framework/language-version guidance ([C# language version errors and target mapping](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/feature-version-errors)). It must not target .NET 8, .NET 9, .NET 10, or multiple frameworks; it must not ship a modern-runtime sidecar or add a `LangVersion` override. The `net10.0` test project may use its test-only C# 14 default plus `System.Reflection.Metadata` and other framework-provided tooling APIs for static analysis, but a physical production file linked into that project remains C# 8-compatible and may not depend on a newer syntax/API merely because the test compiler accepts it.
 
 The pipeline is authoritative during development, not merely for the eventual release candidate. Direct filtered `dotnet test` commands are permitted for the inner red/green loop, but every meaningful commit boundary requires fresh successful pipeline `validate`, `build`, and `test` runs. The pipeline-declared test project remains the single authoritative automated suite. `oni-mod-pipeline.toml` remains byte-for-byte unchanged.
 
@@ -253,20 +257,15 @@ The rewrite preserves:
 
 The localization identifier is a Klei ecosystem contract, not a legacy shim. Its source file is semantically renamed to `DeliveryTemperatureLimitStrings.cs`, but no parallel `DeliveryTemperatureLimitStrings` type or duplicate localization-key tree is introduced.
 
-### 6.2 Remove
+### 6.2 Authoritative legacy-removal registry
 
-The rewrite removes:
+This is the single authoritative removal registry. The implementation plan, coordinated activation, no-shim tests, and final audit consume this registry by reference and must not maintain competing subsets:
 
-- `TemperatureLimit.TemperatureIndexData`;
-- `TemperatureLimit.getTemperatureIndexData()`;
-- `allLimits`;
-- `limitsDirty`;
-- the lazy `UpdateIndexes()` path;
-- the old global operational-band representation;
-- `storageFetchableTagsPerTemperatureIndex`;
-- dense `(Tag, temperatureIndex) -> float` status dictionaries;
-- hash-combined FastTrack temperature keys; and
-- any test that demands byte-for-byte or whole-public-surface preservation of accidental implementation members.
+- members/types: `TemperatureLimit.TemperatureIndexData`, `TemperatureLimit.getTemperatureIndexData()`, `TemperatureLimit.UpdateIndexes()`, `allLimits`, `limitsDirty`, and `storageFetchableTagsPerTemperatureIndex`;
+- representations/behaviors: lazy index rebuilding, the global operational/dense storage band model, dense `(Tag, temperatureIndex) -> float` status dictionaries, and FastTrack temperature hash mixing; and
+- superseded production files: `Limits.cs`, `Patch.cs`, `PatchFastTrack.cs`, `StatusItems.cs`, and `Harmony.cs`.
+
+The exact public-surface regression test that demands byte-for-byte or whole-public-surface preservation of accidental implementation members is replaced rather than retained. One executable `RemovedArchitectureIdentities` table in the no-shim contract tests transcribes the registry once; every executable source/metadata/file assertion consumes that table rather than restating its own subset.
 
 ### 6.3 Why `TemperatureIndexData` is not retained
 
@@ -288,6 +287,7 @@ If a later named external mod is proven to consume the member, implementation st
 `OniStorableTemperatureBounds` is a pure internal source file shared verbatim by the `netstandard2.1` production project and the `net10.0` test project. Its named constant is:
 
 ```csharp
+internal const int MinimumTemperatureKelvin = 0;
 internal const int MaximumTemperatureKelvin = 10000;
 ```
 
@@ -305,7 +305,7 @@ The constant is a reviewed compile-time compatibility boundary, not an evergreen
 - `IsEmpty`; and
 - `Allows(float temperatureKelvin)`.
 
-Normalization clamps both serialized integer fields to `0..OniStorableTemperatureBounds.MaximumTemperatureKelvin`, currently `0..10000`. `MaximumExclusiveKelvin == 0` means disabled. An enabled constraint with `MinimumInclusiveKelvin >= MaximumExclusiveKelvin` is empty and rejects every temperature. Empty and disabled are not interchangeable.
+`FromSerializedLimits(int serializedLowLimit, int serializedHighLimit)` independently clamps both serialized integer fields to `0..OniStorableTemperatureBounds.MaximumTemperatureKelvin`, currently `0..10000`, before interpreting state. A normalized high value of zero means disabled and always has `IsEmpty == false`. Only an enabled constraint can be empty; it is empty exactly when its normalized minimum is greater than or equal to its normalized maximum. Empty and disabled are not interchangeable. This ordering deliberately preserves a negative serialized high value as disabled after clamping.
 
 `Allows` must apply the exact existing conversion before comparison:
 
@@ -328,9 +328,11 @@ No caller may independently round, floor, clamp, or convert through Celsius. The
 
 The buckets are:
 
-1. **`BelowMinimumConfigurableKelvin`:** `truncatedKelvin < 0`.
+1. **`BelowMinimumKelvinOrdinal`:** `truncatedKelvin < OniStorableTemperatureBounds.MinimumTemperatureKelvin`.
 2. **Integer Kelvin:** one bucket for each value from `0` through `OniStorableTemperatureBounds.MaximumTemperatureKelvin - 1`, currently `0..9999`.
-3. **`AtOrAboveMaximumConfigurableExclusiveKelvin`:** `truncatedKelvin >= OniStorableTemperatureBounds.MaximumTemperatureKelvin`, currently `>= 10000`.
+3. **`AtOrAboveMaximumKelvinOrdinal`:** `truncatedKelvin >= OniStorableTemperatureBounds.MaximumTemperatureKelvin`, currently `>= 10000`.
+
+`FirstIntegerKelvinOrdinal` names the `0 K` ordinal and `HighestIntegerKelvinOrdinal` names the current `9999 K` ordinal. Code and tests must use those ordinal names rather than reusing a Kelvin-value constant merely because its current number happens to match an ordinal.
 
 The apparent asymmetry is intentional:
 
@@ -360,23 +362,27 @@ It provides:
 - fixed endpoint reference counts for every configurable endpoint from `0` through `OniStorableTemperatureBounds.MaximumTemperatureKelvin`, inclusive; and
 - eager immutable `ActiveTemperatureConstraintSnapshot` publication on the mutating thread.
 
-Endpoint counts include only enabled, nonempty constraints because disabled and empty constraints cannot create a temperature eligibility boundary. Empty constraints remain in the snapshot because they still reject every temperature.
+Endpoint counts include only enabled, nonempty constraints because disabled and empty constraints cannot create a temperature eligibility boundary. The snapshot records enabled and enabled-nonempty counts, so consumers can distinguish bypass from an active empty-only state without receiving every registered component constraint.
 
 Mutation rules are:
 
 - identical repeated registration is an idempotent no-op and does not increment generation;
-- changed registration for the same identity replaces atomically, adjusts old/new endpoint counts, increments generation once, and emits a diagnostic in diagnostic builds;
-- unknown removal is idempotent and emits a diagnostic only in diagnostic builds;
+- changed registration for the same identity replaces atomically, adjusts old/new endpoint counts, and increments generation once;
+- unknown or stale-token removal is an idempotent no-op and cannot remove a replacement;
 - no public method exposes the mutable dictionary or endpoint array; and
-- callbacks are emitted only after the registry lock is released.
+- the registry exposes no mutation callback surface; callers coordinate other session services only after the registry operation returns and its private lock has been released.
 
-The active snapshot contains immutable constraints and a deterministically reconstructed sorted endpoint array. There is no dirty flag and no worker-triggered rebuild. Endpoint-count updates are direct array operations. A parallel fixed membership bitset changes only when an endpoint count crosses zero; snapshot reconstruction enumerates its set bits in ascending word order (currently `157` words), never all `10,001` counters. Even this bounded work occurs only on a genuine constraint mutation. No per-pickup, per-tag, per-world, per-status, per-comparator, or per-frame path may scan the complete configurable range. Static architecture tests enforce both rules.
+`TemperatureConstraintRegistrationToken` combines component instance identity with a nonzero registration sequence. Both the registration sequence and constraint generation use checked increments while the registry lock is held; exhaustion throws before a partial mutation and never wraps into a reusable identity.
+
+The active snapshot contains only its immutable generation, enabled count, enabled-nonempty count, and deterministically reconstructed sorted unique endpoint array. It deliberately does not copy a `RegisteredTemperatureConstraint` list: save/load or bulk spawn churn must not turn each changing registration into an O(number of already registered components) snapshot copy. Component-specific state remains registry-owned and is addressed by tokens.
+
+There is no dirty flag and no worker-triggered rebuild. Endpoint-count updates are direct array operations. A parallel fixed membership bitset changes only when an endpoint count crosses zero; snapshot reconstruction enumerates its set bits in ascending word order (currently `157` words), never all `10,001` counters. A genuine mutation that changes counts/generation but not endpoint membership reuses the previous immutable endpoint view and does not perform that scan. No per-pickup, per-tag, per-world, per-status, per-comparator, or per-frame path may scan the complete configurable range. Static architecture tests enforce these rules.
 
 ### 8.2 `TemperatureLimitComponentIndex`
 
 This internal service maps a `GameObject` instance ID to the corresponding `TemperatureLimit` for direct game-patch checks. Its API uses semantic operations such as register, replace, resolve, and remove-if-owned.
 
-Ownership tokens prevent delayed cleanup from removing a newer component that reuses an instance ID. The index is game-session-scoped and is discarded as a unit at shutdown.
+Ownership tokens prevent delayed cleanup from removing a newer component that reuses an instance ID. The dictionary value is the private sealed immutable `TemperatureLimitComponentIndexEntry`; it is not a generic `Entry`. `TryGetRegisteredComponent` returns the component and its exact registration token from one captured entry so Unity-destroyed cleanup cannot pair an old component with a newer token. Owned removal uses the .NET Standard 2.1-compatible atomic key-and-value `ICollection<KeyValuePair<int, TemperatureLimitComponentIndexEntry>>.Remove(expectedPair)` operation; it never performs a separate owner check followed by key-only removal. The index is game-session-scoped and is discarded as a unit at shutdown. Pure linked tests use the exact identities `global::Tag` and `DeliveryTemperatureLimit.TemperatureLimit`; a member-parity contract permits only members actually consumed by linked production source, so a convenient test-only namespace or richer fake cannot hide coupling.
 
 ### 8.3 `TemperatureLimit` lifecycle and setters
 
@@ -389,6 +395,8 @@ Ownership tokens prevent delayed cleanup from removing a newer component that re
 - replace its registry entry only while its token belongs to the current active session;
 - remove only its own registrations in `OnCleanUp`; and
 - never rebuild global derived data directly.
+
+`TemperatureLimit.Get(GameObject gameObject)` first applies Unity's overloaded `gameObject == null` check before reading an instance ID. It obtains the indexed component and exact registration token through one `TryGetRegisteredComponent` read. If that component is Unity-destroyed (`component == null` under Unity's overloaded operator), it uses the paired token to request token-owned stale removal and returns `null`. It never performs separate component/token reads, returns a destroyed Unity object, mistakes `ReferenceEquals` for Unity liveness, or permits a stale cleanup race to remove a newer owner.
 
 The existing per-component `OnLoadLevel` global reset is deleted.
 
@@ -411,7 +419,7 @@ Static Harmony entry points may reach the host. Domain algorithms remain instanc
 
 ### 9.2 Session generations
 
-Each new session receives a monotonic `GameSessionGeneration`. Registrations, snapshots, and update sessions carry that generation. A candidate publication is accepted only when the target session is active and all captured generations/versions remain current.
+Each new session receives a monotonic nonzero `GameSessionGeneration`. The lock-free host allocator uses a checked compare/exchange loop; it throws before publication at `long.MaxValue` rather than allowing `Interlocked.Increment` wraparound. Registrations use the semantically exact `GameSessionTemperatureLimitRegistrationToken`; registrations, snapshots, and update sessions carry the session generation. A candidate publication is accepted only when the target session is active and all captured generations/versions remain current.
 
 This rejects background work that completes after main-menu return, save reload, topology mutation, or constraint mutation.
 
@@ -423,7 +431,11 @@ The intended authoritative hooks are:
 - `Game.DestroyInstances()` prefix to stop acceptance and atomically detach the session; and
 - the corresponding finalizer to release session-owned mutable state even after an exception.
 
-`TemperatureLimit.OnSpawn()` invokes the same idempotent `EnsureGameSession` operation so correctness does not depend on undocumented callback order. This is one lifecycle operation with multiple callers, not a parallel compatibility subsystem.
+`DeliveryTemperatureGameLoadAuthorityPatches` resides under `RuntimePatchInstallation` because game-load authorization spans whichever Klei/FastTrack responsibilities the immutable patch plan selected. Its exact `GameOnLoadLevelPrefix(Game __instance)` calls only `DeliveryTemperatureRuntimePatchInstaller.TryStartAuthorizedGameSession(Game game)`. `DeliveryTemperatureGameSessionShutdownPatches` remains under `KleiImplementationAdapters` and owns only the verified `Game.DestroyInstances` prefix/finalizer. This split prevents an earlier adapter from publishing a session before the cross-path authority composition root has approved the load.
+
+`TemperatureLimit.OnSpawn()` consumes the already authorized session and does not create a bypass around runtime-patch authority verification. Correct callback ordering is provided by the verified `Game.OnLoadLevel` authority patch; a component callback that observes no active session retains no registration and safely no-ops. No other code path may call `DeliveryTemperatureGameSessionHost.EnsureGameSession` for a game load.
+
+The implementation performs a second cold authority check exactly once for each game-load identity at `Game.OnLoadLevel`, after startup patch installation but before publishing the game session. It re-reads active Harmony prefix ownership for every selected Klei/FastTrack replacement responsibility. If another mod changed the required topology after `OnAllModsLoaded`, no Delivery Temperature Limit session is published; installed Delivery Temperature Limit patches remain guarded no-ops, no fallback is selected, no third-party method is unpatched, and one diagnostic is emitted for that rejected game-load identity. A repeated prefix callback for the same load reuses its already determined outcome without repeating reflection; a later distinct load performs one new check. This check never runs in an update, pickup, status, comparator, sweep, or direct-delivery hot path.
 
 Static installed-game contracts must verify the lifecycle signatures before activation. The final candidate's required save/main-menu/reload exercise and `Player.log` review must then provide a simple runtime sanity check that shutdown and re-entry behave coherently. If `Game.DestroyInstances()` does not cover an observed supported exit path, implementation stops for an explicit design amendment rather than adding speculative cleanup hooks.
 
@@ -446,7 +458,7 @@ Snapshot references are published atomically. A reader captures one reference on
 
 Accumulators, builders, and grouping sessions are invocation-confined. FastTrack reusable instances may be `[ThreadStatic]`, but each records its game-session generation and active/nesting state. Harmony finalizers clear or restore state after success and exceptions.
 
-Thread-static fixed arrays are bounded and may remain allocated on worker threads. Variable-size dictionaries are replaced after exceeding a documented high-water threshold. Session shutdown need not—and safely cannot—enumerate other threads' static storage; generation rejection prevents retained buffers from publishing stale state.
+Thread-static fixed arrays are bounded and may remain allocated on worker threads. Variable-size dictionaries are replaced after exceeding documented immutable production constants. Those thresholds are retention policies, never workload caps or injectable test settings: every operation processes all entries, then replaces an oversized reusable collection only at its safe completion/finalizer boundary. Session shutdown need not—and safely cannot—enumerate other threads' static storage; generation rejection prevents retained buffers from publishing stale state.
 
 ## 10. World-parent topology
 
@@ -460,7 +472,7 @@ The verified installed-game seams are:
 - `ClusterManager.UnregisterWorldContainer(WorldContainer)` prefix; and
 - `WorldContainer.SetParentIdx(int)` postfix.
 
-Each effective mapping change increments a topology version exactly once. World removal also removes that world's inventory contribution and invalidates affected parent/tag aggregates. Parent reassignment invalidates both the old and new parent aggregates; data is not blindly transferred between parents.
+Each effective mapping change increments a topology version exactly once. The next version is computed in a checked context before mapping mutation, so exhaustion cannot publish a changed map under a wrapped/reused version. World removal also removes that world's inventory contribution and invalidates affected parent/tag aggregates. Parent reassignment invalidates both the old and new parent aggregates; data is not blindly transferred between parents.
 
 Worker code resolves world-to-parent relationships only through a captured immutable snapshot. An unresolved world never defaults to parent zero, the active world, or its own raw world ID. Automated topology tests cover both base-game and Spaced Out content-mode shapes independently of implementation-path selection. The final manual comparison exercises the Klei implementation paths in one late-game colony of each content mode; FastTrack remains a static compatibility contract for this release.
 
@@ -509,7 +521,7 @@ If temperature inventory collection starts after FastTrack has already completed
 
 Current FastTrack source adds inventory dictionary keys but does not remove keys when the final pickupable is removed; it retains an empty set that later publishes a zero series. The compatibility inspector must verify the installed binary's equivalent lifecycle contract. If an installed FastTrack build can remove or replace keys without a detectable coverage refresh, the adapter is `Incompatible` until a semantically complete invalidation seam is implemented. The future implementer must not assume stable key coverage merely because the type and method names still exist.
 
-For a complete-world replacement, the catalog diffs the previous and replacement resource-tag sets and rebuilds only affected parent/tag aggregates. For a single-tag publication, it replaces and rebuilds only that world/tag and its affected parent/tag aggregate. A FastTrack single-tag update must never cause unrelated resource tags or worlds to be combined again. Readers never scan all `WorldContainer` instances.
+For a complete-world replacement, the catalog diffs the previous and replacement resource-tag sets and rebuilds only affected parent/tag aggregates. For a single-tag publication, it replaces and rebuilds only that world/tag and its affected parent/tag aggregate. Each triggering mutation performs exactly one optimistic outside-lock combine; if its captured versions are stale at publication, it discards the candidate and relies on the concurrent version-changing mutation's own attempt rather than retrying/spinning. The aggregate remains explicitly incomplete until a current candidate publishes. A FastTrack single-tag update must never cause unrelated resource tags or worlds to be combined again. Readers never scan all `WorldContainer` instances.
 
 The first enabled constraint starts a new `WorldInventoryCollectionGeneration`. A requested parent/tag result is complete only when every currently registered member world has one of these proofs for the expected generation:
 
@@ -526,8 +538,8 @@ RegisterWorld
 PublishCompleteWorldResourceAmounts
 PublishWorldResourceTagCoverage
 PublishWorldResourceTemperatureSeries
-TryGetWorldResourceTagCoverageRequirement
-TryGetAvailableAmount
+GetWorldResourceTagCoverageRequirementState
+GetTemperatureConstrainedAmountAvailability
 RemoveWorld
 ClearForGameSession
 ```
@@ -535,6 +547,13 @@ ClearForGameSession
 World registration, removal, parent reassignment, complete replacement, coverage replacement, single-tag replacement, duplicate publication, mixed publication kinds, stale generations, and post-removal late publication all have explicit tests.
 
 ### 11.4 Availability replacement states
+
+Two explicit result contracts prevent boolean/value ambiguity:
+
+- `WorldResourceTagCoverageRequirementState` is `UnknownWorldOrCollectionGeneration`, `CoverageRequired`, or `CoverageCurrent`.
+- `TemperatureConstrainedAmountAvailabilityState` is `TemperatureConstraintDisabled`, `InventoryIncomplete`, or `Complete`.
+
+`TemperatureConstrainedAmountAvailability.TryGetCompleteAvailableAmount` succeeds only for `Complete`. A caller must not inspect its `out` value for either other state. The catalog never represents disabled or incomplete as `false` paired with a potentially meaningful float, and adapters switch exhaustively over the named state.
 
 - Status option disabled: do not install inventory/status hooks and retain no temperature inventory.
 - No enabled constraints: bypass all temperature-specific status work.
@@ -562,7 +581,7 @@ The Klei inventory update adapter:
 
 1. begins one complete-world builder in the `WorldInventory.Update` prefix;
 2. begins and completes one resource-tag accumulator around each existing Klei tag enumeration;
-3. adds each pickupable temperature and amount while Klei already enumerates it;
+3. calls `AddTemperatureAmount` for each pickupable temperature and amount while Klei already enumerates it;
 4. publishes one `CompleteWorldResourceTemperatureAmounts` only from a successful postfix; and
 5. discards the whole candidate from the finalizer after an exception.
 
@@ -575,6 +594,8 @@ The FastTrack inventory update adapter:
 5. publishes exactly one tag series for each later FastTrack update; and
 6. uses thread-confined state plus postfix/finalizer cleanup so an exception cannot publish a partial series.
 
+`FastTrackWorldInventoryPublicationSession` has three unambiguous entry operations: `BeginCompleteWorldUpdate`, `BeginIncrementalResourceTagUpdateRequiringCoverage`, and `BeginIncrementalResourceTagUpdateWithCurrentCoverage`. It never accepts `isFull`, `needsCoverage`, or a defaultable constraint/result boolean. Its result has a required `FastTrackWorldInventoryPublicationKind`: `CompleteWorldAmounts`, `ResourceTagCoverageAndTemperatureSeries`, `ResourceTemperatureSeries`, or `ResourceTagCoverageOnly`; guarded accessors enforce that the declared kind and payloads agree.
+
 Compatibility discovery and reflective member binding occur once during installation and are cached. The FastTrack inventory update path performs no per-update assembly scan, option reflection, or compatibility rediscovery. The Klei inventory update path allocates no FastTrack state and pays no coverage/delta bookkeeping. Selecting either implementation path is independent of base-game versus Spaced Out content mode.
 
 ## 12. Combined fetch temperature-eligibility snapshot
@@ -586,7 +607,8 @@ Storage interval sets and pickup partition endpoints are derived during one succ
 The resulting immutable `FetchTemperatureEligibilitySnapshot` contains:
 
 - storage eligibility by parent world and requested `Tag`;
-- pickup partition definitions by parent world and requested `Tag`;
+- sorted unique pickup decision endpoints by parent world and requested `Tag`;
+- immutable requested-tag encounter order by parent world;
 - the active constraint generation;
 - the fetch request topology version;
 - the world-parent topology version; and
@@ -607,13 +629,17 @@ The tracker increments a monotonic version on effective changes observed through
 
 These hooks only change versions. They do not rebuild fetch snapshots synchronously.
 
+Fetch-topology and world-inventory-collection generations use the same checked-before-mutation rule as the registry/topology versions. Exhaustion tests set only predeclared private fields and prove no state transition or candidate publication occurs; production exposes no injectable sequence or reset API.
+
 The snapshot builder captures all versions before traversal and publishes only if every version is unchanged afterward. Otherwise it discards the whole candidate.
 
 ### 12.3 Tag semantics
 
-Each `FetchChore` contributes its requested tag set. For an enabled, nonempty destination constraint, its low/high endpoints contribute to each requested tag in the destination's parent world. Disabled constraints contribute an unconstrained destination. Empty constraints contribute an allows-nothing destination.
+Each `FetchChore` contributes its requested tag set through one of two semantically distinct builder operations. `AddUnconstrainedFetchRequest` records a missing/disabled destination component. `AddTemperatureConstrainedFetchRequest` requires an enabled constraint; an enabled nonempty constraint contributes its low/high endpoints to each requested tag in the destination's parent world, while an enabled empty constraint contributes an allows-nothing destination without endpoints. Passing a disabled constraint to the constrained operation is a caller contract violation.
 
 If a pickup satisfies multiple requested tags, its effective partition is the normalized union of endpoint arrays for all applicable tags. This union is scoped to the pickup's resolved parent world.
+
+The snapshot is the sole retained owner of per-parent/tag endpoint facts. It can return requested tags and construct one sorted union for explicitly supplied applicable tags, but it does not allocate `TemperaturePartitionDefinition` objects, assign definition IDs, or retain a second partition catalog. Those update-local responsibilities belong only to `PickupTemperatureGroupingSession`.
 
 The grouping identity is `PickupTagIdentity`: ONI's existing base grouping identity plus `PrefabTag` where required by the actual Klei or FastTrack pickup grouping path. The design does not claim `PrefabTag` alone is globally unique when the underlying grouping uses additional tag-bit identity.
 
@@ -629,7 +655,9 @@ The internal immutable type has three explicit states:
 
 Normalization rules are exact:
 
-- disabled destination constraint makes the requested tag `AllowsEveryTemperature`;
+- `CreateFromDestinations(bool includesUnconstrainedDestination, IReadOnlyList<DeliveryTemperatureConstraint> enabledDestinationConstraints)` receives only enabled constraints;
+- a missing/disabled destination is recorded only by `includesUnconstrainedDestination`, which makes the requested tag `AllowsEveryTemperature`;
+- a disabled entry in `enabledDestinationConstraints` is a caller contract violation rather than an implicit boolean reinterpretation;
 - enabled empty or reversed interval contributes nothing;
 - duplicates collapse;
 - overlapping intervals merge;
@@ -640,7 +668,7 @@ Lookup uses binary search. There is no per-band `HashSet<Tag>[]` representation.
 
 ### 13.2 Build session and publication
 
-`StorageTemperatureEligibilityBuildSession` exists for one complete `GlobalChoreProvider.UpdateStorageFetchableBits` invocation:
+`FetchTemperatureEligibilityBuilder` exists for one complete `GlobalChoreProvider.UpdateStorageFetchableBits` invocation:
 
 - prefix captures game session, constraints, fetch version, and world topology;
 - the world-section hook begins the correct parent-world builder;
@@ -650,7 +678,7 @@ Lookup uses binary search. There is no per-band `HashSet<Tag>[]` representation.
 
 Only the combined `FetchTemperatureEligibilitySnapshot` is published. Storage eligibility is never published independently with versions that could disagree with pickup partitions.
 
-### 13.3 `ClearableHasDestination`
+### 13.3 `ClearableDestinationSweepEligibility`
 
 The decision sequence is:
 
@@ -665,17 +693,19 @@ The decision sequence is:
 
 Focused characterization tests must first pin the existing patch's conservative `false` result for missing primary element and unavailable temperature data. The new implementation preserves that behavior: it may temporarily suppress a sweep destination until the authoritative snapshot catches up, but it must not claim that a temperature-valid destination exists without evidence.
 
+The pure decision receives one `ClearableDestinationSweepEligibilityInput` whose fields name the original destination result, enabled-constraint count, primary-element presence, parent-resolution state, snapshot currency, and current eligibility decision. Its single operation is `AllowsClearing`. It does not expose a four-boolean `Evaluate` helper whose arguments can be transposed.
+
 ## 14. Klei pickup-path temperature partitions
 
 ### 14.1 `TemperaturePartitionDefinition`
 
 An immutable definition contains:
 
-- a stable identifier unique within its containing snapshot;
-- sorted relevant endpoints;
-- classification into interval ordinals;
-- a no-temperature-distinction representation; and
-- exact-decision fallback representation.
+- a positive identifier supplied by and unique within the containing pickup-update grouping session;
+- a nonempty sorted relevant endpoint sequence;
+- classification into interval ordinals.
+
+Construction rejects a nonpositive ID or empty normalized endpoint sequence. An empty applicable union is represented by `TemperatureEligibilityClassKey.NoTemperatureDistinction()` rather than a one-class optimized definition carrying meaningless identity.
 
 For an optimized scoped partition, two temperatures share an ordinal only if every active relevant constraint for the same parent world and pickup tag identity gives the same eligibility answer.
 
@@ -685,8 +715,10 @@ The converse is also required: if no relevant constraint distinguishes two decis
 
 The key contains:
 
-- partition definition ID; and
-- interval ordinal.
+- a required `TemperatureEligibilityClassificationKind`;
+- partition definition ID and interval ordinal only for `OptimizedPartitionInterval`;
+- an exact `TemperatureDecisionBucket` only for `ExactTemperatureDecisionBucket`; and
+- no invented ordinal/definition ID for `NoTemperatureDistinction` or `MissingPrimaryElement`.
 
 Ordinals from different partition definitions are never equal merely because they have the same small integer value.
 
@@ -712,9 +744,11 @@ Classification is:
 
 The session caches each pickup's full grouping key for that update. Oversized dictionaries are replaced at a documented high-water threshold.
 
+For current scoped classification, the grouping session asks the captured snapshot for the applicable endpoint union, interns identical immutable union sequences within that update, and assigns definition IDs in deterministic first-encounter order. Equal unions share one definition during that update; unions and IDs do not survive `Complete`/`Discard`. There is no persistent `PickupTemperaturePartitionCatalog`, second endpoint cache, or definition-ID owner.
+
 ### 14.4 Comparator and suppression semantics
 
-The Klei pickup-path comparator preserves all original ordering fields first, then compares partition definition ID and ordinal. Duplicate suppression compares the complete base grouping identity and `TemperatureEligibilityClassKey` captured under the same session snapshot.
+The Klei pickup-path comparator preserves all original ordering fields first, then compares the full classification-kind-aware `TemperatureEligibilityClassKey`. Optimized keys compare definition ID and interval ordinal; exact keys compare the exact decision bucket; the two non-temperature kinds remain explicit. Duplicate suppression compares the complete base grouping identity and that same full key captured under the same session snapshot.
 
 Comparator equality and suppression equality must use the same semantic key. No path may independently recalculate a temperature bucket against a newer snapshot midway through the sort.
 
@@ -779,6 +813,10 @@ For an active replacement, `OnAllModsLoaded` verifies exactly once:
 - active Harmony owner/target relationships; and
 - every required prefix/postfix/finalizer session hook.
 
+Physical file identity is isolated behind `IFastTrackAssemblyFileIdentityReader`. The production `FastTrackAssemblyFileIdentityReader` is the only code that reads `Assembly.Location`, file version metadata, or SHA-256 bytes, and it runs exactly once during cold inspection. Its result state is explicit: `Available`, `DynamicAssembly`, `LocationUnavailable`, `FileUnavailable`, or `ReadFailed`. An active feature can be `Ready` only when the production reader reports an available physical file whose file version is exactly `0.18.4.0`; a dynamic or unreadable assembly is incompatible rather than silently trusted.
+
+Emitted in-memory structural fixtures deliberately have no physical identity. Inspector unit tests reach structural branches through a narrowly named test adapter that returns an explicit identity result, while separate tests exercise the production reader against real temporary file bytes and every failure state. The seam separates file I/O from structural inspection; it cannot relax production `Ready` semantics.
+
 The runtime verifier is structural and does not use a DLL hash allowlist. The recorded fixture hash proves which GitHub artifact the tests inspected; it does not authorize an unknown binary merely because a filename/version string matches.
 
 If an active FastTrack mismatch can alter direct delivery eligibility or pickup grouping, coordinated Delivery Temperature Limit activation aborts before installing any of its runtime patch set and throws `FastTrackDeliveryEligibilityCompatibilityException`. The one diagnostic names the FastTrack version, observed digest when available, feature, member/anchor contract, and why continuing would produce temperature-unaware behavior. Warning-and-continue, third-party unpatching, and an unproved Klei fallback are forbidden.
@@ -786,6 +824,10 @@ If an active FastTrack mismatch can alter direct delivery eligibility or pickup 
 If only the optional status adapter is incompatible while direct delivery eligibility and pickup grouping remain coherent, activation installs the coherent delivery patches, leaves ONI's existing lacks-resources availability behavior unchanged, and emits one rate-limited status-compatibility diagnostic. It must not publish partial or fabricated temperature inventory.
 
 If this mod must roll back after a partial exception during its own installer, it removes only the exact methods it installed under its own Harmony owner. It never unpatches FastTrack or another mod. Nested/reentrant FastTrack sessions restore prior Delivery Temperature Limit state exactly and always clean up through finalizers.
+
+`DeliveryTemperatureRuntimePatchPlan` exposes one immutable `OrderedPatchGroups` sequence of semantically named `DeliveryTemperatureRuntimePatchGroup` values. It has no parallel inventory/pickup path enums, generic `useFastTrack` booleans, or mirrored flags. Construction filters one ordered responsibility list so mutually exclusive Klei/FastTrack groups cannot both be selected; status-disabled plans contain neither inventory nor status groups. Its linked pure `VerifySelectedAuthority(IReadOnlyList<ActiveHarmonyPatchDescriptor>)` operation is the sole owner of the selected-owner decision and throws the semantic patch-contract violation when an installed selected authority no longer matches; runtime glue only converts current Harmony information into immutable descriptors.
+
+At each distinct `Game.OnLoadLevel` load identity, before publishing a game session, the installer performs one cold recheck through that pure plan operation. Static production call-order contracts prove the installer cannot reach `EnsureGameSession` before verification succeeds; emitted-descriptor unit tests execute the owner decision itself. Changed prefix topology publishes no session and leaves the already installed Delivery Temperature Limit hooks as session-guarded no-ops. It does not unpatch, choose a fallback, or recheck in a gameplay hot path.
 
 ### 15.4 Static FastTrack fixture provenance
 
@@ -822,6 +864,8 @@ Fetch-chore coalescing compares immutable constraints with explicitly named cont
 
 Every transpiler must validate a unique structural anchor. Local-variable numbers and `operand.ToString()` text are not sufficient as the sole anchor. Patch installation has a reflection/IL contract test, explicit Harmony ordering where interaction matters, and a defined failure mode.
 
+All adapters share one reflection-only `HarmonyPatchContractVerifier`. Its primitive surface verifies exact declared instance methods, static methods, constructors, fields (including instance/static storage), nested types, and a single semantic instruction match; it also verifies Klei authority against active prefix descriptors and an exact permitted-owner set. Every primitive distinguishes public/nonpublic visibility and rejects zero or multiple exact matches. Adapters may not create one-off name-only reflection helpers.
+
 ## 17. Active-constraint state transitions
 
 On zero to one enabled constraint:
@@ -854,15 +898,18 @@ An enabled empty constraint counts as active because it affects its destination,
 | Unknown parent world | Do not guess; use subsystem-specific conservative behavior. |
 | Old-session worker publication | Reject. |
 | Duplicate identical registration/publication | Idempotent no-op. |
-| Conflicting replacement registration | Replace atomically and emit a diagnostic in diagnostic builds. |
-| Unknown removal | Idempotent; diagnostic only in diagnostic builds. |
+| Conflicting replacement registration | Replace atomically under a new token; a stale token cannot mutate/remove it. |
+| Unknown removal | Idempotent no-op. |
+| Destroyed Unity `GameObject` or indexed `TemperatureLimit` | Return `null`; token-own the stale removal so a replacement cannot be removed. |
+| Registration/session generation exhaustion | Throw before mutation/publication; never wrap or reuse an identity. |
 | Active FastTrack direct-eligibility or pickup-grouping mismatch | Abort coherent Delivery Temperature Limit activation before patching with `FastTrackDeliveryEligibilityCompatibilityException`. |
 | FastTrack status-only mismatch | Install coherent delivery behavior, omit only the temperature-aware status adapter, preserve ONI's existing availability result, and emit one rate-limited diagnostic. |
 | FastTrack key-space exhaustion | Fail explicitly; never collide through wraparound. |
 | Harmony update session throws | Finalizer clears/discards all thread-confined state. |
 | Status option disabled | Install no status/inventory hooks and allocate no status structures. |
+| Selected replacement authority changes before `Game.OnLoadLevel` | Publish no game session; keep installed hooks guarded and perform no unpatch/fallback. |
 
-Diagnostics are rate-limited by game session and diagnostic key so a single stale condition cannot create a large-colony log storm.
+Diagnostics are rate-limited by game session and diagnostic key so a single stale condition cannot create a large-colony log storm. A pre-session authority rejection has no session generation by design, so its single cold diagnostic is keyed by rejected `Game` instance/load identity plus diagnostic key.
 
 ## 19. Bounded resource policy
 
@@ -872,13 +919,20 @@ Sizing to the current ONI bound is not speculative padding: current element defi
 
 Unused temperature buckets add no ordinary hot-path iteration. Classification remains one truncation plus constant-time bound/ordinal logic. Accumulation touches only observed buckets; published amount series include only occupied buckets; partition definitions include only configured endpoints relevant to the parent world and tag; registry snapshots enumerate set bits rather than all counters; queries use binary search. A complete-range scan is permitted only for the accumulator's explicit generation-stamp wraparound reset and exhaustive tests. Static performance-shape tests reject complete-range loops in per-pickup, per-tag, per-world, comparator, suppression, status-query, recurring update, and ordinary constraint-mutation methods.
 
-Sparse published structures allocate only occupied temperature classes or actual interval endpoints. Variable-capacity dictionaries and lists are reusable below named high-water thresholds and replaced above them after publication/cleanup.
+Sparse published structures allocate only occupied temperature classes or actual interval endpoints. Variable-capacity dictionaries and lists are reusable below named high-water thresholds and replaced above them after publication/cleanup. The initial immutable policies are:
+
+```text
+MaximumRetainedPickupClassificationCount = 16384
+MaximumRetainedFastTrackGroupingKeyCount = 8192
+MaximumRetainedFetchEligibilityEntryCount = 4096
+MaximumRetainedWorldResourceTagCount = 4096
+```
 
 Thresholds must be:
 
 - named for the retained resource;
 - justified in comments;
-- covered by tests; and
+- covered by tests at the real threshold, `threshold + 1`, and a larger deterministic lightweight workload without an injected/reduced limit; and
 - justified by deterministic structure/capacity tests and, where visible during the manual comparison, recorded as an indicative observation rather than a profiler threshold.
 
 No arbitrary timer-based eviction, weak-reference cache, global LRU, or background cleanup thread is introduced.
@@ -904,7 +958,7 @@ Focused tests are not deferred. Only final exact-candidate static and four-sessi
 
 ### 20.2 Deterministic exhaustive tests
 
-Tests cover every `TemperatureDecisionBucket` from `BelowMinimumConfigurableKelvin` through `AtOrAboveMaximumConfigurableExclusiveKelvin`; for build `744825`, that is `10,002` buckets. Randomized tests use fixed, named seeds and report the seed and generated case on failure. No external property-testing package is required.
+Tests cover every `TemperatureDecisionBucket` from `BelowMinimumKelvinOrdinal` through `AtOrAboveMaximumKelvinOrdinal`; for build `744825`, that is `10,002` buckets. Loops derive their limits from production constants and assert the reviewed total once rather than repeating `10002` as an independent bound. Randomized tests use fixed, named seeds and report the seed and generated case on failure. No external property-testing package is required.
 
 Required property families include:
 
@@ -926,24 +980,32 @@ Required property families include:
 
 Pure-domain tests use small, obviously correct reference implementations local to the test project. Reference models must be named as such and must not share the production normalization or classification implementation, which would make equivalence tests tautological.
 
-Game and FastTrack adapter tests use semantically named stubs or captured IL fixtures. Tests must not rely solely on source text matching when reflection or instruction-shape verification can assert the actual contract.
+Game and FastTrack adapter tests use semantically named stubs or captured IL fixtures. The game doubles retain exact identities: `Tag` is `global::Tag`, and the component is `DeliveryTemperatureLimit.TemperatureLimit`. The component stub begins as an empty sealed reference type because linked component-index code only stores and returns identity; tests compare reference identity rather than add a diagnostic label. A parity contract enumerates only members genuinely required by linked production source and rejects aliases, extra convenience members, or namespace drift. Tests must not rely solely on source text matching when reflection or instruction-shape verification can assert the actual contract.
+
+Behavioral methods use `Operation_WhenCondition_ExpectedOutcome`; architecture, identity, publication, and concurrency contracts may use `Subject_WhenCondition_ExpectedOutcome`. Each method has exactly three semantic segments and proves one outcome. Exception tests use MSTest 4 `Assert.ThrowsExactly<T>` plus `Assert.Contains(expectedSubstring, actualMessage)` for the invariant-bearing message. New sequence assertions use `Assert.AreSequenceEqual(expected, actual)`; legacy `CollectionAssert` and removed MSTest assertion APIs are not introduced. These choices follow the current official guidance to use `Assert` and the newer exception/sequence APIs ([MSTest assertions](https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-mstest-writing-tests-assertions)).
+
+Private reflection is allowed only for the exact representation contracts predeclared in the implementation plan: checked counter exhaustion, generation-stamp wrap, retained collection identity, unaffected aggregate identity, and key-space exhaustion. Each test verifies its exact field name before use. No diagnostic property, test-only constructor, injectable production limit, conditional production branch, or facade exists merely for testing.
 
 ### 20.4 Static runtime and artifact contracts
 
 The required `net10.0` test project statically verifies all of the following without launching ONI:
 
 - installed public ONI build/branch, `Sim.MaxTemperature`, relevant `PrimaryElement`/`SimMessages` semantics, and every Harmony target signature used by the mod;
-- production project target `netstandard2.1`, locked restore, `CopyLocalLockFileAssemblies=true`, compiler warnings as errors, and the approved staged nullable state;
+- production project target `netstandard2.1`, C# 8 syntax ceiling with no `LangVersion` override, test project target `net10.0` with test-only C# 14, locked restore, `CopyLocalLockFileAssemblies=true`, compiler warnings as errors, and the approved staged nullable state;
 - the exact two known reference-resolution roots while targeting the current ONI DLLs: `System.IO.Compression` reference `4.1.3.0` versus game `4.2.0.0`, and `System.Net.Http` reference `4.1.2.0` versus game `4.2.0.0`;
 - absence of warning suppression, binding redirects, `AutoUnify=false`, direct replacement framework references, or package changes intended to hide those two visible MSBuild warnings;
 - the merged `DeliveryTemperatureLimit.dll` directly references neither `System.IO.Compression` nor `System.Net.Http`;
 - the merged output contains the intended PLib merge input but the pipeline package contains only `DeliveryTemperatureLimit.dll`, `mod.yaml`, and `mod_info.yaml`—never framework DLLs or an application configuration file;
 - serialized and curated public assembly contracts, including the deliberate absence of `TemperatureIndexData` and its getter;
-- linked algorithm/session sources invoke no Unity, Klei, Harmony, PLib, or FastTrack APIs and contain no conditional framework branches; only the exact value/identity boundary types named in the plan may be supplied by test stubs;
+- linked algorithm/session sources invoke no Unity, Klei, Harmony, PLib, or FastTrack APIs, contain no conditional framework branches, belong to the exact production compile graph, compile successfully under the evaluated C# 8 production ceiling, and consume only the exact `global::Tag`/`DeliveryTemperatureLimit.TemperatureLimit` stub identities and parity-verified members;
 - the GitHub FastTrack `0.18.4.0` fixture has the recorded identity/digest and satisfies the expected structural contract; and
 - the actual pipeline-built merged candidate, not merely a test assembly or copied source, satisfies all architecture/reference/package checks.
 
 The two reference warnings remain visible evidence. `TreatWarningsAsErrors` applies to compiler warnings; implementation must not claim the two MSBuild unification warnings were eliminated. An unexpected third root, a version change, or a new direct merged reference fails the contract and requires review.
+
+Performance-shape contracts are deliberately narrow. Every source/metadata inspection names one exact subject signature and a small permitted-call set, forbidden-call/reference set, and back-edge policy. Binary-search and observed-entry loops are permitted where named; assertions never claim that a directory generically “has no loops” or allowlist a namespace. Semantic counts and immutable-reference identity prove complete-versus-incremental publication scope without production counters.
+
+The already-required pipeline `test` command's printed duration may be recorded once against the planning baseline as non-statistical developer evidence. An order-of-magnitude increase prompts investigation but creates no timing assertion, repeated measurement series, cross-machine claim, or publishing blocker.
 
 ### 20.5 Final exact-candidate validation boundary
 
@@ -1004,6 +1066,8 @@ A meaningful chunk is commit-ready only when:
 
 The implementation plan will prescribe a precise commit after each such chunk. Commit messages describe the completed domain outcome, not a vague sequence number.
 
+Conventional Commit types remain semantically truthful: runtime-target/harness configuration is `build`; inactive Gate A–C modules/adapters are `refactor`; fixture, architecture, and artifact contracts are `test`; the coordinated runtime activation is `perf`; and a plan/spec-only amendment is `docs`. An anticipated future speedup does not make an inactive module a `perf` commit.
+
 The user has approved the strategy of committing each meaningful implementation chunk. Repository commit safety still applies: before each commit, inspect the exact staged diff and use the repository's committing workflow. Pushing remains separately authorized and is outside this design.
 
 ## 23. Planned source-module shape
@@ -1020,6 +1084,7 @@ Source/
   WorldResourceTemperatureAmounts/
   FetchTemperatureEligibility/
   DeliveryTemperatureGameSessionLifecycle/
+  RuntimePatchInstallation/
   TemperatureLimitedDeliveryTargets/
   KleiImplementationAdapters/
   FastTrackCompatibility/
@@ -1037,6 +1102,7 @@ The tests mirror those semantic production directories and add only these purpos
 Tests/
   DeliveryTemperatureAssemblyContracts/
   OniModPipelineIntegration/
+  RuntimePatchInstallation/
   ReferenceTemperatureModels/
   TestDoubles/
   Fixtures/
@@ -1045,7 +1111,7 @@ Tests/
         0.18.4.0/
 ```
 
-The linked test boundary comprises `TemperatureConstraints`, `WorldParentTopology`, `WorldResourceTemperatureAmounts`, `FetchTemperatureEligibility`, `DeliveryTemperatureGameSessionLifecycle`, the explicitly named pure FastTrack publication/key-allocation files, and reflection-only contract types under `FastTrackCompatibility/FeatureContractVerification` and `HarmonyTranspilerInfrastructure`. The exact globs/files are enumerated in Task 1; runtime Harmony adapter files are never pulled in by a broad glob. A static boundary test fails if linked algorithm/session files invoke Unity, Klei, Harmony, PLib, or FastTrack APIs, reference those assemblies under the test build, contain `#if`/`#elif` framework forks, or add test-only production branches. The few plan-named value/identity types supplied by `TestDoubles/OniGameTypeStubs.cs` are boundary contracts, not permission for game-object traversal in domain code.
+The linked test boundary comprises `TemperatureConstraints`, `WorldParentTopology`, `WorldResourceTemperatureAmounts`, `FetchTemperatureEligibility`, `DeliveryTemperatureGameSessionLifecycle`, the exact pure runtime-patch group/plan files, the explicitly named pure FastTrack publication/key-allocation files, and reflection-only contract types under `FastTrackCompatibility/FeatureContractVerification` and `HarmonyTranspilerInfrastructure`. The exact globs/files are enumerated in Task 1; runtime Harmony adapter files are never pulled in by a broad glob. A static boundary test fails if linked algorithm/session files invoke Unity, Klei, Harmony, PLib, or FastTrack APIs, reference those assemblies under the test build, are absent from the production `Compile` graph, contain `#if`/`#elif` framework forks, or add test-only production branches. Evaluated compiler-property tests establish the C# 8/C# 14 split, and the mandatory real production build is the authoritative post-C#-8 syntax rejection mechanism; no brittle keyword blacklist impersonates the compiler. The exact `global::Tag` and `DeliveryTemperatureLimit.TemperatureLimit` identities supplied by `TestDoubles/OniGameTypeStubs.cs` are member-parity boundary contracts, not permission for game-object traversal in domain code.
 
 The old `Patch.cs`, `PatchFastTrack.cs`, `StatusItems.cs`, `Limits.cs`, `Harmony.cs`, vague filenames (`Mod.cs`, `Options.cs`, `Strings.cs`), and their obsolete responsibilities are removed or semantically renamed at coordinated activation. They do not remain as forwarding files, aliases, partial-class facades, or compatibility shims.
 
@@ -1072,7 +1138,7 @@ The rewrite is complete only when all of the following are true:
 1. Intentional serialization, options, and player-visible behaviors remain compatible.
 2. `TemperatureIndexData`, its getter, and the global band model are absent.
 3. No unapproved shim or parallel legacy algorithm remains.
-4. Endpoint reference-count mutation is O(1), effective no-ops do not increment generation, and immutable reconstruction occurs only on the mutating path.
+4. Endpoint reference-count mutation is O(1), effective no-ops do not increment generation, immutable reconstruction occurs only on the mutating path, and `ActiveTemperatureConstraintSnapshot` never copies every component registration.
 5. Hot readers never rebuild constraint indexes.
 6. Every temperature conversion uses the canonical truncation and decision-bucket implementation.
 7. Storage eligibility uses normalized interval sets, not per-band tag sets.
@@ -1080,7 +1146,7 @@ The rewrite is complete only when all of the following are true:
 9. Status queries do not enumerate every `WorldContainer`.
 10. The Klei inventory update path publishes one atomic complete-world contribution without a second pickupable enumeration.
 11. The FastTrack inventory update path publishes one atomic complete-world contribution for its actual full update and exactly one atomic resource-tag contribution for each later incremental update; it never rebuilds an unrelated world or tag.
-12. FastTrack coverage distinguishes a known-absent resource tag from a present tag whose current series has not arrived; incomplete data never becomes a fabricated zero.
+12. Explicit coverage/amount result states distinguish unknown/current/required coverage, disabled constraints, incomplete inventory, and complete amounts; a present tag whose current series has not arrived never becomes a fabricated zero.
 13. Base-game and Spaced Out content modes both derive topology from authoritative registered worlds rather than hard-coded DLC assumptions.
 14. No unqualified use of “vanilla” remains in architecture, production names, tests, comments, diagnostics, commit messages, or acceptance records.
 15. Pickup partitions are scoped by parent world and requested tags.
@@ -1089,20 +1155,23 @@ The rewrite is complete only when all of the following are true:
 18. Optimized partition equivalence and minimal fragmentation pass exhaustive tests over every canonical decision bucket (`10,002` for build `744825`).
 19. The combined fetch snapshot publishes only when every captured generation/version remains current.
 20. FastTrack uses collision-free update-local key allocation.
-21. FastTrack-absent, disabled, and inactive games have no FastTrack hot-path work; an active critical mismatch aborts coherent activation before patching; a status-only mismatch disables only the optional status adapter.
+21. FastTrack-absent, disabled, and inactive games have no FastTrack hot-path work; an active critical mismatch aborts coherent activation before patching; a status-only mismatch disables only the optional status adapter; physical file identity is read exactly once through the production reader before any feature is `Ready`.
 22. Worker code reads immutable world topology and does not call Unity or `ClusterManager`.
 23. Late old-session publications are rejected.
 24. Game-session shutdown and repeated component/world cleanup are idempotent.
-25. Fixed reusable buffers are bounded; unused temperature buckets do not create hot-path scans or sparse publications; oversized variable collections are released.
+25. Fixed reusable buffers are bounded; unused temperature buckets do not create hot-path scans or sparse publications; oversized variable collections are released after full processing; retention tests use real immutable policy thresholds rather than injected smaller limits.
 26. Status-disabled mode installs no status/inventory hooks and performs no associated allocations.
 27. Every implementation chunk has focused red/green/refactor evidence, fresh pipeline `validate`/`build`/`test` evidence, and a coherent signed commit prepared from an exactly approved snapshot/message.
 28. The existing required pipeline test project contains the complete automated suite by linking the real pure production sources; no copied algorithm or side test project exists.
-29. The game-loaded assembly targets exactly `netstandard2.1`; tooling/tests target `net10.0`; the final projects have nullable enabled and compiler warnings as errors.
+29. The game-loaded assembly targets exactly `netstandard2.1` and all production/linked production files remain C# 8-compatible; tooling/tests target `net10.0` with test-only C# 14; neither project adds `LangVersion`; the final projects have nullable enabled and compiler warnings as errors.
 30. Static contracts prove the current ONI build/max-temperature/method signatures, exact known two-warning reference roots, merged-assembly references, package boundary, intentional serialization/public surface, pipeline-profile invariance, and best-efforts FastTrack `0.18.4.0` fixture contract.
 31. The final static baseline/candidate diff passes and exactly four indicative manual sessions complete without a functional failure, relevant exception, or obvious candidate-only slowdown: separate baseline-role and candidate-role derivatives copied from each of the user's untouched late-game base-game and Spaced Out content-mode saves, every other mod disabled. A noisy or inconclusive magnitude of improvement is not itself a failure.
 32. Player logs contain no new relevant lifecycle, Harmony, worker, or unhandled exceptions in those candidate runs.
 33. The source and static performance-shape evidence show no avoidable dense `world × tag × temperature` work, no hot-path constraint rebuild or complete-range scan, no unrelated-tag partition fragmentation, no per-FastTrack-delta complete-world reconstruction, and no unbounded retained collection growth.
 34. Release artifacts are release-version artifacts only; no beta is created, and publishing/uploading still requires separate explicit authorization.
+35. Harmony targets use the shared exact member/anchor/authority verifier; a one-time `Game.OnLoadLevel` authority recheck publishes no session after a replacement topology change and never unpatches or falls back.
+36. `DeliveryTemperatureRuntimePatchPlan` has one ordered semantic patch-group list and no parallel path enums or boolean mirrors.
+37. Test doubles retain exact production identities and member parity; MSTest assertions and three-segment test names follow the approved modern contracts.
 
 ## 26. Rejected alternatives
 
@@ -1170,8 +1239,32 @@ Rejected because the current pipeline already governs build, test, package, inst
 
 Rejected as disproportionate for a community mod. Deterministic structural tests and static baseline/candidate analysis prove the intended performance shape; four simple manual runs provide an understandable indicative check without pretending to be a statistically isolated CPU benchmark.
 
+### 26.17 Copy every registration into each active-constraint snapshot
+
+Rejected because bulk component spawn/save-load churn would make every effective registry mutation copy all prior registrations, producing avoidable quadratic aggregate work. Snapshot consumers require generation, enabled counts, and sorted unique endpoints; component-specific ownership remains in the token-addressed registry.
+
+### 26.18 Retain a standalone pickup partition catalog
+
+Rejected because it would duplicate endpoint ownership and cache invalidation across the combined snapshot and grouping path. `FetchTemperatureEligibilitySnapshot` owns immutable per-parent/tag endpoints; one `PickupTemperatureGroupingSession` owns only its update-local union interning and definition IDs, then releases them.
+
+### 26.19 Encode domain state as booleans paired with defaultable values
+
+Rejected because `complete=false` cannot distinguish disabled constraint, missing world/generation, required coverage, and pending present-tag series, while a default float or constraint remains easy to misuse. Semantically named builder operations and result enums make illegal combinations unrepresentable or contract violations.
+
+### 26.20 Inject smaller production retention limits for tests
+
+Rejected because a test-only policy seam can diverge from the real resource behavior and become an accidental public/internal configuration surface. Tests exercise each actual constant at its boundary with lightweight deterministic values and inspect only predeclared private collection identity after all workload entries are processed.
+
+### 26.21 Treat emitted FastTrack assemblies as physical-version evidence
+
+Rejected because dynamic assemblies have no trustworthy file location, file version, or digest. Emitted fixtures test structural branches through a dedicated identity-result adapter; the production reader and exact `0.18.4.0` physical-file requirement have separate tests and remain mandatory at runtime.
+
+### 26.22 Recheck patch authority in gameplay hot paths
+
+Rejected because replacement topology is a cold lifecycle concern and per-update checks would add reflection/patch-owner work to the very paths being optimized. Authority is verified at installation and exactly once again at `Game.OnLoadLevel` before session publication; gameplay hooks are session-guarded thereafter.
+
 ## 27. Final decision
 
-Implement one coordinated rewrite based on scoped immutable constraints, the current ONI `10000 K` storable-temperature bound, sparse temperature amount series, explicit complete-world/coverage/single-tag inventory publications, normalized storage intervals, parent-world/tag pickup partitions, collision-free FastTrack keys, authoritative content-neutral world topology, and game-session generation safety. Preserve intentional saves and gameplay; remove the old global temperature-index subsystem and accidental public surface. Use exact decision-bucket fallback whenever optimized data cannot be proved current. Compile the game-loaded assembly for `netstandard2.1`, link pure production sources into the `net10.0` pipeline test project, and keep `oni-mod-pipeline.toml` unchanged. Develop through focused TDD, mandatory pipeline gates, and coherent signed chunk commits. After all fixes are integrated, perform static baseline/candidate analysis and the four approved Klei-path manual runs in derivative base-game and Spaced Out colonies. Treat FastTrack `0.18.4.0` support as a structurally verified, best-efforts static contract rather than a release-wide in-game validation matrix.
+Implement one coordinated rewrite based on scoped immutable constraints, the current ONI `10000 K` storable-temperature bound, sparse temperature amount series, explicit complete-world/coverage/single-tag inventory publications and availability states, normalized storage intervals, snapshot-owned parent-world/tag endpoints, update-local pickup partitions, collision-free FastTrack keys, authoritative content-neutral world topology, checked token/session generations, and game-session safety. Preserve intentional saves and gameplay; remove the old global temperature-index subsystem and accidental public surface. Use exact decision-bucket fallback whenever optimized data cannot be proved current. Compile the game-loaded assembly for `netstandard2.1`/C# 8, link the same C# 8 production files into the `net10.0`/C# 14 tooling project, and keep `oni-mod-pipeline.toml` unchanged. Develop through focused TDD, mandatory pipeline gates, and coherent signed chunk commits. After all fixes are integrated, perform static baseline/candidate analysis and the four approved Klei-path manual runs in derivative base-game and Spaced Out colonies. Treat FastTrack `0.18.4.0` support as a structurally plus physical-identity verified, best-efforts static contract rather than a release-wide in-game validation matrix.
 
 No open architecture decisions remain in this specification.
