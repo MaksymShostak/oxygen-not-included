@@ -38,6 +38,8 @@ namespace DeliveryTemperatureLimit
             TemperatureConstraints = new TemperatureConstraintRegistry();
             TemperatureLimitComponents = new TemperatureLimitComponentIndex();
             WorldParentTopology = new WorldParentTopologyCatalog(generation);
+            WorldResourceTemperatureAmounts =
+                new WorldResourceTemperatureAmountCatalog();
             DiagnosticLimiter = new SessionDiagnosticLimiter();
         }
 
@@ -54,6 +56,9 @@ namespace DeliveryTemperatureLimit
         internal TemperatureLimitComponentIndex TemperatureLimitComponents { get; }
 
         internal WorldParentTopologyCatalog WorldParentTopology { get; }
+
+        internal WorldResourceTemperatureAmountCatalog
+            WorldResourceTemperatureAmounts { get; }
 
         internal SessionDiagnosticLimiter DiagnosticLimiter { get; }
 
@@ -289,6 +294,7 @@ namespace DeliveryTemperatureLimit
                 }
 
                 WorldParentTopology.ClearForGameSession();
+                WorldResourceTemperatureAmounts.ClearForGameSession();
 
                 // The registry and component index have no retained external or
                 // thread-static resources; detaching this session makes them

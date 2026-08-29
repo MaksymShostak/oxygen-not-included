@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Reflection;
 
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureGameSessionLifecycle;
@@ -163,6 +164,22 @@ public sealed class DeliveryTemperatureGameSessionTests
     }
 
     [TestMethod]
+    public void EnsureGameSession_WhenCreated_ConstructsOwnedWorldResourceTemperatureAmountCatalog()
+    {
+        var session = EnsureTrackedGameSession(55511);
+        var generation = new WorldInventoryCollectionGeneration(1);
+
+        session.WorldResourceTemperatureAmounts.RegisterWorld(
+            worldId: 7,
+            parentWorldId: 1);
+
+        Assert.AreEqual(
+            WorldResourceTagCoverageRequirementState.CoverageRequired,
+            session.WorldResourceTemperatureAmounts
+                .GetWorldResourceTagCoverageRequirementState(7, generation));
+    }
+
+    [TestMethod]
     public void CompleteShutdown_WhenTopologySnapshotWasCaptured_ClearsOwnedMappingsWithoutMutatingSnapshot()
     {
         var session = EnsureTrackedGameSession(5552);
@@ -197,6 +214,49 @@ public sealed class DeliveryTemperatureGameSessionTests
                 worldId: 8,
                 parentWorldId: 1));
         StringAssert.Contains(exception.Message, "no longer accepts publications");
+    }
+
+    [TestMethod]
+    public void CompleteShutdown_WhenWorldResourceAmountsWerePublished_ClearsCatalogOnceAndRejectsLatePublication()
+    {
+        var session = EnsureTrackedGameSession(55521);
+        var generation = new WorldInventoryCollectionGeneration(1);
+        session.WorldResourceTemperatureAmounts.RegisterWorld(
+            worldId: 7,
+            parentWorldId: 1);
+        var builder = new CompleteWorldResourceTemperatureAmountsBuilder();
+        builder.BeginWorld(generation);
+        builder.BeginResourceTag(new Tag("Iron"));
+        builder.AddTemperatureAmount(300.0f, 10.0f);
+        builder.CompleteResourceTag();
+        var publication = builder.Build();
+        Assert.IsTrue(
+            session.WorldResourceTemperatureAmounts
+                .PublishCompleteWorldResourceAmounts(7, publication));
+        var detachedSession =
+            DeliveryTemperatureGameSessionHost.DetachGameSession(55521);
+
+        DeliveryTemperatureGameSessionHost.CompleteShutdown(detachedSession);
+        DeliveryTemperatureGameSessionHost.CompleteShutdown(detachedSession);
+
+        Assert.IsFalse(
+            session.WorldResourceTemperatureAmounts
+                .PublishCompleteWorldResourceAmounts(7, publication));
+        var catalogDictionaryFields = typeof(WorldResourceTemperatureAmountCatalog)
+            .GetFields(BindingFlags.Instance | BindingFlags.NonPublic)
+            .Where(field => typeof(IDictionary).IsAssignableFrom(field.FieldType))
+            .ToArray();
+        Assert.IsNotEmpty(catalogDictionaryFields);
+        foreach (var catalogDictionaryField in catalogDictionaryFields)
+        {
+            var retainedState = Assert.IsInstanceOfType<IDictionary>(
+                catalogDictionaryField.GetValue(
+                    session.WorldResourceTemperatureAmounts));
+            Assert.IsEmpty(
+                retainedState,
+                $"Shutdown retained catalog state in " +
+                $"{catalogDictionaryField.Name}.");
+        }
     }
 
     [TestMethod]

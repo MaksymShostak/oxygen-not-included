@@ -172,6 +172,147 @@ public sealed class TemperatureAmountSeriesTests
         }
     }
 
+    [TestMethod]
+    public void Combine_WhenInputIsEmpty_ReturnsEmptySeries()
+    {
+        var combined = TemperatureAmountSeries.Combine(
+            Array.Empty<TemperatureAmountSeries>());
+
+        Assert.AreSame(TemperatureAmountSeries.Empty, combined);
+    }
+
+    [TestMethod]
+    public void Combine_WhenBucketsOverlap_SumsOverlappingBucketAmounts()
+    {
+        var first = Series(
+            Amount(10.0f, 2.0f),
+            Amount(20.0f, 3.0f));
+        var second = Series(
+            Amount(10.9f, 5.0f),
+            Amount(30.0f, 7.0f));
+
+        var combined = TemperatureAmountSeries.Combine(
+            new[] { first, second });
+
+        Assert.AreEqual(3, combined.OccupiedBucketCount);
+        Assert.AreEqual(17.0f, combined.TotalAmount);
+        Assert.AreEqual(
+            7.0f,
+            combined.GetAmountAllowedBy(Constraint(10, 11)));
+    }
+
+    [TestMethod]
+    public void Combine_WhenBucketsAreDisjoint_PreservesEverySparseBucket()
+    {
+        var combined = TemperatureAmountSeries.Combine(
+            new[]
+            {
+                Series(Amount(10.0f, 2.0f)),
+                Series(Amount(20.0f, 3.0f)),
+                Series(Amount(6203.0f, 5.0f))
+            });
+
+        Assert.AreEqual(3, combined.OccupiedBucketCount);
+        Assert.AreEqual(10.0f, combined.TotalAmount);
+        Assert.AreEqual(
+            5.0f,
+            combined.GetAmountAllowedBy(Constraint(6000, 7000)));
+    }
+
+    [TestMethod]
+    public void Combine_WhenSourcesContainBelowAndAboveRangeBuckets_PreservesSentinelAmounts()
+    {
+        var combined = TemperatureAmountSeries.Combine(
+            new[]
+            {
+                Series(
+                    Amount(-10.0f, 2.0f),
+                    Amount(300.0f, 3.0f)),
+                Series(
+                    Amount(10000.0f, 5.0f),
+                    Amount(10500.0f, 7.0f))
+            });
+
+        Assert.AreEqual(17.0f, combined.TotalAmount);
+        Assert.AreEqual(
+            3.0f,
+            combined.GetAmountAllowedBy(Constraint(0, 10000)));
+        Assert.AreEqual(
+            17.0f,
+            combined.GetAmountAllowedBy(Constraint(100, 0)));
+    }
+
+    [TestMethod]
+    public void Combine_WhenSourcesArePublished_DoesNotMutateAnySourceSeries()
+    {
+        var first = Series(
+            Amount(10.0f, 2.0f),
+            Amount(20.0f, 3.0f));
+        var second = Series(Amount(30.0f, 5.0f));
+
+        _ = TemperatureAmountSeries.Combine(new[] { first, second });
+
+        Assert.AreEqual(5.0f, first.TotalAmount);
+        Assert.AreEqual(
+            2.0f,
+            first.GetAmountAllowedBy(Constraint(10, 11)));
+        Assert.AreEqual(5.0f, second.TotalAmount);
+        Assert.AreEqual(
+            5.0f,
+            second.GetAmountAllowedBy(Constraint(30, 31)));
+    }
+
+    [TestMethod]
+    public void Combine_WhenSameSeriesAppearsTwice_CountsTwoListedContributions()
+    {
+        var source = Series(
+            Amount(10.0f, 2.0f),
+            Amount(20.0f, 3.0f));
+
+        var combined = TemperatureAmountSeries.Combine(
+            new[] { source, source });
+
+        Assert.AreEqual(10.0f, combined.TotalAmount);
+        Assert.AreEqual(
+            4.0f,
+            combined.GetAmountAllowedBy(Constraint(10, 11)));
+    }
+
+    [TestMethod]
+    public void Combine_WhenInputOrEntryIsNull_ThrowsArgumentNullException()
+    {
+        Assert.ThrowsExactly<ArgumentNullException>(() =>
+            TemperatureAmountSeries.Combine(null!));
+        Assert.ThrowsExactly<ArgumentNullException>(() =>
+            TemperatureAmountSeries.Combine(
+                new TemperatureAmountSeries[] { TemperatureAmountSeries.Empty, null! }));
+    }
+
+    [TestMethod]
+    public void ProductionSource_WhenCombineIsInspected_DoesNotExpandCanonicalBucketRange()
+    {
+        var source = File.ReadAllText(ResolveTemperatureAmountSeriesSourcePath());
+        var combineStart = source.IndexOf(
+            "internal static TemperatureAmountSeries Combine(",
+            StringComparison.Ordinal);
+        var queryStart = source.IndexOf(
+            "internal float GetAmountAllowedBy(",
+            combineStart,
+            StringComparison.Ordinal);
+
+        Assert.IsTrue(combineStart >= 0);
+        Assert.IsTrue(queryStart > combineStart);
+        var combineSource = source.Substring(
+            combineStart,
+            queryStart - combineStart);
+        Assert.IsFalse(combineSource.Contains(
+            "TemperatureDecisionBucket.BucketCount",
+            StringComparison.Ordinal));
+        Assert.IsFalse(combineSource.Contains(
+            "new Dictionary<",
+            StringComparison.Ordinal));
+    }
+
     private static List<ReferenceTemperatureAmount>
         CreateRandomSourceTemperatureAmounts(Random random)
     {
@@ -260,4 +401,41 @@ public sealed class TemperatureAmountSeriesTests
         DeliveryTemperatureConstraint.FromSerializedLimits(
             minimumInclusiveKelvin,
             maximumExclusiveKelvin);
+
+    private static string ResolveTemperatureAmountSeriesSourcePath()
+    {
+        var repositoryRoot = Environment.GetEnvironmentVariable(
+            "ONI_MOD_PIPELINE_REPOSITORY_ROOT");
+        if (!string.IsNullOrWhiteSpace(repositoryRoot))
+        {
+            return Path.Combine(
+                repositoryRoot,
+                "mods",
+                "delivery-temperature-limit-supercooled",
+                "Source",
+                "WorldResourceTemperatureAmounts",
+                "TemperatureAmountSeries.cs");
+        }
+
+        var candidateDirectory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (candidateDirectory is not null)
+        {
+            var candidatePath = Path.Combine(
+                candidateDirectory.FullName,
+                "mods",
+                "delivery-temperature-limit-supercooled",
+                "Source",
+                "WorldResourceTemperatureAmounts",
+                "TemperatureAmountSeries.cs");
+            if (File.Exists(candidatePath))
+            {
+                return candidatePath;
+            }
+
+            candidateDirectory = candidateDirectory.Parent;
+        }
+
+        Assert.Fail("Could not locate TemperatureAmountSeries.cs.");
+        return string.Empty;
+    }
 }

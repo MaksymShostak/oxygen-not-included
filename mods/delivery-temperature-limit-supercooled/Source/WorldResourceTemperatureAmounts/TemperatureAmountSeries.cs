@@ -100,6 +100,135 @@ namespace DeliveryTemperatureLimit
         }
 
         /// <summary>
+        /// Combines one immutable sparse contribution per listed member world.
+        /// Repeated references are deliberately repeated contributions, not values
+        /// to deduplicate.
+        /// </summary>
+        internal static TemperatureAmountSeries Combine(
+            System.Collections.Generic.IReadOnlyList<TemperatureAmountSeries>
+                sourceSeries)
+        {
+            if (sourceSeries == null)
+            {
+                throw new ArgumentNullException(nameof(sourceSeries));
+            }
+
+            int contributionBucketCount = 0;
+            for (int sourceSeriesIndex = 0;
+                 sourceSeriesIndex < sourceSeries.Count;
+                 sourceSeriesIndex++)
+            {
+                TemperatureAmountSeries? source =
+                    sourceSeries[sourceSeriesIndex];
+                if (source == null)
+                {
+                    throw new ArgumentNullException(
+                        nameof(sourceSeries),
+                        "A source temperature amount series cannot be null.");
+                }
+
+                contributionBucketCount = checked(
+                    contributionBucketCount + source.OccupiedBucketCount);
+            }
+
+            if (contributionBucketCount == 0)
+            {
+                return Empty;
+            }
+
+            // Flatten only occupied contributions. Sorting these sparse entries
+            // avoids allocating or scanning the complete canonical bucket range.
+            var contributionBucketOrdinals =
+                new int[contributionBucketCount];
+            var contributionAmounts = new float[contributionBucketCount];
+            int contributionIndex = 0;
+            for (int sourceSeriesIndex = 0;
+                 sourceSeriesIndex < sourceSeries.Count;
+                 sourceSeriesIndex++)
+            {
+                TemperatureAmountSeries source = sourceSeries[sourceSeriesIndex];
+                float previousCumulativeAmount = 0.0f;
+                for (int sourceBucketIndex = 0;
+                     sourceBucketIndex < source.occupiedBucketOrdinals.Length;
+                     sourceBucketIndex++)
+                {
+                    float sourceCumulativeAmount =
+                        source.cumulativeAmounts[sourceBucketIndex];
+                    contributionBucketOrdinals[contributionIndex] =
+                        source.occupiedBucketOrdinals[sourceBucketIndex];
+                    contributionAmounts[contributionIndex] =
+                        sourceCumulativeAmount - previousCumulativeAmount;
+                    previousCumulativeAmount = sourceCumulativeAmount;
+                    contributionIndex++;
+                }
+            }
+
+            Array.Sort(
+                contributionBucketOrdinals,
+                contributionAmounts,
+                0,
+                contributionBucketCount);
+
+            var combinedBucketOrdinals = new int[contributionBucketCount];
+            var combinedCumulativeAmounts = new float[contributionBucketCount];
+            int combinedBucketCount = 0;
+            float combinedCumulativeAmount = 0.0f;
+            int nextContributionIndex = 0;
+            while (nextContributionIndex < contributionBucketCount)
+            {
+                int bucketOrdinal =
+                    contributionBucketOrdinals[nextContributionIndex];
+                float bucketAmount = 0.0f;
+                do
+                {
+                    bucketAmount += contributionAmounts[nextContributionIndex];
+                    nextContributionIndex++;
+                }
+                while (nextContributionIndex < contributionBucketCount &&
+                    contributionBucketOrdinals[nextContributionIndex] ==
+                        bucketOrdinal);
+
+                // Cross-world contributions may cancel exactly. Omitting that
+                // bucket preserves the sparse representation contract.
+                if (bucketAmount != 0.0f)
+                {
+                    combinedBucketOrdinals[combinedBucketCount] = bucketOrdinal;
+                    combinedCumulativeAmount += bucketAmount;
+                    combinedCumulativeAmounts[combinedBucketCount] =
+                        combinedCumulativeAmount;
+                    combinedBucketCount++;
+                }
+            }
+
+            if (combinedBucketCount == 0)
+            {
+                return Empty;
+            }
+
+            if (combinedBucketCount != contributionBucketCount)
+            {
+                var exactCombinedBucketOrdinals =
+                    new int[combinedBucketCount];
+                var exactCombinedCumulativeAmounts =
+                    new float[combinedBucketCount];
+                Array.Copy(
+                    combinedBucketOrdinals,
+                    exactCombinedBucketOrdinals,
+                    combinedBucketCount);
+                Array.Copy(
+                    combinedCumulativeAmounts,
+                    exactCombinedCumulativeAmounts,
+                    combinedBucketCount);
+                combinedBucketOrdinals = exactCombinedBucketOrdinals;
+                combinedCumulativeAmounts = exactCombinedCumulativeAmounts;
+            }
+
+            return CreateFromOwnedArrays(
+                combinedBucketOrdinals,
+                combinedCumulativeAmounts);
+        }
+
+        /// <summary>
         /// Returns the amount admitted by a normalized inclusive-minimum,
         /// exclusive-maximum delivery constraint.
         /// </summary>
