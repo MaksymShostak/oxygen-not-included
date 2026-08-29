@@ -149,6 +149,57 @@ public sealed class DeliveryTemperatureGameSessionTests
     }
 
     [TestMethod]
+    public void EnsureGameSession_WhenCreated_ConstructsWorldParentTopologyForSameGeneration()
+    {
+        var session = EnsureTrackedGameSession(5551);
+
+        var topologySnapshot = session.WorldParentTopology.CaptureSnapshot();
+
+        Assert.AreEqual(
+            session.Generation,
+            topologySnapshot.GameSessionGeneration);
+        Assert.AreEqual(0L, topologySnapshot.Version.Value);
+        Assert.IsFalse(topologySnapshot.TryResolveParentWorld(0, out _));
+    }
+
+    [TestMethod]
+    public void CompleteShutdown_WhenTopologySnapshotWasCaptured_ClearsOwnedMappingsWithoutMutatingSnapshot()
+    {
+        var session = EnsureTrackedGameSession(5552);
+        session.WorldParentTopology.RegisterWorld(
+            worldId: 7,
+            parentWorldId: 1);
+        var capturedSnapshot = session.WorldParentTopology.CaptureSnapshot();
+        var detachedSession =
+            DeliveryTemperatureGameSessionHost.DetachGameSession(5552);
+
+        DeliveryTemperatureGameSessionHost.CompleteShutdown(detachedSession);
+
+        Assert.IsTrue(capturedSnapshot.TryResolveParentWorld(
+            7,
+            out var capturedParentWorldId));
+        Assert.AreEqual(1, capturedParentWorldId);
+        Assert.AreSame(
+            capturedSnapshot,
+            session.WorldParentTopology.CaptureSnapshot());
+        var ownedMappingField = typeof(WorldParentTopologyCatalog).GetField(
+            "parentWorldIdsByWorldId",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.IsNotNull(
+            ownedMappingField,
+            "Shutdown structure requires the exact private owned mapping field " +
+            "WorldParentTopologyCatalog.parentWorldIdsByWorldId.");
+        var ownedMappings = Assert.IsInstanceOfType<IDictionary<int, int>>(
+            ownedMappingField.GetValue(session.WorldParentTopology));
+        Assert.AreEqual(0, ownedMappings.Count);
+        var exception = Assert.ThrowsExactly<InvalidOperationException>(() =>
+            session.WorldParentTopology.RegisterWorld(
+                worldId: 8,
+                parentWorldId: 1));
+        StringAssert.Contains(exception.Message, "no longer accepts publications");
+    }
+
+    [TestMethod]
     public void OldSession_WhenNewSessionExists_RejectsTemperatureLimitRegistration()
     {
         var oldSession = EnsureTrackedGameSession(5601);

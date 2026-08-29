@@ -37,6 +37,7 @@ namespace DeliveryTemperatureLimit
             GameInstanceId = gameInstanceId;
             TemperatureConstraints = new TemperatureConstraintRegistry();
             TemperatureLimitComponents = new TemperatureLimitComponentIndex();
+            WorldParentTopology = new WorldParentTopologyCatalog(generation);
             DiagnosticLimiter = new SessionDiagnosticLimiter();
         }
 
@@ -51,6 +52,8 @@ namespace DeliveryTemperatureLimit
         internal TemperatureConstraintRegistry TemperatureConstraints { get; }
 
         internal TemperatureLimitComponentIndex TemperatureLimitComponents { get; }
+
+        internal WorldParentTopologyCatalog WorldParentTopology { get; }
 
         internal SessionDiagnosticLimiter DiagnosticLimiter { get; }
 
@@ -285,10 +288,14 @@ namespace DeliveryTemperatureLimit
                     spinWait.SpinOnce();
                 }
 
+                WorldParentTopology.ClearForGameSession();
+
                 // The registry and component index have no retained external or
                 // thread-static resources; detaching this session makes them
-                // collectible as a unit. Later completed session-owned services add
-                // their explicit clear calls at this one idempotent release point.
+                // collectible as a unit. The topology catalog explicitly releases
+                // its mutable map while its independently owned immutable snapshot
+                // remains valid for already-captured readers. Later completed
+                // session services add their clear calls at this same one-time point.
             }
             finally
             {
