@@ -28,7 +28,8 @@ internal sealed record PipelineProvenanceBoundAssembly(
     string EvidencePath,
     IReadOnlyList<string> PackageRelativePaths,
     string? PackageDirectoryPath,
-    string? RecordedTargetFramework);
+    string RecordedFileVersion,
+    string RecordedTargetFrameworkName);
 
 internal enum DeliveryTemperatureArtifactContractKind
 {
@@ -49,7 +50,7 @@ internal sealed record DeliveryTemperatureArtifactContractCase(
     string AssemblySha256,
     long AssemblyByteLength,
     string SourceCommit,
-    string ExpectedTargetFrameworkMoniker,
+    string ExpectedTargetFrameworkName,
     string ExpectedFileVersion,
     string EvidencePath,
     IReadOnlyList<string> PackageRelativePaths,
@@ -68,9 +69,9 @@ internal static class DeliveryTemperatureArtifactContractCaseProvider
     private const string PublishedBaselineSha256 =
         "02A14F2E123F42BDD87847C15AB434DAFC8A4D4BC92B465F9DCD367364BF465E";
     private const long PublishedBaselineByteLength = 376320;
-    private const string DeliveryTemperatureFileVersion = "2026.8.26.0";
-    private const string CurrentTargetFrameworkMoniker =
-        ".NETStandard,Version=v2.1";
+    private const string PublishedBaselineFileVersion = "2026.8.26.0";
+    private const string PublishedBaselineTargetFrameworkName =
+        ".NETFramework,Version=v4.8";
 
     private static readonly string[] ExactPackageRelativePaths =
     [
@@ -97,8 +98,8 @@ internal static class DeliveryTemperatureArtifactContractCaseProvider
                 PublishedBaselineSha256,
                 PublishedBaselineByteLength,
                 PublishedBaselineSourceCommit,
-                ".NETFramework,Version=v4.8",
-                DeliveryTemperatureFileVersion,
+                PublishedBaselineTargetFrameworkName,
+                PublishedBaselineFileVersion,
                 EvidencePath: "tracked-published-baseline",
                 Array.AsReadOnly(ExactPackageRelativePaths.ToArray()),
                 PackageDirectoryPath: null)
@@ -143,8 +144,8 @@ internal static class DeliveryTemperatureArtifactContractCaseProvider
             assembly.AssemblySha256.ToUpperInvariant(),
             assembly.AssemblyByteLength,
             assembly.SourceCommit,
-            CurrentTargetFrameworkMoniker,
-            DeliveryTemperatureFileVersion,
+            assembly.RecordedTargetFrameworkName,
+            assembly.RecordedFileVersion,
             assembly.EvidencePath,
             assembly.PackageRelativePaths,
             assembly.PackageDirectoryPath);
@@ -186,6 +187,7 @@ internal sealed class PipelineProvenanceBoundAssemblyLocator
         "MaksymShostak.DeliveryTemperatureLimit";
     private const string DeliveryTemperatureAssemblyFileName =
         "DeliveryTemperatureLimit.dll";
+    private const string RequiredTargetFrameworkMoniker = "netstandard2.1";
 
     private static readonly string[] ExactPackageRelativePaths =
     [
@@ -610,6 +612,40 @@ internal sealed class PipelineProvenanceBoundAssemblyLocator
                 "used by the pipeline build");
         }
 
+        string recordedTargetFrameworkMoniker = RequireString(
+            buildResult,
+            "primaryAssemblyTargetFrameworkMoniker",
+            suppliedPath,
+            isCandidate: false);
+        if (!string.Equals(
+                recordedTargetFrameworkMoniker,
+                RequiredTargetFrameworkMoniker,
+                StringComparison.Ordinal))
+        {
+            throw InvalidBuild(
+                suppliedPath,
+                "primaryAssemblyTargetFrameworkMoniker must be " +
+                RequiredTargetFrameworkMoniker);
+        }
+
+        // Keep the CLR TargetFrameworkAttribute name distinct from the short
+        // SDK target-framework moniker. The merged-assembly contract compares
+        // this exact recorded name with the exact artifact's metadata.
+        string recordedTargetFrameworkName = RequireString(
+            buildResult,
+            "primaryAssemblyTargetFrameworkName",
+            suppliedPath,
+            isCandidate: false);
+        string recordedFileVersion = RequireCanonicalFourComponentVersion(
+            RequireObjectProperty(
+                buildResult,
+                "primaryAssemblyVersion",
+                suppliedPath,
+                isCandidate: false),
+            "fileVersion",
+            suppliedPath,
+            isCandidate: false);
+
         return new PipelineProvenanceBoundAssembly(
             PipelineProvenanceBoundAssemblyKind.ExactPipelineBuild,
             canonicalPrimaryOutputPath,
@@ -619,7 +655,8 @@ internal sealed class PipelineProvenanceBoundAssemblyLocator
             canonicalBuildResultPath,
             Array.AsReadOnly(ExactPackageRelativePaths.ToArray()),
             PackageDirectoryPath: null,
-            RecordedTargetFramework: null);
+            recordedFileVersion,
+            recordedTargetFrameworkName);
     }
 
     private PipelineProvenanceBoundAssembly ResolveReleaseCandidateCore(
@@ -928,13 +965,29 @@ internal sealed class PipelineProvenanceBoundAssemblyLocator
             isCandidate: true);
         if (!string.Equals(
                 targetFramework,
-                "netstandard2.1",
+                RequiredTargetFrameworkMoniker,
                 StringComparison.Ordinal))
         {
             throw InvalidCandidate(
                 suppliedDirectory,
-                "candidate provenance targetFramework must be netstandard2.1");
+                "candidate provenance targetFramework must be " +
+                RequiredTargetFrameworkMoniker);
         }
+
+        string recordedTargetFrameworkName = RequireString(
+            provenance,
+            "primaryAssemblyTargetFrameworkName",
+            suppliedDirectory,
+            isCandidate: true);
+        string recordedFileVersion = RequireCanonicalFourComponentVersion(
+            RequireObjectProperty(
+                provenance,
+                "primaryAssemblyVersion",
+                suppliedDirectory,
+                isCandidate: true),
+            "fileVersion",
+            suppliedDirectory,
+            isCandidate: true);
 
         if (!string.Equals(
                 RequireString(
@@ -1066,7 +1119,8 @@ internal sealed class PipelineProvenanceBoundAssemblyLocator
             canonicalCandidateDirectory,
             Array.AsReadOnly(ExactPackageRelativePaths.ToArray()),
             workshopContentDirectory,
-            targetFramework);
+            recordedFileVersion,
+            recordedTargetFrameworkName);
     }
 
     private static ReleaseContentEvidenceEntry ReadReleaseContentEntry(
@@ -1521,6 +1575,39 @@ internal sealed class PipelineProvenanceBoundAssemblyLocator
         return value;
     }
 
+    private static string RequireCanonicalFourComponentVersion(
+        JsonElement parent,
+        string propertyName,
+        string suppliedEvidencePath,
+        bool isCandidate)
+    {
+        string value = RequireString(
+            parent,
+            propertyName,
+            suppliedEvidencePath,
+            isCandidate);
+        if (!Version.TryParse(value, out Version? version) ||
+            version.Build < 0 ||
+            version.Revision < 0 ||
+            !string.Equals(
+                version.ToString(4),
+                value,
+                StringComparison.Ordinal))
+        {
+            // FileVersionInfo exposes four numeric components. Requiring the
+            // same canonical representation here prevents equivalent-looking
+            // but textually ambiguous evidence from reaching the byte-level
+            // assembly contract.
+            throw InvalidEvidence(
+                suppliedEvidencePath,
+                isCandidate,
+                $"required version property '{propertyName}' must use its " +
+                "canonical four-component numeric form");
+        }
+
+        return value;
+    }
+
     private static bool RequireBoolean(
         JsonElement parent,
         string propertyName,
@@ -1760,6 +1847,10 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
         "MaksymShostak.DeliveryTemperatureLimit";
     private const string ExpectedRepositoryCommit =
         "0123456789abcdef0123456789abcdef01234567";
+    private const string FixtureReleaseVersion = "2026.8.30";
+    private const string FixtureAssemblyFileVersion = "2026.8.30.0";
+    private const string FixtureTargetFrameworkName =
+        ".NETStandard,Version=v2.1";
 
     [TestMethod]
     public void BuildDataRowProbe_WhenVariableIsMissing_YieldsNoRowWhileRequiredResolverRejectsAbsence()
@@ -1811,6 +1902,12 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
             assembly.Kind);
         Assert.AreEqual(fixture.BuildAssemblyPath, assembly.AssemblyPath);
         Assert.AreEqual(ExpectedRepositoryCommit, assembly.SourceCommit);
+        Assert.AreEqual(
+            FixtureAssemblyFileVersion,
+            assembly.RecordedFileVersion);
+        Assert.AreEqual(
+            FixtureTargetFrameworkName,
+            assembly.RecordedTargetFrameworkName);
         CollectionAssert.AreEqual(
             new[]
             {
@@ -1830,6 +1927,10 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
     [DataRow(BuildResultMutation.MismatchedStaticIdRunRoot)]
     [DataRow(BuildResultMutation.AdditionalBuildOutput)]
     [DataRow(BuildResultMutation.EmptyInputFingerprint)]
+    [DataRow(BuildResultMutation.MissingPrimaryAssemblyFileVersion)]
+    [DataRow(BuildResultMutation.NonCanonicalPrimaryAssemblyFileVersion)]
+    [DataRow(BuildResultMutation.MissingPrimaryAssemblyTargetFrameworkName)]
+    [DataRow(BuildResultMutation.WrongPrimaryAssemblyTargetFrameworkMoniker)]
     public void RequiredBuildResolver_WhenBuildEvidenceIsMutated_RejectsBinding(
         BuildResultMutation mutation)
     {
@@ -1883,6 +1984,12 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
             assembly.Kind);
         Assert.AreEqual(fixture.CandidateAssemblyPath, assembly.AssemblyPath);
         Assert.AreEqual(ExpectedRepositoryCommit, assembly.SourceCommit);
+        Assert.AreEqual(
+            FixtureAssemblyFileVersion,
+            assembly.RecordedFileVersion);
+        Assert.AreEqual(
+            FixtureTargetFrameworkName,
+            assembly.RecordedTargetFrameworkName);
         CollectionAssert.AreEqual(
             new[]
             {
@@ -1905,6 +2012,10 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
     [DataRow(ReleaseCandidateMutation.UndeclaredPackageFile)]
     [DataRow(ReleaseCandidateMutation.PrimaryOutputPathMismatch)]
     [DataRow(ReleaseCandidateMutation.CandidateVersionMismatch)]
+    [DataRow(ReleaseCandidateMutation.MissingPrimaryAssemblyFileVersion)]
+    [DataRow(ReleaseCandidateMutation.NonCanonicalPrimaryAssemblyFileVersion)]
+    [DataRow(ReleaseCandidateMutation.MissingPrimaryAssemblyTargetFrameworkName)]
+    [DataRow(ReleaseCandidateMutation.WrongTargetFrameworkMoniker)]
     public void RequiredReleaseCandidateResolver_WhenCandidateBindingIsMutated_RejectsEvidence(
         ReleaseCandidateMutation mutation)
     {
@@ -1930,7 +2041,11 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
         PrimaryOutputOutsideBuildOutput,
         MismatchedStaticIdRunRoot,
         AdditionalBuildOutput,
-        EmptyInputFingerprint
+        EmptyInputFingerprint,
+        MissingPrimaryAssemblyFileVersion,
+        NonCanonicalPrimaryAssemblyFileVersion,
+        MissingPrimaryAssemblyTargetFrameworkName,
+        WrongPrimaryAssemblyTargetFrameworkMoniker
     }
 
     public enum ReleaseCandidateMutation
@@ -1942,7 +2057,11 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
         MismatchedReleaseContentDigest,
         UndeclaredPackageFile,
         PrimaryOutputPathMismatch,
-        CandidateVersionMismatch
+        CandidateVersionMismatch,
+        MissingPrimaryAssemblyFileVersion,
+        NonCanonicalPrimaryAssemblyFileVersion,
+        MissingPrimaryAssemblyTargetFrameworkName,
+        WrongTargetFrameworkMoniker
     }
 
     private sealed class ProvenanceBindingFixture : IDisposable
@@ -2045,16 +2164,20 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
                     mergeInputs = Array.Empty<object>(),
                     gameReferences = Array.Empty<object>(),
                     sourceCommit = ExpectedRepositoryCommit,
-                    releaseVersion = "2026.8.26",
+                    releaseVersion = FixtureReleaseVersion,
                     dotnetSdkVersion = "10.0.400",
                     structuredBuildArguments = Array.Empty<string>(),
                     primaryAssemblyVersion = new
                     {
-                        assemblyVersion = "2026.8.26.0",
-                        fileVersion = "2026.8.26.0",
+                        assemblyVersion = FixtureAssemblyFileVersion,
+                        fileVersion = FixtureAssemblyFileVersion,
                         informationalVersion =
-                            "2026.8.26+0123456789ab.0123456789abcdef"
+                            FixtureReleaseVersion +
+                            "+0123456789ab.0123456789abcdef"
                     },
+                    primaryAssemblyTargetFrameworkMoniker = "netstandard2.1",
+                    primaryAssemblyTargetFrameworkName =
+                        FixtureTargetFrameworkName,
                     sourceBytesUnchanged = true
                 });
             return buildResultPath;
@@ -2099,6 +2222,24 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
                 case BuildResultMutation.EmptyInputFingerprint:
                     document["inputs"] = new JsonArray();
                     break;
+                case BuildResultMutation.MissingPrimaryAssemblyFileVersion:
+                    document["primaryAssemblyVersion"]!
+                        .AsObject()
+                        .Remove("fileVersion");
+                    break;
+                case BuildResultMutation
+                    .NonCanonicalPrimaryAssemblyFileVersion:
+                    document["primaryAssemblyVersion"]!["fileVersion"] =
+                        "2026.8.30";
+                    break;
+                case BuildResultMutation
+                    .MissingPrimaryAssemblyTargetFrameworkName:
+                    document.Remove("primaryAssemblyTargetFrameworkName");
+                    break;
+                case BuildResultMutation
+                    .WrongPrimaryAssemblyTargetFrameworkMoniker:
+                    document["primaryAssemblyTargetFrameworkMoniker"] = "net48";
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(mutation));
             }
@@ -2112,7 +2253,7 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
                 ArtifactsRoot,
                 "release-candidates",
                 ExpectedStaticId,
-                "2026.8.26",
+                FixtureReleaseVersion,
                 CandidateRunId);
             string workshopContentDirectory = Path.Combine(
                 candidateDirectory,
@@ -2212,14 +2353,24 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
                     schemaVersion = 1,
                     profileSchemaVersion = 1,
                     staticId = ExpectedStaticId,
-                    version = "2026.8.26",
+                    version = FixtureReleaseVersion,
                     repositoryCommit = ExpectedRepositoryCommit,
                     relevantPathsClean = true,
                     targetFramework = "netstandard2.1",
+                    primaryAssemblyTargetFrameworkName =
+                        FixtureTargetFrameworkName,
                     configuration = "Release",
                     artifactsDirectory = "${ARTIFACTS}",
                     buildOutputs = new[] { primaryOutput },
                     primaryOutput,
+                    primaryAssemblyVersion = new
+                    {
+                        assemblyVersion = FixtureAssemblyFileVersion,
+                        fileVersion = FixtureAssemblyFileVersion,
+                        informationalVersion =
+                            FixtureReleaseVersion +
+                            "+0123456789ab.0123456789abcdef"
+                    },
                     sourceBytesUnchanged = true,
                     releaseContentDigest
                 });
@@ -2286,6 +2437,40 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
                 {
                     JsonObject provenance = ReadJsonObject(buildProvenancePath);
                     provenance["version"] = "2099.1.1";
+                    WriteJsonNode(buildProvenancePath, provenance);
+                    break;
+                }
+                case ReleaseCandidateMutation
+                    .MissingPrimaryAssemblyFileVersion:
+                {
+                    JsonObject provenance = ReadJsonObject(buildProvenancePath);
+                    provenance["primaryAssemblyVersion"]!
+                        .AsObject()
+                        .Remove("fileVersion");
+                    WriteJsonNode(buildProvenancePath, provenance);
+                    break;
+                }
+                case ReleaseCandidateMutation
+                    .NonCanonicalPrimaryAssemblyFileVersion:
+                {
+                    JsonObject provenance = ReadJsonObject(buildProvenancePath);
+                    provenance["primaryAssemblyVersion"]!["fileVersion"] =
+                        "2026.8.30";
+                    WriteJsonNode(buildProvenancePath, provenance);
+                    break;
+                }
+                case ReleaseCandidateMutation
+                    .MissingPrimaryAssemblyTargetFrameworkName:
+                {
+                    JsonObject provenance = ReadJsonObject(buildProvenancePath);
+                    provenance.Remove("primaryAssemblyTargetFrameworkName");
+                    WriteJsonNode(buildProvenancePath, provenance);
+                    break;
+                }
+                case ReleaseCandidateMutation.WrongTargetFrameworkMoniker:
+                {
+                    JsonObject provenance = ReadJsonObject(buildProvenancePath);
+                    provenance["targetFramework"] = "net48";
                     WriteJsonNode(buildProvenancePath, provenance);
                     break;
                 }

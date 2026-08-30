@@ -11,7 +11,7 @@ namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
 [TestClass]
 public sealed class MergedDeliveryTemperatureAssemblyContractTests
 {
-    private const string ReleaseVersion = "2026.8.26";
+    private const string DeterministicBuildFixtureReleaseVersion = "2026.8.26";
     private const string DeterministicTestSourceCommit =
         "0123456789abcdef0123456789abcdef01234567";
     private const string FastTrackFixtureSha256 =
@@ -36,7 +36,7 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
                     contractCase.AssemblyByteLength,
                     contractCase.ExpectedFileVersion,
                     contractCase.SourceCommit,
-                    contractCase.ExpectedTargetFrameworkMoniker
+                    contractCase.ExpectedTargetFrameworkName
                 ];
             }
         }
@@ -59,7 +59,7 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
         long expectedByteLength,
         string expectedFileVersion,
         string expectedSourceCommit,
-        string expectedTargetFrameworkMoniker)
+        string expectedTargetFrameworkName)
     {
         TestContext.WriteLine($"Artifact contract row: {contractRow}");
         Assert.AreEqual(
@@ -93,8 +93,8 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
         Assert.AreEqual(expectedFileVersion, observedFileVersion);
         await AssertGitObjectExistsAsync(repositoryRoot, expectedSourceCommit);
         Assert.AreEqual(
-            expectedTargetFrameworkMoniker,
-            ReadTargetFrameworkMoniker(assemblyPath),
+            expectedTargetFrameworkName,
+            ReadTargetFrameworkName(assemblyPath),
             $"{contractRow} has the wrong TargetFrameworkAttribute.");
         AssertKnownFrameworkConflictRootsAreNotReferenced(assemblyPath);
 
@@ -237,8 +237,10 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
                 $"-p:BaseOutputPath={paths.BaseOutputPath}",
                 $"-p:BaseIntermediateOutputPath={paths.BaseIntermediateOutputPath}",
                 $"-p:MSBuildProjectExtensionsPath={paths.BaseIntermediateOutputPath}",
-                $"-p:Version={ReleaseVersion}",
-                $"-p:InformationalVersion={ReleaseVersion}+{DeterministicTestSourceCommit[..12]}",
+                $"-p:Version={DeterministicBuildFixtureReleaseVersion}",
+                "-p:InformationalVersion=" +
+                    $"{DeterministicBuildFixtureReleaseVersion}+" +
+                    DeterministicTestSourceCommit[..12],
                 "-p:Deterministic=true",
                 "-p:ContinuousIntegrationBuild=true",
                 $"-p:PathMap=\"{CreateDeterministicPathMap(output.Path, repositoryRoot)}\""
@@ -405,7 +407,7 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
             $"'{prohibitedText}'.");
     }
 
-    private static string ReadTargetFrameworkMoniker(string assemblyPath)
+    private static string ReadTargetFrameworkName(string assemblyPath)
     {
         using var stream = new FileStream(
             assemblyPath,
@@ -416,7 +418,7 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
             FileOptions.SequentialScan);
         using var peReader = new PEReader(stream);
         MetadataReader metadata = peReader.GetMetadataReader();
-        var observedMonikers = new List<string>();
+        var observedFrameworkNames = new List<string>();
         foreach (CustomAttributeHandle handle in
                  metadata.GetAssemblyDefinition().GetCustomAttributes())
         {
@@ -434,22 +436,23 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
                     "invalid custom-attribute prolog.");
             }
 
-            string? moniker = value.ReadSerializedString();
-            if (string.IsNullOrWhiteSpace(moniker))
+            string? frameworkName = value.ReadSerializedString();
+            if (string.IsNullOrWhiteSpace(frameworkName))
             {
                 throw new InvalidDataException(
-                    $"TargetFrameworkAttribute in {assemblyPath} has no moniker.");
+                    $"TargetFrameworkAttribute in {assemblyPath} has no " +
+                    "framework name.");
             }
 
-            observedMonikers.Add(moniker);
+            observedFrameworkNames.Add(frameworkName);
         }
 
         Assert.HasCount(
             1,
-            observedMonikers,
+            observedFrameworkNames,
             $"Assembly {assemblyPath} must declare exactly one " +
             "TargetFrameworkAttribute.");
-        return observedMonikers[0];
+        return observedFrameworkNames[0];
     }
 
     private static bool IsTargetFrameworkAttribute(
