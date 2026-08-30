@@ -76,7 +76,7 @@ public sealed class CurrentOniRuntimeContractTests
 
         Assert.AreEqual("ALL", values["supportedContent"]);
         Assert.AreEqual(ExpectedChangeList.ToString(), values["minimumSupportedBuild"]);
-        Assert.AreEqual("2026.8.26", values["version"]);
+        Assert.AreEqual("2026.8.30", values["version"]);
         Assert.AreEqual("2", values["APIVersion"]);
         Assert.HasCount(4, values);
     }
