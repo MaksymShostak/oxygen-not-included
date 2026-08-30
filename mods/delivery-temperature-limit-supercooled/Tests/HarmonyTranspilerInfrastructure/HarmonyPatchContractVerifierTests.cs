@@ -819,6 +819,207 @@ public sealed class HarmonyPatchContractVerifierTests
     }
 
     [TestMethod]
+    public void WorldInventoryUpdateContract_WhenInstalledShapeMatches_ReturnsExactPrivateInstanceMethod()
+    {
+        var method = HarmonyPatchContractVerifier.RequireInstanceMethod(
+            typeof(WorldInventoryUpdateTargetContractFixture),
+            "Update",
+            DeclaredMemberVisibility.NonPublic,
+            typeof(void),
+            Array.Empty<Type>());
+
+        AssertExactInstanceMethod(
+            method,
+            typeof(WorldInventoryUpdateTargetContractFixture),
+            isPublic: false,
+            Array.Empty<Type>());
+    }
+
+    [TestMethod]
+    public void FetchListStatusRenderContract_WhenInstalledShapeMatches_ReturnsExactPublicInstanceMethod()
+    {
+        var method = HarmonyPatchContractVerifier.RequireInstanceMethod(
+            typeof(FetchListStatusRenderTargetContractFixture),
+            "Render200ms",
+            DeclaredMemberVisibility.Public,
+            typeof(void),
+            Array.Empty<Type>());
+
+        AssertExactInstanceMethod(
+            method,
+            typeof(FetchListStatusRenderTargetContractFixture),
+            isPublic: true,
+            Array.Empty<Type>());
+    }
+
+    [TestMethod]
+    public void WorldInventoryInstructionContract_WhenCapturedInstalledShapeMatches_ResolvesEverySemanticAnchorOnce()
+    {
+        var anchors = RequireWorldInventoryInstructionAnchors(
+            CapturedWorldInventoryUpdateInstructions());
+
+        Assert.IsTrue(anchors.InventoryEntryCaptureIndex <
+            anchors.ResourceTagStartIndex);
+        Assert.IsTrue(anchors.ResourceTagStartIndex <
+            anchors.FilteredPickupContributionIndex);
+        Assert.IsTrue(anchors.FilteredPickupContributionIndex <
+            anchors.ResourceTagCompletionIndex);
+        Assert.AreEqual(4, anchors.ResourceTagLocalIndex);
+        Assert.AreEqual(5, anchors.AccumulatedAmountLocalIndex);
+        Assert.AreEqual(7, anchors.PickupableLocalIndex);
+    }
+
+    [TestMethod]
+    public void WorldInventoryInstructionContract_WhenResourceTagStartIsMissing_ThrowsContractViolation()
+    {
+        var instructions = CapturedWorldInventoryUpdateInstructions();
+        instructions[2] = CallInstruction("Wrong.get_Key");
+
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            RequireWorldInventoryInstructionAnchors(instructions));
+    }
+
+    [TestMethod]
+    public void WorldInventoryInstructionContract_WhenFilteredPickupContributionIsDuplicated_ThrowsContractViolation()
+    {
+        var instructions = CapturedWorldInventoryUpdateInstructions();
+        instructions.AddRange(instructions.GetRange(6, 10));
+
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            RequireWorldInventoryInstructionAnchors(instructions));
+    }
+
+    [TestMethod]
+    public void WorldInventoryInstructionContract_WhenPickupGetterIsNotTotalAmount_ThrowsContractViolation()
+    {
+        var instructions = CapturedWorldInventoryUpdateInstructions();
+        instructions[13] = CallInstruction(
+            "Pickupable.get_FetchTotalAmount");
+
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            RequireWorldInventoryInstructionAnchors(instructions));
+    }
+
+    [TestMethod]
+    public void FetchListStatusInstructionContract_WhenCapturedInstalledShapeMatches_ResolvesEarlyBranchAndAssignmentOnce()
+    {
+        var anchor = RequireFetchListStatusInstructionAnchor(
+            CapturedFetchListStatusRenderInstructions());
+
+        Assert.AreEqual(1, anchor.WorldIdLocalIndex);
+        Assert.AreEqual(28, anchor.FetchListLocalIndex);
+        Assert.AreEqual(33, anchor.ResourceTagLocalIndex);
+        Assert.AreEqual(34, anchor.RemainingAmountLocalIndex);
+        Assert.AreEqual(37, anchor.FetchableAmountLocalIndex);
+        Assert.AreEqual(38, anchor.MinimumRequiredAmountLocalIndex);
+    }
+
+    [TestMethod]
+    public void FetchListStatusInstructionContract_WhenFetchableAssignmentIsMissing_ThrowsContractViolation()
+    {
+        var instructions = CapturedFetchListStatusRenderInstructions();
+        instructions[15] = StoreLocalInstruction(99);
+
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            RequireFetchListStatusInstructionAnchor(instructions));
+    }
+
+    [TestMethod]
+    public void FetchListStatusInstructionContract_WhenEarlyInsufficientBranchIsReordered_ThrowsContractViolation()
+    {
+        var instructions = CapturedFetchListStatusRenderInstructions();
+        (instructions[20], instructions[21]) =
+            (instructions[21], instructions[20]);
+
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            RequireFetchListStatusInstructionAnchor(instructions));
+    }
+
+    [TestMethod]
+    public void InventoryAndStatusAdapterSources_WhenInspected_ExposeManualFailClosedContractsOnly()
+    {
+        var inventoryAdapterPath = ResolveProductionSourcePath(
+            "KleiImplementationAdapters",
+            "KleiWorldInventoryTemperaturePatches.cs");
+        var statusAdapterPath = ResolveProductionSourcePath(
+            "KleiImplementationAdapters",
+            "TemperatureStatusAvailabilityPatches.cs");
+        Assert.IsTrue(
+            File.Exists(inventoryAdapterPath),
+            $"Missing Klei inventory adapter source {inventoryAdapterPath}.");
+        Assert.IsTrue(
+            File.Exists(statusAdapterPath),
+            $"Missing status adapter source {statusAdapterPath}.");
+        var inventorySource = File.ReadAllText(inventoryAdapterPath);
+        var statusSource = File.ReadAllText(statusAdapterPath);
+        var combinedSource =
+            inventorySource + Environment.NewLine + statusSource;
+
+        StringAssert.Contains(
+            inventorySource,
+            "ResolveWorldInventoryUpdateTarget");
+        StringAssert.Contains(
+            inventorySource,
+            "WorldInventoryUpdateTranspiler");
+        StringAssert.Contains(inventorySource, "WorldInventoryUpdatePrefix");
+        StringAssert.Contains(inventorySource, "WorldInventoryUpdatePostfix");
+        StringAssert.Contains(inventorySource, "WorldInventoryUpdateFinalizer");
+        StringAssert.Contains(inventorySource, "BeginResourceTagEnumeration");
+        StringAssert.Contains(
+            inventorySource,
+            "IsTemperatureCollectionActive");
+        StringAssert.Contains(inventorySource, "ObserveResourceTagForCoverage");
+        StringAssert.Contains(
+            inventorySource,
+            "RecordFilteredPickupTemperatureAmount");
+        StringAssert.Contains(inventorySource, "CompleteResourceTagEnumeration");
+        StringAssert.Contains(
+            inventorySource,
+            "PublishWorldResourceTagCoverage");
+        StringAssert.Contains(
+            inventorySource,
+            "PublishWorldResourceTemperatureSeries");
+        StringAssert.Contains(inventorySource, "___firstUpdate");
+        StringAssert.Contains(
+            statusSource,
+            "ResolveFetchListStatusItemUpdaterRender200msTarget");
+        StringAssert.Contains(statusSource, "Render200msTranspiler");
+        StringAssert.Contains(
+            statusSource,
+            "ReplaceFetchableAmountWhenInventoryIsComplete");
+        StringAssert.Contains(
+            statusSource,
+            "TemperatureStatusAvailabilityDecision.ShouldTryReplacement");
+        StringAssert.Contains(
+            statusSource,
+            "GetTemperatureConstrainedAmountAvailability");
+        Assert.IsTrue(
+            CountOrdinalOccurrences(
+                combinedSource,
+                "HarmonyPatchContractVerifier.RequireSingleMatch") >= 5);
+        Assert.IsTrue(
+            CountOrdinalOccurrences(
+                inventorySource,
+                "HarmonyPatchContractVerifier.RequireInstanceMethod") >= 1);
+        Assert.IsTrue(
+            CountOrdinalOccurrences(
+                statusSource,
+                "HarmonyPatchContractVerifier.RequireInstanceMethod") >= 1);
+        Assert.IsFalse(
+            combinedSource.Contains("[HarmonyPatch", StringComparison.Ordinal));
+        Assert.IsFalse(
+            combinedSource.Contains("AccessTools", StringComparison.Ordinal));
+        Assert.IsFalse(
+            combinedSource.Contains("CheckTemperatureForStatusItems", StringComparison.Ordinal));
+        Assert.IsFalse(
+            combinedSource.Contains("WorldContainers", StringComparison.Ordinal));
+        Assert.IsFalse(
+            combinedSource.Contains("worldAmounts", StringComparison.Ordinal));
+        Assert.IsFalse(
+            combinedSource.Contains("FastTrack", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
     public void GameDestroyInstancesContract_WhenInstalledShapeMatches_ReturnsExactMethod()
     {
         var method = HarmonyPatchContractVerifier.RequireInstanceMethod(
@@ -1063,6 +1264,296 @@ public sealed class HarmonyPatchContractVerifierTests
             combinedSource.Contains("OnLoadLevel", StringComparison.Ordinal));
     }
 
+    private static WorldInventoryInstructionAnchors
+        RequireWorldInventoryInstructionAnchors(
+            IReadOnlyList<TranspilerInstructionFixture> instructions)
+    {
+        var candidateIndices = Enumerable.Range(0, instructions.Count).ToArray();
+        var inventoryEntryCaptureIndex =
+            HarmonyPatchContractVerifier.RequireSingleMatch(
+                candidateIndices,
+                index => MatchesWindow(
+                    instructions,
+                    index,
+                    CallInstruction(
+                        "Dictionary<Tag,HashSet<Pickupable>>.Enumerator.get_Current"),
+                    StoreLocalInstruction(localIndex: null)),
+                "WorldInventory.Update inventory-entry capture");
+        var resourceTagStartIndex =
+            HarmonyPatchContractVerifier.RequireSingleMatch(
+                candidateIndices,
+                index => MatchesWindow(
+                    instructions,
+                    index,
+                    CallInstruction(
+                        "KeyValuePair<Tag,HashSet<Pickupable>>.get_Key"),
+                    StoreLocalInstruction(localIndex: null),
+                    CallInstruction(
+                        "KeyValuePair<Tag,HashSet<Pickupable>>.get_Value"),
+                    CallInstruction("HashSet<Pickupable>.GetEnumerator")),
+                "WorldInventory.Update resource-tag enumeration start");
+        int resourceTagLocalIndex =
+            instructions[resourceTagStartIndex + 1].LocalIndex!.Value;
+
+        var filteredPickupContributionIndex =
+            HarmonyPatchContractVerifier.RequireSingleMatch(
+                candidateIndices,
+                index => MatchesWindow(
+                    instructions,
+                    index,
+                    LoadLocalInstruction(localIndex: null),
+                    FieldInstruction("Pickupable.KPrefabID"),
+                    StaticFieldInstruction("GameTags.StoredPrivate"),
+                    CallInstruction("KPrefabID.HasTag"),
+                    BranchInstruction("brtrue.s"),
+                    LoadLocalInstruction(localIndex: null),
+                    LoadLocalInstruction(localIndex: null),
+                    CallInstruction("Pickupable.get_TotalAmount"),
+                    OperationInstruction("add"),
+                    StoreLocalInstruction(localIndex: null)) &&
+                    HasMatchingWorldInventoryContributionLocals(
+                        instructions,
+                        index),
+                "WorldInventory.Update filtered Pickupable.TotalAmount contribution");
+        int pickupableLocalIndex =
+            instructions[filteredPickupContributionIndex].LocalIndex!.Value;
+        int accumulatedAmountLocalIndex =
+            instructions[filteredPickupContributionIndex + 5]
+                .LocalIndex!.Value;
+
+        var resourceTagCompletionIndex =
+            HarmonyPatchContractVerifier.RequireSingleMatch(
+                candidateIndices,
+                index => MatchesWindow(
+                    instructions,
+                    index,
+                    FieldInstruction("WorldInventory.accessibleAmounts"),
+                    LoadLocalInstruction(resourceTagLocalIndex),
+                    LoadLocalInstruction(accumulatedAmountLocalIndex),
+                    CallInstruction("Dictionary<Tag,float>.set_Item")),
+                "WorldInventory.Update resource-tag enumeration completion");
+
+        return new WorldInventoryInstructionAnchors(
+            inventoryEntryCaptureIndex,
+            resourceTagStartIndex,
+            filteredPickupContributionIndex,
+            resourceTagCompletionIndex,
+            resourceTagLocalIndex,
+            accumulatedAmountLocalIndex,
+            pickupableLocalIndex);
+    }
+
+    private static FetchListStatusInstructionAnchor
+        RequireFetchListStatusInstructionAnchor(
+            IReadOnlyList<TranspilerInstructionFixture> instructions)
+    {
+        var candidateIndices = Enumerable.Range(0, instructions.Count).ToArray();
+        var worldIdentityIndex = HarmonyPatchContractVerifier.RequireSingleMatch(
+            candidateIndices,
+            index => MatchesWindow(
+                instructions,
+                index,
+                CallInstruction("List<WorldContainer>.Enumerator.get_Current"),
+                FieldInstruction("WorldContainer.id"),
+                StoreLocalInstruction(localIndex: null)),
+            "FetchListStatusItemUpdater.Render200ms world identity");
+        int worldIdLocalIndex = instructions[worldIdentityIndex + 2]
+            .LocalIndex!.Value;
+
+        var minimumAmountCallIndex =
+            HarmonyPatchContractVerifier.RequireSingleMatch(
+                candidateIndices,
+                index => MatchesStatusAvailabilityWindow(instructions, index),
+                "FetchListStatusItemUpdater.Render200ms early-insufficient " +
+                "branch and fetchable assignment");
+
+        return new FetchListStatusInstructionAnchor(
+            worldIdLocalIndex,
+            instructions[minimumAmountCallIndex - 2].LocalIndex!.Value,
+            instructions[minimumAmountCallIndex - 1].LocalIndex!.Value,
+            instructions[minimumAmountCallIndex - 9].LocalIndex!.Value,
+            instructions[minimumAmountCallIndex - 3].LocalIndex!.Value,
+            instructions[minimumAmountCallIndex + 1].LocalIndex!.Value);
+    }
+
+    private static bool MatchesStatusAvailabilityWindow(
+        IReadOnlyList<TranspilerInstructionFixture> instructions,
+        int minimumAmountCallIndex)
+    {
+        if (!MatchesWindow(
+                instructions,
+                minimumAmountCallIndex - 12,
+                LoadLocalInstruction(localIndex: null),
+                LoadLocalInstruction(localIndex: null),
+                CallInstruction("Dictionary<Tag,float>.get_Item"),
+                LoadLocalInstruction(localIndex: null),
+                LoadLocalInstruction(localIndex: null),
+                CallInstruction("Mathf.Min"),
+                StoreLocalInstruction(localIndex: null),
+                LoadLocalInstruction(localIndex: null),
+                OperationInstruction("add"),
+                StoreLocalInstruction(localIndex: null),
+                LoadLocalInstruction(localIndex: null),
+                LoadLocalInstruction(localIndex: null),
+                CallInstruction("FetchList2.GetMinimumAmount"),
+                StoreLocalInstruction(localIndex: null),
+                OperationInstruction("dup"),
+                LoadLocalInstruction(localIndex: null),
+                OperationInstruction("add"),
+                LoadLocalInstruction(localIndex: null),
+                BranchInstruction("bge.un.s")))
+        {
+            return false;
+        }
+
+        int resourceTagLocalIndex =
+            instructions[minimumAmountCallIndex - 11].LocalIndex!.Value;
+        int interimFetchableAmountLocalIndex =
+            instructions[minimumAmountCallIndex - 6].LocalIndex!.Value;
+        int fetchableAmountLocalIndex =
+            instructions[minimumAmountCallIndex - 3].LocalIndex!.Value;
+        int minimumRequiredAmountLocalIndex =
+            instructions[minimumAmountCallIndex + 1].LocalIndex!.Value;
+
+        return instructions[minimumAmountCallIndex - 1].LocalIndex ==
+                resourceTagLocalIndex &&
+            instructions[minimumAmountCallIndex - 5].LocalIndex ==
+                interimFetchableAmountLocalIndex &&
+            instructions[minimumAmountCallIndex + 3].LocalIndex ==
+                fetchableAmountLocalIndex &&
+            instructions[minimumAmountCallIndex + 5].LocalIndex ==
+                minimumRequiredAmountLocalIndex;
+    }
+
+    private static bool HasMatchingWorldInventoryContributionLocals(
+        IReadOnlyList<TranspilerInstructionFixture> instructions,
+        int contributionStartIndex) =>
+        instructions[contributionStartIndex].LocalIndex ==
+            instructions[contributionStartIndex + 6].LocalIndex &&
+        instructions[contributionStartIndex + 5].LocalIndex ==
+            instructions[contributionStartIndex + 9].LocalIndex;
+
+    private static bool MatchesWindow(
+        IReadOnlyList<TranspilerInstructionFixture> instructions,
+        int startIndex,
+        params TranspilerInstructionFixture[] expectedWindow)
+    {
+        if (startIndex < 0 ||
+            startIndex + expectedWindow.Length > instructions.Count)
+        {
+            return false;
+        }
+
+        for (var relativeIndex = 0;
+             relativeIndex < expectedWindow.Length;
+             relativeIndex++)
+        {
+            var observed = instructions[startIndex + relativeIndex];
+            var expected = expectedWindow[relativeIndex];
+            if (!string.Equals(
+                    observed.Operation,
+                    expected.Operation,
+                    StringComparison.Ordinal) ||
+                !string.Equals(
+                    observed.MemberIdentity,
+                    expected.MemberIdentity,
+                    StringComparison.Ordinal) ||
+                expected.LocalIndex.HasValue &&
+                observed.LocalIndex != expected.LocalIndex)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static List<TranspilerInstructionFixture>
+        CapturedWorldInventoryUpdateInstructions() =>
+        [
+            CallInstruction(
+                "Dictionary<Tag,HashSet<Pickupable>>.Enumerator.get_Current"),
+            StoreLocalInstruction(3),
+            CallInstruction(
+                "KeyValuePair<Tag,HashSet<Pickupable>>.get_Key"),
+            StoreLocalInstruction(4),
+            CallInstruction(
+                "KeyValuePair<Tag,HashSet<Pickupable>>.get_Value"),
+            CallInstruction("HashSet<Pickupable>.GetEnumerator"),
+            LoadLocalInstruction(7),
+            FieldInstruction("Pickupable.KPrefabID"),
+            StaticFieldInstruction("GameTags.StoredPrivate"),
+            CallInstruction("KPrefabID.HasTag"),
+            BranchInstruction("brtrue.s"),
+            LoadLocalInstruction(5),
+            LoadLocalInstruction(7),
+            CallInstruction("Pickupable.get_TotalAmount"),
+            OperationInstruction("add"),
+            StoreLocalInstruction(5),
+            FieldInstruction("WorldInventory.accessibleAmounts"),
+            LoadLocalInstruction(4),
+            LoadLocalInstruction(5),
+            CallInstruction("Dictionary<Tag,float>.set_Item")
+        ];
+
+    private static List<TranspilerInstructionFixture>
+        CapturedFetchListStatusRenderInstructions() =>
+        [
+            CallInstruction("List<WorldContainer>.Enumerator.get_Current"),
+            FieldInstruction("WorldContainer.id"),
+            StoreLocalInstruction(1),
+            LoadLocalInstruction(18),
+            LoadLocalInstruction(33),
+            CallInstruction("Dictionary<Tag,float>.get_Item"),
+            LoadLocalInstruction(5),
+            LoadLocalInstruction(33),
+            CallInstruction("Dictionary<Tag,float>.get_Item"),
+            LoadLocalInstruction(34),
+            LoadLocalInstruction(35),
+            CallInstruction("Mathf.Min"),
+            StoreLocalInstruction(36),
+            LoadLocalInstruction(36),
+            OperationInstruction("add"),
+            StoreLocalInstruction(37),
+            LoadLocalInstruction(28),
+            LoadLocalInstruction(33),
+            CallInstruction("FetchList2.GetMinimumAmount"),
+            StoreLocalInstruction(38),
+            OperationInstruction("dup"),
+            LoadLocalInstruction(37),
+            OperationInstruction("add"),
+            LoadLocalInstruction(38),
+            BranchInstruction("bge.un.s")
+        ];
+
+    private static TranspilerInstructionFixture CallInstruction(
+        string memberIdentity) =>
+        new("call", memberIdentity, null);
+
+    private static TranspilerInstructionFixture FieldInstruction(
+        string memberIdentity) =>
+        new("field", memberIdentity, null);
+
+    private static TranspilerInstructionFixture StaticFieldInstruction(
+        string memberIdentity) =>
+        new("static-field", memberIdentity, null);
+
+    private static TranspilerInstructionFixture LoadLocalInstruction(
+        int? localIndex) =>
+        new("load-local", null, localIndex);
+
+    private static TranspilerInstructionFixture StoreLocalInstruction(
+        int? localIndex) =>
+        new("store-local", null, localIndex);
+
+    private static TranspilerInstructionFixture OperationInstruction(
+        string operation) =>
+        new(operation, null, null);
+
+    private static TranspilerInstructionFixture BranchInstruction(
+        string operation) =>
+        new(operation, null, null);
+
     private static void AssertExactInstanceMethod(
         MethodInfo method,
         Type expectedDeclaringType,
@@ -1156,6 +1647,28 @@ public sealed class HarmonyPatchContractVerifierTests
         Assert.IsNotNull(method);
         return method;
     }
+
+    private sealed record TranspilerInstructionFixture(
+        string Operation,
+        string? MemberIdentity,
+        int? LocalIndex);
+
+    private sealed record WorldInventoryInstructionAnchors(
+        int InventoryEntryCaptureIndex,
+        int ResourceTagStartIndex,
+        int FilteredPickupContributionIndex,
+        int ResourceTagCompletionIndex,
+        int ResourceTagLocalIndex,
+        int AccumulatedAmountLocalIndex,
+        int PickupableLocalIndex);
+
+    private sealed record FetchListStatusInstructionAnchor(
+        int WorldIdLocalIndex,
+        int FetchListLocalIndex,
+        int ResourceTagLocalIndex,
+        int RemainingAmountLocalIndex,
+        int FetchableAmountLocalIndex,
+        int MinimumRequiredAmountLocalIndex);
 
     private class MethodFixtureBase
     {
@@ -1288,6 +1801,20 @@ public sealed class HarmonyPatchContractVerifierTests
         }
 
         public sealed class PublicNestedTarget
+        {
+        }
+    }
+
+    private sealed class WorldInventoryUpdateTargetContractFixture
+    {
+        private void Update()
+        {
+        }
+    }
+
+    private sealed class FetchListStatusRenderTargetContractFixture
+    {
+        public void Render200ms()
         {
         }
     }

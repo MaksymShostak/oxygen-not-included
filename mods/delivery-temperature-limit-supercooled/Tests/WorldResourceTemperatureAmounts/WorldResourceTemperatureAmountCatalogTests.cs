@@ -559,6 +559,21 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
     }
 
     [TestMethod]
+    public void GetTemperatureConstrainedAmountAvailability_WhenConstraintIsEmptyAndWorldIsUnknown_ReturnsCompleteZeroWithoutCatalogLookup()
+    {
+        var catalog = new WorldResourceTemperatureAmountCatalog();
+
+        AssertCompleteAmount(
+            0.0f,
+            catalog.GetTemperatureConstrainedAmountAvailability(
+                parentWorldId: 991,
+                resourceTag: Iron,
+                constraint: Constraint(300, 300),
+                expectedCollectionGeneration: Generation()));
+        Assert.IsEmpty(ReadAggregateMap(catalog));
+    }
+
+    [TestMethod]
     public void GetTemperatureConstrainedAmountAvailability_WhenConstraintIsDisabled_ReturnsTemperatureConstraintDisabled()
     {
         var catalog = new WorldResourceTemperatureAmountCatalog();
