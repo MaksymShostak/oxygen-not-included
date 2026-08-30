@@ -1218,6 +1218,227 @@ public sealed class HarmonyPatchContractVerifierTests
     }
 
     [TestMethod]
+    public void KleiDirectEligibilityTargetContracts_WhenInstalledShapesMatch_ReturnExactMethods()
+    {
+        var isFetchablePickup =
+            HarmonyPatchContractVerifier.RequireStaticMethod(
+                typeof(FetchManagerDirectEligibilityContractFixture),
+                "IsFetchablePickup",
+                DeclaredMemberVisibility.Public,
+                typeof(bool),
+                [
+                    typeof(DirectPickupableContractFixture),
+                    typeof(DirectFetchChoreContractFixture),
+                    typeof(DirectStorageContractFixture)
+                ]);
+        var collectChores =
+            HarmonyPatchContractVerifier.RequireInstanceMethod(
+                typeof(ClearableManagerDirectEligibilityContractFixture),
+                "CollectChores",
+                DeclaredMemberVisibility.Public,
+                typeof(void),
+                [
+                    typeof(List<DirectGlobalFetchContractFixture>),
+                    typeof(DirectChoreConsumerStateContractFixture),
+                    typeof(List<DirectChoreContextContractFixture>),
+                    typeof(List<DirectChoreContextContractFixture>)
+                ]);
+        var begin = HarmonyPatchContractVerifier.RequireInstanceMethod(
+            typeof(FetchAreaStatesInstanceDirectEligibilityContractFixture),
+            "Begin",
+            DeclaredMemberVisibility.Public,
+            typeof(void),
+            [typeof(DirectChoreContextContractFixture)]);
+        var candidateDelegate =
+            HarmonyPatchContractVerifier.RequireInstanceMethod(
+                typeof(FetchAreaCandidateClosureDirectEligibilityContractFixture),
+                "EvaluateCandidate",
+                DeclaredMemberVisibility.NonPublic,
+                typeof(DirectIterationInstructionContractFixture),
+                [typeof(object), typeof(object)]);
+        var closureOwnerField = HarmonyPatchContractVerifier.RequireField(
+            typeof(FetchAreaCandidateClosureDirectEligibilityContractFixture),
+            "StatesInstance",
+            DeclaredMemberVisibility.Public,
+            FieldStorageKind.Instance,
+            typeof(FetchAreaStatesInstanceDirectEligibilityContractFixture));
+
+        Assert.IsTrue(isFetchablePickup.IsStatic);
+        Assert.IsTrue(isFetchablePickup.IsPublic);
+        Assert.AreSame(typeof(bool), isFetchablePickup.ReturnType);
+        AssertExactInstanceMethod(
+            collectChores,
+            typeof(ClearableManagerDirectEligibilityContractFixture),
+            isPublic: true,
+            [
+                typeof(List<DirectGlobalFetchContractFixture>),
+                typeof(DirectChoreConsumerStateContractFixture),
+                typeof(List<DirectChoreContextContractFixture>),
+                typeof(List<DirectChoreContextContractFixture>)
+            ]);
+        AssertExactInstanceMethod(
+            begin,
+            typeof(FetchAreaStatesInstanceDirectEligibilityContractFixture),
+            isPublic: true,
+            [typeof(DirectChoreContextContractFixture)]);
+        AssertExactInstanceMethod(
+            candidateDelegate,
+            typeof(FetchAreaCandidateClosureDirectEligibilityContractFixture),
+            isPublic: false,
+            typeof(DirectIterationInstructionContractFixture),
+            [typeof(object), typeof(object)]);
+        Assert.AreSame(
+            typeof(FetchAreaStatesInstanceDirectEligibilityContractFixture),
+            closureOwnerField.FieldType);
+    }
+
+    [TestMethod]
+    public void KleiDirectEligibilityIsFetchablePickupContract_WhenReturnTypeChanges_ThrowsContractViolation()
+    {
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            HarmonyPatchContractVerifier.RequireStaticMethod(
+                typeof(FetchManagerChangedDirectEligibilityContractFixture),
+                "IsFetchablePickup",
+                DeclaredMemberVisibility.Public,
+                typeof(bool),
+                [
+                    typeof(DirectPickupableContractFixture),
+                    typeof(DirectFetchChoreContractFixture),
+                    typeof(DirectStorageContractFixture)
+                ]));
+    }
+
+    [TestMethod]
+    public void KleiDirectEligibilityDelegateContract_WhenClosureOwnerFieldChanges_ThrowsContractViolation()
+    {
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            HarmonyPatchContractVerifier.RequireField(
+                typeof(FetchAreaChangedCandidateClosureDirectEligibilityContractFixture),
+                "StatesInstance",
+                DeclaredMemberVisibility.Public,
+                FieldStorageKind.Instance,
+                typeof(FetchAreaStatesInstanceDirectEligibilityContractFixture)));
+
+        var instructions = CapturedFetchAreaCandidateDelegateInstructions();
+        instructions[1] = FieldInstruction(
+            "FetchAreaCandidateClosure.changedStatesInstance");
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            RequireKleiDirectEligibilityInstructionAnchors(
+                CapturedClearableCollectChoresInstructions(),
+                CapturedFetchAreaBeginInstructions(),
+                instructions));
+    }
+
+    [TestMethod]
+    public void KleiDirectEligibilityInstructionContract_WhenCapturedInstalledShapesMatch_ResolvesEveryTypedAnchorOnce()
+    {
+        var anchors = RequireKleiDirectEligibilityInstructionAnchors(
+            CapturedClearableCollectChoresInstructions(),
+            CapturedFetchAreaBeginInstructions(),
+            CapturedFetchAreaCandidateDelegateInstructions());
+
+        Assert.AreEqual(5, anchors.ClearablePickupableLocalIndex);
+        Assert.AreEqual(10, anchors.ClearableFetchLocalIndex);
+        Assert.AreEqual(14, anchors.CandidateFetchChoreLocalIndex);
+        Assert.AreEqual(0, anchors.DelegatePickupableLocalIndex);
+        Assert.AreEqual(20, anchors.ClearableEligibilityExtensionIndex);
+        Assert.AreEqual(6, anchors.FetchChoreContainmentExtensionIndex);
+        Assert.AreEqual(6, anchors.DelegateCanReachCallIndex);
+    }
+
+    [TestMethod]
+    public void KleiDirectEligibilityInstructionContract_WhenTwoCanReachCallsMatch_ThrowsContractViolation()
+    {
+        var delegateInstructions =
+            CapturedFetchAreaCandidateDelegateInstructions();
+        delegateInstructions.AddRange(
+            CapturedFetchAreaCandidateDelegateInstructions());
+
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            RequireKleiDirectEligibilityInstructionAnchors(
+                CapturedClearableCollectChoresInstructions(),
+                CapturedFetchAreaBeginInstructions(),
+                delegateInstructions));
+    }
+
+    [TestMethod]
+    public void KleiDirectEligibilityInstructionContract_WhenDirectResultBranchIsMissing_ThrowsContractViolation()
+    {
+        var delegateInstructions =
+            CapturedFetchAreaCandidateDelegateInstructions();
+        delegateInstructions[7] = BranchInstruction("brfalse.s");
+
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            RequireKleiDirectEligibilityInstructionAnchors(
+                CapturedClearableCollectChoresInstructions(),
+                CapturedFetchAreaBeginInstructions(),
+                delegateInstructions));
+    }
+
+    [TestMethod]
+    public void KleiDirectEligibilityAdapterSource_WhenInspected_UsesCentralAllocationFreeChecksAndManualFailClosedContracts()
+    {
+        var adapterPath = ResolveProductionSourcePath(
+            "KleiImplementationAdapters",
+            "KleiDirectDeliveryEligibilityPatches.cs");
+        Assert.IsTrue(
+            File.Exists(adapterPath),
+            $"Missing Klei direct delivery eligibility adapter source {adapterPath}.");
+        var source = File.ReadAllText(adapterPath);
+
+        StringAssert.Contains(
+            source,
+            "ResolveFetchManagerIsFetchablePickupTarget");
+        StringAssert.Contains(
+            source,
+            "ResolveClearableManagerCollectChoresTarget");
+        StringAssert.Contains(
+            source,
+            "ResolveFetchAreaChoreStatesInstanceBeginTarget");
+        StringAssert.Contains(
+            source,
+            "ResolveFetchAreaChoreCandidateDelegateTarget");
+        StringAssert.Contains(
+            source,
+            "VerifyKleiDirectDeliveryEligibilityPatchContracts");
+        StringAssert.Contains(source, "IsFetchablePickupPostfix");
+        StringAssert.Contains(source, "ClearableManagerCollectChoresTranspiler");
+        StringAssert.Contains(source, "FetchAreaChoreBeginTranspiler");
+        StringAssert.Contains(source, "FetchAreaCandidateDelegateTranspiler");
+        StringAssert.Contains(source, "IsPickupAllowedForDestination");
+        StringAssert.Contains(
+            source,
+            "FetchChoreTemperatureConstraintContainment.CanCombine");
+        StringAssert.Contains(
+            source,
+            "TemperatureLimitComponents.TryGetConstraint");
+        StringAssert.Contains(source, "constraint.Allows");
+        Assert.AreEqual(
+            1,
+            CountOrdinalOccurrences(source, "constraint.Allows("),
+            "The direct adapter must delegate one canonical temperature decision rather than duplicating its bounds.");
+        Assert.AreEqual(
+            1,
+            CountOrdinalOccurrences(source, "primaryElement.Temperature"),
+            "The direct adapter must read a candidate's live temperature exactly once in its shared check.");
+        StringAssert.Contains(source, "if (!__result)");
+        StringAssert.Contains(source, "if (!consumer.CanReach(approachable))");
+        StringAssert.Contains(source, "PatchProcessor.GetOriginalInstructions");
+        Assert.IsFalse(source.Contains("[HarmonyPatch", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("AccessTools", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("operand.ToString", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("<>c__DisplayClass", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("GetComponent", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("CaptureSnapshot", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("CurrentFetchTemperatureEligibility", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("HashSet<Tag>[]", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("System.Linq", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("TemperatureLimit.Get", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("ValueTuple", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("Tuple<", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
     public void WorldInventoryInstructionContract_WhenCapturedInstalledShapeMatches_ResolvesEverySemanticAnchorOnce()
     {
         var anchors = RequireWorldInventoryInstructionAnchors(
@@ -1629,6 +1850,124 @@ public sealed class HarmonyPatchContractVerifierTests
             combinedSource.Contains("OnLoadLevel", StringComparison.Ordinal));
     }
 
+    private static KleiDirectEligibilityInstructionAnchors
+        RequireKleiDirectEligibilityInstructionAnchors(
+            IReadOnlyList<TranspilerInstructionFixture>
+                clearableCollectChoresInstructions,
+            IReadOnlyList<TranspilerInstructionFixture>
+                fetchAreaBeginInstructions,
+            IReadOnlyList<TranspilerInstructionFixture>
+                fetchAreaCandidateDelegateInstructions)
+    {
+        var clearableCandidateIndices = Enumerable.Range(
+            0,
+            clearableCollectChoresInstructions.Count).ToArray();
+        int pickupableCaptureIndex =
+            HarmonyPatchContractVerifier.RequireSingleMatch(
+                clearableCandidateIndices,
+                index => MatchesWindow(
+                    clearableCollectChoresInstructions,
+                    index,
+                    FieldInstruction("ClearableManager.sortedClearables"),
+                    LoadLocalInstruction(localIndex: null),
+                    CallInstruction("List<SortedClearable>.get_Item"),
+                    OperationInstruction("dup"),
+                    FieldInstruction("SortedClearable.pickupable"),
+                    StoreLocalInstruction(localIndex: null)),
+                "ClearableManager.CollectChores typed pickupable capture");
+        int clearablePickupableLocalIndex =
+            clearableCollectChoresInstructions[pickupableCaptureIndex + 5]
+                .LocalIndex!.Value;
+
+        int fetchCaptureIndex =
+            HarmonyPatchContractVerifier.RequireSingleMatch(
+                clearableCandidateIndices,
+                index => MatchesWindow(
+                    clearableCollectChoresInstructions,
+                    index,
+                    LoadArgumentInstruction(1),
+                    LoadLocalInstruction(localIndex: null),
+                    CallInstruction("List<GlobalFetch>.get_Item"),
+                    StoreLocalInstruction(localIndex: null)),
+                "ClearableManager.CollectChores typed fetch capture");
+        int clearableFetchLocalIndex =
+            clearableCollectChoresInstructions[fetchCaptureIndex + 3]
+                .LocalIndex!.Value;
+
+        int clearableEligibilityAnchorIndex =
+            HarmonyPatchContractVerifier.RequireSingleMatch(
+                clearableCandidateIndices,
+                index => MatchesWindow(
+                    clearableCollectChoresInstructions,
+                    index,
+                    LoadLocalInstruction(localIndex: null),
+                    LoadLocalInstruction(clearableFetchLocalIndex),
+                    FieldInstruction("GlobalFetch.chore"),
+                    FieldInstruction("FetchChore.tagsFirst"),
+                    CallInstruction("KPrefabID.HasTag"),
+                    BranchInstruction("br.s"),
+                    OperationInstruction("ldc.i4.0"),
+                    BranchInstruction("br.s"),
+                    OperationInstruction("ldc.i4.1"),
+                    BranchInstruction("brfalse.s")),
+                "ClearableManager.CollectChores direct eligibility extension");
+
+        var beginCandidateIndices = Enumerable.Range(
+            0,
+            fetchAreaBeginInstructions.Count).ToArray();
+        int fetchChoreContainmentAnchorIndex =
+            HarmonyPatchContractVerifier.RequireSingleMatch(
+                beginCandidateIndices,
+                index => MatchesWindow(
+                    fetchAreaBeginInstructions,
+                    index,
+                    LoadLocalInstruction(localIndex: null),
+                    FieldInstruction("FetchChore.forbidHash"),
+                    LoadArgumentInstruction(0),
+                    FieldInstruction("FetchAreaStatesInstance.rootChore"),
+                    FieldInstruction("FetchChore.forbidHash"),
+                    BranchInstruction("bne.un.s")),
+                "FetchAreaChore.StatesInstance.Begin fetch-chore containment " +
+                "extension");
+        int candidateFetchChoreLocalIndex =
+            fetchAreaBeginInstructions[fetchChoreContainmentAnchorIndex]
+                .LocalIndex!.Value;
+
+        var delegateCandidateIndices = Enumerable.Range(
+            0,
+            fetchAreaCandidateDelegateInstructions.Count).ToArray();
+        int delegateCanReachAnchorIndex =
+            HarmonyPatchContractVerifier.RequireSingleMatch(
+                delegateCandidateIndices,
+                index => MatchesWindow(
+                    fetchAreaCandidateDelegateInstructions,
+                    index,
+                    LoadArgumentInstruction(0),
+                    FieldInstruction("FetchAreaCandidateClosure.statesInstance"),
+                    FieldAddressInstruction(
+                        "FetchAreaStatesInstance.rootContext"),
+                    FieldInstruction("ChoreContext.consumerState"),
+                    FieldInstruction("ChoreConsumerState.consumer"),
+                    LoadLocalInstruction(localIndex: null),
+                    CallInstruction("ChoreConsumer.CanReach"),
+                    BranchInstruction("brtrue.s"),
+                    OperationInstruction("ldc.i4.0"),
+                    OperationInstruction("ret")),
+                "FetchAreaChore candidate delegate direct CanReach result");
+        int delegatePickupableLocalIndex =
+            fetchAreaCandidateDelegateInstructions[
+                delegateCanReachAnchorIndex + 5].LocalIndex!.Value;
+
+        return new KleiDirectEligibilityInstructionAnchors(
+            clearablePickupableLocalIndex,
+            clearableFetchLocalIndex,
+            candidateFetchChoreLocalIndex,
+            delegatePickupableLocalIndex,
+            clearableEligibilityAnchorIndex + 10,
+            fetchChoreContainmentAnchorIndex + 6,
+            delegateCanReachAnchorIndex + 6);
+    }
+
     private static KleiPickupGroupingInstructionAnchors
         RequireKleiPickupGroupingInstructionAnchors(
             IReadOnlyList<TranspilerInstructionFixture>
@@ -1995,6 +2334,62 @@ public sealed class HarmonyPatchContractVerifierTests
     }
 
     private static List<TranspilerInstructionFixture>
+        CapturedClearableCollectChoresInstructions() =>
+        [
+            FieldInstruction("ClearableManager.sortedClearables"),
+            LoadLocalInstruction(4),
+            CallInstruction("List<SortedClearable>.get_Item"),
+            OperationInstruction("dup"),
+            FieldInstruction("SortedClearable.pickupable"),
+            StoreLocalInstruction(5),
+            LoadArgumentInstruction(1),
+            LoadLocalInstruction(9),
+            CallInstruction("List<GlobalFetch>.get_Item"),
+            StoreLocalInstruction(10),
+            LoadLocalInstruction(8),
+            LoadLocalInstruction(10),
+            FieldInstruction("GlobalFetch.chore"),
+            FieldInstruction("FetchChore.tagsFirst"),
+            CallInstruction("KPrefabID.HasTag"),
+            BranchInstruction("br.s"),
+            OperationInstruction("ldc.i4.0"),
+            BranchInstruction("br.s"),
+            OperationInstruction("ldc.i4.1"),
+            BranchInstruction("brfalse.s"),
+            LoadLocalAddressInstruction(7)
+        ];
+
+    private static List<TranspilerInstructionFixture>
+        CapturedFetchAreaBeginInstructions() =>
+        [
+            LoadLocalInstruction(14),
+            FieldInstruction("FetchChore.forbidHash"),
+            LoadArgumentInstruction(0),
+            FieldInstruction("FetchAreaStatesInstance.rootChore"),
+            FieldInstruction("FetchChore.forbidHash"),
+            BranchInstruction("bne.un.s"),
+            LoadLocalInstruction(14),
+            CallInstruction("FetchChore.get_originalAmount")
+        ];
+
+    private static List<TranspilerInstructionFixture>
+        CapturedFetchAreaCandidateDelegateInstructions() =>
+        [
+            LoadArgumentInstruction(0),
+            FieldInstruction("FetchAreaCandidateClosure.statesInstance"),
+            FieldAddressInstruction("FetchAreaStatesInstance.rootContext"),
+            FieldInstruction("ChoreContext.consumerState"),
+            FieldInstruction("ChoreConsumerState.consumer"),
+            LoadLocalInstruction(0),
+            CallInstruction("ChoreConsumer.CanReach"),
+            BranchInstruction("brtrue.s"),
+            OperationInstruction("ldc.i4.0"),
+            OperationInstruction("ret"),
+            LoadLocalInstruction(1),
+            StaticFieldInstruction("GameTags.MarkedForMove")
+        ];
+
+    private static List<TranspilerInstructionFixture>
         CapturedPickupGroupingComparatorInstructions() =>
         [
             LoadArgumentAddressInstruction(1),
@@ -2282,6 +2677,15 @@ public sealed class HarmonyPatchContractVerifierTests
         string? MemberIdentity,
         int? LocalIndex);
 
+    private sealed record KleiDirectEligibilityInstructionAnchors(
+        int ClearablePickupableLocalIndex,
+        int ClearableFetchLocalIndex,
+        int CandidateFetchChoreLocalIndex,
+        int DelegatePickupableLocalIndex,
+        int ClearableEligibilityExtensionIndex,
+        int FetchChoreContainmentExtensionIndex,
+        int DelegateCanReachCallIndex);
+
     private sealed record KleiPickupGroupingInstructionAnchors(
         int ComparatorExtensionIndex,
         int DuplicateSuppressionExtensionIndex,
@@ -2458,6 +2862,108 @@ public sealed class HarmonyPatchContractVerifierTests
 
     private sealed class NavigatorPickupGroupingContractFixture
     {
+    }
+
+    private sealed class DirectPickupableContractFixture
+    {
+    }
+
+    private sealed class DirectFetchChoreContractFixture
+    {
+    }
+
+    private sealed class DirectStorageContractFixture
+    {
+    }
+
+    private sealed class DirectGlobalFetchContractFixture
+    {
+    }
+
+    private sealed class DirectChoreConsumerStateContractFixture
+    {
+    }
+
+    private sealed class DirectChoreContextContractFixture
+    {
+    }
+
+    private enum DirectIterationInstructionContractFixture
+    {
+        Continue
+    }
+
+    private static class FetchManagerDirectEligibilityContractFixture
+    {
+        public static bool IsFetchablePickup(
+            DirectPickupableContractFixture pickup,
+            DirectFetchChoreContractFixture chore,
+            DirectStorageContractFixture destination) =>
+            pickup != null && chore != null && destination != null;
+    }
+
+    private static class FetchManagerChangedDirectEligibilityContractFixture
+    {
+        public static int IsFetchablePickup(
+            DirectPickupableContractFixture pickup,
+            DirectFetchChoreContractFixture chore,
+            DirectStorageContractFixture destination) =>
+            pickup != null && chore != null && destination != null ? 1 : 0;
+    }
+
+    private sealed class ClearableManagerDirectEligibilityContractFixture
+    {
+        public void CollectChores(
+            List<DirectGlobalFetchContractFixture> fetches,
+            DirectChoreConsumerStateContractFixture consumerState,
+            List<DirectChoreContextContractFixture> succeededContexts,
+            List<DirectChoreContextContractFixture> failedContexts)
+        {
+            _ = fetches;
+            _ = consumerState;
+            _ = succeededContexts;
+            _ = failedContexts;
+        }
+    }
+
+    private sealed class FetchAreaStatesInstanceDirectEligibilityContractFixture
+    {
+        public void Begin(DirectChoreContextContractFixture context)
+        {
+            _ = context;
+        }
+    }
+
+    private sealed class FetchAreaCandidateClosureDirectEligibilityContractFixture
+    {
+        public FetchAreaStatesInstanceDirectEligibilityContractFixture
+            StatesInstance = new();
+
+        private DirectIterationInstructionContractFixture EvaluateCandidate(
+            object candidate,
+            object context)
+        {
+            _ = candidate;
+            _ = context;
+            _ = StatesInstance;
+            return DirectIterationInstructionContractFixture.Continue;
+        }
+    }
+
+    private sealed class FetchAreaChangedCandidateClosureDirectEligibilityContractFixture
+    {
+        public FetchAreaStatesInstanceDirectEligibilityContractFixture
+            ChangedStatesInstance = new();
+
+        private DirectIterationInstructionContractFixture EvaluateCandidate(
+            object candidate,
+            object context)
+        {
+            _ = candidate;
+            _ = context;
+            _ = ChangedStatesInstance;
+            return DirectIterationInstructionContractFixture.Continue;
+        }
     }
 
     private readonly struct PickupGroupingCandidateContractFixture
