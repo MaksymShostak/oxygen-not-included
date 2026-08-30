@@ -15,6 +15,42 @@ internal readonly struct ReferenceTemperatureAmount
 
 internal static class ReferenceTemperatureEligibilityModel
 {
+    internal static bool[] EvaluateDestinationConstraintAllowances(
+        IReadOnlyList<DeliveryTemperatureConstraint> destinationConstraints,
+        float temperatureKelvin)
+    {
+        ArgumentNullException.ThrowIfNull(destinationConstraints);
+
+        var allowances = new bool[destinationConstraints.Count];
+        for (var constraintIndex = 0;
+             constraintIndex < destinationConstraints.Count;
+             constraintIndex++)
+        {
+            var destinationConstraint = destinationConstraints[constraintIndex];
+            if (!destinationConstraint.IsEnabled)
+            {
+                allowances[constraintIndex] = true;
+                continue;
+            }
+
+            if (destinationConstraint.IsEmpty)
+            {
+                allowances[constraintIndex] = false;
+                continue;
+            }
+
+            // This remains an independent oracle: it repeats the serialized-domain
+            // truncation and comparisons rather than invoking any production
+            // constraint, interval-set, or partition-classification operation.
+            var truncatedKelvin = (int)temperatureKelvin;
+            allowances[constraintIndex] =
+                destinationConstraint.MinimumInclusiveKelvin <= truncatedKelvin &&
+                truncatedKelvin < destinationConstraint.MaximumExclusiveKelvin;
+        }
+
+        return allowances;
+    }
+
     internal static bool AnyDestinationAllowsTemperature(
         IReadOnlyList<DeliveryTemperatureConstraint> destinationConstraints,
         float temperatureKelvin)
