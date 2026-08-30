@@ -3805,7 +3805,7 @@ refactor: Add collision-free FastTrack pickup adapters
 - Create: `mods/delivery-temperature-limit-supercooled/Source/RuntimePatchInstallation/DeliveryTemperatureRuntimePatchPlan.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Source/RuntimePatchInstallation/DeliveryTemperatureRuntimePatchInstaller.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Source/RuntimePatchInstallation/DeliveryTemperatureGameLoadAuthorityPatches.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/RuntimePatchInstallation/FastTrackDeliveryEligibilityCompatibilityException.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/FastTrackDeliveryEligibilityCompatibilityException.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Source/HarmonyTranspilerInfrastructure/HarmonyCodeInstructionFactory.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Source/TemperatureLimitedDeliveryTargets/TemperatureLimit.cs`
 - Move: `mods/delivery-temperature-limit-supercooled/Source/Mod.cs` to `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureLimitMod.cs`
@@ -3829,31 +3829,37 @@ refactor: Add collision-free FastTrack pickup adapters
 - Consumes: every Gate A–C module and compatibility report.
 - Produces: the first installable build, with exactly one canonical runtime algorithm, selected Klei/FastTrack adapters, intentional public surface, and no obsolete temperature-index subsystem.
 
-- [ ] **Step 1: Write failing implementation-path selection tests**
+- [x] **Step 1: Write failing implementation-path selection tests**
 
 `DeliveryTemperatureRuntimePatchPlan.Create` takes `checkTemperatureForStatusItems` plus the immutable FastTrack compatibility report. Base-game versus Spaced Out content mode is deliberately not an input because adapter selection is orthogonal to content mode. It does not take path enums, “fallback verified” booleans, or generic `useFastTrack` flags because an active incompatible replacement is never neutralized or unpatched by this mod.
 
 Add exact tests:
 
-- `Create_WhenFastTrackIsNotLoaded_OrdersKleiInventoryPickupAndDirectGroups`
+- `Create_WhenFastTrackIsNotLoadedOrDisabledForLoadedGame_OrdersKleiInventoryPickupAndDirectGroups`
 - `Create_WhenFastTrackReplacementsAreInactive_OrdersKleiInventoryPickupAndDirectGroups`
 - `Create_WhenFastTrackWorldInventoryIsReady_OrdersFastTrackInventoryGroup`
 - `Create_WhenFastTrackPickupGroupingIsReady_OrdersFastTrackPickupGroup`
+- `Create_WhenFastTrackDirectDeliveryIsReady_OrdersFastTrackDirectGroup`
 - `Create_WhenStatusOptionIsDisabled_SelectsNoInventoryOrStatusInstrumentation`
 - `Create_WhenStatusOptionIsDisabledAndFastTrackWorldInventoryIsIncompatible_DoesNotBlockAnUnusedStatusFeature`
 - `Create_WhenActivePickupFeatureIsIncompatible_ThrowsFastTrackDeliveryEligibilityCompatibilityException`
 - `Create_WhenActiveDirectDeliveryFeatureIsIncompatible_ThrowsFastTrackDeliveryEligibilityCompatibilityException`
 - `Create_WhenStatusIsEnabledAndWorldInventoryFeatureIsIncompatible_OmitsOnlyStatusIntegrationAndReturnsDiagnostic`
-- `Create_WhenDirectDeliveryFeatureIsInactive_OmitsOnlyFastTrackDirectAdapter`
-- `Create_WhenFastTrackIsDisabledForLoadedGame_OrdersKleiGroupsWithoutFastTrackAdapterState`
+- `Create_WhenOnlyDirectDeliveryFeatureIsInactive_SelectsKleiDirectGroupWithoutChangingReadyFastTrackGroups`
 
 Assert the complete `OrderedPatchGroups` sequence in every case with `Assert.AreSequenceEqual`. The retained order is the Contract Registry enum order after filtering mutually exclusive/disabled groups: lifecycle, topology, authoritative fetch, optional selected inventory, optional status, selected pickup, and selected direct delivery. No separate path enum or boolean mirrors this list.
 
-- [ ] **Step 2: Run selection tests red, then implement the immutable activation plan**
+Implementation reconciliation: mod absence and “disabled for this loaded game” both deliberately enter `DeliveryTemperatureRuntimePatchPlan.Create` as the identical immutable all-`ModNotLoaded` report. They are one premise at this layer, so one combined test replaces two duplicate tests under the approved no-repetition rule. A missing Ready-direct case was added because each independently selectable responsibility requires a positive FastTrack selection proof. The inactive-direct case now keeps world inventory and pickup Ready, proving that only the direct implementation changes.
+
+- [x] **Step 2: Run selection tests red, then implement the immutable activation plan**
 
 Expected red: missing runtime patch group, runtime-patch-plan, and semantic compatibility-exception types. Implement only the ordered-group selection matrix and rerun green before editing the mod entrypoint.
 
 The runtime patch plan exposes one immutable ordered patch-group list, not individual booleans scattered across the installer. Construction validates impossible combinations, such as selecting either inventory group when the status option is disabled, selecting both implementations of one responsibility, or selecting FastTrack when compatibility is not `Ready`. Critical failure messages name feature, file/assembly version, digest if available, exact failed member/anchor, and the best-efforts `0.18.4.0` support qualification.
+
+Observed red and green: the focused suite first failed to compile because the patch-group and patch-plan types did not exist. The pure implementation then passed all 11 selection cases. It filters one contract-ordered responsibility list, publishes a read-only sequence, defensively validates inventory/status coherence and exactly one pickup/direct implementation, and carries full physical/structural evidence in incompatibility diagnostics. `FastTrackDeliveryEligibilityCompatibilityException` lives with the FastTrack feature-contract model it reports, rather than inside runtime installation glue; this keeps the compatibility semantic owner independent of the consumer and lets the existing pure linked-source boundary test it without a new project-file link.
+
+First Task 24 commit gate: fresh pipeline `validate`, `build`, and `test` passed. The declared suite executed 550 tests with 550 passed and zero failed, skipped/not-executed, or inconclusive tests. The exact build result was `artifacts/builds/MaksymShostak.DeliveryTemperatureLimit/20260830T0632299254022Z-be6119020d8241f98d2a5cc7f3950782/build-result.json`. No project or pipeline configuration changed in this slice.
 
 - [ ] **Step 3: Write failing curated runtime/serialization contract tests**
 
