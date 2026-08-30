@@ -41,7 +41,7 @@ namespace DeliveryTemperatureLimit
 
         internal static WorldResourceTagCoverage Create(
             WorldInventoryCollectionGeneration collectionGeneration,
-            IReadOnlyCollection<Tag> presentResourceTags)
+            IEnumerable<Tag> presentResourceTags)
         {
             if (presentResourceTags == null)
             {
@@ -51,7 +51,7 @@ namespace DeliveryTemperatureLimit
             // Preserve first-seen order for diagnostics and deterministic tests.
             // ONI dictionary enumeration is not assumed to be alphabetical.
             var uniquePresentResourceTags =
-                new List<Tag>(presentResourceTags.Count);
+                new List<Tag>(GetKnownCollectionCount(presentResourceTags));
             var presentResourceTagMembership =
                 new HashSet<Tag>();
             foreach (Tag presentResourceTag in presentResourceTags)
@@ -66,6 +66,26 @@ namespace DeliveryTemperatureLimit
                 collectionGeneration,
                 uniquePresentResourceTags.ToArray(),
                 presentResourceTagMembership);
+        }
+
+        private static int GetKnownCollectionCount(
+            IEnumerable<Tag> presentResourceTags)
+        {
+            if (presentResourceTags is ICollection<Tag> mutableCollection)
+            {
+                return mutableCollection.Count;
+            }
+
+            if (presentResourceTags is
+                IReadOnlyCollection<Tag> readOnlyCollection)
+            {
+                return readOnlyCollection.Count;
+            }
+
+            // An uncommon lazy source remains valid and is still enumerated only
+            // once. Starting at zero avoids a speculative pre-enumeration solely
+            // to size the immutable coverage copy.
+            return 0;
         }
 
         /// <summary>

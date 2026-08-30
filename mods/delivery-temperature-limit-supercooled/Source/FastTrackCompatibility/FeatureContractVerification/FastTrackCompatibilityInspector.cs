@@ -408,6 +408,10 @@ namespace DeliveryTemperatureLimit
                 sumTotal,
                 firstUpdateField,
                 updateIndexField);
+            FieldInfo worldInventoryEntriesField =
+                RequireWorldInventoryEntriesFieldAnchor(runUpdate);
+            VerifyResourceTagPublicationAnchors(runUpdate, sumTotal);
+            VerifyFilteredPickupContributionAnchor(sumTotal);
             VerifyRemovalPreservesInventoryDictionaryKeys(
                 removedFetchablePrefix);
 
@@ -442,6 +446,10 @@ namespace DeliveryTemperatureLimit
                     worldInventoryField
                 },
                 {
+                    FastTrackVerifiedMember.WorldInventoryInventoryField,
+                    worldInventoryEntriesField
+                },
+                {
                     FastTrackVerifiedMember.WorldInventoryReplacementPrefix,
                     replacementPrefix
                 },
@@ -450,6 +458,62 @@ namespace DeliveryTemperatureLimit
                     removedFetchablePrefix
                 }
             };
+        }
+
+        private static FieldInfo RequireWorldInventoryEntriesFieldAnchor(
+            MethodInfo runUpdate)
+        {
+            IReadOnlyList<DecodedIlInstruction> instructions = Decode(runUpdate);
+            FieldInfo? inventoryEntriesField = null;
+            int inventoryEntriesFieldLoadCount = 0;
+            for (var instructionIndex = 0;
+                 instructionIndex < instructions.Count;
+                 instructionIndex++)
+            {
+                DecodedIlInstruction instruction =
+                    instructions[instructionIndex];
+                if (instruction.OpCode != OpCodes.Ldfld ||
+                    !instruction.MetadataToken.HasValue)
+                {
+                    continue;
+                }
+
+                var field = ResolveMember(
+                    runUpdate,
+                    instruction.MetadataToken.Value) as FieldInfo;
+                if (field == null ||
+                    field.IsStatic ||
+                    field.DeclaringType == null ||
+                    !string.Equals(
+                        GetStableTypeName(field.DeclaringType),
+                        "WorldInventory",
+                        StringComparison.Ordinal) ||
+                    !string.Equals(
+                        field.Name,
+                        "Inventory",
+                        StringComparison.Ordinal) ||
+                    !string.Equals(
+                        GetStableTypeName(field.FieldType),
+                        "System.Collections.Generic.Dictionary`2[Tag," +
+                        "System.Collections.Generic.HashSet`1[Pickupable]]",
+                        StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                inventoryEntriesFieldLoadCount++;
+                inventoryEntriesField = field;
+            }
+
+            if (inventoryEntriesFieldLoadCount != 1 ||
+                inventoryEntriesField == null)
+            {
+                throw new HarmonyPatchContractViolationException(
+                    "FastTrack BackgroundWorldInventory.RunUpdate requires " +
+                    "exactly one typed WorldInventory.Inventory field anchor.");
+            }
+
+            return inventoryEntriesField;
         }
 
         private static void VerifyCompleteAndSingleResourceTagUpdateBranches(
@@ -519,13 +583,16 @@ namespace DeliveryTemperatureLimit
 
             DecodedIlInstruction firstUpdateBranch =
                 instructions[firstUpdateBranchInstructionIndex];
-            if (!firstUpdateBranch.BranchTargetOffset.HasValue ||
+            if ((firstUpdateBranch.OpCode != OpCodes.Brfalse &&
+                 firstUpdateBranch.OpCode != OpCodes.Brfalse_S) ||
+                !firstUpdateBranch.BranchTargetOffset.HasValue ||
                 firstUpdateBranch.BranchTargetOffset.Value <=
                 firstUpdateBranch.Offset)
             {
                 throw new HarmonyPatchContractViolationException(
                     "FastTrack BackgroundWorldInventory.RunUpdate firstUpdate " +
-                    "branch does not have one forward single-resource-tag target.");
+                    "false branch does not have one forward " +
+                    "single-resource-tag target.");
             }
 
             int singleResourceTagBranchOffset =
@@ -656,6 +723,256 @@ namespace DeliveryTemperatureLimit
                     "pickupable from retained sets without deleting an inventory " +
                     "dictionary key.");
             }
+        }
+
+        private static void VerifyResourceTagPublicationAnchors(
+            MethodInfo runUpdate,
+            MethodInfo sumTotal)
+        {
+            IReadOnlyList<DecodedIlInstruction> instructions = Decode(runUpdate);
+            int keyGetterCount = 0;
+            int valueGetterCount = 0;
+            int accessibleAmountSetterCount = 0;
+            int completePublicationAnchorCount = 0;
+            for (var instructionIndex = 0;
+                 instructionIndex < instructions.Count;
+                 instructionIndex++)
+            {
+                DecodedIlInstruction instruction = instructions[instructionIndex];
+                if (CallsMethodWithContract(
+                        runUpdate,
+                        instruction,
+                        "System.Collections.Generic.KeyValuePair`2[Tag,",
+                        "get_Key",
+                        "Tag",
+                        new string[0]))
+                {
+                    keyGetterCount++;
+                }
+
+                if (CallsMethodWithContract(
+                        runUpdate,
+                        instruction,
+                        "System.Collections.Generic.KeyValuePair`2[Tag,",
+                        "get_Value",
+                        "System.Collections.Generic.HashSet`1[Pickupable]",
+                        new string[0]))
+                {
+                    valueGetterCount++;
+                }
+
+                if (CallsMethodWithContract(
+                        runUpdate,
+                        instruction,
+                        "System.Collections.Generic.Dictionary`2[Tag,System.Single]",
+                        "set_Item",
+                        "System.Void",
+                        new[] { "Tag", "System.Single" }))
+                {
+                    accessibleAmountSetterCount++;
+                }
+
+                if (!IsCallInstruction(instruction) ||
+                    !InstructionReferencesMember(
+                        runUpdate,
+                        instruction,
+                        sumTotal))
+                {
+                    continue;
+                }
+
+                if (instructionIndex >= 4 &&
+                    instructionIndex + 1 < instructions.Count &&
+                    CallsMethodWithContract(
+                        runUpdate,
+                        instructions[instructionIndex - 4],
+                        "System.Collections.Generic.KeyValuePair`2[Tag,",
+                        "get_Key",
+                        "Tag",
+                        new string[0]) &&
+                    CallsMethodWithContract(
+                        runUpdate,
+                        instructions[instructionIndex - 2],
+                        "System.Collections.Generic.KeyValuePair`2[Tag,",
+                        "get_Value",
+                        "System.Collections.Generic.HashSet`1[Pickupable]",
+                        new string[0]) &&
+                    CallsMethodWithContract(
+                        runUpdate,
+                        instructions[instructionIndex + 1],
+                        "System.Collections.Generic.Dictionary`2[Tag,System.Single]",
+                        "set_Item",
+                        "System.Void",
+                        new[] { "Tag", "System.Single" }))
+                {
+                    completePublicationAnchorCount++;
+                }
+            }
+
+            if (keyGetterCount != 2 ||
+                valueGetterCount != 2 ||
+                accessibleAmountSetterCount != 2 ||
+                completePublicationAnchorCount != 2)
+            {
+                throw new HarmonyPatchContractViolationException(
+                    "FastTrack BackgroundWorldInventory.RunUpdate requires " +
+                    "exactly two typed resource-tag publication anchors, each " +
+                    "loading one KeyValuePair key/value before SumTotal and " +
+                    "writing that result to accessibleAmounts.");
+            }
+        }
+
+        private static void VerifyFilteredPickupContributionAnchor(
+            MethodInfo sumTotal)
+        {
+            IReadOnlyList<DecodedIlInstruction> instructions = Decode(sumTotal);
+            int getCellIndex = -1;
+            int validCellIndex = -1;
+            int storedPrivateTagCheckIndex = -1;
+            int totalAmountGetterIndex = -1;
+            int totalAmountGetterCount = 0;
+            for (var instructionIndex = 0;
+                 instructionIndex < instructions.Count;
+                 instructionIndex++)
+            {
+                DecodedIlInstruction instruction = instructions[instructionIndex];
+                if (CallsMethodWithContract(
+                        sumTotal,
+                        instruction,
+                        "Workable",
+                        "GetCell",
+                        "System.Int32",
+                        new string[0]))
+                {
+                    getCellIndex = SetUniqueAnchorIndex(
+                        getCellIndex,
+                        instructionIndex,
+                        "Workable.GetCell");
+                }
+
+                if (CallsMethodWithContract(
+                        sumTotal,
+                        instruction,
+                        "Grid",
+                        "IsValidCell",
+                        "System.Boolean",
+                        new[] { "System.Int32" }))
+                {
+                    validCellIndex = SetUniqueAnchorIndex(
+                        validCellIndex,
+                        instructionIndex,
+                        "Grid.IsValidCell");
+                }
+
+                if (CallsMethodWithContract(
+                        sumTotal,
+                        instruction,
+                        "KPrefabID",
+                        "HasTag",
+                        "System.Boolean",
+                        new[] { "Tag" }))
+                {
+                    storedPrivateTagCheckIndex = SetUniqueAnchorIndex(
+                        storedPrivateTagCheckIndex,
+                        instructionIndex,
+                        "KPrefabID.HasTag");
+                }
+
+                if (CallsMethodWithContract(
+                        sumTotal,
+                        instruction,
+                        "Pickupable",
+                        "get_TotalAmount",
+                        "System.Single",
+                        new string[0]))
+                {
+                    totalAmountGetterCount++;
+                    totalAmountGetterIndex = instructionIndex;
+                }
+            }
+
+            int conditionalFilterBranchCount = 0;
+            if (getCellIndex >= 0 && totalAmountGetterIndex > getCellIndex)
+            {
+                for (int instructionIndex = getCellIndex + 1;
+                     instructionIndex < totalAmountGetterIndex;
+                     instructionIndex++)
+                {
+                    if (instructions[instructionIndex].OpCode.FlowControl ==
+                        FlowControl.Cond_Branch)
+                    {
+                        conditionalFilterBranchCount++;
+                    }
+                }
+            }
+
+            bool contributionShapeMatches =
+                totalAmountGetterIndex >= 0 &&
+                totalAmountGetterIndex + 1 < instructions.Count &&
+                instructions[totalAmountGetterIndex + 1].OpCode == OpCodes.Add;
+            if (getCellIndex < 0 ||
+                validCellIndex <= getCellIndex ||
+                storedPrivateTagCheckIndex <= validCellIndex ||
+                totalAmountGetterCount != 1 ||
+                totalAmountGetterIndex <= storedPrivateTagCheckIndex ||
+                conditionalFilterBranchCount < 2 ||
+                !contributionShapeMatches)
+            {
+                throw new HarmonyPatchContractViolationException(
+                    "FastTrack BackgroundWorldInventory.SumTotal requires " +
+                    "exactly one filtered Pickupable.TotalAmount contribution " +
+                    "anchor after the cell, world, and StoredPrivate filters.");
+            }
+        }
+
+        private static int SetUniqueAnchorIndex(
+            int priorIndex,
+            int candidateIndex,
+            string semanticAnchor)
+        {
+            if (priorIndex >= 0)
+            {
+                throw new HarmonyPatchContractViolationException(
+                    "FastTrack method contains more than one " +
+                    semanticAnchor +
+                    " semantic anchor.");
+            }
+
+            return candidateIndex;
+        }
+
+        private static bool CallsMethodWithContract(
+            MethodBase bodyOwner,
+            DecodedIlInstruction instruction,
+            string declaringTypeNamePrefix,
+            string methodName,
+            string returnTypeName,
+            string[] parameterTypeNames)
+        {
+            if (!IsCallInstruction(instruction) ||
+                !instruction.MetadataToken.HasValue)
+            {
+                return false;
+            }
+
+            MemberInfo member = ResolveMember(
+                bodyOwner,
+                instruction.MetadataToken.Value);
+            var method = member as MethodInfo;
+            return method != null &&
+                method.DeclaringType != null &&
+                GetStableTypeName(method.DeclaringType).StartsWith(
+                    declaringTypeNamePrefix,
+                    StringComparison.Ordinal) &&
+                string.Equals(
+                    method.Name,
+                    methodName,
+                    StringComparison.Ordinal) &&
+                string.Equals(
+                    GetStableTypeName(method.ReturnType),
+                    returnTypeName,
+                    StringComparison.Ordinal) &&
+                ParametersMatch(method.GetParameters(), parameterTypeNames);
         }
 
         private static IDictionary<FastTrackVerifiedMember, MemberInfo>

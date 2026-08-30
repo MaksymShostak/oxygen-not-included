@@ -3585,8 +3585,13 @@ test: Verify active FastTrack feature contracts
 - Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/InventoryUpdateAdapters/FastTrackWorldInventoryPublicationResult.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/InventoryUpdateAdapters/FastTrackWorldInventoryPublicationSession.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/InventoryUpdateAdapters/FastTrackWorldInventoryTemperaturePatches.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/FastTrackCompatibilityInspector.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/FastTrackVerifiedMember.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Source/WorldResourceTemperatureAmounts/WorldResourceTagCoverage.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackWorldInventoryPublicationSessionTests.cs`
 - Modify: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackCompatibilityInspectorTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackGitHubReleaseAssemblyContractTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackReflectionEmitFixture.cs`
 - Modify: `mods/delivery-temperature-limit-supercooled/Tests/HarmonyTranspilerInfrastructure/HarmonyPatchContractVerifierTests.cs`
 
 **Interfaces:**
@@ -3640,7 +3645,7 @@ Tests must fail on zero or duplicate anchors. Local-variable numbers and `operan
 
 - [ ] **Step 6: Implement the inactive FastTrack adapter**
 
-Bind reflected fields/methods from the immutable compatibility report once. Do not perform `Type.GetType`, `AccessTools`, option lookup, assembly enumeration, or digest calculation from `RunUpdate` or `SumTotal`.
+Bind reflected fields/methods from the immutable compatibility report once. The provenance-pinned `0.18.4.0` DLL and current ONI assembly prove that FastTrack reads the non-public `WorldInventory.Inventory` field directly and that its exact type is `Dictionary<Tag, HashSet<Pickupable>>`; it is not a callable public `Inventory` property. The inspector must therefore publish that exact verified field role, and the adapter must create one typed, skip-visibility `DynamicMethod` field reader during cold binding. Gameplay code calls only the resulting typed delegate. `FieldInfo.GetValue`, `MethodInfo.Invoke`, `DynamicInvoke`, and any other per-update reflection are forbidden. Do not perform `Type.GetType`, `AccessTools`, option lookup, assembly enumeration, or digest calculation from `RunUpdate` or `SumTotal`.
 
 At `RunUpdate` prefix:
 
@@ -3648,12 +3653,15 @@ At `RunUpdate` prefix:
 - if the active-constraint snapshot has zero enabled constraints, enter no thread context, enumerate no coverage keys, and leave FastTrack completely untouched;
 - choose complete mode only when FastTrack will execute its complete branch;
 - otherwise call `GetWorldResourceTagCoverageRequirementState` once;
-- for `CoverageRequired`, enumerate `WorldInventory.Inventory.Keys` exactly once and call `BeginIncrementalResourceTagUpdateRequiringCoverage` with the copied keys;
+- read the verified inventory field through the pre-bound typed delegate exactly once after the zero-constraint bypass; if FastTrack's backing dictionary is absent, publish nothing rather than manufacturing empty coverage;
+- for `CoverageRequired`, enumerate `worldInventoryEntries.Keys` exactly once and call `BeginIncrementalResourceTagUpdateRequiringCoverage` with the copied keys;
 - for `CoverageCurrent`, call `BeginIncrementalResourceTagUpdateWithCurrentCoverage` without enumerating keys;
 - for `UnknownWorldOrCollectionGeneration`, enter no publication context and emit at most one session-scoped diagnostic; and
 - enter a thread-confined nested context tied to game-session generation.
 
 The `SumTotal` hook calls `AddTemperatureAmount` with the cached `PrimaryElement.Temperature` and `TotalAmount` only at FastTrack's already-filtered contribution point. A missing `PrimaryElement` is skipped, matching the characterized Klei status path. No `GetComponent`, `ClusterManager`, world enumeration, constraint lookup, or logging is permitted in that loop.
+
+Each transpiled `RunUpdate` and `SumTotal` must resolve the current thread-confined publication session once into a method local. Guards and hooks consume that cached session reference. A boolean-only local followed by `TryGetCurrent` in every pickup hook is forbidden because it would add avoidable thread-local work to FastTrack's accepted-pickup loop.
 
 At successful postfix, publish in this order: coverage, then single-tag series; or the one complete-world publication. If coverage succeeds and a concurrent generation change rejects the series, the tag remains pending, which is safe. A finalizer always discards/restores thread state and returns the original exception. It never publishes a partially accumulated tag.
 
@@ -3676,7 +3684,7 @@ Expected: all pass, and the build contains the inactive patch class without any 
 
 - [ ] **Step 9: Prepare and commit**
 
-Use the seven task paths, allowed type `refactor`, and exact subject:
+Use the twelve implementation paths listed above plus this reconciled plan artifact, allowed type `refactor`, and exact subject. The expanded implementation set is required by the real private-field contract and by the emitted/portable-executable evidence paths; no configuration file is part of the change:
 
 ```text
 refactor: Preserve FastTrack incremental inventory updates

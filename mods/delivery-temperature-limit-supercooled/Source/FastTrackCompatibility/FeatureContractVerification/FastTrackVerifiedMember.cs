@@ -14,6 +14,7 @@ namespace DeliveryTemperatureLimit
         BackgroundWorldInventoryUpdateIndexField,
         BackgroundWorldInventoryWorldContainerField,
         BackgroundWorldInventoryWorldInventoryField,
+        WorldInventoryInventoryField,
         WorldInventoryReplacementPrefix,
         WorldInventoryRemovedFetchablePrefix,
         PickupGroupingBeforeUpdatePickupsPrefix,

@@ -26,8 +26,42 @@ internal static class FastTrackReflectionEmitFixture
         Create(FastTrackContractMutation.RunUpdateMissingSingleTagBranch);
 
     internal static FastTrackEmittedAssembly
+        CreateWithRunUpdateFirstUpdateBranchReversed() =>
+        Create(FastTrackContractMutation.RunUpdateFirstUpdateBranchReversed);
+
+    internal static FastTrackEmittedAssembly
         CreateWithRunUpdateTotalsInCompleteBranchOnly() =>
         Create(FastTrackContractMutation.RunUpdateTotalsInCompleteBranchOnly);
+
+    internal static FastTrackEmittedAssembly
+        CreateWithRunUpdateResourceTagPublicationAnchorMissing() =>
+        Create(FastTrackContractMutation
+            .RunUpdateResourceTagPublicationAnchorMissing);
+
+    internal static FastTrackEmittedAssembly
+        CreateWithRunUpdateResourceTagPublicationAnchorDuplicated() =>
+        Create(FastTrackContractMutation
+            .RunUpdateResourceTagPublicationAnchorDuplicated);
+
+    internal static FastTrackEmittedAssembly
+        CreateWithRunUpdateInventoryFieldAnchorMissing() =>
+        Create(FastTrackContractMutation
+            .RunUpdateInventoryFieldAnchorMissing);
+
+    internal static FastTrackEmittedAssembly
+        CreateWithRunUpdateInventoryFieldAnchorDuplicated() =>
+        Create(FastTrackContractMutation
+            .RunUpdateInventoryFieldAnchorDuplicated);
+
+    internal static FastTrackEmittedAssembly
+        CreateWithSumTotalFilteredContributionAnchorMissing() =>
+        Create(FastTrackContractMutation
+            .SumTotalFilteredContributionAnchorMissing);
+
+    internal static FastTrackEmittedAssembly
+        CreateWithSumTotalFilteredContributionAnchorDuplicated() =>
+        Create(FastTrackContractMutation
+            .SumTotalFilteredContributionAnchorDuplicated);
 
     internal static FastTrackEmittedAssembly
         CreateWithRemovedFetchableDeletingTagKey() =>
@@ -95,17 +129,126 @@ internal static class FastTrackReflectionEmitFixture
         ModuleBuilder moduleBuilder)
     {
         Type tagType = DefineValueType(moduleBuilder, "Tag");
-        Type pickupableType = DefineReferenceType(moduleBuilder, "Pickupable");
-        Type prefabIdentityType = DefineReferenceType(moduleBuilder, "KPrefabID");
+        TypeBuilder prefabIdentityBuilder = moduleBuilder.DefineType(
+            "KPrefabID",
+            TypeAttributes.Public | TypeAttributes.Class);
+        DefineDefaultConstructor(prefabIdentityBuilder);
+        MethodBuilder prefabIdentityHasTagBuilder =
+            prefabIdentityBuilder.DefineMethod(
+                "HasTag",
+                MethodAttributes.Public,
+                typeof(bool),
+                new[] { tagType });
+        ILGenerator prefabIdentityHasTagGenerator =
+            prefabIdentityHasTagBuilder.GetILGenerator();
+        prefabIdentityHasTagGenerator.Emit(OpCodes.Ldc_I4_0);
+        prefabIdentityHasTagGenerator.Emit(OpCodes.Ret);
+        Type prefabIdentityType = prefabIdentityBuilder.CreateType()!;
+
+        TypeBuilder workableBuilder = moduleBuilder.DefineType(
+            "Workable",
+            TypeAttributes.Public | TypeAttributes.Class);
+        DefineDefaultConstructor(workableBuilder);
+        MethodBuilder pickupableGetCellBuilder = workableBuilder.DefineMethod(
+            "GetCell",
+            MethodAttributes.Public,
+            typeof(int),
+            Type.EmptyTypes);
+        ILGenerator pickupableGetCellGenerator =
+            pickupableGetCellBuilder.GetILGenerator();
+        pickupableGetCellGenerator.Emit(OpCodes.Ldc_I4_0);
+        pickupableGetCellGenerator.Emit(OpCodes.Ret);
+        Type workableType = workableBuilder.CreateType()!;
+
+        TypeBuilder pickupableBuilder = moduleBuilder.DefineType(
+            "Pickupable",
+            TypeAttributes.Public | TypeAttributes.Class,
+            workableType);
+        DefineDefaultConstructor(
+            pickupableBuilder,
+            workableType.GetConstructor(Type.EmptyTypes)!);
+        FieldBuilder prefabIdentityField = pickupableBuilder.DefineField(
+            "prefabIdentity",
+            prefabIdentityType,
+            FieldAttributes.Private);
+        MethodBuilder pickupablePrefabIdentityGetter =
+            pickupableBuilder.DefineMethod(
+                "get_KPrefabID",
+                MethodAttributes.Public |
+                MethodAttributes.SpecialName |
+                MethodAttributes.HideBySig,
+                prefabIdentityType,
+                Type.EmptyTypes);
+        ILGenerator pickupablePrefabIdentityGenerator =
+            pickupablePrefabIdentityGetter.GetILGenerator();
+        pickupablePrefabIdentityGenerator.Emit(OpCodes.Ldarg_0);
+        pickupablePrefabIdentityGenerator.Emit(
+            OpCodes.Ldfld,
+            prefabIdentityField);
+        pickupablePrefabIdentityGenerator.Emit(OpCodes.Ret);
+        MethodBuilder pickupableTotalAmountGetter =
+            pickupableBuilder.DefineMethod(
+                "get_TotalAmount",
+                MethodAttributes.Public |
+                MethodAttributes.SpecialName |
+                MethodAttributes.HideBySig,
+                typeof(float),
+                Type.EmptyTypes);
+        ILGenerator pickupableTotalAmountGenerator =
+            pickupableTotalAmountGetter.GetILGenerator();
+        pickupableTotalAmountGenerator.Emit(OpCodes.Ldc_R4, 1.0f);
+        pickupableTotalAmountGenerator.Emit(OpCodes.Ret);
+        Type pickupableType = pickupableBuilder.CreateType()!;
+
+        TypeBuilder gridBuilder = moduleBuilder.DefineType(
+            "Grid",
+            TypeAttributes.Public |
+            TypeAttributes.Abstract |
+            TypeAttributes.Sealed);
+        FieldBuilder gridWorldIndicesField = gridBuilder.DefineField(
+            "WorldIdx",
+            typeof(int[]),
+            FieldAttributes.Public | FieldAttributes.Static);
+        MethodBuilder gridIsValidCellBuilder = gridBuilder.DefineMethod(
+            "IsValidCell",
+            MethodAttributes.Public | MethodAttributes.Static,
+            typeof(bool),
+            new[] { typeof(int) });
+        ILGenerator gridIsValidCellGenerator =
+            gridIsValidCellBuilder.GetILGenerator();
+        gridIsValidCellGenerator.Emit(OpCodes.Ldc_I4_1);
+        gridIsValidCellGenerator.Emit(OpCodes.Ret);
+        gridBuilder.CreateType();
+
+        TypeBuilder gameTagsBuilder = moduleBuilder.DefineType(
+            "GameTags",
+            TypeAttributes.Public |
+            TypeAttributes.Abstract |
+            TypeAttributes.Sealed);
+        FieldBuilder storedPrivateTagField = gameTagsBuilder.DefineField(
+            "StoredPrivate",
+            tagType,
+            FieldAttributes.Public | FieldAttributes.Static);
+        gameTagsBuilder.CreateType();
         Type navigatorType = DefineReferenceType(moduleBuilder, "Navigator");
         Type worldContainerType = DefineReferenceType(
             moduleBuilder,
             "WorldContainer");
 
+        Type pickupableSetType = typeof(HashSet<>).MakeGenericType(
+            pickupableType);
+        Type inventoryDictionaryType = typeof(Dictionary<,>).MakeGenericType(
+            tagType,
+            pickupableSetType);
+
         TypeBuilder worldInventoryBuilder = moduleBuilder.DefineType(
             "WorldInventory",
             TypeAttributes.Public | TypeAttributes.Class);
         DefineDefaultConstructor(worldInventoryBuilder);
+        worldInventoryBuilder.DefineField(
+            "Inventory",
+            inventoryDictionaryType,
+            FieldAttributes.Private);
         MethodBuilder worldInventoryUpdateBuilder = worldInventoryBuilder.DefineMethod(
             "Update",
             MethodAttributes.Public,
@@ -203,10 +346,20 @@ internal static class FastTrackReflectionEmitFixture
             tagType,
             pickupableType,
             prefabIdentityType,
+            pickupableGetCellBuilder,
+            pickupableTotalAmountGetter,
+            pickupablePrefabIdentityGetter,
+            prefabIdentityHasTagBuilder,
+            gridIsValidCellBuilder,
+            gridWorldIndicesField,
+            storedPrivateTagField,
             navigatorType,
             worldContainerType,
             worldInventoryType,
             worldInventoryType.GetMethod("Update")!,
+            worldInventoryType.GetField(
+                "Inventory",
+                BindingFlags.Instance | BindingFlags.NonPublic)!,
             fetchablesByPrefabIdType,
             fetchablesByPrefabIdType.GetMethod("UpdatePickups")!,
             fetchableType,
@@ -231,8 +384,20 @@ internal static class FastTrackReflectionEmitFixture
         Type accessibleAmountDictionaryType = typeof(Dictionary<,>).MakeGenericType(
             gameTypes.TagType,
             typeof(float));
+        Type inventoryEntryType = typeof(KeyValuePair<,>).MakeGenericType(
+            gameTypes.TagType,
+            pickupableSetType);
         Type pickupableSequenceType = typeof(IEnumerable<>).MakeGenericType(
             gameTypes.PickupableType);
+        MethodInfo inventoryEntryKeyGetter = inventoryEntryType
+            .GetProperty("Key")!
+            .GetMethod!;
+        MethodInfo inventoryEntryValueGetter = inventoryEntryType
+            .GetProperty("Value")!
+            .GetMethod!;
+        MethodInfo accessibleAmountSetter = accessibleAmountDictionaryType
+            .GetProperty("Item")!
+            .SetMethod!;
 
         TypeBuilder backgroundInventoryBuilder = moduleBuilder.DefineType(
             "PeterHan.FastTrack.UIPatches.BackgroundWorldInventory",
@@ -253,7 +418,7 @@ internal static class FastTrackReflectionEmitFixture
             "worldContainer",
             gameTypes.WorldContainerType,
             FieldAttributes.Private);
-        backgroundInventoryBuilder.DefineField(
+        FieldBuilder worldInventoryField = backgroundInventoryBuilder.DefineField(
             "worldInventory",
             gameTypes.WorldInventoryType,
             FieldAttributes.Private);
@@ -264,9 +429,10 @@ internal static class FastTrackReflectionEmitFixture
             MethodAttributes.Private | MethodAttributes.Static,
             typeof(float),
             new[] { pickupableSequenceType, typeof(int) });
-        ILGenerator sumTotalGenerator = sumTotalBuilder.GetILGenerator();
-        sumTotalGenerator.Emit(OpCodes.Ldc_R4, 0.0f);
-        sumTotalGenerator.Emit(OpCodes.Ret);
+        EmitSumTotal(
+            sumTotalBuilder.GetILGenerator(),
+            gameTypes,
+            mutation);
 
         Type runUpdateReturnType =
             mutation == FastTrackContractMutation.RunUpdateSignatureChanged
@@ -281,10 +447,15 @@ internal static class FastTrackReflectionEmitFixture
             runUpdateBuilder.GetILGenerator(),
             firstUpdateField,
             updateIndexField,
+            worldInventoryField,
+            gameTypes.WorldInventoryEntriesField,
             sumTotalBuilder,
-            mutation == FastTrackContractMutation.RunUpdateMissingSingleTagBranch,
-            mutation ==
-                FastTrackContractMutation.RunUpdateTotalsInCompleteBranchOnly,
+            accessibleAmountDictionaryType,
+            inventoryEntryType,
+            inventoryEntryKeyGetter,
+            inventoryEntryValueGetter,
+            accessibleAmountSetter,
+            mutation,
             runUpdateReturnType);
         backgroundInventoryBuilder.CreateType();
 
@@ -307,7 +478,6 @@ internal static class FastTrackReflectionEmitFixture
             gameTypes,
             mutation);
 
-        _ = accessibleAmountDictionaryType;
         return new EmittedWorldInventoryContract(
             gameTypes.WorldInventoryUpdateTarget,
             worldInventoryReplacementPatchType.GetMethod(
@@ -382,23 +552,77 @@ internal static class FastTrackReflectionEmitFixture
         ILGenerator generator,
         FieldInfo firstUpdateField,
         FieldInfo updateIndexField,
+        FieldInfo worldInventoryField,
+        FieldInfo worldInventoryEntriesField,
         MethodInfo sumTotalMethod,
-        bool omitSingleTagBranch,
-        bool putBothTotalsInCompleteBranch,
+        Type accessibleAmountDictionaryType,
+        Type inventoryEntryType,
+        MethodInfo inventoryEntryKeyGetter,
+        MethodInfo inventoryEntryValueGetter,
+        MethodInfo accessibleAmountSetter,
+        FastTrackContractMutation mutation,
         Type returnType)
     {
+        LocalBuilder accessibleAmounts =
+            generator.DeclareLocal(accessibleAmountDictionaryType);
+        LocalBuilder inventoryEntry = generator.DeclareLocal(inventoryEntryType);
         Label singleTagBranch = generator.DefineLabel();
         Label exit = generator.DefineLabel();
+
+        generator.Emit(
+            OpCodes.Newobj,
+            accessibleAmountDictionaryType.GetConstructor(Type.EmptyTypes)!);
+        generator.Emit(OpCodes.Stloc, accessibleAmounts);
+        if (mutation !=
+            FastTrackContractMutation.RunUpdateInventoryFieldAnchorMissing)
+        {
+            EmitWorldInventoryEntriesFieldLoad(
+                generator,
+                worldInventoryField,
+                worldInventoryEntriesField);
+        }
+
+        if (mutation ==
+            FastTrackContractMutation.RunUpdateInventoryFieldAnchorDuplicated)
+        {
+            EmitWorldInventoryEntriesFieldLoad(
+                generator,
+                worldInventoryField,
+                worldInventoryEntriesField);
+        }
+
+        generator.Emit(OpCodes.Ldloca, inventoryEntry);
+        generator.Emit(OpCodes.Initobj, inventoryEntryType);
         generator.Emit(OpCodes.Ldarg_0);
         generator.Emit(OpCodes.Ldfld, firstUpdateField);
-        generator.Emit(OpCodes.Brfalse_S, singleTagBranch);
+        generator.Emit(
+            mutation ==
+                FastTrackContractMutation.RunUpdateFirstUpdateBranchReversed
+                    ? OpCodes.Brtrue_S
+                    : OpCodes.Brfalse_S,
+            singleTagBranch);
 
-        EmitSumTotalCall(generator, sumTotalMethod);
-        generator.Emit(OpCodes.Pop);
-        if (putBothTotalsInCompleteBranch)
+        EmitResourceTagPublication(
+            generator,
+            accessibleAmounts,
+            inventoryEntry,
+            inventoryEntryKeyGetter,
+            inventoryEntryValueGetter,
+            accessibleAmountSetter,
+            sumTotalMethod,
+            mutation);
+        if (mutation ==
+            FastTrackContractMutation.RunUpdateTotalsInCompleteBranchOnly)
         {
-            EmitSumTotalCall(generator, sumTotalMethod);
-            generator.Emit(OpCodes.Pop);
+            EmitResourceTagPublication(
+                generator,
+                accessibleAmounts,
+                inventoryEntry,
+                inventoryEntryKeyGetter,
+                inventoryEntryValueGetter,
+                accessibleAmountSetter,
+                sumTotalMethod,
+                FastTrackContractMutation.None);
         }
 
         generator.Emit(OpCodes.Ldarg_0);
@@ -407,15 +631,24 @@ internal static class FastTrackReflectionEmitFixture
         generator.Emit(OpCodes.Br_S, exit);
 
         generator.MarkLabel(singleTagBranch);
-        if (!omitSingleTagBranch)
+        if (mutation !=
+            FastTrackContractMutation.RunUpdateMissingSingleTagBranch)
         {
             generator.Emit(OpCodes.Ldarg_0);
             generator.Emit(OpCodes.Ldfld, updateIndexField);
             generator.Emit(OpCodes.Pop);
-            if (!putBothTotalsInCompleteBranch)
+            if (mutation !=
+                FastTrackContractMutation.RunUpdateTotalsInCompleteBranchOnly)
             {
-                EmitSumTotalCall(generator, sumTotalMethod);
-                generator.Emit(OpCodes.Pop);
+                EmitResourceTagPublication(
+                    generator,
+                    accessibleAmounts,
+                    inventoryEntry,
+                    inventoryEntryKeyGetter,
+                    inventoryEntryValueGetter,
+                    accessibleAmountSetter,
+                    sumTotalMethod,
+                    FastTrackContractMutation.None);
             }
 
             generator.Emit(OpCodes.Ldarg_0);
@@ -432,13 +665,131 @@ internal static class FastTrackReflectionEmitFixture
         generator.Emit(OpCodes.Ret);
     }
 
-    private static void EmitSumTotalCall(
+    private static void EmitWorldInventoryEntriesFieldLoad(
         ILGenerator generator,
-        MethodInfo sumTotalMethod)
+        FieldInfo worldInventoryField,
+        FieldInfo worldInventoryEntriesField)
     {
-        generator.Emit(OpCodes.Ldnull);
+        generator.Emit(OpCodes.Ldarg_0);
+        generator.Emit(OpCodes.Ldfld, worldInventoryField);
+        generator.Emit(OpCodes.Ldfld, worldInventoryEntriesField);
+        generator.Emit(OpCodes.Pop);
+    }
+
+    private static void EmitResourceTagPublication(
+        ILGenerator generator,
+        LocalBuilder accessibleAmounts,
+        LocalBuilder inventoryEntry,
+        MethodInfo inventoryEntryKeyGetter,
+        MethodInfo inventoryEntryValueGetter,
+        MethodInfo accessibleAmountSetter,
+        MethodInfo sumTotalMethod,
+        FastTrackContractMutation mutation)
+    {
+        if (mutation ==
+            FastTrackContractMutation
+                .RunUpdateResourceTagPublicationAnchorMissing)
+        {
+            generator.Emit(OpCodes.Ldnull);
+            generator.Emit(OpCodes.Ldc_I4_0);
+            generator.Emit(OpCodes.Call, sumTotalMethod);
+            generator.Emit(OpCodes.Pop);
+            return;
+        }
+
+        generator.Emit(OpCodes.Ldloc, accessibleAmounts);
+        if (mutation ==
+            FastTrackContractMutation
+                .RunUpdateResourceTagPublicationAnchorDuplicated)
+        {
+            generator.Emit(OpCodes.Ldloca, inventoryEntry);
+            generator.Emit(OpCodes.Call, inventoryEntryKeyGetter);
+            generator.Emit(OpCodes.Pop);
+        }
+
+        generator.Emit(OpCodes.Ldloca, inventoryEntry);
+        generator.Emit(OpCodes.Call, inventoryEntryKeyGetter);
+        generator.Emit(OpCodes.Ldloca, inventoryEntry);
+        generator.Emit(OpCodes.Call, inventoryEntryValueGetter);
         generator.Emit(OpCodes.Ldc_I4_0);
         generator.Emit(OpCodes.Call, sumTotalMethod);
+        generator.Emit(OpCodes.Callvirt, accessibleAmountSetter);
+    }
+
+    private static void EmitSumTotal(
+        ILGenerator generator,
+        EmittedGameContractTypes gameTypes,
+        FastTrackContractMutation mutation)
+    {
+        LocalBuilder totalAmount = generator.DeclareLocal(typeof(float));
+        LocalBuilder pickupable =
+            generator.DeclareLocal(gameTypes.PickupableType);
+        LocalBuilder cell = generator.DeclareLocal(typeof(int));
+        Label returnTotal = generator.DefineLabel();
+
+        generator.Emit(OpCodes.Ldc_R4, 0.0f);
+        generator.Emit(OpCodes.Stloc, totalAmount);
+        generator.Emit(OpCodes.Ldnull);
+        generator.Emit(OpCodes.Stloc, pickupable);
+        generator.Emit(OpCodes.Ldloc, pickupable);
+        generator.Emit(OpCodes.Brfalse_S, returnTotal);
+        generator.Emit(OpCodes.Ldloc, pickupable);
+        generator.Emit(OpCodes.Callvirt, gameTypes.PickupableGetCellMethod);
+        generator.Emit(OpCodes.Stloc, cell);
+        generator.Emit(OpCodes.Ldloc, cell);
+        generator.Emit(OpCodes.Call, gameTypes.GridIsValidCellMethod);
+        generator.Emit(OpCodes.Brfalse_S, returnTotal);
+        generator.Emit(OpCodes.Ldsfld, gameTypes.GridWorldIndicesField);
+        generator.Emit(OpCodes.Ldloc, cell);
+        generator.Emit(OpCodes.Ldelem_I4);
+        generator.Emit(OpCodes.Ldarg_1);
+        generator.Emit(OpCodes.Bne_Un_S, returnTotal);
+        generator.Emit(OpCodes.Ldloc, pickupable);
+        generator.Emit(
+            OpCodes.Callvirt,
+            gameTypes.PickupablePrefabIdentityGetter);
+        generator.Emit(OpCodes.Ldsfld, gameTypes.StoredPrivateTagField);
+        generator.Emit(
+            OpCodes.Callvirt,
+            gameTypes.PrefabIdentityHasTagMethod);
+        generator.Emit(OpCodes.Brtrue_S, returnTotal);
+
+        if (mutation !=
+            FastTrackContractMutation.SumTotalFilteredContributionAnchorMissing)
+        {
+            EmitFilteredPickupContribution(
+                generator,
+                totalAmount,
+                pickupable,
+                gameTypes.PickupableTotalAmountGetter);
+        }
+
+        if (mutation ==
+            FastTrackContractMutation.SumTotalFilteredContributionAnchorDuplicated)
+        {
+            EmitFilteredPickupContribution(
+                generator,
+                totalAmount,
+                pickupable,
+                gameTypes.PickupableTotalAmountGetter);
+        }
+
+        generator.MarkLabel(returnTotal);
+        generator.Emit(OpCodes.Ldloc, totalAmount);
+        generator.Emit(OpCodes.Ret);
+    }
+
+    private static void EmitFilteredPickupContribution(
+        ILGenerator generator,
+        LocalBuilder totalAmount,
+        LocalBuilder pickupable,
+        MethodInfo pickupableTotalAmountGetter)
+    {
+        generator.Emit(OpCodes.Ldloc, totalAmount);
+        generator.Emit(OpCodes.Ldloc, pickupable);
+        generator.Emit(OpCodes.Callvirt, pickupableTotalAmountGetter);
+        generator.Emit(OpCodes.Add);
+        generator.Emit(OpCodes.Stloc, totalAmount);
     }
 
     private static EmittedPickupGroupingContract DefinePickupGroupingContract(
@@ -660,7 +1011,9 @@ internal static class FastTrackReflectionEmitFixture
                 typeof(ValueType))
             .CreateType()!;
 
-    private static void DefineDefaultConstructor(TypeBuilder typeBuilder)
+    private static void DefineDefaultConstructor(
+        TypeBuilder typeBuilder,
+        ConstructorInfo? baseConstructor = null)
     {
         ConstructorBuilder constructor = typeBuilder.DefineConstructor(
             MethodAttributes.Public,
@@ -668,7 +1021,10 @@ internal static class FastTrackReflectionEmitFixture
             Type.EmptyTypes);
         ILGenerator generator = constructor.GetILGenerator();
         generator.Emit(OpCodes.Ldarg_0);
-        generator.Emit(OpCodes.Call, typeof(object).GetConstructor(Type.EmptyTypes)!);
+        generator.Emit(
+            OpCodes.Call,
+            baseConstructor ??
+                typeof(object).GetConstructor(Type.EmptyTypes)!);
         generator.Emit(OpCodes.Ret);
     }
 
@@ -677,7 +1033,14 @@ internal static class FastTrackReflectionEmitFixture
         None,
         RunUpdateSignatureChanged,
         RunUpdateMissingSingleTagBranch,
+        RunUpdateFirstUpdateBranchReversed,
         RunUpdateTotalsInCompleteBranchOnly,
+        RunUpdateResourceTagPublicationAnchorMissing,
+        RunUpdateResourceTagPublicationAnchorDuplicated,
+        RunUpdateInventoryFieldAnchorMissing,
+        RunUpdateInventoryFieldAnchorDuplicated,
+        SumTotalFilteredContributionAnchorMissing,
+        SumTotalFilteredContributionAnchorDuplicated,
         RemovedFetchableDeletesTagKey,
         PickupTagKeyEqualityUsesAllocatedIdentity,
         AddItemConstructorAnchorMissing,
@@ -689,10 +1052,18 @@ internal static class FastTrackReflectionEmitFixture
         Type TagType,
         Type PickupableType,
         Type PrefabIdentityType,
+        MethodInfo PickupableGetCellMethod,
+        MethodInfo PickupableTotalAmountGetter,
+        MethodInfo PickupablePrefabIdentityGetter,
+        MethodInfo PrefabIdentityHasTagMethod,
+        MethodInfo GridIsValidCellMethod,
+        FieldInfo GridWorldIndicesField,
+        FieldInfo StoredPrivateTagField,
         Type NavigatorType,
         Type WorldContainerType,
         Type WorldInventoryType,
         MethodInfo WorldInventoryUpdateTarget,
+        FieldInfo WorldInventoryEntriesField,
         Type FetchablesByPrefabIdType,
         MethodInfo UpdatePickupsTarget,
         Type FetchableType,

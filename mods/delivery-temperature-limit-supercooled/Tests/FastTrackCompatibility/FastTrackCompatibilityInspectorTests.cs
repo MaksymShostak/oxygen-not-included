@@ -187,6 +187,23 @@ public sealed class FastTrackCompatibilityInspectorTests
     }
 
     [TestMethod]
+    public void Inspect_WhenRunUpdateFirstUpdateBranchIsReversed_ClassifiesWorldInventoryAsIncompatible()
+    {
+        FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
+            .CreateWithRunUpdateFirstUpdateBranchReversed();
+
+        FastTrackCompatibilityReport report = InspectAllActive(fixture);
+
+        AssertOnlyFeatureIsIncompatible(
+            report,
+            FastTrackFeature.WorldInventory,
+            FastTrackFeatureCompatibilityFailureCode.WorldInventoryContractViolation);
+        StringAssert.Contains(
+            report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!,
+            "firstUpdate false branch");
+    }
+
+    [TestMethod]
     public void Inspect_WhenRunUpdateCallsBothTotalsBeforeSingleTagBranch_ClassifiesWorldInventoryAsIncompatible()
     {
         FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
@@ -201,6 +218,108 @@ public sealed class FastTrackCompatibilityInspectorTests
         StringAssert.Contains(
             report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!,
             "opposite sides");
+    }
+
+    [TestMethod]
+    public void Inspect_WhenRunUpdateResourceTagPublicationAnchorIsMissing_ClassifiesWorldInventoryAsIncompatible()
+    {
+        FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
+            .CreateWithRunUpdateResourceTagPublicationAnchorMissing();
+
+        FastTrackCompatibilityReport report = InspectAllActive(fixture);
+
+        AssertOnlyFeatureIsIncompatible(
+            report,
+            FastTrackFeature.WorldInventory,
+            FastTrackFeatureCompatibilityFailureCode.WorldInventoryContractViolation);
+        StringAssert.Contains(
+            report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!,
+            "resource-tag publication anchor");
+    }
+
+    [TestMethod]
+    public void Inspect_WhenRunUpdateResourceTagPublicationAnchorIsDuplicated_ClassifiesWorldInventoryAsIncompatible()
+    {
+        FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
+            .CreateWithRunUpdateResourceTagPublicationAnchorDuplicated();
+
+        FastTrackCompatibilityReport report = InspectAllActive(fixture);
+
+        AssertOnlyFeatureIsIncompatible(
+            report,
+            FastTrackFeature.WorldInventory,
+            FastTrackFeatureCompatibilityFailureCode.WorldInventoryContractViolation);
+        StringAssert.Contains(
+            report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!,
+            "resource-tag publication anchor");
+    }
+
+    [TestMethod]
+    public void Inspect_WhenRunUpdateInventoryFieldAnchorIsMissing_ClassifiesWorldInventoryAsIncompatible()
+    {
+        FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
+            .CreateWithRunUpdateInventoryFieldAnchorMissing();
+
+        FastTrackCompatibilityReport report = InspectAllActive(fixture);
+
+        AssertOnlyFeatureIsIncompatible(
+            report,
+            FastTrackFeature.WorldInventory,
+            FastTrackFeatureCompatibilityFailureCode.WorldInventoryContractViolation);
+        StringAssert.Contains(
+            report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!,
+            "WorldInventory.Inventory field anchor");
+    }
+
+    [TestMethod]
+    public void Inspect_WhenRunUpdateInventoryFieldAnchorIsDuplicated_ClassifiesWorldInventoryAsIncompatible()
+    {
+        FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
+            .CreateWithRunUpdateInventoryFieldAnchorDuplicated();
+
+        FastTrackCompatibilityReport report = InspectAllActive(fixture);
+
+        AssertOnlyFeatureIsIncompatible(
+            report,
+            FastTrackFeature.WorldInventory,
+            FastTrackFeatureCompatibilityFailureCode.WorldInventoryContractViolation);
+        StringAssert.Contains(
+            report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!,
+            "WorldInventory.Inventory field anchor");
+    }
+
+    [TestMethod]
+    public void Inspect_WhenSumTotalFilteredContributionAnchorIsMissing_ClassifiesWorldInventoryAsIncompatible()
+    {
+        FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
+            .CreateWithSumTotalFilteredContributionAnchorMissing();
+
+        FastTrackCompatibilityReport report = InspectAllActive(fixture);
+
+        AssertOnlyFeatureIsIncompatible(
+            report,
+            FastTrackFeature.WorldInventory,
+            FastTrackFeatureCompatibilityFailureCode.WorldInventoryContractViolation);
+        StringAssert.Contains(
+            report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!,
+            "filtered Pickupable.TotalAmount contribution anchor");
+    }
+
+    [TestMethod]
+    public void Inspect_WhenSumTotalFilteredContributionAnchorIsDuplicated_ClassifiesWorldInventoryAsIncompatible()
+    {
+        FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
+            .CreateWithSumTotalFilteredContributionAnchorDuplicated();
+
+        FastTrackCompatibilityReport report = InspectAllActive(fixture);
+
+        AssertOnlyFeatureIsIncompatible(
+            report,
+            FastTrackFeature.WorldInventory,
+            FastTrackFeatureCompatibilityFailureCode.WorldInventoryContractViolation);
+        StringAssert.Contains(
+            report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!,
+            "filtered Pickupable.TotalAmount contribution anchor");
     }
 
     [TestMethod]

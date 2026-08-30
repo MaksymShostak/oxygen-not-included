@@ -1662,6 +1662,171 @@ public sealed class HarmonyPatchContractVerifierTests
     }
 
     [TestMethod]
+    public void FastTrackWorldInventoryAdapterSource_WhenInspected_UsesBoundContractsAndIncrementalPublicationWithoutHotPathDiscovery()
+    {
+        var adapterPath = ResolveProductionSourcePath(
+            Path.Combine(
+                "FastTrackCompatibility",
+                "InventoryUpdateAdapters"),
+            "FastTrackWorldInventoryTemperaturePatches.cs");
+        Assert.IsTrue(
+            File.Exists(adapterPath),
+            $"Missing FastTrack world-inventory adapter source {adapterPath}.");
+        var source = File.ReadAllText(adapterPath);
+
+        StringAssert.Contains(source, "BindVerifiedWorldInventoryFeature");
+        StringAssert.Contains(
+            source,
+            "ResolveBackgroundWorldInventoryRunUpdateTarget");
+        StringAssert.Contains(
+            source,
+            "ResolveBackgroundWorldInventorySumTotalTarget");
+        StringAssert.Contains(
+            source,
+            "BackgroundWorldInventoryRunUpdatePrefix");
+        StringAssert.Contains(
+            source,
+            "BackgroundWorldInventoryRunUpdateTranspiler");
+        StringAssert.Contains(
+            source,
+            "BackgroundWorldInventoryRunUpdatePostfix");
+        StringAssert.Contains(
+            source,
+            "BackgroundWorldInventoryRunUpdateFinalizer");
+        StringAssert.Contains(
+            source,
+            "BackgroundWorldInventorySumTotalTranspiler");
+        StringAssert.Contains(
+            source,
+            "FastTrackWorldInventoryPublicationSession");
+        StringAssert.Contains(
+            source,
+            "FastTrackVerifiedMember.WorldInventoryInventoryField");
+        StringAssert.Contains(source, "CreateWorldInventoryEntriesReader");
+        StringAssert.Contains(source, "DynamicMethod");
+        StringAssert.Contains(source, "ThreadConfinedSessionSlot");
+        StringAssert.Contains(source, "BeginResourceTagEnumeration");
+        StringAssert.Contains(
+            source,
+            "RecordFilteredPickupTemperatureAmount");
+        StringAssert.Contains(source, "GetCurrentPublicationSession");
+        StringAssert.Contains(source, "CompleteResourceTagEnumeration");
+        StringAssert.Contains(
+            source,
+            "GetWorldResourceTagCoverageRequirementState");
+        StringAssert.Contains(
+            source,
+            "PublishCompleteWorldResourceAmounts");
+        StringAssert.Contains(
+            source,
+            "PublishWorldResourceTagCoverage");
+        StringAssert.Contains(
+            source,
+            "PublishWorldResourceTemperatureSeries");
+        StringAssert.Contains(source, "___firstUpdate");
+        StringAssert.Contains(source, "___worldContainer");
+        StringAssert.Contains(source, "___worldInventory");
+        StringAssert.Contains(
+            source,
+            "PrimaryElement primaryElement = pickupable.PrimaryElement");
+        Assert.AreEqual(
+            1,
+            CountOrdinalOccurrences(
+                source,
+                "GetWorldResourceTagCoverageRequirementState("));
+        Assert.AreEqual(
+            1,
+            CountOrdinalOccurrences(source, "worldInventoryEntries.Keys"));
+        Assert.IsFalse(source.Contains("[HarmonyPatch", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("AccessTools", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("Type.GetType", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("Assembly.GetAssemblies", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("FileVersionInfo", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("SHA256", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("operand.ToString", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("GetComponent", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("ClusterManager", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("WorldContainers", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("StartUpdateAll", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("System.Linq", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("FastTrackOptions", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("FieldInfo.GetValue", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("MethodInfo.Invoke", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("DynamicInvoke", StringComparison.Ordinal));
+        Assert.IsFalse(
+            source.Contains(
+                "private static bool IsTemperatureCollectionActive",
+                StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void AddTemperatureAmount_WhenPrimaryElementIsMissing_IsNotCalledByAdapter()
+    {
+        var adapterPath = ResolveProductionSourcePath(
+            Path.Combine(
+                "FastTrackCompatibility",
+                "InventoryUpdateAdapters"),
+            "FastTrackWorldInventoryTemperaturePatches.cs");
+        Assert.IsTrue(File.Exists(adapterPath));
+        var source = File.ReadAllText(adapterPath);
+        int primaryElementCaptureIndex = source.IndexOf(
+            "PrimaryElement primaryElement = pickupable.PrimaryElement",
+            StringComparison.Ordinal);
+        int missingPrimaryElementGuardIndex = source.IndexOf(
+            "if (primaryElement != null)",
+            primaryElementCaptureIndex,
+            StringComparison.Ordinal);
+        int addTemperatureAmountIndex = source.IndexOf(
+            ".AddTemperatureAmount(",
+            missingPrimaryElementGuardIndex,
+            StringComparison.Ordinal);
+
+        Assert.IsGreaterThanOrEqualTo(0, primaryElementCaptureIndex);
+        Assert.IsTrue(
+            primaryElementCaptureIndex < missingPrimaryElementGuardIndex,
+            "The cached PrimaryElement must be checked before accumulation.");
+        Assert.IsTrue(
+            missingPrimaryElementGuardIndex < addTemperatureAmountIndex,
+            "The null guard must dominate AddTemperatureAmount.");
+    }
+
+    [TestMethod]
+    public void RecordFilteredPickupTemperatureAmount_WhenInspected_UsesPassedSessionWithoutPerPickupThreadLocalLookup()
+    {
+        var adapterPath = ResolveProductionSourcePath(
+            Path.Combine(
+                "FastTrackCompatibility",
+                "InventoryUpdateAdapters"),
+            "FastTrackWorldInventoryTemperaturePatches.cs");
+        string source = File.ReadAllText(adapterPath);
+        int hookStartIndex = source.IndexOf(
+            "private static float RecordFilteredPickupTemperatureAmount(",
+            StringComparison.Ordinal);
+        int nextMethodIndex = source.IndexOf(
+            "private static void CompleteResourceTagEnumeration(",
+            hookStartIndex,
+            StringComparison.Ordinal);
+
+        Assert.IsGreaterThanOrEqualTo(0, hookStartIndex);
+        Assert.IsTrue(
+            nextMethodIndex > hookStartIndex,
+            "The exact pickup hook body must have a bounded source region.");
+        string hookSource = source.Substring(
+            hookStartIndex,
+            nextMethodIndex - hookStartIndex);
+        StringAssert.Contains(
+            hookSource,
+            "FastTrackWorldInventoryPublicationSession publicationSession");
+        StringAssert.Contains(
+            hookSource,
+            "PrimaryElement primaryElement = pickupable.PrimaryElement");
+        Assert.IsFalse(
+            hookSource.Contains("TryGetCurrent", StringComparison.Ordinal),
+            "The accepted-pickup hook must consume its method-local cached " +
+            "session instead of rereading thread-local state.");
+    }
+
+    [TestMethod]
     public void GameDestroyInstancesContract_WhenInstalledShapeMatches_ReturnsExactMethod()
     {
         var method = HarmonyPatchContractVerifier.RequireInstanceMethod(

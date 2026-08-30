@@ -104,6 +104,11 @@ public sealed class FastTrackGitHubReleaseAssemblyContractTests
 
         IReadOnlyList<MetadataIlInstruction> runUpdateInstructions =
             fixture.Decode(runUpdate);
+        RequireSingleFieldLoadIndex(
+            fixture,
+            runUpdateInstructions,
+            "WorldInventory",
+            "Inventory");
         Assert.AreEqual(
             2,
             CountTokenInstructions(
@@ -142,9 +147,10 @@ public sealed class FastTrackGitHubReleaseAssemblyContractTests
             "The firstUpdate field read must be followed by its conditional branch.");
         MetadataIlInstruction firstUpdateBranch =
             runUpdateInstructions[firstUpdateReadIndex + 1];
-        Assert.AreEqual(
-            FlowControl.Cond_Branch,
-            firstUpdateBranch.OpCode.FlowControl);
+        Assert.IsTrue(
+            firstUpdateBranch.OpCode == OpCodes.Brfalse ||
+            firstUpdateBranch.OpCode == OpCodes.Brfalse_S,
+            "FastTrack's false branch must select the later single-tag path.");
         Assert.IsNotNull(firstUpdateBranch.BranchTargetOffset);
         int singleResourceTagBranchOffset =
             firstUpdateBranch.BranchTargetOffset.Value;
@@ -161,6 +167,90 @@ public sealed class FastTrackGitHubReleaseAssemblyContractTests
                 instruction.Offset >= singleResourceTagBranchOffset &&
                 IsCallInstruction(instruction) &&
                 instruction.MetadataToken == MetadataTokens.GetToken(sumTotal)));
+
+        IReadOnlyList<int> resourceTagGetterIndices = FindCallIndices(
+            fixture,
+            runUpdateInstructions,
+            "System.Collections.Generic.KeyValuePair`2[Tag,",
+            "get_Key");
+        IReadOnlyList<int> pickupableSetGetterIndices = FindCallIndices(
+            fixture,
+            runUpdateInstructions,
+            "System.Collections.Generic.KeyValuePair`2[Tag,",
+            "get_Value");
+        IReadOnlyList<int> sumTotalCallIndices =
+            runUpdateInstructions
+                .Select((instruction, index) => (instruction, index))
+                .Where(candidate =>
+                    IsCallInstruction(candidate.instruction) &&
+                    candidate.instruction.MetadataToken ==
+                        MetadataTokens.GetToken(sumTotal))
+                .Select(candidate => candidate.index)
+                .ToArray();
+        IReadOnlyList<int> accessibleAmountSetterIndices = FindCallIndices(
+            fixture,
+            runUpdateInstructions,
+            "System.Collections.Generic.Dictionary`2[Tag,System.Single]",
+            "set_Item");
+        Assert.AreEqual(2, resourceTagGetterIndices.Count);
+        Assert.AreEqual(2, pickupableSetGetterIndices.Count);
+        Assert.AreEqual(2, sumTotalCallIndices.Count);
+        Assert.AreEqual(2, accessibleAmountSetterIndices.Count);
+        for (var publicationIndex = 0;
+             publicationIndex < sumTotalCallIndices.Count;
+             publicationIndex++)
+        {
+            Assert.IsTrue(
+                resourceTagGetterIndices[publicationIndex] <
+                    pickupableSetGetterIndices[publicationIndex] &&
+                pickupableSetGetterIndices[publicationIndex] <
+                    sumTotalCallIndices[publicationIndex] &&
+                sumTotalCallIndices[publicationIndex] <
+                    accessibleAmountSetterIndices[publicationIndex],
+                "Each complete or incremental RunUpdate branch must load one " +
+                "typed resource tag and its pickupable set before SumTotal, then " +
+                "write that same branch's accessible amount.");
+        }
+
+        IReadOnlyList<MetadataIlInstruction> sumTotalInstructions =
+            fixture.Decode(sumTotal);
+        int getCellIndex = RequireSingleCallIndex(
+            fixture,
+            sumTotalInstructions,
+            "Workable",
+            "GetCell");
+        int validCellIndex = RequireSingleCallIndex(
+            fixture,
+            sumTotalInstructions,
+            "Grid",
+            "IsValidCell");
+        int storedPrivateFilterIndex = RequireSingleCallIndex(
+            fixture,
+            sumTotalInstructions,
+            "KPrefabID",
+            "HasTag");
+        int totalAmountGetterIndex = RequireSingleCallIndex(
+            fixture,
+            sumTotalInstructions,
+            "Pickupable",
+            "get_TotalAmount");
+        Assert.IsTrue(
+            getCellIndex < validCellIndex &&
+            validCellIndex < storedPrivateFilterIndex &&
+            storedPrivateFilterIndex < totalAmountGetterIndex);
+        Assert.IsTrue(
+            sumTotalInstructions
+                .Skip(getCellIndex + 1)
+                .Take(totalAmountGetterIndex - getCellIndex - 1)
+                .Count(instruction =>
+                    instruction.OpCode.FlowControl ==
+                        FlowControl.Cond_Branch) >= 2,
+            "The TotalAmount contribution must remain after FastTrack's cell, " +
+            "world, and StoredPrivate filter branches.");
+        Assert.IsTrue(totalAmountGetterIndex + 1 < sumTotalInstructions.Count);
+        Assert.AreEqual(
+            OpCodes.Add,
+            sumTotalInstructions[totalAmountGetterIndex + 1].OpCode);
 
         IReadOnlyList<MetadataIlInstruction> removalInstructions =
             fixture.Decode(removedFetchablePrefix);
@@ -346,6 +436,118 @@ public sealed class FastTrackGitHubReleaseAssemblyContractTests
         instruction.OpCode == OpCodes.Call ||
         instruction.OpCode == OpCodes.Callvirt ||
         instruction.OpCode == OpCodes.Newobj;
+
+    private static IReadOnlyList<int> FindCallIndices(
+        FastTrackPortableExecutableFixture fixture,
+        IReadOnlyList<MetadataIlInstruction> instructions,
+        string declaringTypeNamePrefix,
+        string methodName)
+    {
+        var matchingIndices = new List<int>();
+        for (var instructionIndex = 0;
+             instructionIndex < instructions.Count;
+             instructionIndex++)
+        {
+            MetadataIlInstruction instruction = instructions[instructionIndex];
+            if (!IsCallInstruction(instruction) ||
+                !instruction.MetadataToken.HasValue)
+            {
+                continue;
+            }
+
+            MetadataMemberIdentity member = fixture.ResolveMemberIdentity(
+                instruction.MetadataToken.Value);
+            if (member.DeclaringTypeName.StartsWith(
+                    declaringTypeNamePrefix,
+                    StringComparison.Ordinal) &&
+                string.Equals(
+                    member.Name,
+                    methodName,
+                    StringComparison.Ordinal))
+            {
+                matchingIndices.Add(instructionIndex);
+            }
+        }
+
+        return matchingIndices.AsReadOnly();
+    }
+
+    private static int RequireSingleCallIndex(
+        FastTrackPortableExecutableFixture fixture,
+        IReadOnlyList<MetadataIlInstruction> instructions,
+        string declaringTypeNamePrefix,
+        string methodName)
+    {
+        IReadOnlyList<int> matchingIndices = FindCallIndices(
+            fixture,
+            instructions,
+            declaringTypeNamePrefix,
+            methodName);
+        Assert.AreEqual(
+            1,
+            matchingIndices.Count,
+            $"Expected exactly one {declaringTypeNamePrefix}.{methodName} call. " +
+            $"Observed calls: {DescribeCalls(fixture, instructions)}");
+        return matchingIndices[0];
+    }
+
+    private static int RequireSingleFieldLoadIndex(
+        FastTrackPortableExecutableFixture fixture,
+        IReadOnlyList<MetadataIlInstruction> instructions,
+        string declaringTypeName,
+        string fieldName)
+    {
+        var matchingIndices = new List<int>();
+        for (var instructionIndex = 0;
+             instructionIndex < instructions.Count;
+             instructionIndex++)
+        {
+            MetadataIlInstruction instruction = instructions[instructionIndex];
+            if (instruction.OpCode != OpCodes.Ldfld ||
+                !instruction.MetadataToken.HasValue)
+            {
+                continue;
+            }
+
+            MetadataMemberIdentity member = fixture.ResolveMemberIdentity(
+                instruction.MetadataToken.Value);
+            if (string.Equals(
+                    member.DeclaringTypeName,
+                    declaringTypeName,
+                    StringComparison.Ordinal) &&
+                string.Equals(member.Name, fieldName, StringComparison.Ordinal))
+            {
+                matchingIndices.Add(instructionIndex);
+            }
+        }
+
+        Assert.AreEqual(
+            1,
+            matchingIndices.Count,
+            $"Expected exactly one {declaringTypeName}.{fieldName} field load.");
+        return matchingIndices[0];
+    }
+
+    private static string DescribeCalls(
+        FastTrackPortableExecutableFixture fixture,
+        IReadOnlyList<MetadataIlInstruction> instructions)
+    {
+        var callIdentities = new List<string>();
+        foreach (MetadataIlInstruction instruction in instructions)
+        {
+            if (!IsCallInstruction(instruction) ||
+                !instruction.MetadataToken.HasValue)
+            {
+                continue;
+            }
+
+            MetadataMemberIdentity member = fixture.ResolveMemberIdentity(
+                instruction.MetadataToken.Value);
+            callIdentities.Add(member.DeclaringTypeName + "." + member.Name);
+        }
+
+        return string.Join(", ", callIdentities);
+    }
 
     private static string RequireCopiedFixturePath()
     {
@@ -675,6 +877,14 @@ public sealed class FastTrackGitHubReleaseAssemblyContractTests
                     return new MetadataMemberIdentity(
                         GetTypeDefinitionName(method.GetDeclaringType()),
                         MetadataReader.GetString(method.Name));
+                case HandleKind.FieldDefinition:
+                    FieldDefinitionHandle fieldHandle =
+                        (FieldDefinitionHandle)handle;
+                    FieldDefinition field =
+                        MetadataReader.GetFieldDefinition(fieldHandle);
+                    return new MetadataMemberIdentity(
+                        GetTypeDefinitionName(field.GetDeclaringType()),
+                        MetadataReader.GetString(field.Name));
                 case HandleKind.MethodSpecification:
                     MethodSpecification specification =
                         MetadataReader.GetMethodSpecification(
@@ -683,7 +893,8 @@ public sealed class FastTrackGitHubReleaseAssemblyContractTests
                         MetadataTokens.GetToken(specification.Method));
                 default:
                     Assert.Fail(
-                        $"Metadata token 0x{metadataToken:X8} is not a method.");
+                        $"Metadata token 0x{metadataToken:X8} is not a supported " +
+                        "method or field identity.");
                     return default;
             }
         }
