@@ -541,10 +541,13 @@ PublishWorldResourceTemperatureSeries
 GetWorldResourceTagCoverageRequirementState
 GetTemperatureConstrainedAmountAvailability
 RemoveWorld
+ClearTemperatureAmountPublicationsForCollectionBypass
 ClearForGameSession
 ```
 
-World registration, removal, parent reassignment, complete replacement, coverage replacement, single-tag replacement, duplicate publication, mixed publication kinds, stale generations, and post-removal late publication all have explicit tests.
+`ClearTemperatureAmountPublicationsForCollectionBypass` is the reversible zero-enabled-constraint transition. It releases per-world publication collections and derived aggregates, clears collection-completeness evidence, and deliberately preserves world/parent registrations. Replacing the catalog would lose live membership that ONI does not replay when collection later resumes; retaining its publications would pin stale colony-specific series. `ClearForGameSession` remains the terminal operation that also rejects later publication and removes registrations.
+
+World registration, removal, parent reassignment, complete replacement, coverage replacement, single-tag replacement, duplicate publication, mixed publication kinds, stale generations, collection-bypass clearing, and post-removal late publication all have explicit tests.
 
 ### 11.4 Availability replacement states
 

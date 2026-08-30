@@ -579,6 +579,7 @@ internal sealed class WorldResourceTemperatureAmountCatalog
         DeliveryTemperatureConstraint constraint,
         WorldInventoryCollectionGeneration expectedCollectionGeneration);
     internal void RemoveWorld(int worldId);
+    internal void ClearTemperatureAmountPublicationsForCollectionBypass();
     internal void ClearForGameSession();
 }
 
@@ -2509,6 +2510,7 @@ refactor: Define scoped pickup temperature partitions
 - Create: `mods/delivery-temperature-limit-supercooled/Source/FetchTemperatureEligibility/FetchTemperatureEligibilitySnapshot.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Source/FetchTemperatureEligibility/FetchTemperatureEligibilityBuilder.cs`
 - Modify: `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureGameSessionLifecycle/DeliveryTemperatureGameSession.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Source/WorldResourceTemperatureAmounts/WorldResourceTemperatureAmountCatalog.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/FetchTemperatureEligibility/FetchRequestTopologyTrackerTests.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/FetchTemperatureEligibility/FetchTemperatureEligibilityBuilderTests.cs`
 - Modify: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureGameSessionLifecycle/DeliveryTemperatureGameSessionTests.cs`
@@ -2601,7 +2603,7 @@ Build storage interval sets, immutable sorted unique endpoint arrays, and one im
 
 Add `FetchRequestTopology`, an atomically read current `FetchTemperatureEligibilitySnapshot`, and `TryPublishFetchTemperatureEligibility`. Registration changes that alter effective constraints call `RecordEffectiveChange` after registry/index mutation completes. World add/remove/reparent session methods update world topology and inventory first, then record one fetch topology change after both locks are released.
 
-Also expose the current `WorldInventoryCollectionGeneration`. Increment it on an enabled-count transition from zero to nonzero, keep it unchanged for constraint edits while the enabled count remains nonzero because fixed decision-bucket inventory is constraint-independent, clear world resource temperature amounts on a nonzero-to-zero transition, and increment again on the next zero-to-nonzero transition. A world added while active must establish the proof appropriate to the selected inventory implementation—complete-world publication for the Klei inventory update path, or coverage plus required present-tag series for the FastTrack inventory update path—before its parent/tag becomes complete. While the enabled count is zero, inventory adapters must decline to open an accumulator/builder session.
+Also expose the current `WorldInventoryCollectionGeneration`. Increment it on an enabled-count transition from zero to nonzero, keep it unchanged for constraint edits while the enabled count remains nonzero because fixed decision-bucket inventory is constraint-independent, clear world resource temperature amounts on a nonzero-to-zero transition, and increment again on the next zero-to-nonzero transition. Perform that clear through `WorldResourceTemperatureAmountCatalog.ClearTemperatureAmountPublicationsForCollectionBypass`: it must replace potentially oversized per-world publication collections, clear derived parent/tag aggregates and collection-completeness evidence, and preserve the live world/parent registrations that will not be replayed merely because collection paused. Do not replace the catalog, duplicate topology state in the session, or call the terminal `ClearForGameSession` operation for a reversible bypass transition. A world added while active must establish the proof appropriate to the selected inventory implementation—complete-world publication for the Klei inventory update path, or coverage plus required present-tag series for the FastTrack inventory update path—before its parent/tag becomes complete. While the enabled count is zero, inventory adapters must decline to open an accumulator/builder session.
 
 Compute the next inventory collection generation in a checked context before the zero-to-nonzero transition publishes any new active state. Add `RegisterTemperatureLimit_WhenInventoryCollectionGenerationIsExhausted_ThrowsWithoutStartingCollection`, using only the predeclared private field, and prove the prior bypass state/catalog remain unchanged.
 
@@ -2628,7 +2630,7 @@ Run pipeline `validate`, `build`, and `test` separately. Confirm all four genera
 
 - [ ] **Step 10: Prepare and commit**
 
-Use the nine task paths, allowed type `refactor`, and exact subject:
+Use the ten task paths, allowed type `refactor`, and exact subject:
 
 ```text
 refactor: Build combined fetch temperature eligibility
