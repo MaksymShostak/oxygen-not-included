@@ -122,6 +122,7 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
         Assert.IsTrue(File.Exists(mergedAssemblyPath));
         AssertKnownFrameworkConflictRootsAreNotReferenced(mergedAssemblyPath);
         IntentionalRuntimeContractTests.AssertMergedAssembly(mergedAssemblyPath);
+        NoShimArchitectureContractTests.AssertMergedAssembly(mergedAssemblyPath);
     }
 
     [TestMethod]
@@ -198,6 +199,7 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
         Assert.IsTrue(File.Exists(mergedAssemblyPath));
         AssertKnownFrameworkConflictRootsAreNotReferenced(mergedAssemblyPath);
         IntentionalRuntimeContractTests.AssertMergedAssembly(mergedAssemblyPath);
+        NoShimArchitectureContractTests.AssertMergedAssembly(mergedAssemblyPath);
         return mergedAssemblyPath;
     }
 

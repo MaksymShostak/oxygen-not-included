@@ -264,28 +264,38 @@ internal static class ReferenceTemperatureEligibilityModel
              constraintIndex++)
         {
             var destinationConstraint = destinationConstraints[constraintIndex];
-            if (!destinationConstraint.IsEnabled)
-            {
-                allowances[constraintIndex] = true;
-                continue;
-            }
-
-            if (destinationConstraint.IsEmpty)
-            {
-                allowances[constraintIndex] = false;
-                continue;
-            }
-
-            // This remains an independent oracle: it repeats the serialized-domain
-            // truncation and comparisons rather than invoking any production
-            // constraint, interval-set, or partition-classification operation.
-            var truncatedKelvin = (int)temperatureKelvin;
-            allowances[constraintIndex] =
-                destinationConstraint.MinimumInclusiveKelvin <= truncatedKelvin &&
-                truncatedKelvin < destinationConstraint.MaximumExclusiveKelvin;
+            allowances[constraintIndex] = AllowsTemperature(
+                destinationConstraint,
+                temperatureKelvin);
         }
 
         return allowances;
+    }
+
+    /// <summary>
+    /// Independently evaluates one normalized constraint without invoking the
+    /// production constraint, interval, bucket, partition, or series operation.
+    /// </summary>
+    internal static bool AllowsTemperature(
+        DeliveryTemperatureConstraint constraint,
+        float temperatureKelvin)
+    {
+        if (!constraint.IsEnabled)
+        {
+            return true;
+        }
+
+        if (constraint.IsEmpty)
+        {
+            return false;
+        }
+
+        // The compatibility behavior is truncation toward zero followed by an
+        // inclusive-minimum/exclusive-maximum comparison. Repeat it here so the
+        // oracle remains independent from all production decision domains.
+        var truncatedKelvin = (int)temperatureKelvin;
+        return constraint.MinimumInclusiveKelvin <= truncatedKelvin &&
+            truncatedKelvin < constraint.MaximumExclusiveKelvin;
     }
 
     internal static bool AnyDestinationAllowsTemperature(
@@ -296,26 +306,7 @@ internal static class ReferenceTemperatureEligibilityModel
 
         foreach (var destinationConstraint in destinationConstraints)
         {
-            // A disabled destination is the logical unconstrained case. Keep it
-            // here in the direct oracle even though production translates it into
-            // the separately named includesUnconstrainedDestination fact.
-            if (!destinationConstraint.IsEnabled)
-            {
-                return true;
-            }
-
-            if (destinationConstraint.IsEmpty)
-            {
-                continue;
-            }
-
-            // Deliberately duplicate truncation and boundary comparisons instead
-            // of calling the production Allows method or interval-set logic.
-            var truncatedKelvin = (int)temperatureKelvin;
-            if (destinationConstraint.MinimumInclusiveKelvin <=
-                    truncatedKelvin &&
-                truncatedKelvin <
-                    destinationConstraint.MaximumExclusiveKelvin)
+            if (AllowsTemperature(destinationConstraint, temperatureKelvin))
             {
                 return true;
             }
@@ -333,21 +324,9 @@ internal static class ReferenceTemperatureEligibilityModel
         var allowedAmount = 0.0f;
         foreach (var sourceTemperatureAmount in sourceTemperatureAmounts)
         {
-            // Deliberately duplicate the serialized-domain decision instead of
-            // calling DeliveryTemperatureConstraint.Allows or using production
-            // buckets. This model is an independent oracle for truncation toward
-            // zero and the inclusive-minimum/exclusive-maximum comparison.
-            var temperatureIsAllowed = !constraint.IsEnabled;
-            if (constraint.IsEnabled && !constraint.IsEmpty)
-            {
-                var truncatedKelvin =
-                    (int)sourceTemperatureAmount.TemperatureKelvin;
-                temperatureIsAllowed =
-                    constraint.MinimumInclusiveKelvin <= truncatedKelvin &&
-                    truncatedKelvin < constraint.MaximumExclusiveKelvin;
-            }
-
-            if (temperatureIsAllowed)
+            if (AllowsTemperature(
+                    constraint,
+                    sourceTemperatureAmount.TemperatureKelvin))
             {
                 allowedAmount += sourceTemperatureAmount.Amount;
             }
