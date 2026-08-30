@@ -299,13 +299,13 @@ namespace DeliveryTemperatureLimit
                 OpCodes.Call,
                 isCollectionActiveHook));
             instrumentedInstructions.Add(
-                CodeInstruction2.StoreLocal(
+                HarmonyCodeInstructionFactory.StoreLocal(
                     isCollectionActiveLocal.LocalIndex));
             instrumentedInstructions.Add(new CodeInstruction(
                 OpCodes.Call,
                 shouldObserveCoverageHook));
             instrumentedInstructions.Add(
-                CodeInstruction2.StoreLocal(
+                HarmonyCodeInstructionFactory.StoreLocal(
                     shouldObserveCoverageLocal.LocalIndex));
             for (int instructionIndex = 0;
                  instructionIndex < sourceInstructions.Count;
@@ -317,15 +317,15 @@ namespace DeliveryTemperatureLimit
                 if (instructionIndex == inventoryEntryCaptureIndex + 1)
                 {
                     instrumentedInstructions.Add(
-                        CodeInstruction2.LoadLocal(
+                        HarmonyCodeInstructionFactory.LoadLocal(
                             shouldObserveCoverageLocal.LocalIndex));
                     instrumentedInstructions.Add(new CodeInstruction(
                         OpCodes.Brfalse,
                         skipCoverageObservationLabel));
                     instrumentedInstructions.Add(
-                        CodeInstruction2.LoadLocal(
+                        HarmonyCodeInstructionFactory.LoadLocal(
                             inventoryEntryLocalIndex,
-                            useAddress: true));
+                            loadAddress: true));
                     instrumentedInstructions.Add(new CodeInstruction(
                         OpCodes.Call,
                         observeCoverageHook));
@@ -334,13 +334,13 @@ namespace DeliveryTemperatureLimit
                 if (instructionIndex == resourceTagStartIndex + 1)
                 {
                     instrumentedInstructions.Add(
-                        CodeInstruction2.LoadLocal(
+                        HarmonyCodeInstructionFactory.LoadLocal(
                             isCollectionActiveLocal.LocalIndex));
                     instrumentedInstructions.Add(new CodeInstruction(
                         OpCodes.Brfalse,
                         skipResourceTagStartHookLabel));
                     instrumentedInstructions.Add(
-                        CodeInstruction2.LoadLocal(resourceTagLocalIndex));
+                        HarmonyCodeInstructionFactory.LoadLocal(resourceTagLocalIndex));
                     instrumentedInstructions.Add(new CodeInstruction(
                         OpCodes.Call,
                         beginResourceTagHook));
@@ -355,7 +355,7 @@ namespace DeliveryTemperatureLimit
                     // the original getter. Both paths therefore call TotalAmount
                     // exactly once and reconverge with [runningTotal, amount].
                     instrumentedInstructions.Add(
-                        CodeInstruction2.LoadLocal(
+                        HarmonyCodeInstructionFactory.LoadLocal(
                             isCollectionActiveLocal.LocalIndex));
                     instrumentedInstructions.Add(new CodeInstruction(
                         OpCodes.Brfalse,
@@ -377,7 +377,7 @@ namespace DeliveryTemperatureLimit
                 if (instructionIndex == resourceTagCompletionIndex + 3)
                 {
                     instrumentedInstructions.Add(
-                        CodeInstruction2.LoadLocal(
+                        HarmonyCodeInstructionFactory.LoadLocal(
                             isCollectionActiveLocal.LocalIndex));
                     instrumentedInstructions.Add(new CodeInstruction(
                         OpCodes.Brfalse,

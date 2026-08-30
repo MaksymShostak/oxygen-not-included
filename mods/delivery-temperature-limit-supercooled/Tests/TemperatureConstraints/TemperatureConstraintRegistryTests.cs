@@ -444,8 +444,15 @@ public sealed class TemperatureConstraintRegistryTests
         var hadExistingEntry = referenceEntriesByComponentInstanceId.TryGetValue(
             componentInstanceId,
             out var existingEntry);
+        if (hadExistingEntry && existingEntry is null)
+        {
+            throw new InvalidOperationException(
+                "The randomized reference registry cannot contain a null entry.");
+        }
+
         var expectedEffectiveStateChanged =
-            !hadExistingEntry || !existingEntry.Constraint.Equals(constraint);
+            existingEntry is null ||
+            !existingEntry.Constraint.Equals(constraint);
         var observedRegistration = registry.Register(
             componentInstanceId,
             constraint,
@@ -459,7 +466,7 @@ public sealed class TemperatureConstraintRegistryTests
         if (expectedEffectiveStateChanged)
         {
             expectedGeneration++;
-            if (hadExistingEntry)
+            if (existingEntry is not null)
             {
                 Assert.AreNotEqual(
                     existingEntry.RegistrationToken,
@@ -472,6 +479,12 @@ public sealed class TemperatureConstraintRegistryTests
         }
         else
         {
+            if (existingEntry is null)
+            {
+                throw new InvalidOperationException(
+                    "An unchanged registration requires its existing reference entry.");
+            }
+
             Assert.AreEqual(
                 existingEntry.RegistrationToken,
                 observedRegistration,

@@ -3861,7 +3861,7 @@ Observed red and green: the focused suite first failed to compile because the pa
 
 First Task 24 commit gate: fresh pipeline `validate`, `build`, and `test` passed. The declared suite executed 550 tests with 550 passed and zero failed, skipped/not-executed, or inconclusive tests. The exact build result was `artifacts/builds/MaksymShostak.DeliveryTemperatureLimit/20260830T0632299254022Z-be6119020d8241f98d2a5cc7f3950782/build-result.json`. No project or pipeline configuration changed in this slice.
 
-- [ ] **Step 3: Write failing curated runtime/serialization contract tests**
+- [x] **Step 3: Write failing curated runtime/serialization contract tests**
 
 Replace whole-assembly equality with `IntentionalRuntimeContract`. Assert that the only intentionally public or nested-public types declared by this assembly are:
 
@@ -3880,7 +3880,7 @@ Assert that `DeliveryTemperatureLimitOptions` retains opt-in JSON serialization,
 
 Add metadata assertions that `TemperatureLimit` still contains private `int lowLimit` and `int highLimit` with both `[KSerialization.Serialize]` and `[UnityEngine.SerializeField]`. Assert the absence of nested `TemperatureIndexData` and `getTemperatureIndexData` by exact metadata name.
 
-- [ ] **Step 4: Implement the new `TemperatureLimit` component over the game session**
+- [x] **Step 4: Implement the new `TemperatureLimit` component over the game session**
 
 Preserve serialized fields, constants, player-facing operations, callbacks, and copy-settings behavior. Normalize setters before comparison. If the normalized value is unchanged, return without registry generation change. Otherwise update the component fields and atomically replace the session registration.
 
@@ -3890,11 +3890,13 @@ Preserve serialized fields, constants, player-facing operations, callbacks, and 
 
 Add comments at the serialized fields and lifecycle token explaining save identity and stale-callback rejection. Do not add a compatibility facade for removed index members.
 
-- [ ] **Step 5: Convert UI, construction, and building callers to semantic component operations**
+- [x] **Step 5: Convert UI, construction, and building callers to semantic component operations**
 
 Update each caller to use the new component methods and canonical constraints without recreating clamp/boundary logic. Make patch classes internal. Preserve exact player-facing option/default/copy/UI behavior and existing tests. No file may call a removed global index or create a parallel lookup dictionary.
 
-- [ ] **Step 6: Implement two-phase patch installation**
+Observed red and green: source and merged-assembly contracts first failed while the semantic entrypoint/component files were absent, then passed after the new component owned one session-stamped registration and all callers moved to its canonical operations. A later merged-assembly red exposed that publicly inheriting PLib's optional `SingletonOptions<T>`/`IOptions` contracts forced merged PLib implementation types into the effective public surface. Because the options are restart-required, `DeliveryTemperatureLimitOptions` now owns an internal thread-safe lazy snapshot loaded through `POptions.ReadSettings<T>()`; this preserves the shared file, JSON properties, defaults, and dialog registration without exporting PLib internals or pretending runtime patch selection can change after startup. The effective CLR-visible merged surface is exactly the four approved types; ILRepack's nested-public flags beneath internalized PLib declaring types are correctly excluded because those nested types are not externally accessible.
+
+- [x] **Step 6: Implement two-phase patch installation**
 
 `DeliveryTemperatureRuntimePatchInstaller` first resolves and verifies every exact target, signature, typed anchor, Harmony owner, and path selection needed by the immutable runtime patch plan. It applies nothing during this verification phase.
 
@@ -3904,7 +3906,7 @@ Only after all required contracts pass may it apply patch groups. Record every e
 
 Always-selected runtime groups are lifecycle, topology, authoritative fetch snapshot, one pickup implementation, and one direct-delivery implementation. Construction/building/UI behavior is activated by replacing its callers/components in this big-bang change rather than by inventing a generic patch group. Status-enabled plans install the shared status hook plus exactly one inventory publication group when that feature is compatible. Status-disabled plans install neither Klei nor FastTrack inventory/status instrumentation and allocate no catalog buffers merely for status.
 
-- [ ] **Step 7: Replace automatic discovery with explicit startup sequencing**
+- [x] **Step 7: Replace automatic discovery with explicit startup sequencing**
 
 `DeliveryTemperatureLimitMod.OnLoad` retains PLib initialization, localization, and options registration, then installs only groups whose contracts do not depend on the complete loaded-mod topology. `DeliveryTemperatureLimitMod.OnAllModsLoaded` first performs the cold FastTrack presence/enabled/replacement gate, builds a compatibility report only for relevant active features, creates one runtime patch plan, preverifies remaining groups, and installs them once.
 
@@ -3918,7 +3920,9 @@ At every `Game.OnLoadLevel`, and only once for that load identity, `TryStartAuth
 
 Add emitted-descriptor behavioral tests directly against the linked pure plan for unchanged Klei authority, changed Klei authority, unchanged FastTrack authority, changed FastTrack authority, and unselected-owner changes that must not matter. Add static source/IL contracts against the production installer proving `TryStartAuthorizedGameSession` obtains descriptors, calls `VerifySelectedAuthority`, handles only `HarmonyPatchContractViolationException`, and can call `EnsureGameSession` only on the verified-success branch and only once for a load identity. Separately add the exact `Game.OnLoadLevel` target contract, guarded-no-session hook cases, and a later-load state transition. These are static/reflection-only game-boundary tests plus executable pure-plan tests; no automated ONI launch or copied authority algorithm is allowed.
 
-- [ ] **Step 8: Prove coherent FastTrack failure behavior without fallback shims**
+Observed red and green: the installed-game metadata contract proves current ONI build `744825` exposes exactly protected instance `void Game.OnLoadLevel()` with no parameters. The emitted authority suite deliberately exposed a missing Klei direct-delivery recheck: a foreign skipping prefix on `GlobalChoreProvider.CollectChores` initially produced no exception. `VerifySelectedAuthority` now verifies that selected Klei responsibility as well as the existing authoritative-fetch, inventory, pickup, and FastTrack responsibilities; all 17 plan tests pass. The explicit installer compiles against installed ONI/Harmony, has one immutable ordered-group preparation switch, preverifies every selected target/transpiler/member before its single mutation gate, records exact `(target, patch method)` pairs, and rolls back only those pairs. Game-load source contracts prove one descriptor collection and selected-owner check per distinct `Game` identity, exactly one `EnsureGameSession` call site after success, and only the named contract-violation catch on rejection.
+
+- [x] **Step 8: Prove coherent FastTrack failure behavior without fallback shims**
 
 For an incompatible active FastTrack pickup-grouping or direct-delivery replacement, `DeliveryTemperatureRuntimePatchPlan.Create` throws `FastTrackDeliveryEligibilityCompatibilityException` before the installer applies any Delivery Temperature Limit patch group. The exception and one rate-limited diagnostic contain the exact structural failure and best-efforts version qualification. No Klei fallback is selected because FastTrack remains the active replacement.
 
@@ -3926,19 +3930,25 @@ For an incompatible active FastTrack world-inventory feature when status-tempera
 
 `FastTrackCoherentActivationContractTests` verify both cases and prove the source contains no FastTrack unpatch, guard-forcing, or compatibility-facade code.
 
-- [ ] **Step 9: Delete the obsolete implementation in the same change**
+Observed green: the immutable plan's existing incompatible-pickup and incompatible-direct tests throw before the installer's selected-patch preparation/application gate; incompatible status inventory still omits both inventory instrumentation and temperature-aware status while retaining delivery correctness. Four composition-root contracts prove the installer cannot recompute the selected path, cannot apply before full verification, and contains no `UnpatchAll`, foreign-owner unpatch, guard mutation, `PatchAll`, legacy temperature-index type, or compatibility facade. The five exact GitHub-built FastTrack `0.18.4.0` DLL contracts also pass under the approved best-efforts qualification.
+
+- [x] **Step 9: Delete the obsolete implementation in the same change**
 
 After every caller compiles against the new services, delete every file/member in the authoritative legacy-removal registry in specification section 6.2. Do not restate or fork that registry here. Do not leave forwarding types, type aliases, obsolete wrappers, unused Harmony entry points, commented-out code, or conditional compilation that can restore the old global path.
 
 Run `rg` for exact removed symbols and semantic equivalents. A match in the approved design/plan explaining removal is allowed; a production or test fixture implementation match is not.
 
-- [ ] **Step 10: Complete the approved nullable transition and exact test link rename**
+Observed removal: `Limits.cs`, `Patch.cs`, `PatchFastTrack.cs`, `StatusItems.cs`, and `Harmony.cs` are deleted. Production contains no `TemperatureIndexData`, `getTemperatureIndexData`, `UpdateIndexes`, `allLimits`, `limitsDirty`, `storageFetchableTagsPerTemperatureIndex`, automatic Harmony discovery attribute, blanket patch call, forwarding alias, or alternate global lookup. Remaining removed-symbol matches are exact negative assertions in static contract tests only.
+
+- [x] **Step 10: Complete the approved nullable transition and exact test link rename**
 
 Add `<Nullable>enable</Nullable>` to `Source/DeliveryTemperatureLimit.csproj`. Replace `<Nullable>annotations</Nullable>` with `<Nullable>enable</Nullable>` in `Tests/DeliveryTemperatureLimit.Tests.csproj`. Replace the explicit legacy `..\Source\Buildings.cs` link with the semantically named `..\Source\TemperatureLimitedDeliveryTargets\TemperatureLimitedDeliveryTargetPrefabConfigurator.cs` link and a matching semantic `Production\TemperatureLimitedDeliveryTargets\...` link path.
 
 Resolve every nullable error through precise types, guards, ownership, or lifecycle invariants. Do not use null-forgiving operators without an adjacent proven invariant, broad `#nullable disable`, warning suppression, `LangVersion`, or a test/production framework conditional. Confirm `Source/packages.lock.json`, package versions, and `oni-mod-pipeline.toml` remain unchanged.
 
-- [ ] **Step 11: Run focused activation and build-contract tests**
+Observed transition: production and tests both declare exactly `Nullable=enable`; the test compile link names `TemperatureLimitedDeliveryTargetPrefabConfigurator.cs` under its matching semantic path; stale first-stage project/link tests now require this coordinated-activation state. Production still derives C# `8.0` from `netstandard2.1`, tests derive C# `14.0` from `net10.0`, and neither project adds `LangVersion`. The package lock graph, PLib `4.24.0`, ILRepack `2.0.34`, and `oni-mod-pipeline.toml` remain unchanged.
+
+- [x] **Step 11: Run focused activation and build-contract tests**
 
 Run, separately:
 
@@ -3952,7 +3962,9 @@ Run, separately:
 
 Then run pipeline `validate`, `build`, and `test` separately. This is the first build permitted to be installed later, but do not install it yet. Expected: all focused tests and pipeline gates pass, both projects have nullable enabled, the merged DLL contains only the curated public contract, and no obsolete source is compiled.
 
-- [ ] **Step 12: Review the big-bang boundary before commit**
+Observed focused evidence: runtime plan `17/17`, game session `41/41`, component index `11/11`, prefab configurator `5/5`, merged assembly `3/3`, coherent FastTrack activation `4/4`, GitHub-built FastTrack DLL `5/5`, Harmony contract verification `105/105`, and the additional intentional runtime boundary `5/5` all pass with zero skipped. The merged suite builds the candidate in isolation, checks deterministic output, validates the effective public/protected member boundary, constants and serialized fields, and confirms the removed index metadata is absent. Pipeline `validate` and `build` passed; the exact successful build result was `artifacts/builds/MaksymShostak.DeliveryTemperatureLimit/20260830T0750185520118Z-a1d5402cb8af495cb4966ad7529df020/build-result.json`. Pipeline `test` then executed `572/572` passing tests with zero failed, skipped/not-executed, or inconclusive cases and wrote evidence under `artifacts/tests/MaksymShostak.DeliveryTemperatureLimit/20260830T0750361202485Z-8c7bf4160751490fbeb483c2c36d2a90/automated-test-results`.
+
+- [x] **Step 12: Review the big-bang boundary before commit**
 
 Inspect every task path and confirm:
 
@@ -3964,7 +3976,9 @@ Inspect every task path and confirm:
 - comments document every non-obvious ownership and fail-closed compatibility invariant; and
 - all deleted responsibilities have a named new owner.
 
-- [ ] **Step 13: Prepare and commit**
+Observed review: every gameplay adapter captures the current session or consumes an invocation state that captured it; only the verified game-load installer can create a session. Status-off plans contain neither inventory-publication group nor status hook. Klei adapter source contains no FastTrack reference, and content mode appears only in the explanatory invariant that base-game and Spaced Out content select implementation paths identically. The old and new algorithms cannot coexist because every legacy production owner is deleted and the entrypoint installs only explicit semantic patch owners. Source audits found no unqualified ambiguous content/path terminology, no automatic Harmony discovery, and no whitespace errors.
+
+- [x] **Step 13: Prepare and commit**
 
 Use every exact created, modified, and moved whole path listed by this task plus every exact deleted production whole path enumerated by specification section 6.2. Expand the registry entries into their concrete paths when preparing the snapshot; the section reference itself is not a valid path argument. Use allowed type `perf` and exact subject:
 

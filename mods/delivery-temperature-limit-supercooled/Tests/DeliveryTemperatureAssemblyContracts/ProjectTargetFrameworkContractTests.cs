@@ -19,6 +19,7 @@ public sealed class ProjectTargetFrameworkContractTests
             projectPath,
             "TargetFramework",
             "LangVersion",
+            "Nullable",
             "CopyLocalLockFileAssemblies",
             "TreatWarningsAsErrors");
 
@@ -27,6 +28,7 @@ public sealed class ProjectTargetFrameworkContractTests
             "8.0",
             properties["LangVersion"],
             "The game-loaded project must use the C# version derived from netstandard2.1.");
+        Assert.AreEqual("enable", properties["Nullable"]);
         Assert.AreEqual("true", properties["CopyLocalLockFileAssemblies"]);
         Assert.AreEqual("true", properties["TreatWarningsAsErrors"]);
     }
@@ -48,12 +50,12 @@ public sealed class ProjectTargetFrameworkContractTests
 
         Assert.AreEqual("net10.0", properties["TargetFramework"]);
         Assert.AreEqual("14.0", properties["LangVersion"]);
-        Assert.AreEqual("annotations", properties["Nullable"]);
+        Assert.AreEqual("enable", properties["Nullable"]);
         Assert.AreEqual("true", properties["TreatWarningsAsErrors"]);
     }
 
     [TestMethod]
-    public void ProjectFiles_WhenAuthored_DeclareOnlyTheApprovedFirstStageSettings()
+    public void ProjectFiles_WhenAuthored_DeclareApprovedCoordinatedActivationSettings()
     {
         var repositoryRoot = RequiredEnvironmentVariable(
             "ONI_MOD_PIPELINE_REPOSITORY_ROOT");
@@ -67,12 +69,10 @@ public sealed class ProjectTargetFrameworkContractTests
         Assert.IsFalse(
             productionProperties.ContainsKey("LangVersion"),
             "Production must derive C# 8 from netstandard2.1; do not override LangVersion.");
-        Assert.IsFalse(
-            productionProperties.ContainsKey("Nullable"),
-            "Nullable is intentionally deferred until coordinated runtime activation.");
+        Assert.AreEqual("enable", productionProperties["Nullable"]);
 
         Assert.AreEqual("net10.0", testProperties["TargetFramework"]);
-        Assert.AreEqual("annotations", testProperties["Nullable"]);
+        Assert.AreEqual("enable", testProperties["Nullable"]);
         Assert.AreEqual("true", testProperties["TreatWarningsAsErrors"]);
         Assert.IsFalse(
             testProperties.ContainsKey("LangVersion"),

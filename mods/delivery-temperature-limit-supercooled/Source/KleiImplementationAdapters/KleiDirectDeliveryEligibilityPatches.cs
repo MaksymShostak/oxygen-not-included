@@ -203,7 +203,7 @@ namespace DeliveryTemperatureLimit
 
             CodeInstruction originalContinuationInstruction =
                 sourceInstructions[anchor.ExtensionInsertionIndex];
-            var firstInjectedInstruction = CodeInstruction2.LoadLocal(
+            var firstInjectedInstruction = HarmonyCodeInstructionFactory.LoadLocal(
                 anchor.FetchLocalIndex);
             MoveInstructionLabels(
                 originalContinuationInstruction,
@@ -212,7 +212,7 @@ namespace DeliveryTemperatureLimit
             {
                 firstInjectedInstruction,
                 new CodeInstruction(OpCodes.Ldfld, anchor.FetchChoreField),
-                CodeInstruction2.LoadLocal(anchor.PickupableLocalIndex),
+                HarmonyCodeInstructionFactory.LoadLocal(anchor.PickupableLocalIndex),
                 new CodeInstruction(OpCodes.Call, eligibilityHook),
                 new CodeInstruction(
                     OpCodes.Brfalse,
@@ -261,7 +261,7 @@ namespace DeliveryTemperatureLimit
             {
                 firstInjectedInstruction,
                 new CodeInstruction(OpCodes.Ldfld, anchor.RootFetchChoreField),
-                CodeInstruction2.LoadLocal(
+                HarmonyCodeInstructionFactory.LoadLocal(
                     anchor.CandidateFetchChoreLocalIndex),
                 new CodeInstruction(OpCodes.Call, containmentHook),
                 new CodeInstruction(

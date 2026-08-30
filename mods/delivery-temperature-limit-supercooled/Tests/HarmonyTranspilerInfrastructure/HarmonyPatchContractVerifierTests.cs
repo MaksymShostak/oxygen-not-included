@@ -1,3 +1,4 @@
+using DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
 using System.Reflection;
 
 namespace DeliveryTemperatureLimit.Tests.HarmonyTranspilerInfrastructure;
@@ -1853,6 +1854,79 @@ public sealed class HarmonyPatchContractVerifierTests
     }
 
     [TestMethod]
+    public void GameOnLoadLevelContract_WhenFixtureShapeMatches_ReturnsExactProtectedMethod()
+    {
+        var method = HarmonyPatchContractVerifier.RequireInstanceMethod(
+            typeof(GameOnLoadLevelContractFixture),
+            "OnLoadLevel",
+            DeclaredMemberVisibility.NonPublic,
+            typeof(void),
+            Array.Empty<Type>());
+
+        AssertExactInstanceMethod(
+            method,
+            typeof(GameOnLoadLevelContractFixture),
+            isPublic: false,
+            Array.Empty<Type>());
+        Assert.IsTrue(
+            method.IsFamily,
+            "The fixture must model ONI's exact protected lifecycle boundary.");
+    }
+
+    [TestMethod]
+    public void GameOnLoadLevelContract_WhenInstalledOniAssemblyIsInspected_MatchesProtectedInstanceVoidMethodWithoutParameters()
+    {
+        string? managedAssemblyDirectory = Environment.GetEnvironmentVariable(
+            "ONI_MANAGED_ASSEMBLY_DIRECTORY");
+        if (string.IsNullOrWhiteSpace(managedAssemblyDirectory))
+        {
+            throw new AssertFailedException(
+                "The ONI mod pipeline must provide " +
+                "ONI_MANAGED_ASSEMBLY_DIRECTORY.");
+        }
+        string assemblyPath = DeliveryTemperatureAssemblyMetadataReader
+            .ResolveManagedAssemblyPath(
+                managedAssemblyDirectory,
+                "Assembly-CSharp.dll");
+
+        DeliveryTemperatureAssemblyMetadataReader
+            .AssertProtectedInstanceVoidMethodWithoutParameters(
+                assemblyPath,
+                "Game",
+                "OnLoadLevel");
+    }
+
+    [TestMethod]
+    public void GameLoadAuthorityAdapterSource_WhenInspected_DelegatesOnlyToRuntimeInstaller()
+    {
+        string adapterPath = ResolveProductionSourcePath(
+            "RuntimePatchInstallation",
+            "DeliveryTemperatureGameLoadAuthorityPatches.cs");
+        string source = File.ReadAllText(adapterPath);
+
+        StringAssert.Contains(source, "ResolveGameOnLoadLevelTarget");
+        StringAssert.Contains(source, "typeof(Game)");
+        StringAssert.Contains(source, "\"OnLoadLevel\"");
+        StringAssert.Contains(
+            source,
+            "DeclaredMemberVisibility.NonPublic");
+        StringAssert.Contains(source, "typeof(void)");
+        StringAssert.Contains(source, "Array.Empty<Type>()");
+        Assert.AreEqual(
+            1,
+            CountOrdinalOccurrences(
+                source,
+                "TryStartAuthorizedGameSession(__instance)"),
+            "The game-load prefix must make exactly one installer delegation.");
+        Assert.IsFalse(
+            source.Contains("EnsureGameSession", StringComparison.Ordinal),
+            "Only the verified installer success branch may publish a session.");
+        Assert.IsFalse(
+            source.Contains("[Harmony", StringComparison.Ordinal),
+            "The adapter is installed explicitly and must remain undiscoverable.");
+    }
+
+    [TestMethod]
     public void ClusterManagerRegisterWorldContainerContract_WhenInstalledShapeMatches_ReturnsExactMethod()
     {
         var method = HarmonyPatchContractVerifier.RequireInstanceMethod(
@@ -3319,6 +3393,13 @@ public sealed class HarmonyPatchContractVerifierTests
     private sealed class GameDestroyInstancesContractFixture
     {
         private void DestroyInstances()
+        {
+        }
+    }
+
+    private class GameOnLoadLevelContractFixture
+    {
+        protected void OnLoadLevel()
         {
         }
     }

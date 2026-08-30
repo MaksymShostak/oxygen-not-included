@@ -121,6 +121,7 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
         CollectionAssert.AreEqual(before, await File.ReadAllBytesAsync(modInfoPath));
         Assert.IsTrue(File.Exists(mergedAssemblyPath));
         AssertKnownFrameworkConflictRootsAreNotReferenced(mergedAssemblyPath);
+        IntentionalRuntimeContractTests.AssertMergedAssembly(mergedAssemblyPath);
     }
 
     [TestMethod]
@@ -196,6 +197,7 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
         Assert.AreEqual(0, build.ExitCode, build.FormatEvidence());
         Assert.IsTrue(File.Exists(mergedAssemblyPath));
         AssertKnownFrameworkConflictRootsAreNotReferenced(mergedAssemblyPath);
+        IntentionalRuntimeContractTests.AssertMergedAssembly(mergedAssemblyPath);
         return mergedAssemblyPath;
     }
 

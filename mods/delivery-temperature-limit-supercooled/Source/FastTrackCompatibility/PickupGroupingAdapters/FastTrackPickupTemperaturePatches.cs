@@ -333,7 +333,7 @@ namespace DeliveryTemperatureLimit
             var allocationInstructions = new List<CodeInstruction>(3)
             {
                 duplicatedPickupableLoad,
-                CodeInstruction2.LoadLocal(
+                HarmonyCodeInstructionFactory.LoadLocal(
                     pickupGroupingContextLocal.LocalIndex),
                 new CodeInstruction(OpCodes.Call, allocationHook)
             };
@@ -355,7 +355,7 @@ namespace DeliveryTemperatureLimit
                 new[]
                 {
                     loadCurrentContextInstruction,
-                    CodeInstruction2.StoreLocal(
+                    HarmonyCodeInstructionFactory.StoreLocal(
                         pickupGroupingContextLocal.LocalIndex)
                 });
             return sourceInstructions;

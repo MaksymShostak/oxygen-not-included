@@ -317,7 +317,7 @@ namespace DeliveryTemperatureLimit
             instrumentedInstructions.Add(new CodeInstruction(
                 OpCodes.Call,
                 isBuildActiveHook));
-            instrumentedInstructions.Add(CodeInstruction2.StoreLocal(
+            instrumentedInstructions.Add(HarmonyCodeInstructionFactory.StoreLocal(
                 isBuildActiveLocal.LocalIndex));
 
             for (int instructionIndex = 0;
@@ -334,7 +334,7 @@ namespace DeliveryTemperatureLimit
                     // active branch so Klei's original stack is identical on both
                     // paths and no second fetchMap lookup is introduced.
                     instrumentedInstructions.Add(
-                        CodeInstruction2.LoadLocal(
+                        HarmonyCodeInstructionFactory.LoadLocal(
                             isBuildActiveLocal.LocalIndex));
                     instrumentedInstructions.Add(new CodeInstruction(
                         OpCodes.Brfalse,
@@ -352,13 +352,13 @@ namespace DeliveryTemperatureLimit
                     // and reachability before UnionWith. Capturing immediately
                     // afterward reuses that authoritative selection decision.
                     instrumentedInstructions.Add(
-                        CodeInstruction2.LoadLocal(
+                        HarmonyCodeInstructionFactory.LoadLocal(
                             isBuildActiveLocal.LocalIndex));
                     instrumentedInstructions.Add(new CodeInstruction(
                         OpCodes.Brfalse,
                         skipSelectedFetchChoreHookLabel));
                     instrumentedInstructions.Add(
-                        CodeInstruction2.LoadLocal(
+                        HarmonyCodeInstructionFactory.LoadLocal(
                             selectedFetchChoreLocalIndex));
                     instrumentedInstructions.Add(new CodeInstruction(
                         OpCodes.Call,

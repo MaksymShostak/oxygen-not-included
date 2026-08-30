@@ -79,6 +79,7 @@ namespace DeliveryTemperatureLimit
 }
 
 public interface IBuildingConfig { }
+public sealed class Navigator { }
 public sealed class StorageTileConfig : IBuildingConfig { }
 
 public sealed class BuildingConfigManager

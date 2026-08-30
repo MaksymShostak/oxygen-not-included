@@ -116,21 +116,21 @@ namespace DeliveryTemperatureLimit
                     instrumentedInstructions.Add(
                         new CodeInstruction(OpCodes.Dup));
                     instrumentedInstructions.Add(
-                        CodeInstruction2.LoadLocal(
+                        HarmonyCodeInstructionFactory.LoadLocal(
                             destinationFetchListLocalIndex));
                     instrumentedInstructions.Add(
-                        CodeInstruction2.LoadLocal(worldIdLocalIndex));
+                        HarmonyCodeInstructionFactory.LoadLocal(worldIdLocalIndex));
                     instrumentedInstructions.Add(
-                        CodeInstruction2.LoadLocal(resourceTagLocalIndex));
+                        HarmonyCodeInstructionFactory.LoadLocal(resourceTagLocalIndex));
                     instrumentedInstructions.Add(
-                        CodeInstruction2.LoadLocal(
+                        HarmonyCodeInstructionFactory.LoadLocal(
                             fetchableAmountLocalIndex,
-                            useAddress: true));
+                            loadAddress: true));
                     instrumentedInstructions.Add(
-                        CodeInstruction2.LoadLocal(
+                        HarmonyCodeInstructionFactory.LoadLocal(
                             remainingAmountLocalIndex));
                     instrumentedInstructions.Add(
-                        CodeInstruction2.LoadLocal(
+                        HarmonyCodeInstructionFactory.LoadLocal(
                             minimumRequiredAmountLocalIndex));
                     instrumentedInstructions.Add(new CodeInstruction(
                         OpCodes.Call,

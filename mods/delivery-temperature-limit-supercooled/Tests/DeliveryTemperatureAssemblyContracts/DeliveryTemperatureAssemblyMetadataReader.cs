@@ -105,7 +105,7 @@ internal static class DeliveryTemperatureAssemblyMetadataReader
             foreach (var typeHandle in metadata.TypeDefinitions)
             {
                 var type = metadata.GetTypeDefinition(typeHandle);
-                if (!IsPublic(type.Attributes))
+                if (!IsEffectivelyPublic(metadata, typeHandle))
                 {
                     continue;
                 }
@@ -205,6 +205,137 @@ internal static class DeliveryTemperatureAssemblyMetadataReader
             }
 
             return methods;
+        });
+
+    internal static bool TypeExists(
+        string assemblyPath,
+        string fullName) =>
+        Read(assemblyPath, (_, metadata) => metadata.TypeDefinitions.Any(
+            handle => string.Equals(
+                GetTypeName(metadata, handle),
+                fullName,
+                StringComparison.Ordinal)));
+
+    internal static bool MethodExists(
+        string assemblyPath,
+        string declaringType,
+        string methodName) =>
+        Read(assemblyPath, (_, metadata) =>
+        {
+            var type = metadata.GetTypeDefinition(
+                FindType(metadata, declaringType));
+            return type.GetMethods().Any(handle => string.Equals(
+                metadata.GetString(
+                    metadata.GetMethodDefinition(handle).Name),
+                methodName,
+                StringComparison.Ordinal));
+        });
+
+    internal static void AssertProtectedInstanceVoidMethodWithoutParameters(
+        string assemblyPath,
+        string declaringType,
+        string methodName) =>
+        Read(assemblyPath, (_, metadata) =>
+        {
+            var type = metadata.GetTypeDefinition(
+                FindType(metadata, declaringType));
+            var matchingMethods = type.GetMethods()
+                .Select(handle =>
+                    (Handle: handle,
+                     Method: metadata.GetMethodDefinition(handle)))
+                .Where(candidate => string.Equals(
+                    metadata.GetString(candidate.Method.Name),
+                    methodName,
+                    StringComparison.Ordinal))
+                .ToArray();
+            if (matchingMethods.Length != 1)
+            {
+                throw new InvalidDataException(
+                    $"Expected exactly one method {declaringType}.{methodName}, " +
+                    $"but found {matchingMethods.Length}.");
+            }
+
+            MethodDefinition method = matchingMethods[0].Method;
+            MethodAttributes memberAccess =
+                method.Attributes & MethodAttributes.MemberAccessMask;
+            bool isInstance =
+                (method.Attributes & MethodAttributes.Static) == 0;
+            string signature = Convert.ToHexString(
+                metadata.GetBlobBytes(method.Signature));
+
+            // ECMA-335 method signature 20 00 01 means HASTHIS, zero
+            // parameters, and ELEMENT_TYPE_VOID. Keeping this assertion here
+            // prevents a future test author from accidentally treating any
+            // overload named OnLoadLevel as the runtime authority boundary.
+            const string protectedInstanceVoidWithoutParametersSignature =
+                "200001";
+            if (memberAccess != MethodAttributes.Family ||
+                !isInstance ||
+                !string.Equals(
+                    signature,
+                    protectedInstanceVoidWithoutParametersSignature,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidDataException(
+                    $"Method {declaringType}.{methodName} must be protected, " +
+                    "instance, return System.Void, and declare no parameters. " +
+                    $"Observed attributes={method.Attributes}; " +
+                    $"signature={signature}.");
+            }
+
+            return true;
+        });
+
+    internal static void AssertPrivateSerializedInt32Field(
+        string assemblyPath,
+        string declaringType,
+        string fieldName,
+        params string[] requiredAttributeTypeNames) =>
+        Read(assemblyPath, (_, metadata) =>
+        {
+            var type = metadata.GetTypeDefinition(
+                FindType(metadata, declaringType));
+            var matchingFields = type.GetFields()
+                .Select(handle => (Handle: handle, Field: metadata.GetFieldDefinition(handle)))
+                .Where(candidate => string.Equals(
+                    metadata.GetString(candidate.Field.Name),
+                    fieldName,
+                    StringComparison.Ordinal))
+                .ToArray();
+            if (matchingFields.Length != 1)
+            {
+                throw new InvalidDataException(
+                    $"Expected exactly one field {declaringType}.{fieldName}, but found {matchingFields.Length}.");
+            }
+
+            var field = matchingFields[0].Field;
+            if ((field.Attributes & FieldAttributes.FieldAccessMask) !=
+                    FieldAttributes.Private ||
+                !Convert.ToHexString(metadata.GetBlobBytes(field.Signature))
+                    .Equals("06 08".Replace(" ", string.Empty), StringComparison.Ordinal))
+            {
+                throw new InvalidDataException(
+                    $"Field {declaringType}.{fieldName} must be one private System.Int32 field.");
+            }
+
+            string[] observedAttributeTypeNames = field.GetCustomAttributes()
+                .Select(handle => GetCustomAttributeTypeName(
+                    metadata,
+                    metadata.GetCustomAttribute(handle)))
+                .ToArray();
+            foreach (string requiredAttributeTypeName in requiredAttributeTypeNames)
+            {
+                if (!observedAttributeTypeNames.Contains(
+                        requiredAttributeTypeName,
+                        StringComparer.Ordinal))
+                {
+                    throw new InvalidDataException(
+                        $"Field {declaringType}.{fieldName} is missing required attribute {requiredAttributeTypeName}. " +
+                        $"Observed: {string.Join(", ", observedAttributeTypeNames)}");
+                }
+            }
+
+            return true;
         });
 
     private static T Read<T>(
@@ -400,6 +531,26 @@ internal static class DeliveryTemperatureAssemblyMetadataReader
             HandleKind.StandaloneSignature =>
                 $"signature:{Convert.ToHexString(metadata.GetBlobBytes(metadata.GetStandaloneSignature((StandaloneSignatureHandle)handle).Signature))}",
             _ => $"{handle.Kind}:0x{token:X8}"
+        };
+    }
+
+    private static string GetCustomAttributeTypeName(
+        MetadataReader metadata,
+        CustomAttribute attribute)
+    {
+        EntityHandle constructor = attribute.Constructor;
+        return constructor.Kind switch
+        {
+            HandleKind.MethodDefinition => GetTypeName(
+                metadata,
+                metadata.GetMethodDefinition(
+                    (MethodDefinitionHandle)constructor).GetDeclaringType()),
+            HandleKind.MemberReference => GetEntityName(
+                metadata,
+                metadata.GetMemberReference(
+                    (MemberReferenceHandle)constructor).Parent),
+            _ => throw new InvalidDataException(
+                $"Unsupported custom-attribute constructor kind {constructor.Kind}.")
         };
     }
 
@@ -621,9 +772,27 @@ internal static class DeliveryTemperatureAssemblyMetadataReader
             : $"{typeNamespace}.{name}";
     }
 
-    private static bool IsPublic(TypeAttributes attributes) =>
-        (attributes & TypeAttributes.VisibilityMask) is
-            TypeAttributes.Public or TypeAttributes.NestedPublic;
+    private static bool IsEffectivelyPublic(
+        MetadataReader metadata,
+        TypeDefinitionHandle typeHandle)
+    {
+        TypeDefinition type = metadata.GetTypeDefinition(typeHandle);
+        TypeAttributes visibility =
+            type.Attributes & TypeAttributes.VisibilityMask;
+        TypeDefinitionHandle declaringType = type.GetDeclaringType();
+        if (declaringType.IsNil)
+        {
+            return visibility == TypeAttributes.Public;
+        }
+
+        // ILRepack internalizes a PLib top-level type but can preserve the
+        // NestedPublic bit on its children. Such a child is not externally
+        // accessible through an internal declaring type and therefore is not
+        // part of the CLR-visible public contract. A genuinely public nested
+        // type still requires every declaring type in its chain to be public.
+        return visibility == TypeAttributes.NestedPublic &&
+            IsEffectivelyPublic(metadata, declaringType);
+    }
 
     private static bool IsVisible(MethodAttributes attributes) =>
         attributes is MethodAttributes.Public or

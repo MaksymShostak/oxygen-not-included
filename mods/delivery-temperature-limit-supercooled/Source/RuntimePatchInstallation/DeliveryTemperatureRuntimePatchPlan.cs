@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Reflection;
 
 namespace DeliveryTemperatureLimit
 {
@@ -44,11 +45,24 @@ namespace DeliveryTemperatureLimit
         private DeliveryTemperatureRuntimePatchPlan(
             IReadOnlyList<DeliveryTemperatureRuntimePatchGroup>
                 orderedPatchGroups,
-            string? statusCompatibilityDiagnostic)
+            string? statusCompatibilityDiagnostic,
+            FastTrackCompatibilityReport fastTrackCompatibility)
         {
             OrderedPatchGroups = orderedPatchGroups;
             StatusCompatibilityDiagnostic = statusCompatibilityDiagnostic;
+            this.fastTrackCompatibility = fastTrackCompatibility;
         }
+
+        private const string FastTrackHarmonyOwner = "PeterHan.FastTrack";
+
+        private static readonly IReadOnlyCollection<string>
+            NoPermittedSkippingPrefixOwners = Array.Empty<string>();
+
+        private static readonly IReadOnlyCollection<string>
+            FastTrackPermittedSkippingPrefixOwners =
+                new[] { FastTrackHarmonyOwner };
+
+        private readonly FastTrackCompatibilityReport fastTrackCompatibility;
 
         internal IReadOnlyList<DeliveryTemperatureRuntimePatchGroup>
             OrderedPatchGroups { get; }
@@ -124,8 +138,426 @@ namespace DeliveryTemperatureLimit
             return new DeliveryTemperatureRuntimePatchPlan(
                 new ReadOnlyCollection<DeliveryTemperatureRuntimePatchGroup>(
                     selectedPatchGroups),
-                statusCompatibilityDiagnostic);
+                statusCompatibilityDiagnostic,
+                fastTrackCompatibility);
         }
+
+        /// <summary>
+        /// Revalidates only the authorities selected for this loaded game. It is
+        /// intentionally cold: the runtime installer invokes it once at the game
+        /// load boundary, never from inventory, pickup, status, or delivery work.
+        /// </summary>
+        internal void VerifySelectedAuthority(
+            IReadOnlyList<ActiveHarmonyPatchDescriptor> activePatches)
+        {
+            if (activePatches == null)
+            {
+                throw new ArgumentNullException(nameof(activePatches));
+            }
+
+            for (int patchIndex = 0;
+                 patchIndex < activePatches.Count;
+                 patchIndex++)
+            {
+                if (activePatches[patchIndex] == null)
+                {
+                    throw new ArgumentException(
+                        "An active Harmony patch descriptor cannot be null.",
+                        nameof(activePatches));
+                }
+            }
+
+            if (Contains(
+                    OrderedPatchGroups,
+                    DeliveryTemperatureRuntimePatchGroup
+                        .KleiAuthoritativeFetchTemperatureEligibility))
+            {
+                VerifyKleiAuthorityForMatchingTargets(
+                    DeliveryTemperatureRuntimePatchGroup
+                        .KleiAuthoritativeFetchTemperatureEligibility,
+                    activePatches,
+                    method => HasMethodContract(
+                        method,
+                        "GlobalChoreProvider",
+                        "UpdateStorageFetchableBits",
+                        "System.Void",
+                        Array.Empty<string>()));
+            }
+
+            if (Contains(
+                    OrderedPatchGroups,
+                    DeliveryTemperatureRuntimePatchGroup
+                        .KleiWorldInventoryTemperaturePublication))
+            {
+                VerifyKleiAuthorityForMatchingTargets(
+                    DeliveryTemperatureRuntimePatchGroup
+                        .KleiWorldInventoryTemperaturePublication,
+                    activePatches,
+                    IsWorldInventoryUpdateTarget);
+            }
+
+            if (Contains(
+                    OrderedPatchGroups,
+                    DeliveryTemperatureRuntimePatchGroup
+                        .FastTrackWorldInventoryTemperaturePublication))
+            {
+                VerifyFastTrackAuthority(
+                    DeliveryTemperatureRuntimePatchGroup
+                        .FastTrackWorldInventoryTemperaturePublication,
+                    fastTrackCompatibility.GetFeature(
+                        FastTrackFeature.WorldInventory),
+                    FastTrackVerifiedMember.WorldInventoryReplacementPrefix,
+                    activePatches,
+                    IsWorldInventoryUpdateTarget);
+            }
+
+            if (Contains(
+                    OrderedPatchGroups,
+                    DeliveryTemperatureRuntimePatchGroup
+                        .KleiPickupTemperatureGrouping))
+            {
+                VerifyKleiAuthorityForMatchingTargets(
+                    DeliveryTemperatureRuntimePatchGroup
+                        .KleiPickupTemperatureGrouping,
+                    activePatches,
+                    IsPickupUpdateTarget);
+            }
+
+            if (Contains(
+                    OrderedPatchGroups,
+                    DeliveryTemperatureRuntimePatchGroup
+                        .FastTrackPickupTemperatureGrouping))
+            {
+                VerifyFastTrackAuthority(
+                    DeliveryTemperatureRuntimePatchGroup
+                        .FastTrackPickupTemperatureGrouping,
+                    fastTrackCompatibility.GetFeature(
+                        FastTrackFeature.PickupGrouping),
+                    FastTrackVerifiedMember
+                        .PickupGroupingBeforeUpdatePickupsPrefix,
+                    activePatches,
+                    IsPickupUpdateTarget);
+            }
+
+            if (Contains(
+                    OrderedPatchGroups,
+                    DeliveryTemperatureRuntimePatchGroup
+                        .KleiDirectDeliveryEligibility))
+            {
+                VerifyKleiAuthorityForMatchingTargets(
+                    DeliveryTemperatureRuntimePatchGroup
+                        .KleiDirectDeliveryEligibility,
+                    activePatches,
+                    IsGlobalChoreCollectionTarget);
+            }
+
+            if (Contains(
+                    OrderedPatchGroups,
+                    DeliveryTemperatureRuntimePatchGroup
+                        .FastTrackDirectDeliveryEligibility))
+            {
+                VerifyFastTrackAuthority(
+                    DeliveryTemperatureRuntimePatchGroup
+                        .FastTrackDirectDeliveryEligibility,
+                    fastTrackCompatibility.GetFeature(
+                        FastTrackFeature.DirectDeliveryEligibility),
+                    FastTrackVerifiedMember
+                        .DirectDeliveryEligibilityReplacementPrefix,
+                    activePatches,
+                    IsGlobalChoreCollectionTarget);
+            }
+        }
+
+        private static void VerifyKleiAuthorityForMatchingTargets(
+            DeliveryTemperatureRuntimePatchGroup selectedGroup,
+            IReadOnlyList<ActiveHarmonyPatchDescriptor> activePatches,
+            Func<MethodBase, bool> targetContract)
+        {
+            var verifiedTargets = new HashSet<MethodBase>();
+            for (int patchIndex = 0;
+                 patchIndex < activePatches.Count;
+                 patchIndex++)
+            {
+                ActiveHarmonyPatchDescriptor patch = activePatches[patchIndex];
+                MethodBase targetMethod = patch.TargetMethod;
+                if (!targetContract(targetMethod) ||
+                    !verifiedTargets.Add(targetMethod))
+                {
+                    continue;
+                }
+
+                if (HarmonyPatchContractVerifier.VerifyKleiAuthority(
+                        targetMethod,
+                        activePatches,
+                        NoPermittedSkippingPrefixOwners))
+                {
+                    continue;
+                }
+
+                ActiveHarmonyPatchDescriptor conflictingPatch =
+                    RequireConflictingSkippingPrefix(
+                        targetMethod,
+                        activePatches,
+                        NoPermittedSkippingPrefixOwners);
+                throw CreateChangedAuthorityException(
+                    selectedGroup,
+                    targetMethod,
+                    conflictingPatch,
+                    "Klei's original method is no longer the proved authority");
+            }
+        }
+
+        private static void VerifyFastTrackAuthority(
+            DeliveryTemperatureRuntimePatchGroup selectedGroup,
+            FastTrackFeatureCompatibility selectedFeature,
+            FastTrackVerifiedMember replacementPrefixRole,
+            IReadOnlyList<ActiveHarmonyPatchDescriptor> activePatches,
+            Func<MethodBase, bool> targetContract)
+        {
+            MemberInfo verifiedMember =
+                selectedFeature.GetVerifiedMember(replacementPrefixRole);
+            var verifiedReplacementPrefix = verifiedMember as MethodInfo;
+            if (verifiedReplacementPrefix == null)
+            {
+                throw new HarmonyPatchContractViolationException(
+                    "Selected runtime group '" +
+                    selectedGroup +
+                    "' expected verified FastTrack role '" +
+                    replacementPrefixRole +
+                    "' to be a method, but observed " +
+                    verifiedMember.MemberType +
+                    ".");
+            }
+
+            bool foundExactSelectedAuthority = false;
+            var verifiedTargets = new HashSet<MethodBase>();
+            for (int patchIndex = 0;
+                 patchIndex < activePatches.Count;
+                 patchIndex++)
+            {
+                ActiveHarmonyPatchDescriptor patch = activePatches[patchIndex];
+                if (!targetContract(patch.TargetMethod))
+                {
+                    continue;
+                }
+
+                if (Equals(patch.PatchMethod, verifiedReplacementPrefix) &&
+                    string.Equals(
+                        patch.HarmonyOwner,
+                        FastTrackHarmonyOwner,
+                        StringComparison.Ordinal))
+                {
+                    foundExactSelectedAuthority = true;
+                }
+
+                if (!verifiedTargets.Add(patch.TargetMethod) ||
+                    HarmonyPatchContractVerifier.VerifyKleiAuthority(
+                        patch.TargetMethod,
+                        activePatches,
+                        FastTrackPermittedSkippingPrefixOwners))
+                {
+                    continue;
+                }
+
+                ActiveHarmonyPatchDescriptor conflictingPatch =
+                    RequireConflictingSkippingPrefix(
+                        patch.TargetMethod,
+                        activePatches,
+                        FastTrackPermittedSkippingPrefixOwners);
+                throw CreateChangedAuthorityException(
+                    selectedGroup,
+                    patch.TargetMethod,
+                    conflictingPatch,
+                    "an unverified skipping prefix can supersede the selected " +
+                    "FastTrack replacement");
+            }
+
+            if (!foundExactSelectedAuthority)
+            {
+                throw new HarmonyPatchContractViolationException(
+                    "Selected runtime group '" +
+                    selectedGroup +
+                    "' no longer has exact FastTrack authority method '" +
+                    GetMethodDisplayName(verifiedReplacementPrefix) +
+                    "' under Harmony owner '" +
+                    FastTrackHarmonyOwner +
+                    "'. No fallback was selected.");
+            }
+        }
+
+        private static ActiveHarmonyPatchDescriptor
+            RequireConflictingSkippingPrefix(
+                MethodBase targetMethod,
+                IReadOnlyList<ActiveHarmonyPatchDescriptor> activePatches,
+                IReadOnlyCollection<string> permittedOwners)
+        {
+            for (int patchIndex = 0;
+                 patchIndex < activePatches.Count;
+                 patchIndex++)
+            {
+                ActiveHarmonyPatchDescriptor patch = activePatches[patchIndex];
+                if (Equals(patch.TargetMethod, targetMethod) &&
+                    patch.PatchMethod.ReturnType == typeof(bool) &&
+                    !ContainsExactOwner(
+                        permittedOwners,
+                        patch.HarmonyOwner))
+                {
+                    return patch;
+                }
+            }
+
+            throw new InvalidOperationException(
+                "Klei authority verification reported a conflict without an " +
+                "identifiable skipping prefix.");
+        }
+
+        private static HarmonyPatchContractViolationException
+            CreateChangedAuthorityException(
+                DeliveryTemperatureRuntimePatchGroup selectedGroup,
+                MethodBase targetMethod,
+                ActiveHarmonyPatchDescriptor conflictingPatch,
+                string reason) =>
+            new HarmonyPatchContractViolationException(
+                "Selected runtime group '" +
+                selectedGroup +
+                "' failed its game-load authority check for target '" +
+                GetMethodDisplayName(targetMethod) +
+                "': " +
+                reason +
+                ". Conflicting patch '" +
+                GetMethodDisplayName(conflictingPatch.PatchMethod) +
+                "', Harmony owner '" +
+                conflictingPatch.HarmonyOwner +
+                "', priority " +
+                conflictingPatch.Priority +
+                ".");
+
+        private static bool IsWorldInventoryUpdateTarget(MethodBase method) =>
+            HasMethodContract(
+                method,
+                "WorldInventory",
+                "Update",
+                "System.Void",
+                Array.Empty<string>());
+
+        private static bool IsPickupUpdateTarget(MethodBase method) =>
+            HasMethodContract(
+                method,
+                "FetchManager+FetchablesByPrefabId",
+                "UpdatePickups",
+                "System.Void",
+                new[] { "Navigator", "System.Int32" });
+
+        private static bool IsGlobalChoreCollectionTarget(MethodBase method) =>
+            HasMethodContract(
+                method,
+                "GlobalChoreProvider",
+                "CollectChores",
+                "System.Void",
+                new[]
+                {
+                    "ChoreConsumerState",
+                    "System.Collections.Generic.List`1[Chore+Precondition+Context]"
+                });
+
+        private static bool HasMethodContract(
+            MethodBase method,
+            string declaringTypeName,
+            string methodName,
+            string returnTypeName,
+            IReadOnlyList<string> parameterTypeNames)
+        {
+            var methodInfo = method as MethodInfo;
+            Type? declaringType = method.DeclaringType;
+            if (methodInfo == null ||
+                declaringType == null ||
+                !string.Equals(
+                    declaringType.FullName,
+                    declaringTypeName,
+                    StringComparison.Ordinal) ||
+                !string.Equals(
+                    method.Name,
+                    methodName,
+                    StringComparison.Ordinal) ||
+                !string.Equals(
+                    GetStableTypeName(methodInfo.ReturnType),
+                    returnTypeName,
+                    StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            ParameterInfo[] parameters = method.GetParameters();
+            if (parameters.Length != parameterTypeNames.Count)
+            {
+                return false;
+            }
+
+            for (int parameterIndex = 0;
+                 parameterIndex < parameters.Length;
+                 parameterIndex++)
+            {
+                if (!string.Equals(
+                        GetStableTypeName(
+                            parameters[parameterIndex].ParameterType),
+                        parameterTypeNames[parameterIndex],
+                        StringComparison.Ordinal))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static string GetStableTypeName(Type type)
+        {
+            if (type.IsGenericType)
+            {
+                Type genericDefinition = type.GetGenericTypeDefinition();
+                string genericDefinitionName =
+                    genericDefinition.FullName ?? genericDefinition.Name;
+                Type[] genericArguments = type.GetGenericArguments();
+                var argumentNames = new string[genericArguments.Length];
+                for (int argumentIndex = 0;
+                     argumentIndex < genericArguments.Length;
+                     argumentIndex++)
+                {
+                    argumentNames[argumentIndex] =
+                        GetStableTypeName(genericArguments[argumentIndex]);
+                }
+
+                return genericDefinitionName +
+                    "[" +
+                    string.Join(",", argumentNames) +
+                    "]";
+            }
+
+            return type.FullName ?? type.Name;
+        }
+
+        private static bool ContainsExactOwner(
+            IReadOnlyCollection<string> permittedOwners,
+            string candidateOwner)
+        {
+            foreach (string permittedOwner in permittedOwners)
+            {
+                if (string.Equals(
+                        permittedOwner,
+                        candidateOwner,
+                        StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static string GetMethodDisplayName(MethodBase method) =>
+            (method.DeclaringType?.FullName ?? "<unknown-type>") +
+            "." +
+            method.Name;
 
         private static bool ShouldSelect(
             DeliveryTemperatureRuntimePatchGroup patchGroup,

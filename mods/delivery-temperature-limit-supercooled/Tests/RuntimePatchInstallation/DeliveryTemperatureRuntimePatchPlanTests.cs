@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Reflection.Emit;
 
 namespace DeliveryTemperatureLimit.Tests.RuntimePatchInstallation;
 
@@ -315,6 +316,225 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
                 .KleiDirectDeliveryEligibility);
     }
 
+    [TestMethod]
+    public void VerifySelectedAuthority_WhenSelectedKleiTargetHasOnlyNonSkippingObserver_ReturnsNormally()
+    {
+        DeliveryTemperatureRuntimePatchPlan plan =
+            DeliveryTemperatureRuntimePatchPlan.Create(
+                checkTemperatureForStatusItems: true,
+                CreateReport(
+                    FastTrackFeatureCompatibilityState.ModNotLoaded,
+                    FastTrackFeatureCompatibilityState.ModNotLoaded,
+                    FastTrackFeatureCompatibilityState.ModNotLoaded,
+                    includeLoadedAssemblyIdentity: false));
+        MethodInfo worldInventoryUpdate = CreateEmittedMethod(
+            "WorldInventory",
+            "Update",
+            typeof(void),
+            Type.EmptyTypes);
+        MethodInfo observingPrefix = CreateEmittedMethod(
+            "UnrelatedInventoryObserver",
+            "Prefix",
+            typeof(void),
+            Type.EmptyTypes);
+
+        plan.VerifySelectedAuthority(
+        [
+            new ActiveHarmonyPatchDescriptor(
+                worldInventoryUpdate,
+                observingPrefix,
+                "Unrelated.InventoryObserver",
+                priority: 400)
+        ]);
+    }
+
+    [TestMethod]
+    public void VerifySelectedAuthority_WhenSelectedKleiPickupTargetGainsSkippingPrefix_ThrowsAffectedAuthorityDiagnostic()
+    {
+        DeliveryTemperatureRuntimePatchPlan plan =
+            DeliveryTemperatureRuntimePatchPlan.Create(
+                checkTemperatureForStatusItems: false,
+                CreateReport(
+                    FastTrackFeatureCompatibilityState.ModNotLoaded,
+                    FastTrackFeatureCompatibilityState.ModNotLoaded,
+                    FastTrackFeatureCompatibilityState.ModNotLoaded,
+                    includeLoadedAssemblyIdentity: false));
+        MethodInfo updatePickups = CreateEmittedMethod(
+            "FetchManager+FetchablesByPrefabId",
+            "UpdatePickups",
+            typeof(void),
+            [typeof(Navigator), typeof(int)]);
+        MethodInfo skippingPrefix = CreateEmittedMethod(
+            "UnexpectedPickupReplacement",
+            "Prefix",
+            typeof(bool),
+            Type.EmptyTypes);
+
+        HarmonyPatchContractViolationException exception =
+            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+                plan.VerifySelectedAuthority(
+                [
+                    new ActiveHarmonyPatchDescriptor(
+                        updatePickups,
+                        skippingPrefix,
+                        "Unexpected.PickupReplacement",
+                        priority: 800)
+                ]));
+
+        StringAssert.Contains(
+            exception.Message,
+            DeliveryTemperatureRuntimePatchGroup
+                .KleiPickupTemperatureGrouping.ToString());
+        StringAssert.Contains(exception.Message, "UpdatePickups");
+        StringAssert.Contains(
+            exception.Message,
+            "Unexpected.PickupReplacement");
+    }
+
+    [TestMethod]
+    public void VerifySelectedAuthority_WhenSelectedKleiDirectDeliveryTargetGainsSkippingPrefix_ThrowsAffectedAuthorityDiagnostic()
+    {
+        DeliveryTemperatureRuntimePatchPlan plan =
+            DeliveryTemperatureRuntimePatchPlan.Create(
+                checkTemperatureForStatusItems: false,
+                CreateReport(
+                    FastTrackFeatureCompatibilityState.ModNotLoaded,
+                    FastTrackFeatureCompatibilityState.ModNotLoaded,
+                    FastTrackFeatureCompatibilityState.ModNotLoaded,
+                    includeLoadedAssemblyIdentity: false));
+        MethodInfo collectChores =
+            CreateEmittedGlobalChoreCollectionMethod();
+        MethodInfo skippingPrefix = CreateEmittedMethod(
+            "UnexpectedDirectDeliveryReplacement",
+            "Prefix",
+            typeof(bool),
+            Type.EmptyTypes);
+
+        HarmonyPatchContractViolationException exception =
+            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+                plan.VerifySelectedAuthority(
+                [
+                    new ActiveHarmonyPatchDescriptor(
+                        collectChores,
+                        skippingPrefix,
+                        "Unexpected.DirectDeliveryReplacement",
+                        priority: 800)
+                ]));
+
+        StringAssert.Contains(
+            exception.Message,
+            DeliveryTemperatureRuntimePatchGroup
+                .KleiDirectDeliveryEligibility.ToString());
+        StringAssert.Contains(exception.Message, "CollectChores");
+        StringAssert.Contains(
+            exception.Message,
+            "Unexpected.DirectDeliveryReplacement");
+    }
+
+    [TestMethod]
+    public void VerifySelectedAuthority_WhenSelectedFastTrackPrefixIsUnchanged_ReturnsNormally()
+    {
+        MethodInfo verifiedFastTrackPrefix = CreateEmittedMethod(
+            "FastTrack.GamePatches.FetchManagerFastUpdate",
+            "BeforeUpdatePickups",
+            typeof(bool),
+            Type.EmptyTypes);
+        DeliveryTemperatureRuntimePatchPlan plan =
+            DeliveryTemperatureRuntimePatchPlan.Create(
+                checkTemperatureForStatusItems: false,
+                CreateReportWithReadyPickupReplacement(
+                    verifiedFastTrackPrefix));
+        MethodInfo updatePickups = CreateEmittedMethod(
+            "FetchManager+FetchablesByPrefabId",
+            "UpdatePickups",
+            typeof(void),
+            [typeof(Navigator), typeof(int)]);
+
+        plan.VerifySelectedAuthority(
+        [
+            new ActiveHarmonyPatchDescriptor(
+                updatePickups,
+                verifiedFastTrackPrefix,
+                "PeterHan.FastTrack",
+                priority: 800)
+        ]);
+    }
+
+    [TestMethod]
+    public void VerifySelectedAuthority_WhenSelectedFastTrackPrefixMethodChanges_ThrowsAffectedAuthorityDiagnostic()
+    {
+        MethodInfo verifiedFastTrackPrefix = CreateEmittedMethod(
+            "FastTrack.GamePatches.FetchManagerFastUpdate",
+            "BeforeUpdatePickups",
+            typeof(bool),
+            Type.EmptyTypes);
+        DeliveryTemperatureRuntimePatchPlan plan =
+            DeliveryTemperatureRuntimePatchPlan.Create(
+                checkTemperatureForStatusItems: false,
+                CreateReportWithReadyPickupReplacement(
+                    verifiedFastTrackPrefix));
+        MethodInfo changedFastTrackPrefix = CreateEmittedMethod(
+            "FastTrack.GamePatches.FetchManagerFastUpdate",
+            "ChangedBeforeUpdatePickups",
+            typeof(bool),
+            Type.EmptyTypes);
+        MethodInfo updatePickups = CreateEmittedMethod(
+            "FetchManager+FetchablesByPrefabId",
+            "UpdatePickups",
+            typeof(void),
+            [typeof(Navigator), typeof(int)]);
+
+        HarmonyPatchContractViolationException exception =
+            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+                plan.VerifySelectedAuthority(
+                [
+                    new ActiveHarmonyPatchDescriptor(
+                        updatePickups,
+                        changedFastTrackPrefix,
+                        "PeterHan.FastTrack",
+                        priority: 800)
+                ]));
+
+        StringAssert.Contains(
+            exception.Message,
+            DeliveryTemperatureRuntimePatchGroup
+                .FastTrackPickupTemperatureGrouping.ToString());
+        StringAssert.Contains(exception.Message, "BeforeUpdatePickups");
+        StringAssert.Contains(exception.Message, "PeterHan.FastTrack");
+    }
+
+    [TestMethod]
+    public void VerifySelectedAuthority_WhenUnselectedInventoryTargetChanges_DoesNotInspectThatOwner()
+    {
+        DeliveryTemperatureRuntimePatchPlan plan =
+            DeliveryTemperatureRuntimePatchPlan.Create(
+                checkTemperatureForStatusItems: false,
+                CreateReport(
+                    FastTrackFeatureCompatibilityState.ModNotLoaded,
+                    FastTrackFeatureCompatibilityState.ModNotLoaded,
+                    FastTrackFeatureCompatibilityState.ModNotLoaded,
+                    includeLoadedAssemblyIdentity: false));
+        MethodInfo worldInventoryUpdate = CreateEmittedMethod(
+            "WorldInventory",
+            "Update",
+            typeof(void),
+            Type.EmptyTypes);
+        MethodInfo skippingPrefix = CreateEmittedMethod(
+            "UnselectedInventoryReplacement",
+            "Prefix",
+            typeof(bool),
+            Type.EmptyTypes);
+
+        plan.VerifySelectedAuthority(
+        [
+            new ActiveHarmonyPatchDescriptor(
+                worldInventoryUpdate,
+                skippingPrefix,
+                "Unselected.InventoryReplacement",
+                priority: 800)
+        ]);
+    }
+
     private static void AssertPatchGroups(
         DeliveryTemperatureRuntimePatchPlan plan,
         params DeliveryTemperatureRuntimePatchGroup[] expectedGroups) =>
@@ -362,6 +582,30 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
             CreateFeatureCompatibility(
                 FastTrackFeature.DirectDeliveryEligibility,
                 directDeliveryState));
+
+    private static FastTrackCompatibilityReport
+        CreateReportWithReadyPickupReplacement(
+            MethodInfo verifiedFastTrackPrefix) =>
+        new(
+            "FastTrack, Version=0.18.4.0",
+            new Version(0, 18, 0, 0),
+            FastTrackAssemblyFileIdentityReadState.Success,
+            SupportedFastTrackVersion,
+            FixtureSha256,
+            FastTrackFeatureCompatibility.ReplacementInactive(
+                FastTrackFeature.WorldInventory),
+            FastTrackFeatureCompatibility.Ready(
+                FastTrackFeature.PickupGrouping,
+                new Dictionary<FastTrackVerifiedMember, MemberInfo>
+                {
+                    {
+                        FastTrackVerifiedMember
+                            .PickupGroupingBeforeUpdatePickupsPrefix,
+                        verifiedFastTrackPrefix
+                    }
+                }),
+            FastTrackFeatureCompatibility.ReplacementInactive(
+                FastTrackFeature.DirectDeliveryEligibility));
 
     private static FastTrackFeatureCompatibility CreateFeatureCompatibility(
         FastTrackFeature feature,
@@ -436,5 +680,151 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
 
     private static void RepresentativeVerifiedMember()
     {
+    }
+
+    private static MethodInfo CreateEmittedMethod(
+        string declaringTypeName,
+        string methodName,
+        Type returnType,
+        Type[] parameterTypes)
+    {
+        var assemblyName = new AssemblyName(
+            "DeliveryTemperatureAuthorityFixture_" + Guid.NewGuid().ToString("N"));
+        string emittedAssemblyName = assemblyName.Name ??
+            throw new InvalidOperationException(
+                "The authority-contract fixture assembly has no name.");
+        AssemblyBuilder assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(
+            assemblyName,
+            AssemblyBuilderAccess.Run);
+        ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule(
+            emittedAssemblyName);
+        int nestedTypeSeparatorIndex = declaringTypeName.IndexOf(
+            '+',
+            StringComparison.Ordinal);
+        TypeBuilder? outerTypeBuilder = null;
+        TypeBuilder typeBuilder;
+        if (nestedTypeSeparatorIndex >= 0)
+        {
+            string outerTypeName = declaringTypeName.Substring(
+                0,
+                nestedTypeSeparatorIndex);
+            string nestedTypeName = declaringTypeName.Substring(
+                nestedTypeSeparatorIndex + 1);
+            outerTypeBuilder = moduleBuilder.DefineType(
+                outerTypeName,
+                TypeAttributes.Public | TypeAttributes.Class);
+            typeBuilder = outerTypeBuilder.DefineNestedType(
+                nestedTypeName,
+                TypeAttributes.NestedPublic |
+                TypeAttributes.Sealed |
+                TypeAttributes.Abstract);
+        }
+        else
+        {
+            typeBuilder = moduleBuilder.DefineType(
+                declaringTypeName,
+                TypeAttributes.Public |
+                TypeAttributes.Sealed |
+                TypeAttributes.Abstract);
+        }
+
+        MethodBuilder methodBuilder = typeBuilder.DefineMethod(
+            methodName,
+            MethodAttributes.Public | MethodAttributes.Static,
+            returnType,
+            parameterTypes);
+        ILGenerator generator = methodBuilder.GetILGenerator();
+        if (returnType == typeof(bool))
+        {
+            generator.Emit(OpCodes.Ldc_I4_1);
+        }
+
+        generator.Emit(OpCodes.Ret);
+        Type? emittedType;
+        if (outerTypeBuilder is null)
+        {
+            emittedType = typeBuilder.CreateType();
+        }
+        else
+        {
+            emittedType = typeBuilder.CreateType();
+            _ = outerTypeBuilder.CreateType() ??
+                throw new InvalidOperationException(
+                    "The authority-contract fixture outer type was not emitted.");
+        }
+
+        if (emittedType is null)
+        {
+            throw new InvalidOperationException(
+                "The authority-contract fixture type was not emitted.");
+        }
+
+        return emittedType.GetMethod(
+                methodName,
+                BindingFlags.Public | BindingFlags.Static) ??
+            throw new InvalidOperationException(
+                "The authority-contract fixture method was not emitted.");
+    }
+
+    private static MethodInfo CreateEmittedGlobalChoreCollectionMethod()
+    {
+        var assemblyName = new AssemblyName(
+            "DeliveryTemperatureDirectAuthorityFixture_" +
+            Guid.NewGuid().ToString("N"));
+        string emittedAssemblyName = assemblyName.Name ??
+            throw new InvalidOperationException(
+                "The direct-authority fixture assembly has no name.");
+        AssemblyBuilder assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(
+            assemblyName,
+            AssemblyBuilderAccess.Run);
+        ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule(
+            emittedAssemblyName);
+
+        Type choreConsumerStateType = moduleBuilder.DefineType(
+                "ChoreConsumerState",
+                TypeAttributes.Public | TypeAttributes.Class)
+            .CreateType() ??
+            throw new InvalidOperationException(
+                "The ChoreConsumerState contract type was not emitted.");
+        TypeBuilder choreTypeBuilder = moduleBuilder.DefineType(
+            "Chore",
+            TypeAttributes.Public | TypeAttributes.Class);
+        TypeBuilder preconditionTypeBuilder = choreTypeBuilder.DefineNestedType(
+            "Precondition",
+            TypeAttributes.NestedPublic | TypeAttributes.Class);
+        TypeBuilder contextTypeBuilder =
+            preconditionTypeBuilder.DefineNestedType(
+                "Context",
+                TypeAttributes.NestedPublic | TypeAttributes.Class);
+        Type contextType = contextTypeBuilder.CreateType() ??
+            throw new InvalidOperationException(
+                "The Chore.Precondition.Context contract type was not emitted.");
+        _ = preconditionTypeBuilder.CreateType() ??
+            throw new InvalidOperationException(
+                "The Chore.Precondition contract type was not emitted.");
+        _ = choreTypeBuilder.CreateType() ??
+            throw new InvalidOperationException(
+                "The Chore contract type was not emitted.");
+
+        TypeBuilder providerTypeBuilder = moduleBuilder.DefineType(
+            "GlobalChoreProvider",
+            TypeAttributes.Public | TypeAttributes.Class);
+        MethodBuilder collectChoresMethod = providerTypeBuilder.DefineMethod(
+            "CollectChores",
+            MethodAttributes.Public,
+            typeof(void),
+            [
+                choreConsumerStateType,
+                typeof(List<>).MakeGenericType(contextType)
+            ]);
+        collectChoresMethod.GetILGenerator().Emit(OpCodes.Ret);
+        Type providerType = providerTypeBuilder.CreateType() ??
+            throw new InvalidOperationException(
+                "The GlobalChoreProvider contract type was not emitted.");
+        return providerType.GetMethod(
+                "CollectChores",
+                BindingFlags.Public | BindingFlags.Instance) ??
+            throw new InvalidOperationException(
+                "The GlobalChoreProvider.CollectChores contract method was not emitted.");
     }
 }

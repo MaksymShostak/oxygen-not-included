@@ -9,7 +9,7 @@ public sealed class LinkedProductionSourceBoundaryContractTests
 {
     private static readonly string[] ApprovedCompileIncludes =
     [
-        @"..\Source\Buildings.cs",
+        @"..\Source\TemperatureLimitedDeliveryTargets\TemperatureLimitedDeliveryTargetPrefabConfigurator.cs",
         @"..\Source\TemperatureConstraints\**\*.cs",
         @"..\Source\WorldParentTopology\**\*.cs",
         @"..\Source\WorldResourceTemperatureAmounts\**\*.cs",
@@ -125,7 +125,10 @@ public sealed class LinkedProductionSourceBoundaryContractTests
 
                 if (!string.Equals(
                     fullPath,
-                    Path.Combine(sourceRoot, "Buildings.cs"),
+                    Path.Combine(
+                        sourceRoot,
+                        "TemperatureLimitedDeliveryTargets",
+                        "TemperatureLimitedDeliveryTargetPrefabConfigurator.cs"),
                     StringComparison.OrdinalIgnoreCase))
                 {
                     AssertPureLinkedSource(fullPath);
@@ -328,13 +331,22 @@ public sealed class LinkedProductionSourceBoundaryContractTests
             return;
         }
 
-        var permittedDirectory = Path.Combine(
+        var permittedReflectionContractDirectory = Path.Combine(
             "FastTrackCompatibility",
             "FeatureContractVerification");
+        var permittedRuntimePlanPath = Path.Combine(
+            "RuntimePatchInstallation",
+            "DeliveryTemperatureRuntimePatchPlan.cs");
         Assert.IsTrue(
-            sourcePath.Contains(permittedDirectory, StringComparison.Ordinal),
+            sourcePath.Contains(
+                permittedReflectionContractDirectory,
+                StringComparison.Ordinal) ||
+            sourcePath.EndsWith(
+                permittedRuntimePlanPath,
+                StringComparison.Ordinal),
             $"Linked pure source {sourcePath} may name PeterHan types only in " +
-            "the dedicated reflection-only feature-contract verifier.");
+            "the reflection-only feature contracts or as the exact Harmony " +
+            "owner literal in the immutable runtime plan.");
 
         while (referenceIndex >= 0)
         {

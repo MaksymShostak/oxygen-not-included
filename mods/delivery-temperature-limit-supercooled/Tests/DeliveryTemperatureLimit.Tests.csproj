@@ -2,13 +2,13 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>annotations</Nullable>
+    <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <IsPackable>false</IsPackable>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\Source\Buildings.cs" Link="Production\Buildings.cs" />
+    <Compile Include="..\Source\TemperatureLimitedDeliveryTargets\TemperatureLimitedDeliveryTargetPrefabConfigurator.cs" Link="Production\TemperatureLimitedDeliveryTargets\TemperatureLimitedDeliveryTargetPrefabConfigurator.cs" />
     <Compile Include="..\Source\TemperatureConstraints\**\*.cs" Link="Production\TemperatureConstraints\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\Source\WorldParentTopology\**\*.cs" Link="Production\WorldParentTopology\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\Source\WorldResourceTemperatureAmounts\**\*.cs" Link="Production\WorldResourceTemperatureAmounts\%(RecursiveDir)%(Filename)%(Extension)" />

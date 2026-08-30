@@ -195,9 +195,9 @@ namespace DeliveryTemperatureLimit
             var temperatureSuppressionInstructions =
                 new List<CodeInstruction>(4)
                 {
-                    CodeInstruction2.LoadLocal(
+                    HarmonyCodeInstructionFactory.LoadLocal(
                         anchor.PreviousPickupLocalIndex),
-                    CodeInstruction2.LoadLocal(
+                    HarmonyCodeInstructionFactory.LoadLocal(
                         anchor.CurrentPickupLocalIndex),
                     new CodeInstruction(
                         OpCodes.Call,
@@ -318,14 +318,14 @@ namespace DeliveryTemperatureLimit
                     new CodeInstruction(
                         OpCodes.Call,
                         compareTemperatureClassesMethod),
-                    CodeInstruction2.StoreLocal(
+                    HarmonyCodeInstructionFactory.StoreLocal(
                         anchor.ComparisonResultLocalIndex),
-                    CodeInstruction2.LoadLocal(
+                    HarmonyCodeInstructionFactory.LoadLocal(
                         anchor.ComparisonResultLocalIndex),
                     new CodeInstruction(
                         OpCodes.Brfalse,
                         temperatureClassesEqualLabel),
-                    CodeInstruction2.LoadLocal(
+                    HarmonyCodeInstructionFactory.LoadLocal(
                         anchor.ComparisonResultLocalIndex),
                     new CodeInstruction(OpCodes.Ret)
                 };

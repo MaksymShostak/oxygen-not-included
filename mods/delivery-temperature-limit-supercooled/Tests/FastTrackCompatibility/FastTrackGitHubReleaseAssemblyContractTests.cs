@@ -814,7 +814,14 @@ public sealed class FastTrackGitHubReleaseAssemblyContractTests
             Assert.AreNotEqual(0, method.RelativeVirtualAddress);
             MethodBodyBlock body = portableExecutableReader.GetMethodBody(
                 method.RelativeVirtualAddress);
-            byte[] bytes = body.GetILBytes();
+            byte[]? decodedBytes = body.GetILBytes();
+            if (decodedBytes is null)
+            {
+                throw new InvalidDataException(
+                    "The verified FastTrack method has no decodable IL body.");
+            }
+
+            byte[] bytes = decodedBytes;
             var instructions = new List<MetadataIlInstruction>();
             var byteIndex = 0;
             while (byteIndex < bytes.Length)
