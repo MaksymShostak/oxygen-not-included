@@ -621,7 +621,7 @@ public sealed class PickupTemperatureGroupingSessionTests
         PickupTemperatureGroupingSession groupingSession) =>
         GetPrivateDictionary(
             groupingSession,
-            "temperatureEligibilityClassByPickupInstanceId");
+            "temperatureClassesByPickupInstanceId");
 
     private static IDictionary GetPrivateDictionary(
         PickupTemperatureGroupingSession groupingSession,

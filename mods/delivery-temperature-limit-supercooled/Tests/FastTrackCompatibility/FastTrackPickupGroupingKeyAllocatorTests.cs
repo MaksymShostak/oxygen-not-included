@@ -325,7 +325,7 @@ public sealed class FastTrackPickupGroupingKeyAllocatorTests
         FastTrackPickupGroupingKeyAllocator allocator) =>
         Assert.IsInstanceOfType<IDictionary>(
             RequirePrivateInstanceField(
-                    "allocatedGroupingKeyByPickupGroupingIdentity",
+                    "allocatedGroupingKeysByCompositeIdentity",
                     typeof(Dictionary<,>))
                 .GetValue(allocator));
 

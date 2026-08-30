@@ -11,7 +11,7 @@ namespace DeliveryTemperatureLimit
     internal sealed class PickupTemperatureGroupingSession
     {
         private Dictionary<int, TemperatureEligibilityClassKey>
-            temperatureEligibilityClassByPickupInstanceId =
+            temperatureClassesByPickupInstanceId =
                 new Dictionary<int, TemperatureEligibilityClassKey>();
         private Dictionary<
             PickupTagIdentity,
@@ -164,7 +164,7 @@ namespace DeliveryTemperatureLimit
                 return TemperatureEligibilityClassKey.NoTemperatureDistinction();
             }
 
-            if (temperatureEligibilityClassByPickupInstanceId.TryGetValue(
+            if (temperatureClassesByPickupInstanceId.TryGetValue(
                     pickupInstanceId,
                     out var cachedClassification))
             {
@@ -204,7 +204,7 @@ namespace DeliveryTemperatureLimit
             // Cache the complete kind-aware key, not only an ordinal. Comparator
             // and duplicate-suppression adapters must observe the same result even
             // if a mutable candidate field changes later in this update.
-            temperatureEligibilityClassByPickupInstanceId.Add(
+            temperatureClassesByPickupInstanceId.Add(
                 pickupInstanceId,
                 classification);
             return classification;
@@ -350,7 +350,7 @@ namespace DeliveryTemperatureLimit
             }
 
             int priorPickupClassificationCount =
-                temperatureEligibilityClassByPickupInstanceId.Count;
+                temperatureClassesByPickupInstanceId.Count;
 
             // Mark inactive and release the graph roots before retaining or
             // replacing reusable backing stores. No Unity object is ever stored by
@@ -369,7 +369,7 @@ namespace DeliveryTemperatureLimit
                 RetainedCollectionCapacityLimits
                     .MaximumRetainedPickupClassificationCount)
             {
-                temperatureEligibilityClassByPickupInstanceId =
+                temperatureClassesByPickupInstanceId =
                     new Dictionary<int, TemperatureEligibilityClassKey>();
                 firstApplicableRequestedTagPartitionResolutionByPickupTagIdentity =
                     new Dictionary<
@@ -382,7 +382,7 @@ namespace DeliveryTemperatureLimit
                 return;
             }
 
-            temperatureEligibilityClassByPickupInstanceId.Clear();
+            temperatureClassesByPickupInstanceId.Clear();
             firstApplicableRequestedTagPartitionResolutionByPickupTagIdentity
                 .Clear();
             temperaturePartitionDefinitionByDecisionEndpoints.Clear();

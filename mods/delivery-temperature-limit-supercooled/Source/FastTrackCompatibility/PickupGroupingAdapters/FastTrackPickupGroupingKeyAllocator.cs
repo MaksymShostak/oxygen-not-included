@@ -11,7 +11,7 @@ namespace DeliveryTemperatureLimit
     internal sealed class FastTrackPickupGroupingKeyAllocator
     {
         private Dictionary<FastTrackPickupGroupingCompositeIdentity, int>
-            allocatedGroupingKeyByPickupGroupingIdentity =
+            allocatedGroupingKeysByCompositeIdentity =
                 new Dictionary<FastTrackPickupGroupingCompositeIdentity, int>();
 
         private int nextAllocatedGroupingKey;
@@ -54,7 +54,7 @@ namespace DeliveryTemperatureLimit
                 new FastTrackPickupGroupingCompositeIdentity(
                     originalTagBitsHash,
                     temperatureEligibilityClass);
-            if (allocatedGroupingKeyByPickupGroupingIdentity.TryGetValue(
+            if (allocatedGroupingKeysByCompositeIdentity.TryGetValue(
                     pickupGroupingIdentity,
                     out var existingGroupingKey))
             {
@@ -84,7 +84,7 @@ namespace DeliveryTemperatureLimit
             // the externally returned key is this sequential allocation. Therefore
             // even adversarial collisions in originalTagBitsHash or the composite's
             // dictionary hash cannot merge two distinct semantic identities.
-            allocatedGroupingKeyByPickupGroupingIdentity.Add(
+            allocatedGroupingKeysByCompositeIdentity.Add(
                 pickupGroupingIdentity,
                 allocatedGroupingKey);
             nextAllocatedGroupingKey = subsequentGroupingKey;
@@ -103,7 +103,7 @@ namespace DeliveryTemperatureLimit
             }
 
             int priorPickupGroupingIdentityCount =
-                allocatedGroupingKeyByPickupGroupingIdentity.Count;
+                allocatedGroupingKeysByCompositeIdentity.Count;
             isUpdateActive = false;
             temperatureGroupingIsActive = false;
             nextAllocatedGroupingKey = 0;
@@ -114,14 +114,14 @@ namespace DeliveryTemperatureLimit
             {
                 // Process every composite first, then release only oversized
                 // reusable backing storage at the explicit update boundary.
-                allocatedGroupingKeyByPickupGroupingIdentity =
+                allocatedGroupingKeysByCompositeIdentity =
                     new Dictionary<
                         FastTrackPickupGroupingCompositeIdentity,
                         int>();
                 return;
             }
 
-            allocatedGroupingKeyByPickupGroupingIdentity.Clear();
+            allocatedGroupingKeysByCompositeIdentity.Clear();
         }
 
         private static InvalidOperationException
