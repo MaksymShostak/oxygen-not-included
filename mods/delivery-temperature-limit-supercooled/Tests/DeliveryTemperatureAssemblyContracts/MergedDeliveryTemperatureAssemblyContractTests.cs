@@ -1,5 +1,9 @@
 using System.Diagnostics;
+using System.Reflection;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 using System.Security.Cryptography;
+using System.Text;
 using DeliveryTemperatureLimit.Tests.OniModPipelineIntegration;
 
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
@@ -10,47 +14,67 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
     private const string ReleaseVersion = "2026.8.26";
     private const string DeterministicTestSourceCommit =
         "0123456789abcdef0123456789abcdef01234567";
-    private const string PublishedBaselineSourceCommit =
-        "5f7bf43aa823bbb4771936b058c6d573484b6d91";
-    private const string PublishedBaselineSha256 =
-        "02A14F2E123F42BDD87847C15AB434DAFC8A4D4BC92B465F9DCD367364BF465E";
+    private const string FastTrackFixtureSha256 =
+        "D291C0D58379B77B4A60FB6D386B3783E4061E5C620DEF93502AE984CD657ADD";
 
-    public static IEnumerable<object[]> PublishedAssemblyCases
+    public TestContext TestContext { get; set; } = null!;
+
+    public static IEnumerable<object[]> ProvenanceBoundAssemblyCases
     {
         get
         {
-            yield return
-            [
-                "published-baseline",
-                PublishedBaselineSha256,
-                "2026.8.26.0",
-                PublishedBaselineSourceCommit
-            ];
+            foreach (DeliveryTemperatureArtifactContractCase contractCase in
+                     DeliveryTemperatureArtifactContractCaseProvider
+                         .ResolveForCurrentEnvironment())
+            {
+                yield return
+                [
+                    contractCase.ContractRowName,
+                    contractCase.Kind.ToString(),
+                    contractCase.AssemblyPath,
+                    contractCase.AssemblySha256,
+                    contractCase.AssemblyByteLength,
+                    contractCase.ExpectedFileVersion,
+                    contractCase.SourceCommit,
+                    contractCase.ExpectedTargetFrameworkMoniker
+                ];
+            }
         }
     }
 
+    public static string FormatProvenanceBoundAssemblyCaseName(
+        MethodInfo methodInfo,
+        object[] data) =>
+        $"{methodInfo.Name} ({data[0]})";
+
     [TestMethod]
-    [DynamicData(nameof(PublishedAssemblyCases))]
-    public async Task PublishedAssembly_WhenContractRowIsEvaluated_HasRecordedProvenanceAndSafeReferences(
+    [DynamicData(
+        nameof(ProvenanceBoundAssemblyCases),
+        DynamicDataDisplayName = nameof(FormatProvenanceBoundAssemblyCaseName))]
+    public async Task ProvenanceBoundAssembly_WhenContractRowIsEvaluated_HasRecordedRuntimeContract(
         string contractRow,
+        string artifactKind,
+        string assemblyPath,
         string expectedSha256,
+        long expectedByteLength,
         string expectedFileVersion,
-        string expectedSourceCommit)
+        string expectedSourceCommit,
+        string expectedTargetFrameworkMoniker)
     {
+        TestContext.WriteLine($"Artifact contract row: {contractRow}");
         Assert.AreEqual(
-            "published-baseline",
+            artifactKind,
             contractRow,
-            "Task 1 intentionally provides only the always-present published-baseline row.");
+            "The display name and semantic artifact kind must remain identical.");
 
         var repositoryRoot = RequiredEnvironmentVariable(
             "ONI_MOD_PIPELINE_REPOSITORY_ROOT");
-        var assemblyPath = Path.Combine(
-            repositoryRoot,
-            "mods",
-            "delivery-temperature-limit-supercooled",
-            "DeliveryTemperatureLimit.dll");
+        Assert.IsTrue(
+            File.Exists(assemblyPath),
+            $"The {contractRow} assembly does not exist at {assemblyPath}.");
         var observedSha256 = Convert.ToHexString(
             SHA256.HashData(await File.ReadAllBytesAsync(assemblyPath)));
+        var observedByteLength = new FileInfo(assemblyPath).Length;
         var versionInformation = FileVersionInfo.GetVersionInfo(assemblyPath);
         var observedFileVersion = new Version(
             versionInformation.FileMajorPart,
@@ -61,10 +85,34 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
         Assert.AreEqual(
             expectedSha256,
             observedSha256,
-            $"Published baseline digest changed at {assemblyPath}.");
+            $"{contractRow} digest changed at {assemblyPath}.");
+        Assert.AreEqual(
+            expectedByteLength,
+            observedByteLength,
+            $"{contractRow} byte length changed at {assemblyPath}.");
         Assert.AreEqual(expectedFileVersion, observedFileVersion);
         await AssertGitObjectExistsAsync(repositoryRoot, expectedSourceCommit);
+        Assert.AreEqual(
+            expectedTargetFrameworkMoniker,
+            ReadTargetFrameworkMoniker(assemblyPath),
+            $"{contractRow} has the wrong TargetFrameworkAttribute.");
         AssertKnownFrameworkConflictRootsAreNotReferenced(assemblyPath);
+
+        if (!string.Equals(
+                artifactKind,
+                nameof(DeliveryTemperatureArtifactContractKind.PublishedBaseline),
+                StringComparison.Ordinal))
+        {
+            // The published DLL is deliberately retained as a behavioral and
+            // metadata control. Only provenance-bound new artifacts are
+            // required to expose the completed big-bang runtime architecture.
+            IntentionalRuntimeContractTests.AssertMergedAssembly(assemblyPath);
+            NoShimArchitectureContractTests.AssertMergedAssembly(assemblyPath);
+            AssertPlibIsMergedRatherThanExternallyReferenced(assemblyPath);
+            await AssertFastTrackFixtureIsNotContainedAsync(
+                repositoryRoot,
+                assemblyPath);
+        }
     }
 
     [TestMethod]
@@ -250,6 +298,233 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
                 prohibitedReference,
                 $"{assemblyPath} must not directly reference {prohibitedReference}.");
         }
+    }
+
+    private static void AssertPlibIsMergedRatherThanExternallyReferenced(
+        string assemblyPath)
+    {
+        // These two types are directly consumed by the mod and are stable,
+        // semantically meaningful witnesses that the configured PLib input was
+        // merged. A resource/string search would be too weak because it could
+        // pass for an unresolvable external PLib reference.
+        string[] requiredMergedPlibTypes =
+        [
+            "PeterHan.PLib.Core.PUtil",
+            "PeterHan.PLib.Options.POptions"
+        ];
+        foreach (string requiredType in requiredMergedPlibTypes)
+        {
+            Assert.IsTrue(
+                DeliveryTemperatureAssemblyMetadataReader.TypeExists(
+                    assemblyPath,
+                    requiredType),
+                $"Merged assembly {assemblyPath} is missing required PLib " +
+                $"type {requiredType}.");
+        }
+
+        string[] references = DeliveryTemperatureAssemblyMetadataReader
+            .ReadAssemblyReferences(assemblyPath)
+            .Select(reference => reference.Name)
+            .ToArray();
+        CollectionAssert.DoesNotContain(
+            references,
+            "PLib",
+            "PLib must be merged and must not remain a runtime package dependency.");
+    }
+
+    private static async Task AssertFastTrackFixtureIsNotContainedAsync(
+        string repositoryRoot,
+        string assemblyPath)
+    {
+        string fixturePath = Path.Combine(
+            repositoryRoot,
+            "mods",
+            "delivery-temperature-limit-supercooled",
+            "Tests",
+            "Fixtures",
+            "ThirdParty",
+            "FastTrack",
+            "0.18.4.0",
+            "FastTrack.dll");
+        byte[] fixtureBytes = await File.ReadAllBytesAsync(fixturePath);
+        Assert.AreEqual(
+            FastTrackFixtureSha256,
+            Convert.ToHexString(SHA256.HashData(fixtureBytes)),
+            "The FastTrack exclusion check must remain bound to the reviewed " +
+            "0.18.4.0 static-contract fixture.");
+
+        byte[] assemblyBytes = await File.ReadAllBytesAsync(assemblyPath);
+        Assert.AreEqual(
+            -1,
+            assemblyBytes.AsSpan().IndexOf(fixtureBytes),
+            $"Merged assembly {assemblyPath} contains the complete FastTrack " +
+            "fixture byte sequence.");
+        AssertEncodedTextIsAbsent(
+            assemblyBytes,
+            FastTrackFixtureSha256,
+            assemblyPath);
+        AssertEncodedTextIsAbsent(
+            assemblyBytes,
+            FastTrackFixtureSha256.ToLowerInvariant(),
+            assemblyPath);
+
+        string[] assemblyReferences = DeliveryTemperatureAssemblyMetadataReader
+            .ReadAssemblyReferences(assemblyPath)
+            .Select(reference => reference.Name)
+            .ToArray();
+        Assert.IsFalse(
+            assemblyReferences.Any(reference => reference.Contains(
+                "FastTrack",
+                StringComparison.OrdinalIgnoreCase)),
+            $"Merged assembly {assemblyPath} retains a FastTrack compile/runtime " +
+            "assembly reference.");
+        Assert.IsFalse(
+            ReadManifestResourceNames(assemblyPath).Any(resourceName =>
+                resourceName.Contains(
+                    "FastTrack",
+                    StringComparison.OrdinalIgnoreCase)),
+            $"Merged assembly {assemblyPath} embeds a FastTrack-named resource.");
+    }
+
+    private static void AssertEncodedTextIsAbsent(
+        byte[] assemblyBytes,
+        string prohibitedText,
+        string assemblyPath)
+    {
+        byte[] utf8Bytes = Encoding.UTF8.GetBytes(prohibitedText);
+        byte[] utf16Bytes = Encoding.Unicode.GetBytes(prohibitedText);
+        Assert.AreEqual(
+            -1,
+            assemblyBytes.AsSpan().IndexOf(utf8Bytes),
+            $"Merged assembly {assemblyPath} contains prohibited UTF-8 text " +
+            $"'{prohibitedText}'.");
+        Assert.AreEqual(
+            -1,
+            assemblyBytes.AsSpan().IndexOf(utf16Bytes),
+            $"Merged assembly {assemblyPath} contains prohibited UTF-16 text " +
+            $"'{prohibitedText}'.");
+    }
+
+    private static string ReadTargetFrameworkMoniker(string assemblyPath)
+    {
+        using var stream = new FileStream(
+            assemblyPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: 64 * 1024,
+            FileOptions.SequentialScan);
+        using var peReader = new PEReader(stream);
+        MetadataReader metadata = peReader.GetMetadataReader();
+        var observedMonikers = new List<string>();
+        foreach (CustomAttributeHandle handle in
+                 metadata.GetAssemblyDefinition().GetCustomAttributes())
+        {
+            CustomAttribute attribute = metadata.GetCustomAttribute(handle);
+            if (!IsTargetFrameworkAttribute(metadata, attribute.Constructor))
+            {
+                continue;
+            }
+
+            BlobReader value = metadata.GetBlobReader(attribute.Value);
+            if (value.ReadUInt16() != 1)
+            {
+                throw new InvalidDataException(
+                    $"TargetFrameworkAttribute in {assemblyPath} has an " +
+                    "invalid custom-attribute prolog.");
+            }
+
+            string? moniker = value.ReadSerializedString();
+            if (string.IsNullOrWhiteSpace(moniker))
+            {
+                throw new InvalidDataException(
+                    $"TargetFrameworkAttribute in {assemblyPath} has no moniker.");
+            }
+
+            observedMonikers.Add(moniker);
+        }
+
+        Assert.HasCount(
+            1,
+            observedMonikers,
+            $"Assembly {assemblyPath} must declare exactly one " +
+            "TargetFrameworkAttribute.");
+        return observedMonikers[0];
+    }
+
+    private static bool IsTargetFrameworkAttribute(
+        MetadataReader metadata,
+        EntityHandle constructor)
+    {
+        EntityHandle declaringType = constructor.Kind switch
+        {
+            HandleKind.MemberReference => metadata
+                .GetMemberReference((MemberReferenceHandle)constructor)
+                .Parent,
+            HandleKind.MethodDefinition => metadata
+                .GetMethodDefinition((MethodDefinitionHandle)constructor)
+                .GetDeclaringType(),
+            _ => default
+        };
+
+        return declaringType.Kind switch
+        {
+            HandleKind.TypeReference => IsTargetFrameworkTypeReference(
+                metadata,
+                (TypeReferenceHandle)declaringType),
+            HandleKind.TypeDefinition => IsTargetFrameworkTypeDefinition(
+                metadata,
+                (TypeDefinitionHandle)declaringType),
+            _ => false
+        };
+    }
+
+    private static bool IsTargetFrameworkTypeReference(
+        MetadataReader metadata,
+        TypeReferenceHandle handle)
+    {
+        TypeReference type = metadata.GetTypeReference(handle);
+        return string.Equals(
+                metadata.GetString(type.Namespace),
+                "System.Runtime.Versioning",
+                StringComparison.Ordinal) &&
+            string.Equals(
+                metadata.GetString(type.Name),
+                "TargetFrameworkAttribute",
+                StringComparison.Ordinal);
+    }
+
+    private static bool IsTargetFrameworkTypeDefinition(
+        MetadataReader metadata,
+        TypeDefinitionHandle handle)
+    {
+        TypeDefinition type = metadata.GetTypeDefinition(handle);
+        return string.Equals(
+                metadata.GetString(type.Namespace),
+                "System.Runtime.Versioning",
+                StringComparison.Ordinal) &&
+            string.Equals(
+                metadata.GetString(type.Name),
+                "TargetFrameworkAttribute",
+                StringComparison.Ordinal);
+    }
+
+    private static IReadOnlyList<string> ReadManifestResourceNames(
+        string assemblyPath)
+    {
+        using var stream = new FileStream(
+            assemblyPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: 64 * 1024,
+            FileOptions.SequentialScan);
+        using var peReader = new PEReader(stream);
+        MetadataReader metadata = peReader.GetMetadataReader();
+        return metadata.ManifestResources
+            .Select(handle => metadata.GetString(
+                metadata.GetManifestResource(handle).Name))
+            .ToArray();
     }
 
     private static async Task AssertGitObjectExistsAsync(
