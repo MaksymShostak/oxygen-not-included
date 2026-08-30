@@ -376,6 +376,28 @@ public sealed class FastTrackGitHubReleaseAssemblyContractTests
                 addItemInstructions,
                 keyConstructor,
                 IsCallInstruction));
+        int keyConstructorToken = MetadataTokens.GetToken(keyConstructor);
+        int keyConstructorInstructionIndex =
+            Enumerable.Range(0, addItemInstructions.Count).Single(index =>
+                IsCallInstruction(addItemInstructions[index]) &&
+                addItemInstructions[index].MetadataToken ==
+                    keyConstructorToken);
+        Assert.IsGreaterThanOrEqualTo(4, keyConstructorInstructionIndex);
+        Assert.IsTrue(IsLocalAddressLoad(
+            addItemInstructions[keyConstructorInstructionIndex - 4]));
+        Assert.IsTrue(IsLocalValueLoad(
+            addItemInstructions[keyConstructorInstructionIndex - 3]));
+        Assert.IsTrue(IsLocalValueLoad(
+            addItemInstructions[keyConstructorInstructionIndex - 2]));
+        MetadataIlInstruction prefabIdentityLoad =
+            addItemInstructions[keyConstructorInstructionIndex - 1];
+        Assert.AreEqual(OpCodes.Ldfld, prefabIdentityLoad.OpCode);
+        Assert.IsTrue(prefabIdentityLoad.MetadataToken.HasValue);
+        MetadataMemberIdentity prefabIdentityField =
+            fixture.ResolveMemberIdentity(
+                prefabIdentityLoad.MetadataToken.Value);
+        Assert.AreEqual("Pickupable", prefabIdentityField.DeclaringTypeName);
+        Assert.AreEqual("KPrefabID", prefabIdentityField.Name);
     }
 
     [TestMethod]
@@ -436,6 +458,20 @@ public sealed class FastTrackGitHubReleaseAssemblyContractTests
         instruction.OpCode == OpCodes.Call ||
         instruction.OpCode == OpCodes.Callvirt ||
         instruction.OpCode == OpCodes.Newobj;
+
+    private static bool IsLocalAddressLoad(
+        MetadataIlInstruction instruction) =>
+        instruction.OpCode == OpCodes.Ldloca ||
+        instruction.OpCode == OpCodes.Ldloca_S;
+
+    private static bool IsLocalValueLoad(
+        MetadataIlInstruction instruction) =>
+        instruction.OpCode == OpCodes.Ldloc ||
+        instruction.OpCode == OpCodes.Ldloc_S ||
+        instruction.OpCode == OpCodes.Ldloc_0 ||
+        instruction.OpCode == OpCodes.Ldloc_1 ||
+        instruction.OpCode == OpCodes.Ldloc_2 ||
+        instruction.OpCode == OpCodes.Ldloc_3;
 
     private static IReadOnlyList<int> FindCallIndices(
         FastTrackPortableExecutableFixture fixture,

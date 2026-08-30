@@ -21,7 +21,9 @@ namespace DeliveryTemperatureLimit
         PickupGroupingAddItem,
         PickupGroupingKeyConstructor,
         PickupGroupingKeyTypedEquality,
+        PickupGroupingPickupablePrefabIdentityField,
         DirectDeliveryEligibilityComparator,
-        DirectDeliveryEligibilityReplacementPrefix
+        DirectDeliveryEligibilityReplacementPrefix,
+        DirectDeliveryEligibilitySortedPickupableField
     }
 }

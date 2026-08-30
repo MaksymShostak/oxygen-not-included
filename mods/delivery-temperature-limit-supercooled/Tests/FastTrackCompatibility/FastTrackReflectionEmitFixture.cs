@@ -80,8 +80,27 @@ internal static class FastTrackReflectionEmitFixture
         Create(FastTrackContractMutation.AddItemConstructorAnchorDuplicated);
 
     internal static FastTrackEmittedAssembly
+        CreateWithPickupTagKeyConstructorArgumentsReversed() =>
+        Create(FastTrackContractMutation
+            .PickupTagKeyConstructorArgumentsReversed);
+
+    internal static FastTrackEmittedAssembly
+        CreateWithAddItemSignatureChanged() =>
+        Create(FastTrackContractMutation.AddItemSignatureChanged);
+
+    internal static FastTrackEmittedAssembly
         CreateWithDirectComparatorContractChanged() =>
         Create(FastTrackContractMutation.DirectComparatorSignatureChanged);
+
+    internal static FastTrackEmittedAssembly
+        CreateWithDirectComparatorSuccessReturnMissing() =>
+        Create(FastTrackContractMutation
+            .DirectComparatorSuccessReturnMissing);
+
+    internal static FastTrackEmittedAssembly
+        CreateWithDirectComparatorSuccessReturnDuplicated() =>
+        Create(FastTrackContractMutation
+            .DirectComparatorSuccessReturnDuplicated);
 
     private static FastTrackEmittedAssembly Create(
         FastTrackContractMutation mutation)
@@ -167,10 +186,11 @@ internal static class FastTrackReflectionEmitFixture
         DefineDefaultConstructor(
             pickupableBuilder,
             workableType.GetConstructor(Type.EmptyTypes)!);
-        FieldBuilder prefabIdentityField = pickupableBuilder.DefineField(
-            "prefabIdentity",
-            prefabIdentityType,
-            FieldAttributes.Private);
+        FieldBuilder pickupablePrefabIdentityField =
+            pickupableBuilder.DefineField(
+                "KPrefabID",
+                prefabIdentityType,
+                FieldAttributes.Public);
         MethodBuilder pickupablePrefabIdentityGetter =
             pickupableBuilder.DefineMethod(
                 "get_KPrefabID",
@@ -184,7 +204,7 @@ internal static class FastTrackReflectionEmitFixture
         pickupablePrefabIdentityGenerator.Emit(OpCodes.Ldarg_0);
         pickupablePrefabIdentityGenerator.Emit(
             OpCodes.Ldfld,
-            prefabIdentityField);
+            pickupablePrefabIdentityField);
         pickupablePrefabIdentityGenerator.Emit(OpCodes.Ret);
         MethodBuilder pickupableTotalAmountGetter =
             pickupableBuilder.DefineMethod(
@@ -278,6 +298,14 @@ internal static class FastTrackReflectionEmitFixture
             TypeAttributes.Sealed |
             TypeAttributes.SequentialLayout,
             typeof(ValueType));
+        fetchableBuilder.DefineField(
+            "tagBitsHash",
+            typeof(int),
+            FieldAttributes.Public);
+        fetchableBuilder.DefineField(
+            "pickupable",
+            pickupableType,
+            FieldAttributes.Public);
         Type fetchableType = fetchableBuilder.CreateType()!;
         fetchManagerBuilder.DefineNestedType(
                 "Pickup",
@@ -363,6 +391,9 @@ internal static class FastTrackReflectionEmitFixture
             fetchablesByPrefabIdType,
             fetchablesByPrefabIdType.GetMethod("UpdatePickups")!,
             fetchableType,
+            fetchableType.GetField("tagBitsHash")!,
+            fetchableType.GetField("pickupable")!,
+            pickupableType.GetField("KPrefabID")!,
             choreConsumerStateType,
             fetchChoreType,
             preconditionContextType,
@@ -831,16 +862,24 @@ internal static class FastTrackReflectionEmitFixture
             "ID",
             gameTypes.PrefabIdentityType,
             FieldAttributes.Assembly | FieldAttributes.InitOnly);
+        bool constructorArgumentsAreReversed = mutation ==
+            FastTrackContractMutation
+                .PickupTagKeyConstructorArgumentsReversed;
+        Type[] keyConstructorParameterTypes = constructorArgumentsAreReversed
+            ? new[] { gameTypes.PrefabIdentityType, typeof(int) }
+            : new[] { typeof(int), gameTypes.PrefabIdentityType };
         ConstructorBuilder keyConstructor = keyBuilder.DefineConstructor(
             MethodAttributes.Public,
             CallingConventions.Standard,
-            new[] { typeof(int), gameTypes.PrefabIdentityType });
+            keyConstructorParameterTypes);
         ILGenerator keyConstructorGenerator = keyConstructor.GetILGenerator();
         keyConstructorGenerator.Emit(OpCodes.Ldarg_0);
-        keyConstructorGenerator.Emit(OpCodes.Ldarg_1);
+        keyConstructorGenerator.Emit(
+            constructorArgumentsAreReversed ? OpCodes.Ldarg_2 : OpCodes.Ldarg_1);
         keyConstructorGenerator.Emit(OpCodes.Stfld, hashField);
         keyConstructorGenerator.Emit(OpCodes.Ldarg_0);
-        keyConstructorGenerator.Emit(OpCodes.Ldarg_2);
+        keyConstructorGenerator.Emit(
+            constructorArgumentsAreReversed ? OpCodes.Ldarg_1 : OpCodes.Ldarg_2);
         keyConstructorGenerator.Emit(OpCodes.Stfld, identityField);
         keyConstructorGenerator.Emit(OpCodes.Ret);
 
@@ -865,8 +904,32 @@ internal static class FastTrackReflectionEmitFixture
             "AddItem",
             MethodAttributes.Public,
             typeof(void),
-            new[] { gameTypes.FetchableType.MakeByRefType(), typeof(int) });
+            mutation == FastTrackContractMutation.AddItemSignatureChanged
+                ? new[]
+                {
+                    gameTypes.FetchableType.MakeByRefType(),
+                    typeof(long)
+                }
+                : new[]
+                {
+                    gameTypes.FetchableType.MakeByRefType(),
+                    typeof(int)
+                });
         ILGenerator addItemGenerator = addItemBuilder.GetILGenerator();
+        LocalBuilder originalTagBitsHash =
+            addItemGenerator.DeclareLocal(typeof(int));
+        LocalBuilder pickupable =
+            addItemGenerator.DeclareLocal(gameTypes.PickupableType);
+        addItemGenerator.Emit(OpCodes.Ldarg_1);
+        addItemGenerator.Emit(
+            OpCodes.Ldfld,
+            gameTypes.FetchableTagBitsHashField);
+        addItemGenerator.Emit(OpCodes.Stloc, originalTagBitsHash);
+        addItemGenerator.Emit(OpCodes.Ldarg_1);
+        addItemGenerator.Emit(
+            OpCodes.Ldfld,
+            gameTypes.FetchablePickupableField);
+        addItemGenerator.Emit(OpCodes.Stloc, pickupable);
         int constructorCallCount = mutation switch
         {
             FastTrackContractMutation.AddItemConstructorAnchorMissing => 0,
@@ -877,8 +940,23 @@ internal static class FastTrackReflectionEmitFixture
         {
             LocalBuilder keyLocal = addItemGenerator.DeclareLocal(keyBuilder);
             addItemGenerator.Emit(OpCodes.Ldloca, keyLocal);
-            addItemGenerator.Emit(OpCodes.Ldc_I4_0);
-            addItemGenerator.Emit(OpCodes.Ldnull);
+            if (constructorArgumentsAreReversed)
+            {
+                addItemGenerator.Emit(OpCodes.Ldloc, pickupable);
+                addItemGenerator.Emit(
+                    OpCodes.Ldfld,
+                    gameTypes.PickupablePrefabIdentityField);
+                addItemGenerator.Emit(OpCodes.Ldloc, originalTagBitsHash);
+            }
+            else
+            {
+                addItemGenerator.Emit(OpCodes.Ldloc, originalTagBitsHash);
+                addItemGenerator.Emit(OpCodes.Ldloc, pickupable);
+                addItemGenerator.Emit(
+                    OpCodes.Ldfld,
+                    gameTypes.PickupablePrefabIdentityField);
+            }
+
             addItemGenerator.Emit(OpCodes.Call, keyConstructor);
         }
 
@@ -949,8 +1027,30 @@ internal static class FastTrackReflectionEmitFixture
             comparatorParameterTypes);
         ILGenerator comparatorGenerator =
             comparatorBuilderMethod.GetILGenerator();
-        comparatorGenerator.Emit(OpCodes.Ldc_I4_1);
-        comparatorGenerator.Emit(OpCodes.Ret);
+        if (mutation ==
+            FastTrackContractMutation.DirectComparatorSuccessReturnMissing)
+        {
+            comparatorGenerator.Emit(OpCodes.Ldc_I4_0);
+            comparatorGenerator.Emit(OpCodes.Ret);
+        }
+        else if (mutation ==
+                 FastTrackContractMutation
+                     .DirectComparatorSuccessReturnDuplicated)
+        {
+            Label secondSuccessReturn = comparatorGenerator.DefineLabel();
+            comparatorGenerator.Emit(OpCodes.Ldarg_2);
+            comparatorGenerator.Emit(OpCodes.Brfalse_S, secondSuccessReturn);
+            comparatorGenerator.Emit(OpCodes.Ldc_I4_1);
+            comparatorGenerator.Emit(OpCodes.Ret);
+            comparatorGenerator.MarkLabel(secondSuccessReturn);
+            comparatorGenerator.Emit(OpCodes.Ldc_I4_1);
+            comparatorGenerator.Emit(OpCodes.Ret);
+        }
+        else
+        {
+            comparatorGenerator.Emit(OpCodes.Ldc_I4_1);
+            comparatorGenerator.Emit(OpCodes.Ret);
+        }
         comparatorBuilder.CreateType();
 
         TypeBuilder chorePatchesBuilder = moduleBuilder.DefineType(
@@ -1045,7 +1145,11 @@ internal static class FastTrackReflectionEmitFixture
         PickupTagKeyEqualityUsesAllocatedIdentity,
         AddItemConstructorAnchorMissing,
         AddItemConstructorAnchorDuplicated,
-        DirectComparatorSignatureChanged
+        PickupTagKeyConstructorArgumentsReversed,
+        AddItemSignatureChanged,
+        DirectComparatorSignatureChanged,
+        DirectComparatorSuccessReturnMissing,
+        DirectComparatorSuccessReturnDuplicated
     }
 
     private sealed record EmittedGameContractTypes(
@@ -1067,6 +1171,9 @@ internal static class FastTrackReflectionEmitFixture
         Type FetchablesByPrefabIdType,
         MethodInfo UpdatePickupsTarget,
         Type FetchableType,
+        FieldInfo FetchableTagBitsHashField,
+        FieldInfo FetchablePickupableField,
+        FieldInfo PickupablePrefabIdentityField,
         Type ChoreConsumerStateType,
         Type FetchChoreType,
         Type PreconditionContextType,

@@ -3676,7 +3676,7 @@ Extend fixtures so `RunUpdate` executes one full branch followed by three increm
 
 This is a structural test, not a wall-clock benchmark. Also assert DeliveryTemperatureLimit installs no `BackgroundInventoryUpdater.StartUpdateAll` world-discovery prefix in the normal `Ready` path. FastTrack's own upstream per-update `WorldContainers` scan is outside this mod's scheduling ownership; this rewrite removes the mod's former duplicate setup scan and must not add another.
 
-- [ ] **Step 8: Run focused tests and production build**
+- [x] **Step 8: Run focused tests and production build**
 
 Run `FastTrackWorldInventoryPublicationSessionTests`, `FastTrackCompatibilityInspectorTests`, `FastTrackGitHubReleaseAssemblyContractTests`, `WorldResourceTemperatureAmountCatalogTests`, and `HarmonyPatchContractVerifierTests` separately. Then run pipeline `validate`, `build`, and `test`; do not install.
 
@@ -3697,43 +3697,54 @@ refactor: Preserve FastTrack incremental inventory updates
 **Files:**
 - Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/PickupGroupingAdapters/FastTrackPickupTemperaturePatches.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/DirectDeliveryEligibilityAdapters/FastTrackDirectDeliveryEligibilityPatches.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/PickupTemperatureGroupingAdapters/PickupTemperatureGroupingWorkerReadContractVerifier.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackPickupTemperaturePatchContractTests.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackDirectDeliveryEligibilityPatchContractTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/FastTrackCompatibilityInspector.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/FastTrackVerifiedMember.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Source/KleiImplementationAdapters/KleiPickupTemperatureGroupingPatches.cs`
 - Modify: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackPickupGroupingKeyAllocatorTests.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/FetchTemperatureEligibility/PickupTemperatureGroupingSessionTests.cs`
 - Modify: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackCompatibilityInspectorTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackGitHubReleaseAssemblyContractTests.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackReflectionEmitFixture.cs`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/HarmonyTranspilerInfrastructure/HarmonyPatchContractVerifierTests.cs`
 
 **Interfaces:**
 - Consumes: a `Ready` pickup-grouping report; an optional `Ready` direct-delivery report only for a loaded same-file-version binary whose former direct replacement is active and fully verified; the canonical grouping session; the collision-free key allocator; and canonical direct constraint checks.
 - Produces: collision-free FastTrack grouping with exact lifecycle cleanup and, only for that verified optional former replacement, canonical direct-delivery eligibility; inactive until Gate D. The official GitHub `0.18.4.0` artifact keeps the Klei direct path because its direct replacement is absent. This adapter does not modify, suppress, or unpatch FastTrack.
 
-- [ ] **Step 1: Write failing full-key allocation integration tests**
+- [x] **Step 1: Write failing full-key allocation integration tests**
 
 Exercise the allocator through a pure representation of `PickupTagDict.AddItem` and add exact tests:
 
-- `Allocate_WhenOriginalHashesDifferAndTemperatureClassMatches_ReturnsDifferentKeys`
-- `Allocate_WhenOriginalHashMatchesAndTemperatureClassesDiffer_ReturnsDifferentKeys`
-- `Allocate_WhenCompositeIdentityRepeats_ReturnsSameKey`
-- `Allocate_WhenPrimaryElementIsMissing_UsesDedicatedNonTemperatureClass`
-- `Allocate_WhenScopedSnapshotIsStale_UsesExactDecisionBucketClass`
-- `Allocate_WhenTemperatureGroupingIsInactive_ReturnsOriginalHashWithoutDictionaryEntry`
-- `Allocate_WhenIntegerSpaceIsExhausted_ThrowsWithoutReusingAKey`
+- `GetOrAllocate_WhenOriginalHashesDifferAndTemperatureClassMatches_ReturnsDifferentKeys`
+- `GetOrAllocate_WhenOriginalHashMatchesAndTemperatureClassesDiffer_ReturnsDifferentKeys`
+- `GetOrAllocate_WhenCompositeIdentityRepeats_ReturnsSameKey`
+- `GetOrAllocate_WhenPrimaryElementIsMissing_UsesDedicatedNonTemperatureClass`
+- `GetOrAllocate_WhenGroupingIsInactive_ReturnsOriginalHashWithoutRetainingEntry`
+- `GetOrAllocate_WhenIntegerSpaceIsExhausted_ThrowsWithoutWraparound`
 
 Inspect the produced candidate and assert its original `tagBitsHash` remains unchanged. Only the private `PickupTagKey` constructor argument may receive the allocated key.
 
-- [ ] **Step 2: Write failing emitted-IL patch-contract tests**
+Implementation reconciliation: test names retain the production method's precise `GetOrAllocate` name rather than introducing a fictitious `Allocate` operation. The mutable `FastTrackFetchableCandidateModel` integration representation proves that constructor-key allocation never rewrites `tagBitsHash`. Existing `PickupTemperatureGroupingSessionTests` already separately prove null snapshots plus stale constraint, fetch-topology, and world-topology snapshots select exact decision buckets. Per the approved no-repetition rule, Task 23 reuses those focused proofs instead of adding a second test with identical premises and conclusion.
+
+- [x] **Step 2: Write failing emitted-IL patch-contract tests**
 
 Require exactly one constructor call matching FastTrack's private `PickupTagKey(int,KPrefabID)` inside `PickupTagDict.AddItem`. The rewritten instruction sequence must alter only the first constructor argument. Add mutations for zero constructor calls, two calls, reversed arguments, changed equality semantics, and a changed `AddItem` signature.
 
 For update lifecycle, require exact prefix/postfix/finalizer hooks around `FetchManagerFastUpdate.BeforeUpdatePickups`. Tests assert nested entry restores the prior thread-confined grouping/allocator sessions after success and exception.
 
-- [ ] **Step 3: Run FastTrack pickup tests red**
+Implementation reconciliation: `FastTrackReflectionEmitFixture` now supplies independent zero-constructor, duplicate-constructor, reversed-constructor-arguments, changed-`AddItem`-signature, changed-equality, missing-success-return, and duplicate-success-return mutations. The inspector returns the exact `Pickupable.KPrefabID` and `SortedClearable.pickupable` fields as semantic verified-member roles. The pinned GitHub DLL test additionally proves the real private constructor window is local key address, local original hash, local pickupable, exact `Pickupable.KPrefabID` field, then the constructor call. Adapter source-contract tests require capture-once context injection and lifecycle ownership. Generic nested LIFO restoration and exception cleanup remain owned by the already-complete `ThreadConfinedSessionSlotTests`; duplicating that generic mechanism under a FastTrack name would not add a new behavior proof.
+
+- [x] **Step 3: Run FastTrack pickup tests red**
 
 Run `FastTrackPickupTemperaturePatchContractTests`, then the two modified domain classes.
 
 Expected: failures identify missing inactive adapters or missing integration entry points, not the already passing allocator core.
 
-- [ ] **Step 4: Implement one capture-once FastTrack pickup update context**
+Observed red: four tests failed solely because the two inactive production adapter files did not yet exist; the official pinned-DLL absence contract already passed. Inspector tests then failed to compile until the two new semantic verified-member roles were added. No allocator-core failure was used as a false red signal.
+
+- [x] **Step 4: Implement one capture-once FastTrack pickup update context**
 
 The prefix captures the current game session, active constraint snapshot, parent world resolved from the navigator anchor, and combined fetch eligibility snapshot exactly once. It enters one `PickupTemperatureGroupingSession` and one `FastTrackPickupGroupingKeyAllocator` in thread-confined slots.
 
@@ -3741,27 +3752,31 @@ For each candidate, form `PickupTagIdentity` from the original tag-bits hash plu
 
 Every candidate passes the complete composite identity to the allocator while grouping is active, including missing-primary-element candidates. The transpiler replaces only the constructor argument; it does not modify the fetchable, candidate, `KPrefabID`, or FastTrack dictionary implementation.
 
-- [ ] **Step 5: Implement exception-safe completion and retained-capacity release**
+Implementation reconciliation: the transpiler resolves the current thread-confined `FastTrackPickupGroupingUpdateContext` once into an `AddItem` method local. Its hook receives that cached context and contains no thread-slot lookup, snapshot capture, component lookup, reflection, logging, or option inspection. `PickupTemperatureGroupingWorkerReadContractVerifier` now owns the common Navigator/Grid/KPrefabID/PrimaryElement managed-read proof used independently by both Klei and FastTrack adapters; this is a shared semantic contract module, not a compatibility shim.
+
+- [x] **Step 5: Implement exception-safe completion and retained-capacity release**
 
 Postfix completes both sessions. Finalizer discards both and restores any nested prior context while preserving the original exception. After `MaximumRetainedFastTrackGroupingKeyCount` is exceeded, the allocator replaces its variable dictionary before the next session. Test the real named threshold with threshold-plus-one lightweight composite keys and private-reference inspection; do not inject a production test limit.
 
-- [ ] **Step 6: Implement the inactive direct FastTrack chore adapter**
+- [x] **Step 6: Implement the inactive direct FastTrack chore adapter**
 
 Patch the former exact installed FastTrack chore comparator target only when runtime inspection reports `DirectDeliveryEligibility` as `Ready`. The provenance-pinned GitHub artifact must never select this adapter: its absent replacement is `ReplacementInactive`, which selects the Klei direct-delivery implementation. The optional adapter exists only to preserve correctness if the unproven Workshop-distributed binary has the same file version but still activates the former replacement; emitted-contract tests, not the GitHub fixture, cover that conditional shape.
 
 When selected, preserve an existing false result, resolve the destination through the component index, bypass disabled/missing constraints, preserve characterized missing-primary behavior, and call `DeliveryTemperatureConstraint.Allows` once. No alternative boundary calculation, global snapshot reconstruction, per-call reflection, speculative target discovery, or assembly-presence fallback is permitted.
 
-- [ ] **Step 7: Prove fail-closed ownership and non-interference**
+Implementation reconciliation: runtime inspection now also requires exactly one `ldc.i4.1; ret` comparator success return and returns the exact public pickupable field from the comparator's private by-reference value type. The transpiler replaces only that success literal with the canonical narrowing call. Every original false return remains untouched. The GitHub `0.18.4.0` fixture continues to prove both former direct-replacement types are absent, so this adapter cannot be selected for that pinned artifact.
 
-Add exact tests proving:
+- [x] **Step 7: Prove Task 23 fail-closed binding and non-interference boundaries**
 
-- adapter binding is attempted only for a `Ready` feature;
-- `ModNotLoaded` and `ReplacementInactive` select no FastTrack patch methods;
-- an `Incompatible` active pickup or direct-delivery feature yields a release-blocking compatibility result consumed by Task 24;
-- installer rollback metadata names only this mod's exact patch methods and Harmony owner; and
+Task 23 source and contract tests prove:
+
+- each adapter's binding method rejects every state except the matching `Ready` feature;
+- `ModNotLoaded` and `ReplacementInactive` reports expose no verified patch members;
 - no code calls Harmony unpatch APIs for a FastTrack method or owner.
 
 There is no Klei fallback shim for an active incompatible FastTrack replacement. The coherent activation exception is implemented and tested in Task 24.
+
+Task-boundary clarification: selection of no FastTrack patch methods for inactive features, the release-blocking active-`Incompatible` result, and exact installer rollback metadata are properties of the not-yet-implemented coordinated activation plan/installer. Their executable matrix remains explicitly in Task 24. Task 23 does not create a speculative installer or duplicate those future tests merely to mark this adapter-local step complete.
 
 - [ ] **Step 8: Run focused tests and production build**
 
@@ -3769,9 +3784,11 @@ Run both new FastTrack test classes, allocator tests, grouping-session tests, re
 
 Expected: all pass. Verify there is no per-candidate reflection, option lookup, assembly lookup, logging, complete snapshot build, original-hash mutation, or unbounded dictionary retention.
 
-- [ ] **Step 9: Prepare and commit**
+Observed: both new adapter classes, allocator integration, pickup grouping session, compatibility inspector, pinned FastTrack DLL, and Harmony contract suites passed separately. Fresh authoritative pipeline `validate`, `build`, and `test` gates then passed; the declared suite executed 539 tests with 539 passed, zero failed, zero skipped/not-executed, and zero inconclusive. The exact successful build result was `artifacts/builds/MaksymShostak.DeliveryTemperatureLimit/20260830T0621090609471Z-ea15552f259e41908f0c99128dd6ddbe/build-result.json`. No install or ONI launch was performed. `oni-mod-pipeline.toml` and both project files remain unchanged.
 
-Use the seven task paths, allowed type `refactor`, and exact subject:
+- [x] **Step 9: Prepare and commit the verified Task 23 boundary**
+
+Use the thirteen implementation/test paths listed in the reconciled file set plus this plan artifact, allowed type `refactor`, and exact subject. The expanded set is required because exact transpiler safety depends on semantic verified-member roles, emitted mutations, the pinned-DLL instruction window, and the shared worker-read proof; no configuration file is part of the commit:
 
 ```text
 refactor: Add collision-free FastTrack pickup adapters

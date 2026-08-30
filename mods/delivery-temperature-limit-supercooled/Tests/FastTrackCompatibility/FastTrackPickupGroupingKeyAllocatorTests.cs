@@ -7,46 +7,70 @@ namespace DeliveryTemperatureLimit.Tests.FastTrackCompatibility;
 public sealed class FastTrackPickupGroupingKeyAllocatorTests
 {
     [TestMethod]
-    public void GetOrAllocate_WhenOriginalHashMatchesButTemperatureClassDiffers_ReturnsDifferentIntegers()
+    public void GetOrAllocate_WhenOriginalHashMatchesAndTemperatureClassesDiffer_ReturnsDifferentKeys()
     {
         var allocator = new FastTrackPickupGroupingKeyAllocator();
         allocator.Begin(temperatureGroupingIsActive: true);
+        var firstCandidate = new FastTrackFetchableCandidateModel(123);
+        var secondCandidate = new FastTrackFetchableCandidateModel(123);
 
-        var first = allocator.GetOrAllocate(
-            123,
+        var first = ConstructPickupTagKeyWithoutMutatingFetchable(
+            allocator,
+            firstCandidate,
             TemperatureEligibilityClassKey.OptimizedPartitionInterval(7, 1));
-        var second = allocator.GetOrAllocate(
-            123,
+        var second = ConstructPickupTagKeyWithoutMutatingFetchable(
+            allocator,
+            secondCandidate,
             TemperatureEligibilityClassKey.OptimizedPartitionInterval(7, 2));
 
         Assert.AreNotEqual(first, second);
+        Assert.AreEqual(123, firstCandidate.TagBitsHash);
+        Assert.AreEqual(123, secondCandidate.TagBitsHash);
     }
 
     [TestMethod]
-    public void GetOrAllocate_WhenCompositeRepeats_ReusesInteger()
+    public void GetOrAllocate_WhenCompositeIdentityRepeats_ReturnsSameKey()
     {
         var allocator = BeginActiveAllocator();
+        var candidate = new FastTrackFetchableCandidateModel(123);
         var classification =
             TemperatureEligibilityClassKey.OptimizedPartitionInterval(7, 1);
 
-        var first = allocator.GetOrAllocate(123, classification);
-        var repeated = allocator.GetOrAllocate(123, classification);
+        var first = ConstructPickupTagKeyWithoutMutatingFetchable(
+            allocator,
+            candidate,
+            classification);
+        var repeated = ConstructPickupTagKeyWithoutMutatingFetchable(
+            allocator,
+            candidate,
+            classification);
 
         Assert.AreEqual(first, repeated);
+        Assert.AreEqual(123, candidate.TagBitsHash);
         Assert.AreEqual(1, GetAllocatedGroupingKeyDictionary(allocator).Count);
     }
 
     [TestMethod]
-    public void GetOrAllocate_WhenOriginalHashesDiffer_ReturnsDifferentIntegers()
+    public void GetOrAllocate_WhenOriginalHashesDifferAndTemperatureClassMatches_ReturnsDifferentKeys()
     {
         var allocator = BeginActiveAllocator();
+        var firstCandidate = new FastTrackFetchableCandidateModel(123);
+        var secondCandidate = new FastTrackFetchableCandidateModel(456);
         var classification =
             TemperatureEligibilityClassKey.OptimizedPartitionInterval(7, 1);
 
-        var first = allocator.GetOrAllocate(123, classification);
-        var second = allocator.GetOrAllocate(456, classification);
+        var first = ConstructPickupTagKeyWithoutMutatingFetchable(
+            allocator,
+            firstCandidate,
+            classification);
+        var second = ConstructPickupTagKeyWithoutMutatingFetchable(
+            allocator,
+            secondCandidate,
+            classification);
 
         Assert.AreNotEqual(first, second);
+        Assert.AreEqual(123, firstCandidate.TagBitsHash);
+        Assert.AreEqual(456, secondCandidate.TagBitsHash);
     }
 
     [TestMethod]
@@ -65,21 +89,31 @@ public sealed class FastTrackPickupGroupingKeyAllocatorTests
     }
 
     [TestMethod]
-    public void GetOrAllocate_WhenMissingPrimaryElementClassIsUsed_AllocatesNormally()
+    public void GetOrAllocate_WhenPrimaryElementIsMissing_UsesDedicatedNonTemperatureClass()
     {
         var allocator = BeginActiveAllocator();
+        var missingPrimaryElementCandidate =
+            new FastTrackFetchableCandidateModel(123);
+        var exactTemperatureCandidate =
+            new FastTrackFetchableCandidateModel(123);
 
-        var missingPrimaryElementKey = allocator.GetOrAllocate(
-            123,
+        var missingPrimaryElementKey =
+            ConstructPickupTagKeyWithoutMutatingFetchable(
+            allocator,
+            missingPrimaryElementCandidate,
             TemperatureEligibilityClassKey.MissingPrimaryElement());
-        var exactTemperatureKey = allocator.GetOrAllocate(
-            123,
+        var exactTemperatureKey =
+            ConstructPickupTagKeyWithoutMutatingFetchable(
+            allocator,
+            exactTemperatureCandidate,
             TemperatureEligibilityClassKey.ExactDecisionBucket(
                 TemperatureDecisionBucket.FromIntegerKelvin(0)));
 
         Assert.AreEqual(0, missingPrimaryElementKey);
         Assert.AreEqual(1, exactTemperatureKey);
         Assert.AreNotEqual(missingPrimaryElementKey, exactTemperatureKey);
+        Assert.AreEqual(123, missingPrimaryElementCandidate.TagBitsHash);
+        Assert.AreEqual(123, exactTemperatureCandidate.TagBitsHash);
     }
 
     [TestMethod]
@@ -321,6 +355,24 @@ public sealed class FastTrackPickupGroupingKeyAllocatorTests
         return allocator;
     }
 
+    private static int ConstructPickupTagKeyWithoutMutatingFetchable(
+        FastTrackPickupGroupingKeyAllocator allocator,
+        FastTrackFetchableCandidateModel fetchableCandidate,
+        TemperatureEligibilityClassKey temperatureEligibilityClass)
+    {
+        int originalTagBitsHash = fetchableCandidate.TagBitsHash;
+        int constructorGroupingKey = allocator.GetOrAllocate(
+            originalTagBitsHash,
+            temperatureEligibilityClass);
+        Assert.AreEqual(
+            originalTagBitsHash,
+            fetchableCandidate.TagBitsHash,
+            "Only the private PickupTagKey constructor argument may receive " +
+            "the allocated key; FastTrack's fetchable tagBitsHash must remain " +
+            "unchanged.");
+        return constructorGroupingKey;
+    }
+
     private static IDictionary GetAllocatedGroupingKeyDictionary(
         FastTrackPickupGroupingKeyAllocator allocator) =>
         Assert.IsInstanceOfType<IDictionary>(
@@ -352,5 +404,19 @@ public sealed class FastTrackPickupGroupingKeyAllocatorTests
         }
 
         return field;
+    }
+
+    /// <summary>
+    /// Mutable test representation of the one FastTrack fetchable field that the
+    /// adapter must read but never rewrite.
+    /// </summary>
+    private sealed class FastTrackFetchableCandidateModel
+    {
+        internal FastTrackFetchableCandidateModel(int tagBitsHash)
+        {
+            TagBitsHash = tagBitsHash;
+        }
+
+        internal int TagBitsHash { get; set; }
     }
 }

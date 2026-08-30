@@ -1036,7 +1036,8 @@ namespace DeliveryTemperatureLimit
                 typedEquality,
                 hashField,
                 allocatedIdentityField);
-            VerifyUniquePickupTagKeyConstructorAnchor(
+            FieldInfo pickupablePrefabIdentityField =
+                RequireUniquePickupTagKeyConstructorAnchor(
                 addItem,
                 keyConstructor);
 
@@ -1058,6 +1059,11 @@ namespace DeliveryTemperatureLimit
                 {
                     FastTrackVerifiedMember.PickupGroupingKeyTypedEquality,
                     typedEquality
+                },
+                {
+                    FastTrackVerifiedMember
+                        .PickupGroupingPickupablePrefabIdentityField,
+                    pickupablePrefabIdentityField
                 }
             };
         }
@@ -1088,24 +1094,94 @@ namespace DeliveryTemperatureLimit
             }
         }
 
-        private static void VerifyUniquePickupTagKeyConstructorAnchor(
+        private static FieldInfo RequireUniquePickupTagKeyConstructorAnchor(
             MethodInfo addItem,
             ConstructorInfo keyConstructor)
         {
             IReadOnlyList<DecodedIlInstruction> instructions = Decode(addItem);
-            int anchorCount = CountMemberInstructions(
-                addItem,
-                instructions,
-                keyConstructor,
-                IsCallInstruction);
-            if (anchorCount != 1)
+            int constructorCallCount = 0;
+            int validConstructorArgumentAnchorCount = 0;
+            FieldInfo? pickupablePrefabIdentityField = null;
+            for (var instructionIndex = 0;
+                 instructionIndex < instructions.Count;
+                 instructionIndex++)
+            {
+                DecodedIlInstruction instruction =
+                    instructions[instructionIndex];
+                if (!IsCallInstruction(instruction) ||
+                    !InstructionReferencesMember(
+                        addItem,
+                        instruction,
+                        keyConstructor))
+                {
+                    continue;
+                }
+
+                constructorCallCount++;
+                if (instructionIndex < 4 ||
+                    !IsLocalAddressLoad(
+                        instructions[instructionIndex - 4].OpCode) ||
+                    !IsLocalValueLoad(
+                        instructions[instructionIndex - 3].OpCode) ||
+                    !IsLocalValueLoad(
+                        instructions[instructionIndex - 2].OpCode))
+                {
+                    continue;
+                }
+
+                DecodedIlInstruction identityFieldLoad =
+                    instructions[instructionIndex - 1];
+                if (identityFieldLoad.OpCode != OpCodes.Ldfld ||
+                    !identityFieldLoad.MetadataToken.HasValue)
+                {
+                    continue;
+                }
+
+                var field = ResolveMember(
+                    addItem,
+                    identityFieldLoad.MetadataToken.Value) as FieldInfo;
+                if (field == null || field.IsStatic || !field.IsPublic ||
+                    field.DeclaringType == null ||
+                    !string.Equals(
+                        GetStableTypeName(field.DeclaringType),
+                        "Pickupable",
+                        StringComparison.Ordinal) ||
+                    !string.Equals(
+                        field.Name,
+                        "KPrefabID",
+                        StringComparison.Ordinal) ||
+                    !string.Equals(
+                        GetStableTypeName(field.FieldType),
+                        "KPrefabID",
+                        StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                validConstructorArgumentAnchorCount++;
+                pickupablePrefabIdentityField = field;
+            }
+
+            if (constructorCallCount != 1)
             {
                 throw new HarmonyPatchContractViolationException(
                     "FastTrack PickupTagDict.AddItem requires exactly one " +
                     "PickupTagKey constructor anchor, but found " +
-                    anchorCount +
+                    constructorCallCount +
                     ".");
             }
+
+            if (validConstructorArgumentAnchorCount != 1 ||
+                pickupablePrefabIdentityField == null)
+            {
+                throw new HarmonyPatchContractViolationException(
+                    "FastTrack PickupTagDict.AddItem must construct its key " +
+                    "from one local original hash followed by the exact public " +
+                    "Pickupable.KPrefabID field. Only that hash argument is a " +
+                    "safe transpiler insertion point.");
+            }
+
+            return pickupablePrefabIdentityField;
         }
 
         private static IDictionary<FastTrackVerifiedMember, MemberInfo>
@@ -1142,6 +1218,24 @@ namespace DeliveryTemperatureLimit
                     "System.Collections.Generic.List`1[" +
                     "Chore+Precondition+Context]"
                 });
+            ParameterInfo[] comparatorParameters = comparator.GetParameters();
+            Type? sortedClearableType = comparatorParameters[2]
+                .ParameterType
+                .GetElementType();
+            if (sortedClearableType == null)
+            {
+                throw new HarmonyPatchContractViolationException(
+                    "FastTrack ChoreComparator.CheckFetchChore requires one " +
+                    "by-reference ClearableManager.SortedClearable argument.");
+            }
+
+            FieldInfo sortedClearablePickupableField = RequireField(
+                sortedClearableType,
+                "pickupable",
+                isStatic: false,
+                isPublic: true,
+                "Pickupable");
+            VerifyUniqueDirectComparatorSuccessReturn(comparator);
 
             return new Dictionary<FastTrackVerifiedMember, MemberInfo>
             {
@@ -1154,9 +1248,52 @@ namespace DeliveryTemperatureLimit
                     FastTrackVerifiedMember
                         .DirectDeliveryEligibilityReplacementPrefix,
                     replacementPrefix
+                },
+                {
+                    FastTrackVerifiedMember
+                        .DirectDeliveryEligibilitySortedPickupableField,
+                    sortedClearablePickupableField
                 }
             };
         }
+
+        private static void VerifyUniqueDirectComparatorSuccessReturn(
+            MethodInfo comparator)
+        {
+            IReadOnlyList<DecodedIlInstruction> instructions =
+                Decode(comparator);
+            int successReturnCount = 0;
+            for (var instructionIndex = 0;
+                 instructionIndex + 1 < instructions.Count;
+                 instructionIndex++)
+            {
+                if (instructions[instructionIndex].OpCode == OpCodes.Ldc_I4_1 &&
+                    instructions[instructionIndex + 1].OpCode == OpCodes.Ret)
+                {
+                    successReturnCount++;
+                }
+            }
+
+            if (successReturnCount != 1)
+            {
+                throw new HarmonyPatchContractViolationException(
+                    "FastTrack ChoreComparator.CheckFetchChore requires " +
+                    "exactly one success return, but found " +
+                    successReturnCount +
+                    ".");
+            }
+        }
+
+        private static bool IsLocalAddressLoad(OpCode opCode) =>
+            opCode == OpCodes.Ldloca || opCode == OpCodes.Ldloca_S;
+
+        private static bool IsLocalValueLoad(OpCode opCode) =>
+            opCode == OpCodes.Ldloc ||
+            opCode == OpCodes.Ldloc_S ||
+            opCode == OpCodes.Ldloc_0 ||
+            opCode == OpCodes.Ldloc_1 ||
+            opCode == OpCodes.Ldloc_2 ||
+            opCode == OpCodes.Ldloc_3;
 
         private static Type RequireType(Assembly assembly, string fullTypeName)
         {

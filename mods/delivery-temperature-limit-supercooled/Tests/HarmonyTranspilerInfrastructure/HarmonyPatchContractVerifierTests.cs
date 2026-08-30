@@ -1175,6 +1175,10 @@ public sealed class HarmonyPatchContractVerifierTests
             File.Exists(adapterPath),
             $"Missing Klei pickup grouping adapter source {adapterPath}.");
         var source = File.ReadAllText(adapterPath);
+        var sharedReadContractSource = File.ReadAllText(
+            ResolveProductionSourcePath(
+                "PickupTemperatureGroupingAdapters",
+                "PickupTemperatureGroupingWorkerReadContractVerifier.cs"));
 
         StringAssert.Contains(
             source,
@@ -1194,8 +1198,13 @@ public sealed class HarmonyPatchContractVerifierTests
         StringAssert.Contains(source, "GetTemperatureEligibilityClassKey");
         StringAssert.Contains(source, "TemperatureEligibilityClassKey.CompareTo");
         StringAssert.Contains(source, "TemperatureEligibilityClassKey.Equals");
-        StringAssert.Contains(source, "KPrefabID.HasTag");
-        StringAssert.Contains(source, "PrimaryElement.InternalTemperature");
+        StringAssert.Contains(
+            source,
+            "PickupTemperatureGroupingWorkerReadContractVerifier");
+        StringAssert.Contains(sharedReadContractSource, "KPrefabID.HasTag");
+        StringAssert.Contains(
+            sharedReadContractSource,
+            "PrimaryElement.InternalTemperature");
         StringAssert.Contains(source, "kPrefabId.InstanceID");
         StringAssert.Contains(source, "kPrefabId.PrefabTag");
         StringAssert.Contains(source, "ThreadConfinedSessionSlot");

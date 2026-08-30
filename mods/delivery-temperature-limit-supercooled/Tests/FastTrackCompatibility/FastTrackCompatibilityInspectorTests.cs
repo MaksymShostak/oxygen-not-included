@@ -388,6 +388,58 @@ public sealed class FastTrackCompatibilityInspectorTests
     }
 
     [TestMethod]
+    public void Inspect_WhenPickupTagKeyConstructorArgumentsAreReversed_ClassifiesPickupGroupingAsIncompatible()
+    {
+        FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
+            .CreateWithPickupTagKeyConstructorArgumentsReversed();
+
+        FastTrackCompatibilityReport report = InspectAllActive(fixture);
+
+        AssertOnlyFeatureIsIncompatible(
+            report,
+            FastTrackFeature.PickupGrouping,
+            FastTrackFeatureCompatibilityFailureCode.PickupGroupingContractViolation);
+    }
+
+    [TestMethod]
+    public void Inspect_WhenAddItemSignatureChanges_ClassifiesPickupGroupingAsIncompatible()
+    {
+        FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
+            .CreateWithAddItemSignatureChanged();
+
+        FastTrackCompatibilityReport report = InspectAllActive(fixture);
+
+        AssertOnlyFeatureIsIncompatible(
+            report,
+            FastTrackFeature.PickupGrouping,
+            FastTrackFeatureCompatibilityFailureCode.PickupGroupingContractViolation);
+    }
+
+    [TestMethod]
+    public void Inspect_WhenPickupGroupingContractIsReady_ProvidesConstructorAndPickupableIdentityFieldAnchors()
+    {
+        FastTrackEmittedAssembly fixture =
+            FastTrackReflectionEmitFixture.CreateExpectedContract();
+
+        FastTrackFeatureCompatibility compatibility = InspectAllActive(fixture)
+            .GetFeature(FastTrackFeature.PickupGrouping);
+
+        Assert.AreEqual(
+            FastTrackFeatureCompatibilityState.Ready,
+            compatibility.State);
+        Assert.IsInstanceOfType<ConstructorInfo>(
+            compatibility.GetVerifiedMember(
+                FastTrackVerifiedMember.PickupGroupingKeyConstructor));
+        FieldInfo pickupablePrefabIdentityField =
+            Assert.IsInstanceOfType<FieldInfo>(
+                compatibility.GetVerifiedMember(
+                    FastTrackVerifiedMember
+                        .PickupGroupingPickupablePrefabIdentityField));
+        Assert.AreEqual("Pickupable", pickupablePrefabIdentityField.DeclaringType!.FullName);
+        Assert.AreEqual("KPrefabID", pickupablePrefabIdentityField.Name);
+    }
+
+    [TestMethod]
     public void Inspect_WhenHarmonyOwnerDoesNotMatchFastTrack_ClassifiesReplacementAsInactiveRatherThanClaimingReady()
     {
         FastTrackEmittedAssembly fixture =
@@ -429,6 +481,64 @@ public sealed class FastTrackCompatibilityInspectorTests
             report,
             FastTrackFeature.DirectDeliveryEligibility,
             FastTrackFeatureCompatibilityFailureCode.DirectDeliveryEligibilityContractViolation);
+    }
+
+    [TestMethod]
+    public void Inspect_WhenDirectComparatorHasNoUniqueSuccessReturn_ClassifiesOnlyDirectDeliveryEligibilityAsIncompatible()
+    {
+        FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
+            .CreateWithDirectComparatorSuccessReturnMissing();
+
+        FastTrackCompatibilityReport report = InspectAllActive(fixture);
+
+        AssertOnlyFeatureIsIncompatible(
+            report,
+            FastTrackFeature.DirectDeliveryEligibility,
+            FastTrackFeatureCompatibilityFailureCode.DirectDeliveryEligibilityContractViolation);
+        StringAssert.Contains(
+            report.GetFeature(FastTrackFeature.DirectDeliveryEligibility)
+                .FailureMessage!,
+            "exactly one success return");
+    }
+
+    [TestMethod]
+    public void Inspect_WhenDirectComparatorHasTwoSuccessReturns_ClassifiesOnlyDirectDeliveryEligibilityAsIncompatible()
+    {
+        FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
+            .CreateWithDirectComparatorSuccessReturnDuplicated();
+
+        FastTrackCompatibilityReport report = InspectAllActive(fixture);
+
+        AssertOnlyFeatureIsIncompatible(
+            report,
+            FastTrackFeature.DirectDeliveryEligibility,
+            FastTrackFeatureCompatibilityFailureCode.DirectDeliveryEligibilityContractViolation);
+        StringAssert.Contains(
+            report.GetFeature(FastTrackFeature.DirectDeliveryEligibility)
+                .FailureMessage!,
+            "exactly one success return");
+    }
+
+    [TestMethod]
+    public void Inspect_WhenDirectDeliveryContractIsReady_ProvidesSortedClearablePickupableFieldAnchor()
+    {
+        FastTrackEmittedAssembly fixture =
+            FastTrackReflectionEmitFixture.CreateExpectedContract();
+
+        FastTrackFeatureCompatibility compatibility = InspectAllActive(fixture)
+            .GetFeature(FastTrackFeature.DirectDeliveryEligibility);
+
+        Assert.AreEqual(
+            FastTrackFeatureCompatibilityState.Ready,
+            compatibility.State);
+        FieldInfo pickupableField = Assert.IsInstanceOfType<FieldInfo>(
+            compatibility.GetVerifiedMember(
+                FastTrackVerifiedMember
+                    .DirectDeliveryEligibilitySortedPickupableField));
+        Assert.AreEqual(
+            "ClearableManager+SortedClearable",
+            pickupableField.DeclaringType!.FullName);
+        Assert.AreEqual("pickupable", pickupableField.Name);
     }
 
     [TestMethod]
