@@ -10,9 +10,17 @@ namespace DeliveryTemperatureLimit
     /// </summary>
     internal sealed class PickupTemperatureGroupingSession
     {
+        internal delegate IReadOnlyList<Tag>
+            ApplicableRequestedTagResolver<in TTagMembershipSource>(
+                TTagMembershipSource tagMembershipSource,
+                IReadOnlyList<Tag> requestedTagsForResolvedParentWorld);
+
         private Dictionary<int, TemperatureEligibilityClassKey>
             temperatureClassesByPickupInstanceId =
                 new Dictionary<int, TemperatureEligibilityClassKey>();
+        private Dictionary<PickupTagIdentity, Tag[]>
+            applicableRequestedTagsByPickupTagIdentity =
+                new Dictionary<PickupTagIdentity, Tag[]>();
         private Dictionary<
             PickupTagIdentity,
             ApplicableRequestedTagPartitionResolution>
@@ -34,6 +42,8 @@ namespace DeliveryTemperatureLimit
         private FetchTemperatureEligibilitySnapshot?
             capturedEligibilitySnapshot;
         private WorldParentTopologySnapshot? capturedWorldTopology;
+        private IReadOnlyList<Tag>?
+            capturedRequestedTagsForResolvedParentWorld;
         private int? resolvedParentWorldId;
         private TemperatureClassificationMode classificationMode;
         private int lastAssignedPartitionDefinitionId;
@@ -131,6 +141,12 @@ namespace DeliveryTemperatureLimit
             capturedActiveTemperatureConstraints = constraints;
             capturedEligibilitySnapshot = eligibilitySnapshot;
             capturedWorldTopology = worldTopology;
+            capturedRequestedTagsForResolvedParentWorld =
+                selectedMode ==
+                    TemperatureClassificationMode.CurrentScopedSnapshot
+                ? eligibilitySnapshot!.GetRequestedTags(
+                    resolvedParentWorldId!.Value)
+                : Array.Empty<Tag>();
             this.resolvedParentWorldId = resolvedParentWorldId;
             classificationMode = selectedMode;
             lastAssignedPartitionDefinitionId = 0;
@@ -156,6 +172,111 @@ namespace DeliveryTemperatureLimit
                 throw new ArgumentNullException(nameof(applicableRequestedTags));
             }
 
+            return ClassifyCore(
+                pickupInstanceId,
+                tagIdentity,
+                applicableRequestedTags,
+                applicableRequestedTagsAreSessionFrozen: false,
+                pickupClassificationCacheMissIsKnown: false,
+                hasPrimaryElement,
+                temperatureKelvin);
+        }
+
+        internal TemperatureEligibilityClassKey
+            ClassifyUsingApplicableRequestedTagResolver<TTagMembershipSource>(
+                int pickupInstanceId,
+                PickupTagIdentity tagIdentity,
+                TTagMembershipSource tagMembershipSource,
+                ApplicableRequestedTagResolver<TTagMembershipSource>
+                    applicableRequestedTagResolver,
+                bool hasPrimaryElement,
+                float temperatureKelvin)
+        {
+            if (!isActive)
+            {
+                throw new InvalidOperationException(
+                    "Begin must start a pickup temperature grouping update before " +
+                    "a pickup can be classified.");
+            }
+
+            if (applicableRequestedTagResolver == null)
+            {
+                throw new ArgumentNullException(
+                    nameof(applicableRequestedTagResolver));
+            }
+
+            if (classificationMode !=
+                    TemperatureClassificationMode.CurrentScopedSnapshot ||
+                !hasPrimaryElement)
+            {
+                // Exact fallback and the zero-constraint bypass have no partition
+                // to resolve. A pickup without a PrimaryElement likewise cannot
+                // benefit from invoking the membership callback.
+                return ClassifyCore(
+                    pickupInstanceId,
+                    tagIdentity,
+                    Array.Empty<Tag>(),
+                    applicableRequestedTagsAreSessionFrozen: false,
+                    pickupClassificationCacheMissIsKnown: false,
+                    hasPrimaryElement,
+                    temperatureKelvin);
+            }
+
+            if (temperatureClassesByPickupInstanceId.TryGetValue(
+                    pickupInstanceId,
+                    out var cachedClassification))
+            {
+                // Sorting compares the same candidates repeatedly. Return after
+                // one dictionary probe without re-entering tag resolution or a
+                // second classification-cache lookup.
+                return cachedClassification;
+            }
+
+            if (!applicableRequestedTagsByPickupTagIdentity.TryGetValue(
+                    tagIdentity,
+                    out var frozenApplicableRequestedTags))
+            {
+                IReadOnlyList<Tag>? resolvedApplicableRequestedTags =
+                    applicableRequestedTagResolver(
+                        tagMembershipSource,
+                        capturedRequestedTagsForResolvedParentWorld!);
+                if (resolvedApplicableRequestedTags == null)
+                {
+                    throw new InvalidOperationException(
+                        "An applicable requested-tag resolver returned null; it " +
+                        "must return an immutable value sequence or an empty " +
+                        "sequence.");
+                }
+
+                // Copy and normalize once so candidate-owned or mutable adapter
+                // collections can never alter the semantic key after insertion.
+                frozenApplicableRequestedTags =
+                    CreateDistinctTagsInFirstEncounterOrder(
+                        resolvedApplicableRequestedTags);
+                applicableRequestedTagsByPickupTagIdentity.Add(
+                    tagIdentity,
+                    frozenApplicableRequestedTags);
+            }
+
+            return ClassifyCore(
+                pickupInstanceId,
+                tagIdentity,
+                frozenApplicableRequestedTags,
+                applicableRequestedTagsAreSessionFrozen: true,
+                pickupClassificationCacheMissIsKnown: true,
+                hasPrimaryElement,
+                temperatureKelvin);
+        }
+
+        private TemperatureEligibilityClassKey ClassifyCore(
+            int pickupInstanceId,
+            PickupTagIdentity tagIdentity,
+            IReadOnlyList<Tag> applicableRequestedTags,
+            bool applicableRequestedTagsAreSessionFrozen,
+            bool pickupClassificationCacheMissIsKnown,
+            bool hasPrimaryElement,
+            float temperatureKelvin)
+        {
             if (classificationMode ==
                 TemperatureClassificationMode.NoTemperatureDistinction)
             {
@@ -164,7 +285,8 @@ namespace DeliveryTemperatureLimit
                 return TemperatureEligibilityClassKey.NoTemperatureDistinction();
             }
 
-            if (temperatureClassesByPickupInstanceId.TryGetValue(
+            if (!pickupClassificationCacheMissIsKnown &&
+                temperatureClassesByPickupInstanceId.TryGetValue(
                     pickupInstanceId,
                     out var cachedClassification))
             {
@@ -190,7 +312,8 @@ namespace DeliveryTemperatureLimit
                 TemperaturePartitionDefinition? partitionDefinition =
                     GetOrCreateApplicableTemperaturePartitionDefinition(
                         tagIdentity,
-                        applicableRequestedTags);
+                        applicableRequestedTags,
+                        applicableRequestedTagsAreSessionFrozen);
                 classification = partitionDefinition == null
                     ? TemperatureEligibilityClassKey.NoTemperatureDistinction()
                     : TemperatureEligibilityClassKey
@@ -217,7 +340,8 @@ namespace DeliveryTemperatureLimit
         private TemperaturePartitionDefinition?
             GetOrCreateApplicableTemperaturePartitionDefinition(
                 PickupTagIdentity tagIdentity,
-                IReadOnlyList<Tag> applicableRequestedTags)
+                IReadOnlyList<Tag> applicableRequestedTags,
+                bool applicableRequestedTagsAreSessionFrozen)
         {
             if (firstApplicableRequestedTagPartitionResolutionByPickupTagIdentity
                 .TryGetValue(tagIdentity, out var firstPartition))
@@ -242,7 +366,8 @@ namespace DeliveryTemperatureLimit
 
                 var additionalPartitionResolution =
                     CreateApplicableRequestedTagPartitionResolution(
-                        applicableRequestedTags);
+                        applicableRequestedTags,
+                        applicableRequestedTagsAreSessionFrozen);
                 lastPartitionResolution!.NextResolution =
                     additionalPartitionResolution;
                 return additionalPartitionResolution.PartitionDefinition;
@@ -250,7 +375,8 @@ namespace DeliveryTemperatureLimit
 
             var newFirstPartitionResolution =
                 CreateApplicableRequestedTagPartitionResolution(
-                    applicableRequestedTags);
+                    applicableRequestedTags,
+                    applicableRequestedTagsAreSessionFrozen);
             firstApplicableRequestedTagPartitionResolutionByPickupTagIdentity.Add(
                 tagIdentity,
                 newFirstPartitionResolution);
@@ -259,11 +385,14 @@ namespace DeliveryTemperatureLimit
 
         private ApplicableRequestedTagPartitionResolution
             CreateApplicableRequestedTagPartitionResolution(
-                IReadOnlyList<Tag> applicableRequestedTags)
+                IReadOnlyList<Tag> applicableRequestedTags,
+                bool applicableRequestedTagsAreSessionFrozen)
         {
             Tag[] normalizedApplicableRequestedTags =
-                CreateDistinctTagsInFirstEncounterOrder(
-                    applicableRequestedTags);
+                applicableRequestedTagsAreSessionFrozen
+                    ? (Tag[])applicableRequestedTags
+                    : CreateDistinctTagsInFirstEncounterOrder(
+                        applicableRequestedTags);
             IReadOnlyList<int> sortedDecisionEndpointsKelvin =
                 capturedEligibilitySnapshot!
                     .CreateSortedDecisionEndpointUnion(
@@ -361,6 +490,7 @@ namespace DeliveryTemperatureLimit
             capturedActiveTemperatureConstraints = null;
             capturedEligibilitySnapshot = null;
             capturedWorldTopology = null;
+            capturedRequestedTagsForResolvedParentWorld = null;
             resolvedParentWorldId = null;
             classificationMode = default(TemperatureClassificationMode);
             lastAssignedPartitionDefinitionId = 0;
@@ -371,6 +501,8 @@ namespace DeliveryTemperatureLimit
             {
                 temperatureClassesByPickupInstanceId =
                     new Dictionary<int, TemperatureEligibilityClassKey>();
+                applicableRequestedTagsByPickupTagIdentity =
+                    new Dictionary<PickupTagIdentity, Tag[]>();
                 firstApplicableRequestedTagPartitionResolutionByPickupTagIdentity =
                     new Dictionary<
                         PickupTagIdentity,
@@ -383,6 +515,7 @@ namespace DeliveryTemperatureLimit
             }
 
             temperatureClassesByPickupInstanceId.Clear();
+            applicableRequestedTagsByPickupTagIdentity.Clear();
             firstApplicableRequestedTagPartitionResolutionByPickupTagIdentity
                 .Clear();
             temperaturePartitionDefinitionByDecisionEndpoints.Clear();
@@ -482,8 +615,18 @@ namespace DeliveryTemperatureLimit
             internal bool Matches(
                 IReadOnlyList<Tag> applicableRequestedTags)
             {
-                // The runtime adapter supplies an already-distinct frozen list, so
-                // this exact-sequence path is the ordinary O(tag-count) case.
+                // The runtime adapter supplies the exact session-owned frozen
+                // array on every repeat. The identity fast path therefore reuses
+                // the already-created partition in O(1) without rescanning tags.
+                if (ReferenceEquals(
+                        applicableRequestedTags,
+                        normalizedApplicableRequestedTags))
+                {
+                    return true;
+                }
+
+                // Direct domain callers can supply an equivalent independent
+                // sequence. Preserve that established semantic cache contract.
                 if (applicableRequestedTags.Count ==
                     normalizedApplicableRequestedTags.Length)
                 {

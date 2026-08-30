@@ -257,6 +257,142 @@ public sealed class PickupTemperatureGroupingSessionTests
     }
 
     [TestMethod]
+    public void ClassifyUsingApplicableRequestedTagResolver_WhenNoConstraintsAreEnabled_BypassesResolverAndEveryTemperatureCache()
+    {
+        var session = CreateSessionWithoutEnabledConstraints();
+        var groupingSession = BeginGroupingSession(
+            session,
+            resolvedParentWorldId: null,
+            eligibilitySnapshot: null);
+        var resolverWasInvoked = false;
+        PickupTemperatureGroupingSession
+            .ApplicableRequestedTagResolver<Tag> resolver =
+                (_, _) =>
+                {
+                    resolverWasInvoked = true;
+                    return Array.Empty<Tag>();
+                };
+
+        var classification = groupingSession
+            .ClassifyUsingApplicableRequestedTagResolver(
+                pickupInstanceId: 122,
+                new PickupTagIdentity(17, new Tag("Iron")),
+                new Tag("Iron"),
+                resolver,
+                hasPrimaryElement: true,
+                temperatureKelvin: 15.0f);
+
+        Assert.AreEqual(
+            TemperatureEligibilityClassKey.NoTemperatureDistinction(),
+            classification);
+        Assert.IsFalse(resolverWasInvoked);
+        Assert.IsEmpty(GetPickupClassificationDictionary(groupingSession));
+        Assert.IsEmpty(GetPrivateDictionary(
+            groupingSession,
+            "applicableRequestedTagsByPickupTagIdentity"));
+    }
+
+    [TestMethod]
+    public void ClassifyUsingApplicableRequestedTagResolver_WhenTenThousandPickupsShareCompleteTagIdentity_ResolvesApplicableTagsOnce()
+    {
+        var session = CreateSessionWithEnabledConstraint();
+        var iron = new Tag("Iron");
+        var snapshot = BuildCurrentEligibilitySnapshot(
+            session,
+            builder => builder.AddTemperatureConstrainedFetchRequest(
+                1,
+                [iron],
+                Constraint(10, 20)));
+        var groupingSession = BeginGroupingSession(session, 1, snapshot);
+        var tagIdentity = new PickupTagIdentity(17, iron);
+        var applicableTagResolverInvocationCount = 0;
+        PickupTemperatureGroupingSession
+            .ApplicableRequestedTagResolver<Tag> resolver =
+                (prefabTag, requestedTags) =>
+                {
+                    applicableTagResolverInvocationCount++;
+                    return requestedTags
+                        .Where(requestedTag => requestedTag.Equals(prefabTag))
+                        .ToArray();
+                };
+
+        for (var pickupInstanceId = 1;
+             pickupInstanceId <= 10_000;
+             pickupInstanceId++)
+        {
+            var classification = groupingSession
+                .ClassifyUsingApplicableRequestedTagResolver(
+                    pickupInstanceId,
+                    tagIdentity,
+                    iron,
+                    resolver,
+                    hasPrimaryElement: true,
+                    temperatureKelvin: 15.0f);
+
+            Assert.AreEqual(
+                TemperatureEligibilityClassificationKind
+                    .OptimizedPartitionInterval,
+                classification.ClassificationKind);
+        }
+
+        Assert.AreEqual(1, applicableTagResolverInvocationCount);
+    }
+
+    [TestMethod]
+    public void ClassifyUsingApplicableRequestedTagResolver_WhenOriginalHashesMatchButPrefabTagsDiffer_ResolvesEachCompleteIdentitySeparately()
+    {
+        var session = CreateSessionWithEnabledConstraint();
+        var iron = new Tag("Iron");
+        var copper = new Tag("Copper");
+        var snapshot = BuildCurrentEligibilitySnapshot(
+            session,
+            builder =>
+            {
+                builder.AddTemperatureConstrainedFetchRequest(
+                    1,
+                    [iron],
+                    Constraint(10, 20));
+                builder.AddTemperatureConstrainedFetchRequest(
+                    1,
+                    [copper],
+                    Constraint(30, 40));
+            });
+        var groupingSession = BeginGroupingSession(session, 1, snapshot);
+        var applicableTagResolverInvocationCount = 0;
+        PickupTemperatureGroupingSession
+            .ApplicableRequestedTagResolver<Tag> resolver =
+                (prefabTag, requestedTags) =>
+                {
+                    applicableTagResolverInvocationCount++;
+                    return requestedTags
+                        .Where(requestedTag => requestedTag.Equals(prefabTag))
+                        .ToArray();
+                };
+
+        var ironClassification = groupingSession
+            .ClassifyUsingApplicableRequestedTagResolver(
+                pickupInstanceId: 120,
+                new PickupTagIdentity(17, iron),
+                iron,
+                resolver,
+                hasPrimaryElement: true,
+                temperatureKelvin: 15.0f);
+        var copperClassification = groupingSession
+            .ClassifyUsingApplicableRequestedTagResolver(
+                pickupInstanceId: 121,
+                new PickupTagIdentity(17, copper),
+                copper,
+                resolver,
+                hasPrimaryElement: true,
+                temperatureKelvin: 35.0f);
+
+        Assert.AreEqual(2, applicableTagResolverInvocationCount);
+        Assert.AreNotEqual(
+            ironClassification.PartitionDefinitionId,
+            copperClassification.PartitionDefinitionId);
+    }
+
+    [TestMethod]
     public void Classify_WhenApplicableTagsDiffer_DoesNotReuseWrongUnion()
     {
         var session = CreateSessionWithEnabledConstraint();
@@ -416,7 +552,13 @@ public sealed class PickupTemperatureGroupingSessionTests
         Assert.IsNull(GetPrivateFieldValue(
             groupingSession,
             "capturedWorldTopology"));
+        Assert.IsNull(GetPrivateFieldValue(
+            groupingSession,
+            "capturedRequestedTagsForResolvedParentWorld"));
         Assert.IsEmpty(GetPickupClassificationDictionary(groupingSession));
+        Assert.IsEmpty(GetPrivateDictionary(
+            groupingSession,
+            "applicableRequestedTagsByPickupTagIdentity"));
         Assert.IsEmpty(GetPrivateDictionary(
             groupingSession,
             "firstApplicableRequestedTagPartitionResolutionByPickupTagIdentity"));
