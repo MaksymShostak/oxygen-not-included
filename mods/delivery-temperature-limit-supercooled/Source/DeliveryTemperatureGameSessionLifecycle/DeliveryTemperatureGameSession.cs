@@ -18,9 +18,14 @@ namespace DeliveryTemperatureLimit
         private const int OwnedStateReleaseInProgress = 1;
         private const int OwnedStateReleaseCompleted = 2;
 
+        private readonly object temperatureLimitMutationLock = new object();
+        private readonly object worldTopologyMutationLock = new object();
         private int publicationAcceptanceState = PublicationsAccepted;
         private int inFlightPublicationCount;
         private int ownedStateReleaseState = OwnedStateReleaseNotStarted;
+        private long currentWorldInventoryCollectionGenerationValue;
+        private FetchTemperatureEligibilitySnapshot?
+            currentFetchTemperatureEligibility;
 
         internal DeliveryTemperatureGameSession(
             GameSessionGeneration generation,
@@ -40,6 +45,7 @@ namespace DeliveryTemperatureLimit
             WorldParentTopology = new WorldParentTopologyCatalog(generation);
             WorldResourceTemperatureAmounts =
                 new WorldResourceTemperatureAmountCatalog();
+            FetchRequestTopology = new FetchRequestTopologyTracker();
             DiagnosticLimiter = new SessionDiagnosticLimiter();
         }
 
@@ -60,6 +66,25 @@ namespace DeliveryTemperatureLimit
         internal WorldResourceTemperatureAmountCatalog
             WorldResourceTemperatureAmounts { get; }
 
+        internal FetchRequestTopologyTracker FetchRequestTopology { get; }
+
+        internal WorldInventoryCollectionGeneration
+            CurrentWorldInventoryCollectionGeneration
+        {
+            get
+            {
+                long generationValue = Volatile.Read(
+                    ref currentWorldInventoryCollectionGenerationValue);
+                return generationValue == 0
+                    ? default(WorldInventoryCollectionGeneration)
+                    : new WorldInventoryCollectionGeneration(generationValue);
+            }
+        }
+
+        internal FetchTemperatureEligibilitySnapshot?
+            CurrentFetchTemperatureEligibility =>
+                Volatile.Read(ref currentFetchTemperatureEligibility);
+
         internal SessionDiagnosticLimiter DiagnosticLimiter { get; }
 
         internal GameSessionTemperatureLimitRegistrationToken
@@ -74,61 +99,94 @@ namespace DeliveryTemperatureLimit
                 throw CreatePublicationLifecycleViolation();
             }
 
-            TemperatureConstraintRegistrationToken constraintRegistrationToken =
-                default(TemperatureConstraintRegistrationToken);
-            bool constraintRegistrationChanged = false;
-            bool componentIndexPublicationSucceeded = false;
-
             try
             {
-                constraintRegistrationToken = TemperatureConstraints.Register(
-                    componentInstanceId,
-                    constraint,
-                    out constraintRegistrationChanged);
-                ThrowIfNotAcceptingPublications();
-
-                if (!TemperatureLimitComponents.TryRegister(
-                        gameObjectInstanceId,
-                        component,
-                        constraintRegistrationToken,
-                        constraint))
+                lock (temperatureLimitMutationLock)
                 {
-                    throw new InvalidOperationException(
-                        "The temperature-limit component index rejected a " +
-                        "registration whose ownership token was already associated " +
-                        "with different component state.");
+                    var priorConstraintSnapshot =
+                        TemperatureConstraints.CaptureSnapshot();
+                    long? preparedInventoryCollectionGenerationValue =
+                        priorConstraintSnapshot.EnabledConstraintCount == 0 &&
+                        constraint.IsEnabled
+                            ? GetNextWorldInventoryCollectionGenerationValue()
+                            : (long?)null;
+                    long priorInventoryCollectionGenerationValue =
+                        Volatile.Read(
+                            ref currentWorldInventoryCollectionGenerationValue);
+                    TemperatureConstraintRegistrationToken
+                        constraintRegistrationToken =
+                            default(TemperatureConstraintRegistrationToken);
+                    bool constraintRegistrationChanged = false;
+                    bool componentIndexPublicationSucceeded = false;
+
+                    try
+                    {
+                        constraintRegistrationToken =
+                            TemperatureConstraints.Register(
+                                componentInstanceId,
+                                constraint,
+                                out constraintRegistrationChanged);
+                        ThrowIfNotAcceptingPublications();
+
+                        if (!TemperatureLimitComponents.TryRegister(
+                                gameObjectInstanceId,
+                                component,
+                                constraintRegistrationToken,
+                                constraint))
+                        {
+                            throw new InvalidOperationException(
+                                "The temperature-limit component index rejected a " +
+                                "registration whose ownership token was already " +
+                                "associated with different component state.");
+                        }
+
+                        componentIndexPublicationSucceeded = true;
+                        ThrowIfNotAcceptingPublications();
+
+                        if (constraintRegistrationChanged)
+                        {
+                            // The registry and component index are complete before
+                            // dependent topology changes. A candidate stamped with
+                            // the prior version can therefore never publish afterward.
+                            FetchRequestTopology.RecordEffectiveChange();
+                            PublishInventoryCollectionTransition(
+                                priorConstraintSnapshot.EnabledConstraintCount,
+                                TemperatureConstraints.CaptureSnapshot()
+                                    .EnabledConstraintCount,
+                                preparedInventoryCollectionGenerationValue);
+                        }
+
+                        return new GameSessionTemperatureLimitRegistrationToken(
+                            Generation,
+                            gameObjectInstanceId,
+                            constraintRegistrationToken);
+                    }
+                    catch
+                    {
+                        // Cross-service mutation is intentionally sequential: no code
+                        // holds either owned service's internal synchronization while
+                        // invoking the other. Roll back only exact acquired ownership.
+                        if (componentIndexPublicationSucceeded &&
+                            constraintRegistrationChanged)
+                        {
+                            TemperatureLimitComponents.TryRemove(
+                                gameObjectInstanceId,
+                                constraintRegistrationToken);
+                        }
+
+                        if (constraintRegistrationChanged)
+                        {
+                            TemperatureConstraints.TryRemove(
+                                constraintRegistrationToken,
+                                out _);
+                        }
+
+                        Volatile.Write(
+                            ref currentWorldInventoryCollectionGenerationValue,
+                            priorInventoryCollectionGenerationValue);
+                        throw;
+                    }
                 }
-
-                componentIndexPublicationSucceeded = true;
-                ThrowIfNotAcceptingPublications();
-
-                return new GameSessionTemperatureLimitRegistrationToken(
-                    Generation,
-                    gameObjectInstanceId,
-                    constraintRegistrationToken);
-            }
-            catch
-            {
-                // Cross-service mutation is intentionally sequential: no code holds
-                // the registry lock and component-index synchronization at once. If
-                // the second publication fails, remove only the exact ownership
-                // acquired by this transaction before preserving the original error.
-                if (componentIndexPublicationSucceeded &&
-                    constraintRegistrationChanged)
-                {
-                    TemperatureLimitComponents.TryRemove(
-                        gameObjectInstanceId,
-                        constraintRegistrationToken);
-                }
-
-                if (constraintRegistrationChanged)
-                {
-                    TemperatureConstraints.TryRemove(
-                        constraintRegistrationToken,
-                        out _);
-                }
-
-                throw;
             }
             finally
             {
@@ -148,79 +206,99 @@ namespace DeliveryTemperatureLimit
 
             try
             {
-                if (!TemperatureLimitComponents.TryGetConstraint(
-                        registrationToken.GameObjectInstanceId,
-                        out var priorConstraint,
-                        out var observedConstraintRegistrationToken) ||
-                    !observedConstraintRegistrationToken.Equals(
-                        registrationToken.ConstraintRegistrationToken))
+                lock (temperatureLimitMutationLock)
                 {
-                    return false;
-                }
+                    if (!TemperatureLimitComponents.TryGetConstraint(
+                            registrationToken.GameObjectInstanceId,
+                            out var priorConstraint,
+                            out var observedConstraintRegistrationToken) ||
+                        !observedConstraintRegistrationToken.Equals(
+                            registrationToken.ConstraintRegistrationToken))
+                    {
+                        return false;
+                    }
 
-                if (!TemperatureConstraints.TryReplace(
-                        registrationToken.ConstraintRegistrationToken,
-                        constraint,
-                        out var registryStateChanged))
-                {
-                    return false;
-                }
+                    var priorConstraintSnapshot =
+                        TemperatureConstraints.CaptureSnapshot();
+                    long? preparedInventoryCollectionGenerationValue =
+                        priorConstraintSnapshot.EnabledConstraintCount == 0 &&
+                        constraint.IsEnabled
+                            ? GetNextWorldInventoryCollectionGenerationValue()
+                            : (long?)null;
 
-                if (!IsAcceptingPublications)
-                {
+                    if (!TemperatureConstraints.TryReplace(
+                            registrationToken.ConstraintRegistrationToken,
+                            constraint,
+                            out var registryStateChanged))
+                    {
+                        return false;
+                    }
+
+                    if (!IsAcceptingPublications)
+                    {
+                        if (registryStateChanged)
+                        {
+                            RestoreConstraintRegistryEntry(
+                                registrationToken.ConstraintRegistrationToken,
+                                priorConstraint);
+                        }
+
+                        return false;
+                    }
+
+                    bool componentIndexStateChanged =
+                        !priorConstraint.Equals(constraint);
+                    if (componentIndexStateChanged &&
+                        !TemperatureLimitComponents.TryReplaceConstraint(
+                            registrationToken.GameObjectInstanceId,
+                            registrationToken.ConstraintRegistrationToken,
+                            constraint))
+                    {
+                        if (registryStateChanged)
+                        {
+                            RestoreConstraintRegistryEntry(
+                                registrationToken.ConstraintRegistrationToken,
+                                priorConstraint);
+                        }
+
+                        return false;
+                    }
+
+                    // The immutable registry snapshot is published before the
+                    // component index entry. Generation validation prevents a
+                    // candidate captured in that short ordering window from
+                    // becoming the current combined fetch snapshot.
+                    if (!IsAcceptingPublications)
+                    {
+                        if (componentIndexStateChanged)
+                        {
+                            RestoreComponentIndexConstraint(
+                                registrationToken,
+                                priorConstraint);
+                        }
+
+                        if (registryStateChanged)
+                        {
+                            RestoreConstraintRegistryEntry(
+                                registrationToken.ConstraintRegistrationToken,
+                                priorConstraint);
+                        }
+
+                        return false;
+                    }
+
                     if (registryStateChanged)
                     {
-                        RestoreConstraintRegistryEntry(
-                            registrationToken.ConstraintRegistrationToken,
-                            priorConstraint);
+                        FetchRequestTopology.RecordEffectiveChange();
+                        PublishInventoryCollectionTransition(
+                            priorConstraintSnapshot.EnabledConstraintCount,
+                            TemperatureConstraints.CaptureSnapshot()
+                                .EnabledConstraintCount,
+                            preparedInventoryCollectionGenerationValue);
                     }
 
-                    return false;
+                    return true;
                 }
-
-                bool componentIndexStateChanged =
-                    !priorConstraint.Equals(constraint);
-                if (componentIndexStateChanged &&
-                    !TemperatureLimitComponents.TryReplaceConstraint(
-                        registrationToken.GameObjectInstanceId,
-                        registrationToken.ConstraintRegistrationToken,
-                        constraint))
-                {
-                    if (registryStateChanged)
-                    {
-                        RestoreConstraintRegistryEntry(
-                            registrationToken.ConstraintRegistrationToken,
-                            priorConstraint);
-                    }
-
-                    return false;
-                }
-
-                // The immutable registry snapshot is published before the component
-                // index entry, leaving a deliberately short observable ordering
-                // window without ever holding both services' synchronization. The
-                // fetch snapshot built in later tasks captures and validates the
-                // registry generation, so mixed-generation work cannot publish.
-                if (!IsAcceptingPublications)
-                {
-                    if (componentIndexStateChanged)
-                    {
-                        RestoreComponentIndexConstraint(
-                            registrationToken,
-                            priorConstraint);
-                    }
-
-                    if (registryStateChanged)
-                    {
-                        RestoreConstraintRegistryEntry(
-                            registrationToken.ConstraintRegistrationToken,
-                            priorConstraint);
-                    }
-
-                    return false;
-                }
-
-                return true;
             }
             finally
             {
@@ -236,29 +314,159 @@ namespace DeliveryTemperatureLimit
                 return;
             }
 
-            if (!TemperatureLimitComponents.TryGetConstraint(
-                    registrationToken.GameObjectInstanceId,
-                    out _,
-                    out var observedConstraintRegistrationToken) ||
-                !observedConstraintRegistrationToken.Equals(
-                    registrationToken.ConstraintRegistrationToken))
+            lock (temperatureLimitMutationLock)
             {
-                return;
+                if (!TemperatureLimitComponents.TryGetConstraint(
+                        registrationToken.GameObjectInstanceId,
+                        out _,
+                        out var observedConstraintRegistrationToken) ||
+                    !observedConstraintRegistrationToken.Equals(
+                        registrationToken.ConstraintRegistrationToken))
+                {
+                    return;
+                }
+
+                var priorConstraintSnapshot =
+                    TemperatureConstraints.CaptureSnapshot();
+
+                // Remove the directly queried component entry first. Both services
+                // use exact owner-conditional removal, so delayed cleanup can never
+                // remove a newer registration that reused either integer identity.
+                if (!TemperatureLimitComponents.TryRemove(
+                        registrationToken.GameObjectInstanceId,
+                        registrationToken.ConstraintRegistrationToken))
+                {
+                    return;
+                }
+
+                if (TemperatureConstraints.TryRemove(
+                        registrationToken.ConstraintRegistrationToken,
+                        out var registryStateChanged) &&
+                    registryStateChanged)
+                {
+                    FetchRequestTopology.RecordEffectiveChange();
+                    PublishInventoryCollectionTransition(
+                        priorConstraintSnapshot.EnabledConstraintCount,
+                        TemperatureConstraints.CaptureSnapshot()
+                            .EnabledConstraintCount,
+                        preparedInventoryCollectionGenerationValue: null);
+                }
+            }
+        }
+
+        internal bool TryPublishFetchTemperatureEligibility(
+            FetchTemperatureEligibilitySnapshot candidate)
+        {
+            if (candidate == null)
+            {
+                throw new ArgumentNullException(nameof(candidate));
             }
 
-            // Remove the directly queried component entry first. Both services use
-            // exact owner-conditional removal, so a delayed cleanup can never remove
-            // a newer registration that reused either integer instance identity.
-            if (!TemperatureLimitComponents.TryRemove(
-                    registrationToken.GameObjectInstanceId,
-                    registrationToken.ConstraintRegistrationToken))
+            if (!TryBeginPublication())
             {
-                return;
+                return false;
             }
 
-            TemperatureConstraints.TryRemove(
-                registrationToken.ConstraintRegistrationToken,
-                out _);
+            try
+            {
+                // Capture each independently published state exactly once. A
+                // candidate is all-or-nothing: no dictionary is merged into live
+                // state, and the prior immutable reference survives every mismatch.
+                ActiveTemperatureConstraintSnapshot currentConstraints =
+                    TemperatureConstraints.CaptureSnapshot();
+                WorldParentTopologySnapshot currentWorldTopology =
+                    WorldParentTopology.CaptureSnapshot();
+                FetchRequestTopologyVersion currentFetchTopologyVersion =
+                    FetchRequestTopology.CaptureVersion();
+
+                if (!candidate.GameSessionGeneration.Equals(Generation) ||
+                    !currentWorldTopology.GameSessionGeneration.Equals(Generation) ||
+                    !candidate.ConstraintGeneration.Equals(
+                        currentConstraints.Generation) ||
+                    !candidate.FetchTopologyVersion.Equals(
+                        currentFetchTopologyVersion) ||
+                    !candidate.WorldTopologyVersion.Equals(
+                        currentWorldTopology.Version) ||
+                    !IsAcceptingPublications)
+                {
+                    return false;
+                }
+
+                Volatile.Write(
+                    ref currentFetchTemperatureEligibility,
+                    candidate);
+                return true;
+            }
+            finally
+            {
+                EndPublication();
+            }
+        }
+
+        internal WorldParentTopologyChange RegisterWorld(
+            int worldId,
+            int parentWorldId)
+        {
+            if (!TryBeginPublication())
+            {
+                throw CreatePublicationLifecycleViolation();
+            }
+
+            try
+            {
+                lock (worldTopologyMutationLock)
+                {
+                    WorldParentTopologyChange change =
+                        WorldParentTopology.RegisterWorld(worldId, parentWorldId);
+                    if (!change.HasChanged)
+                    {
+                        return change;
+                    }
+
+                    // Each catalog releases its own lock before returning. The fetch
+                    // version advances only after both topology projections agree.
+                    WorldResourceTemperatureAmounts.RegisterWorld(
+                        worldId,
+                        parentWorldId);
+                    ThrowIfNotAcceptingPublications();
+                    FetchRequestTopology.RecordEffectiveChange();
+                    return change;
+                }
+            }
+            finally
+            {
+                EndPublication();
+            }
+        }
+
+        internal WorldParentTopologyChange RemoveWorld(int worldId)
+        {
+            if (!TryBeginPublication())
+            {
+                throw CreatePublicationLifecycleViolation();
+            }
+
+            try
+            {
+                lock (worldTopologyMutationLock)
+                {
+                    WorldParentTopologyChange change =
+                        WorldParentTopology.RemoveWorld(worldId);
+                    if (!change.HasChanged)
+                    {
+                        return change;
+                    }
+
+                    WorldResourceTemperatureAmounts.RemoveWorld(worldId);
+                    ThrowIfNotAcceptingPublications();
+                    FetchRequestTopology.RecordEffectiveChange();
+                    return change;
+                }
+            }
+            finally
+            {
+                EndPublication();
+            }
         }
 
         internal void StopAcceptingPublications()
@@ -293,6 +501,9 @@ namespace DeliveryTemperatureLimit
                     spinWait.SpinOnce();
                 }
 
+                Volatile.Write(
+                    ref currentFetchTemperatureEligibility,
+                    null);
                 WorldParentTopology.ClearForGameSession();
                 WorldResourceTemperatureAmounts.ClearForGameSession();
 
@@ -300,8 +511,8 @@ namespace DeliveryTemperatureLimit
                 // thread-static resources; detaching this session makes them
                 // collectible as a unit. The topology catalog explicitly releases
                 // its mutable map while its independently owned immutable snapshot
-                // remains valid for already-captured readers. Later completed
-                // session services add their clear calls at this same one-time point.
+                // remains valid for already-captured readers. The combined fetch
+                // snapshot is released only after every in-flight publisher exits.
             }
             finally
             {
@@ -310,6 +521,73 @@ namespace DeliveryTemperatureLimit
                     OwnedStateReleaseCompleted);
             }
         }
+
+        private long GetNextWorldInventoryCollectionGenerationValue()
+        {
+            long currentGenerationValue = Volatile.Read(
+                ref currentWorldInventoryCollectionGenerationValue);
+            if (currentGenerationValue == long.MaxValue)
+            {
+                throw CreateWorldInventoryCollectionGenerationExhaustedException();
+            }
+
+            try
+            {
+                long nextGenerationValue = checked(currentGenerationValue + 1L);
+                if (nextGenerationValue <= 0)
+                {
+                    throw CreateWorldInventoryCollectionGenerationExhaustedException();
+                }
+
+                return nextGenerationValue;
+            }
+            catch (OverflowException exception)
+            {
+                throw new InvalidOperationException(
+                    "The world-inventory collection generation is exhausted; " +
+                    "collection will not start with a wrapped or reusable identity.",
+                    exception);
+            }
+        }
+
+        private void PublishInventoryCollectionTransition(
+            int priorEnabledConstraintCount,
+            int currentEnabledConstraintCount,
+            long? preparedInventoryCollectionGenerationValue)
+        {
+            if (priorEnabledConstraintCount == 0 &&
+                currentEnabledConstraintCount > 0)
+            {
+                if (!preparedInventoryCollectionGenerationValue.HasValue)
+                {
+                    throw new InvalidOperationException(
+                        "A zero-to-nonzero enabled-constraint transition did not " +
+                        "precompute its next inventory collection generation.");
+                }
+
+                Volatile.Write(
+                    ref currentWorldInventoryCollectionGenerationValue,
+                    preparedInventoryCollectionGenerationValue.Value);
+                return;
+            }
+
+            if (priorEnabledConstraintCount > 0 &&
+                currentEnabledConstraintCount == 0)
+            {
+                // The monotonic generation value remains the last issued identity;
+                // the zero enabled-count snapshot is the explicit bypass state. Drop
+                // all amounts/proofs while retaining registered world topology so a
+                // later collection generation starts incomplete, never falsely zero.
+                WorldResourceTemperatureAmounts
+                    .ClearTemperatureAmountPublicationsForCollectionBypass();
+            }
+        }
+
+        private static InvalidOperationException
+            CreateWorldInventoryCollectionGenerationExhaustedException() =>
+            new InvalidOperationException(
+                "The world-inventory collection generation is exhausted; " +
+                "collection will not start with a wrapped or reusable identity.");
 
         private bool TryBeginPublication()
         {

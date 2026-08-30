@@ -260,6 +260,303 @@ public sealed class DeliveryTemperatureGameSessionTests
     }
 
     [TestMethod]
+    public void EnsureGameSession_WhenCreated_ConstructsFetchServicesInBypassState()
+    {
+        var session = EnsureTrackedGameSession(55522);
+
+        Assert.IsNotNull(session.FetchRequestTopology);
+        Assert.AreEqual(0L, session.FetchRequestTopology.CaptureVersion().Value);
+        Assert.AreEqual(
+            0L,
+            session.CurrentWorldInventoryCollectionGeneration.Value);
+        Assert.IsNull(session.CurrentFetchTemperatureEligibility);
+    }
+
+    [TestMethod]
+    public void TryPublishFetchTemperatureEligibility_WhenEveryVersionMatches_PublishesWholeCandidate()
+    {
+        var session = EnsureTrackedGameSession(55523);
+        var candidate = BuildCurrentFetchTemperatureEligibilityCandidate(session);
+
+        var published = session.TryPublishFetchTemperatureEligibility(candidate);
+
+        Assert.IsTrue(published);
+        Assert.AreSame(candidate, session.CurrentFetchTemperatureEligibility);
+    }
+
+    [TestMethod]
+    public void TryPublishFetchTemperatureEligibility_WhenGameSessionWasDetached_RejectsCandidateAndPreservesPublication()
+    {
+        var oldSession = EnsureTrackedGameSession(55524);
+        var staleCandidate =
+            BuildCurrentFetchTemperatureEligibilityCandidate(oldSession);
+        var currentSession = EnsureTrackedGameSession(55525);
+        var priorPublication =
+            BuildCurrentFetchTemperatureEligibilityCandidate(currentSession);
+        Assert.IsTrue(
+            currentSession.TryPublishFetchTemperatureEligibility(priorPublication));
+
+        var published =
+            currentSession.TryPublishFetchTemperatureEligibility(staleCandidate);
+
+        Assert.IsFalse(published);
+        Assert.AreSame(
+            priorPublication,
+            currentSession.CurrentFetchTemperatureEligibility);
+    }
+
+    [TestMethod]
+    public void TryPublishFetchTemperatureEligibility_WhenConstraintGenerationChanged_RejectsCandidateAndPreservesPublication()
+    {
+        var session = EnsureTrackedGameSession(55526);
+        var priorPublication = BuildCurrentFetchTemperatureEligibilityCandidate(session);
+        Assert.IsTrue(
+            session.TryPublishFetchTemperatureEligibility(priorPublication));
+        var staleCandidate =
+            BuildCurrentFetchTemperatureEligibilityCandidate(session);
+        session.TemperatureConstraints.Register(
+            componentInstanceId: 555261,
+            Constraint(10, 20),
+            out var effectiveStateChanged);
+        Assert.IsTrue(effectiveStateChanged);
+
+        var published =
+            session.TryPublishFetchTemperatureEligibility(staleCandidate);
+
+        Assert.IsFalse(published);
+        Assert.AreSame(
+            priorPublication,
+            session.CurrentFetchTemperatureEligibility);
+    }
+
+    [TestMethod]
+    public void TryPublishFetchTemperatureEligibility_WhenFetchTopologyVersionChanged_RejectsCandidateAndPreservesPublication()
+    {
+        var session = EnsureTrackedGameSession(55527);
+        var priorPublication = BuildCurrentFetchTemperatureEligibilityCandidate(session);
+        Assert.IsTrue(
+            session.TryPublishFetchTemperatureEligibility(priorPublication));
+        var staleCandidate =
+            BuildCurrentFetchTemperatureEligibilityCandidate(session);
+        session.FetchRequestTopology.RecordEffectiveChange();
+
+        var published =
+            session.TryPublishFetchTemperatureEligibility(staleCandidate);
+
+        Assert.IsFalse(published);
+        Assert.AreSame(
+            priorPublication,
+            session.CurrentFetchTemperatureEligibility);
+    }
+
+    [TestMethod]
+    public void TryPublishFetchTemperatureEligibility_WhenWorldTopologyVersionChanged_RejectsCandidateAndPreservesPublication()
+    {
+        var session = EnsureTrackedGameSession(55528);
+        var priorPublication = BuildCurrentFetchTemperatureEligibilityCandidate(session);
+        Assert.IsTrue(
+            session.TryPublishFetchTemperatureEligibility(priorPublication));
+        var staleCandidate =
+            BuildCurrentFetchTemperatureEligibilityCandidate(session);
+        session.WorldParentTopology.RegisterWorld(
+            worldId: 7,
+            parentWorldId: 1);
+
+        var published =
+            session.TryPublishFetchTemperatureEligibility(staleCandidate);
+
+        Assert.IsFalse(published);
+        Assert.AreSame(
+            priorPublication,
+            session.CurrentFetchTemperatureEligibility);
+    }
+
+    [TestMethod]
+    public void RegisterTemperatureLimit_WhenEffectiveConstraintChanges_RecordsOneFetchTopologyChange()
+    {
+        var session = EnsureTrackedGameSession(55529);
+        var registration = session.RegisterTemperatureLimit(
+            gameObjectInstanceId: 555291,
+            componentInstanceId: 555292,
+            new TemperatureLimit(),
+            Constraint(10, 20));
+        Assert.AreEqual(1L, session.FetchRequestTopology.CaptureVersion().Value);
+
+        Assert.IsTrue(session.TryReplaceTemperatureConstraint(
+            registration,
+            Constraint(10, 20)));
+        Assert.AreEqual(1L, session.FetchRequestTopology.CaptureVersion().Value);
+
+        Assert.IsTrue(session.TryReplaceTemperatureConstraint(
+            registration,
+            Constraint(30, 40)));
+        Assert.AreEqual(2L, session.FetchRequestTopology.CaptureVersion().Value);
+
+        session.RemoveTemperatureLimit(registration);
+        Assert.AreEqual(3L, session.FetchRequestTopology.CaptureVersion().Value);
+    }
+
+    [TestMethod]
+    public void RegisterWorld_WhenMappingChanges_UpdatesBothCatalogsBeforeOneFetchTopologyChange()
+    {
+        var session = EnsureTrackedGameSession(55530);
+        var arbitraryPositiveCollectionGeneration =
+            new WorldInventoryCollectionGeneration(1);
+
+        var change = session.RegisterWorld(worldId: 7, parentWorldId: 1);
+
+        Assert.IsTrue(change.HasChanged);
+        Assert.AreEqual(1L, session.FetchRequestTopology.CaptureVersion().Value);
+        Assert.IsTrue(session.WorldParentTopology.CaptureSnapshot()
+            .TryResolveParentWorld(7, out var parentWorldId));
+        Assert.AreEqual(1, parentWorldId);
+        Assert.AreEqual(
+            WorldResourceTagCoverageRequirementState.CoverageRequired,
+            session.WorldResourceTemperatureAmounts
+                .GetWorldResourceTagCoverageRequirementState(
+                    7,
+                    arbitraryPositiveCollectionGeneration));
+
+        var repeatedChange = session.RegisterWorld(worldId: 7, parentWorldId: 1);
+        Assert.IsFalse(repeatedChange.HasChanged);
+        Assert.AreEqual(1L, session.FetchRequestTopology.CaptureVersion().Value);
+    }
+
+    [TestMethod]
+    public void RemoveWorld_WhenMappingExists_UpdatesBothCatalogsBeforeOneFetchTopologyChange()
+    {
+        var session = EnsureTrackedGameSession(55531);
+        var arbitraryPositiveCollectionGeneration =
+            new WorldInventoryCollectionGeneration(1);
+        session.RegisterWorld(worldId: 7, parentWorldId: 1);
+
+        var change = session.RemoveWorld(worldId: 7);
+
+        Assert.IsTrue(change.HasChanged);
+        Assert.AreEqual(2L, session.FetchRequestTopology.CaptureVersion().Value);
+        Assert.IsFalse(session.WorldParentTopology.CaptureSnapshot()
+            .TryResolveParentWorld(7, out _));
+        Assert.AreEqual(
+            WorldResourceTagCoverageRequirementState
+                .UnknownWorldOrCollectionGeneration,
+            session.WorldResourceTemperatureAmounts
+                .GetWorldResourceTagCoverageRequirementState(
+                    7,
+                    arbitraryPositiveCollectionGeneration));
+
+        var repeatedChange = session.RemoveWorld(worldId: 7);
+        Assert.IsFalse(repeatedChange.HasChanged);
+        Assert.AreEqual(2L, session.FetchRequestTopology.CaptureVersion().Value);
+    }
+
+    [TestMethod]
+    public void TemperatureLimitLifecycle_WhenEnabledCountCrossesZero_AdvancesGenerationAndClearsAmountsWithoutLosingWorlds()
+    {
+        var session = EnsureTrackedGameSession(55532);
+        var iron = new Tag("Iron");
+        session.RegisterWorld(worldId: 7, parentWorldId: 1);
+        var ownedCatalog = session.WorldResourceTemperatureAmounts;
+        var firstRegistration = session.RegisterTemperatureLimit(
+            gameObjectInstanceId: 555321,
+            componentInstanceId: 555322,
+            new TemperatureLimit(),
+            Constraint(10, 20));
+        var firstCollectionGeneration =
+            session.CurrentWorldInventoryCollectionGeneration;
+        Assert.AreEqual(1L, firstCollectionGeneration.Value);
+
+        var completeWorldBuilder =
+            new CompleteWorldResourceTemperatureAmountsBuilder();
+        completeWorldBuilder.BeginWorld(firstCollectionGeneration);
+        completeWorldBuilder.BeginResourceTag(iron);
+        completeWorldBuilder.AddTemperatureAmount(15.0f, 10.0f);
+        completeWorldBuilder.CompleteResourceTag();
+        Assert.IsTrue(ownedCatalog.PublishCompleteWorldResourceAmounts(
+            worldId: 7,
+            completeWorldBuilder.Build()));
+        var completeAvailability =
+            ownedCatalog.GetTemperatureConstrainedAmountAvailability(
+                parentWorldId: 1,
+                resourceTag: iron,
+                Constraint(10, 20),
+                firstCollectionGeneration);
+        Assert.IsTrue(
+            completeAvailability.TryGetCompleteAvailableAmount(
+                out var completeAmount));
+        Assert.AreEqual(10.0f, completeAmount);
+
+        Assert.IsTrue(session.TryReplaceTemperatureConstraint(
+            firstRegistration,
+            Constraint(30, 40)));
+        Assert.AreEqual(
+            firstCollectionGeneration,
+            session.CurrentWorldInventoryCollectionGeneration);
+        session.RemoveTemperatureLimit(firstRegistration);
+
+        Assert.AreSame(ownedCatalog, session.WorldResourceTemperatureAmounts);
+        Assert.AreEqual(
+            firstCollectionGeneration,
+            session.CurrentWorldInventoryCollectionGeneration);
+        Assert.AreEqual(
+            WorldResourceTagCoverageRequirementState.CoverageRequired,
+            ownedCatalog.GetWorldResourceTagCoverageRequirementState(
+                7,
+                firstCollectionGeneration));
+
+        session.RegisterTemperatureLimit(
+            gameObjectInstanceId: 555323,
+            componentInstanceId: 555324,
+            new TemperatureLimit(),
+            Constraint(50, 60));
+
+        Assert.AreEqual(
+            firstCollectionGeneration.Value + 1,
+            session.CurrentWorldInventoryCollectionGeneration.Value);
+        Assert.AreEqual(
+            WorldResourceTagCoverageRequirementState.CoverageRequired,
+            ownedCatalog.GetWorldResourceTagCoverageRequirementState(
+                7,
+                session.CurrentWorldInventoryCollectionGeneration));
+    }
+
+    [TestMethod]
+    public void RegisterTemperatureLimit_WhenInventoryCollectionGenerationIsExhausted_ThrowsWithoutStartingCollection()
+    {
+        var session = EnsureTrackedGameSession(55533);
+        var generationField = RequirePrivateInstanceField(
+            typeof(DeliveryTemperatureGameSession),
+            "currentWorldInventoryCollectionGenerationValue",
+            typeof(long));
+        generationField.SetValue(session, long.MaxValue);
+        var priorConstraintSnapshot =
+            session.TemperatureConstraints.CaptureSnapshot();
+        var priorCatalog = session.WorldResourceTemperatureAmounts;
+        var priorFetchTopologyVersion =
+            session.FetchRequestTopology.CaptureVersion();
+
+        var exception = Assert.ThrowsExactly<InvalidOperationException>(() =>
+            session.RegisterTemperatureLimit(
+                gameObjectInstanceId: 555331,
+                componentInstanceId: 555332,
+                new TemperatureLimit(),
+                Constraint(10, 20)));
+
+        StringAssert.Contains(exception.Message, "exhausted");
+        Assert.AreSame(
+            priorConstraintSnapshot,
+            session.TemperatureConstraints.CaptureSnapshot());
+        Assert.AreSame(priorCatalog, session.WorldResourceTemperatureAmounts);
+        Assert.AreEqual(
+            priorFetchTopologyVersion,
+            session.FetchRequestTopology.CaptureVersion());
+        Assert.AreEqual(
+            long.MaxValue,
+            session.CurrentWorldInventoryCollectionGeneration.Value);
+        Assert.IsFalse(session.TemperatureLimitComponents
+            .TryGetRegisteredComponent(555331, out _, out _));
+    }
+
+    [TestMethod]
     public void OldSession_WhenNewSessionExists_RejectsTemperatureLimitRegistration()
     {
         var oldSession = EnsureTrackedGameSession(5601);
@@ -1067,6 +1364,19 @@ public sealed class DeliveryTemperatureGameSessionTests
             minimumInclusiveKelvin,
             maximumExclusiveKelvin);
 
+    private static FetchTemperatureEligibilitySnapshot
+        BuildCurrentFetchTemperatureEligibilityCandidate(
+            DeliveryTemperatureGameSession session)
+    {
+        var builder = new FetchTemperatureEligibilityBuilder();
+        builder.Begin(
+            session.Generation,
+            session.TemperatureConstraints.CaptureSnapshot(),
+            session.FetchRequestTopology.CaptureVersion(),
+            session.WorldParentTopology.CaptureSnapshot());
+        return builder.Build();
+    }
+
     private static string LifecycleScheduleAssertionContext(
         int operationIndex) =>
         $"Seed=0x{LifecycleScheduleSeed:X}; operation index={operationIndex}.";
@@ -1082,6 +1392,22 @@ public sealed class DeliveryTemperatureGameSessionTests
         Assert.IsNotNull(
             field,
             $"The representation contract requires the exact private static " +
+            $"field {declaringType.Name}.{exactFieldName}.");
+        Assert.AreEqual(exactFieldType, field.FieldType);
+        return field;
+    }
+
+    private static FieldInfo RequirePrivateInstanceField(
+        Type declaringType,
+        string exactFieldName,
+        Type exactFieldType)
+    {
+        var field = declaringType.GetField(
+            exactFieldName,
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.IsNotNull(
+            field,
+            $"The representation contract requires the exact private instance " +
             $"field {declaringType.Name}.{exactFieldName}.");
         Assert.AreEqual(exactFieldType, field.FieldType);
         return field;

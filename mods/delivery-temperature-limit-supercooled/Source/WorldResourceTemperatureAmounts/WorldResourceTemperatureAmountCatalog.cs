@@ -553,6 +553,36 @@ namespace DeliveryTemperatureLimit
             }
         }
 
+        internal void ClearTemperatureAmountPublicationsForCollectionBypass()
+        {
+            lock (synchronization)
+            {
+                if (!acceptsPublications)
+                {
+                    return;
+                }
+
+                // Keep world/parent registrations: those are live topology facts and
+                // will not be replayed merely because the last temperature-limited
+                // building was removed. Only collection-epoch evidence and derived
+                // amounts become invalid when the session returns to bypass mode.
+                foreach (WorldPublicationState worldPublication in
+                         worldPublicationsByWorldId.Values)
+                {
+                    worldPublication.ClearForCollectionBypass();
+                }
+
+                foreach (ParentWorldState parentWorldState in
+                         parentWorldStatesByParentWorldId.Values)
+                {
+                    ClearParentCoverageCompletionLocked(parentWorldState);
+                }
+
+                aggregatesByParentWorldAndResourceTag.Clear();
+                latestObservedCollectionGenerationValue = 0;
+            }
+        }
+
         internal void ClearForGameSession()
         {
             lock (synchronization)
@@ -1131,6 +1161,20 @@ namespace DeliveryTemperatureLimit
                 PresentResourceTags.Add(resourceTag);
                 TemperatureAmountsByResourceTag[resourceTag] =
                     temperatureAmounts;
+            }
+
+            internal void ClearForCollectionBypass()
+            {
+                HasPublication = false;
+                CollectionGeneration =
+                    default(WorldInventoryCollectionGeneration);
+                PublicationStrength = WorldPublicationStrength.NoCoverage;
+
+                // Replace potentially oversized collections so bypassing the
+                // feature actually releases peak colony-specific tag storage.
+                PresentResourceTags = new HashSet<Tag>();
+                TemperatureAmountsByResourceTag =
+                    new Dictionary<Tag, TemperatureAmountSeries>();
             }
         }
 

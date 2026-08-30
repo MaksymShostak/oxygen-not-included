@@ -13,8 +13,178 @@ internal readonly struct ReferenceTemperatureAmount
     internal float Amount { get; }
 }
 
+internal sealed class ReferenceFetchTemperatureRequest
+{
+    private ReferenceFetchTemperatureRequest(
+        int parentWorldId,
+        IReadOnlyList<Tag> requestedTags,
+        bool hasEnabledTemperatureConstraint,
+        DeliveryTemperatureConstraint enabledTemperatureConstraint)
+    {
+        ArgumentNullException.ThrowIfNull(requestedTags);
+        if (parentWorldId < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(parentWorldId));
+        }
+
+        if (hasEnabledTemperatureConstraint &&
+            !enabledTemperatureConstraint.IsEnabled)
+        {
+            throw new ArgumentException(
+                "A constrained reference fetch request requires an enabled " +
+                "temperature constraint.",
+                nameof(enabledTemperatureConstraint));
+        }
+
+        var copiedRequestedTags = new Tag[requestedTags.Count];
+        for (var tagIndex = 0; tagIndex < requestedTags.Count; tagIndex++)
+        {
+            copiedRequestedTags[tagIndex] = requestedTags[tagIndex];
+        }
+
+        ParentWorldId = parentWorldId;
+        RequestedTags = Array.AsReadOnly(copiedRequestedTags);
+        HasEnabledTemperatureConstraint = hasEnabledTemperatureConstraint;
+        EnabledTemperatureConstraint = enabledTemperatureConstraint;
+    }
+
+    internal int ParentWorldId { get; }
+
+    internal IReadOnlyList<Tag> RequestedTags { get; }
+
+    internal bool HasEnabledTemperatureConstraint { get; }
+
+    internal DeliveryTemperatureConstraint EnabledTemperatureConstraint { get; }
+
+    internal static ReferenceFetchTemperatureRequest Unconstrained(
+        int parentWorldId,
+        IReadOnlyList<Tag> requestedTags) =>
+        new ReferenceFetchTemperatureRequest(
+            parentWorldId,
+            requestedTags,
+            hasEnabledTemperatureConstraint: false,
+            enabledTemperatureConstraint: default);
+
+    internal static ReferenceFetchTemperatureRequest TemperatureConstrained(
+        int parentWorldId,
+        IReadOnlyList<Tag> requestedTags,
+        DeliveryTemperatureConstraint enabledTemperatureConstraint) =>
+        new ReferenceFetchTemperatureRequest(
+            parentWorldId,
+            requestedTags,
+            hasEnabledTemperatureConstraint: true,
+            enabledTemperatureConstraint);
+}
+
 internal static class ReferenceTemperatureEligibilityModel
 {
+    internal static DeliveryTemperatureConstraint[]
+        GetStorageDestinationConstraints(
+            IReadOnlyList<ReferenceFetchTemperatureRequest> fetchRequests,
+            int parentWorldId,
+            Tag requestedTag)
+    {
+        ArgumentNullException.ThrowIfNull(fetchRequests);
+        var destinationConstraints = new List<DeliveryTemperatureConstraint>();
+        foreach (var fetchRequest in fetchRequests)
+        {
+            if (fetchRequest.ParentWorldId != parentWorldId ||
+                !ContainsTag(fetchRequest.RequestedTags, requestedTag))
+            {
+                continue;
+            }
+
+            destinationConstraints.Add(
+                fetchRequest.HasEnabledTemperatureConstraint
+                    ? fetchRequest.EnabledTemperatureConstraint
+                    : DeliveryTemperatureConstraint.FromSerializedLimits(0, 0));
+        }
+
+        return destinationConstraints.ToArray();
+    }
+
+    internal static int[] CreateSortedPickupDecisionEndpointUnion(
+        IReadOnlyList<ReferenceFetchTemperatureRequest> fetchRequests,
+        int parentWorldId,
+        IReadOnlyList<Tag> applicableRequestedTags)
+    {
+        ArgumentNullException.ThrowIfNull(fetchRequests);
+        ArgumentNullException.ThrowIfNull(applicableRequestedTags);
+        var applicableTagSet = new HashSet<Tag>(applicableRequestedTags);
+        var decisionEndpointsKelvin = new SortedSet<int>();
+
+        foreach (var fetchRequest in fetchRequests)
+        {
+            if (fetchRequest.ParentWorldId != parentWorldId ||
+                !fetchRequest.HasEnabledTemperatureConstraint ||
+                fetchRequest.EnabledTemperatureConstraint.IsEmpty ||
+                !ContainsAnyTag(
+                    fetchRequest.RequestedTags,
+                    applicableTagSet))
+            {
+                continue;
+            }
+
+            decisionEndpointsKelvin.Add(
+                fetchRequest.EnabledTemperatureConstraint.MinimumInclusiveKelvin);
+            decisionEndpointsKelvin.Add(
+                fetchRequest.EnabledTemperatureConstraint.MaximumExclusiveKelvin);
+        }
+
+        return decisionEndpointsKelvin.ToArray();
+    }
+
+    internal static DeliveryTemperatureConstraint[]
+        GetApplicablePickupTemperatureConstraints(
+            IReadOnlyList<ReferenceFetchTemperatureRequest> fetchRequests,
+            int parentWorldId,
+            IReadOnlyList<Tag> applicableRequestedTags)
+    {
+        ArgumentNullException.ThrowIfNull(fetchRequests);
+        ArgumentNullException.ThrowIfNull(applicableRequestedTags);
+        var applicableTagSet = new HashSet<Tag>(applicableRequestedTags);
+        var applicableConstraints = new List<DeliveryTemperatureConstraint>();
+
+        foreach (var fetchRequest in fetchRequests)
+        {
+            if (fetchRequest.ParentWorldId == parentWorldId &&
+                fetchRequest.HasEnabledTemperatureConstraint &&
+                ContainsAnyTag(fetchRequest.RequestedTags, applicableTagSet))
+            {
+                applicableConstraints.Add(
+                    fetchRequest.EnabledTemperatureConstraint);
+            }
+        }
+
+        return applicableConstraints.ToArray();
+    }
+
+    internal static Tag[] GetRequestedTagsInFirstEncounterOrder(
+        IReadOnlyList<ReferenceFetchTemperatureRequest> fetchRequests,
+        int parentWorldId)
+    {
+        ArgumentNullException.ThrowIfNull(fetchRequests);
+        var observedTags = new HashSet<Tag>();
+        var orderedTags = new List<Tag>();
+        foreach (var fetchRequest in fetchRequests)
+        {
+            if (fetchRequest.ParentWorldId != parentWorldId)
+            {
+                continue;
+            }
+
+            foreach (var requestedTag in fetchRequest.RequestedTags)
+            {
+                if (observedTags.Add(requestedTag))
+                {
+                    orderedTags.Add(requestedTag);
+                }
+            }
+        }
+
+        return orderedTags.ToArray();
+    }
+
     internal static bool[] EvaluateDestinationConstraintAllowances(
         IReadOnlyList<DeliveryTemperatureConstraint> destinationConstraints,
         float temperatureKelvin)
@@ -117,5 +287,35 @@ internal static class ReferenceTemperatureEligibilityModel
         }
 
         return allowedAmount;
+    }
+
+    private static bool ContainsAnyTag(
+        IReadOnlyList<Tag> requestedTags,
+        ISet<Tag> candidateTags)
+    {
+        foreach (var requestedTag in requestedTags)
+        {
+            if (candidateTags.Contains(requestedTag))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ContainsTag(
+        IReadOnlyList<Tag> requestedTags,
+        Tag candidateTag)
+    {
+        foreach (var requestedTag in requestedTags)
+        {
+            if (requestedTag.Equals(candidateTag))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
