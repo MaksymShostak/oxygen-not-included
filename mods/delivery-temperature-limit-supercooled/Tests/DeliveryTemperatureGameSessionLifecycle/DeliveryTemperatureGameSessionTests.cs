@@ -397,7 +397,7 @@ public sealed class DeliveryTemperatureGameSessionTests
     }
 
     [TestMethod]
-    public void RegisterWorld_WhenMappingChanges_UpdatesBothCatalogsBeforeOneFetchTopologyChange()
+    public void RegisterWorld_WhenNew_UpdatesTopologyInventoryAndFetchVersionOnce()
     {
         var session = EnsureTrackedGameSession(55530);
         var arbitraryPositiveCollectionGeneration =
@@ -416,14 +416,89 @@ public sealed class DeliveryTemperatureGameSessionTests
                 .GetWorldResourceTagCoverageRequirementState(
                     7,
                     arbitraryPositiveCollectionGeneration));
-
-        var repeatedChange = session.RegisterWorld(worldId: 7, parentWorldId: 1);
-        Assert.IsFalse(repeatedChange.HasChanged);
-        Assert.AreEqual(1L, session.FetchRequestTopology.CaptureVersion().Value);
     }
 
     [TestMethod]
-    public void RemoveWorld_WhenMappingExists_UpdatesBothCatalogsBeforeOneFetchTopologyChange()
+    public void RegisterWorld_WhenIdentical_DoesNotAdvanceFetchVersion()
+    {
+        var session = EnsureTrackedGameSession(555301);
+        session.RegisterWorld(worldId: 7, parentWorldId: 1);
+        var topologyBeforeRepeatedRegistration =
+            session.WorldParentTopology.CaptureSnapshot();
+        var fetchTopologyVersionBeforeRepeatedRegistration =
+            session.FetchRequestTopology.CaptureVersion();
+
+        var repeatedChange = session.RegisterWorld(worldId: 7, parentWorldId: 1);
+
+        Assert.IsFalse(repeatedChange.HasChanged);
+        Assert.AreSame(
+            topologyBeforeRepeatedRegistration,
+            session.WorldParentTopology.CaptureSnapshot());
+        Assert.AreEqual(
+            fetchTopologyVersionBeforeRepeatedRegistration,
+            session.FetchRequestTopology.CaptureVersion());
+    }
+
+    [TestMethod]
+    public void RegisterWorld_WhenReparented_InvalidatesBothInventoryParentsAndAdvancesFetchVersionOnce()
+    {
+        var session = EnsureTrackedGameSession(555302);
+        var collectionGeneration = new WorldInventoryCollectionGeneration(1);
+        var iron = new Tag("Iron");
+        var constraint = Constraint(0, 1000);
+        session.RegisterWorld(worldId: 7, parentWorldId: 1);
+        session.RegisterWorld(worldId: 8, parentWorldId: 1);
+        PublishCompleteWorldResourceAmount(
+            session,
+            worldId: 7,
+            collectionGeneration,
+            iron,
+            amount: 10.0f);
+        PublishCompleteWorldResourceAmount(
+            session,
+            worldId: 8,
+            collectionGeneration,
+            iron,
+            amount: 20.0f);
+        Assert.AreEqual(
+            30.0f,
+            RequireCompleteTemperatureConstrainedAmount(
+                session,
+                parentWorldId: 1,
+                iron,
+                constraint,
+                collectionGeneration));
+        var fetchTopologyVersionBeforeReparenting =
+            session.FetchRequestTopology.CaptureVersion();
+
+        var change = session.RegisterWorld(worldId: 7, parentWorldId: 2);
+
+        Assert.IsTrue(change.HasChanged);
+        Assert.AreEqual(1, change.PreviousParentWorldId);
+        Assert.AreEqual(2, change.CurrentParentWorldId);
+        Assert.AreEqual(
+            fetchTopologyVersionBeforeReparenting.Value + 1L,
+            session.FetchRequestTopology.CaptureVersion().Value);
+        Assert.AreEqual(
+            20.0f,
+            RequireCompleteTemperatureConstrainedAmount(
+                session,
+                parentWorldId: 1,
+                iron,
+                constraint,
+                collectionGeneration));
+        Assert.AreEqual(
+            10.0f,
+            RequireCompleteTemperatureConstrainedAmount(
+                session,
+                parentWorldId: 2,
+                iron,
+                constraint,
+                collectionGeneration));
+    }
+
+    [TestMethod]
+    public void RemoveWorld_WhenKnown_RemovesTopologyAndInventoryBeforeAdvancingFetchVersion()
     {
         var session = EnsureTrackedGameSession(55531);
         var arbitraryPositiveCollectionGeneration =
@@ -443,10 +518,65 @@ public sealed class DeliveryTemperatureGameSessionTests
                 .GetWorldResourceTagCoverageRequirementState(
                     7,
                     arbitraryPositiveCollectionGeneration));
+    }
 
-        var repeatedChange = session.RemoveWorld(worldId: 7);
-        Assert.IsFalse(repeatedChange.HasChanged);
-        Assert.AreEqual(2L, session.FetchRequestTopology.CaptureVersion().Value);
+    [TestMethod]
+    public void RemoveWorld_WhenUnknown_IsIdempotent()
+    {
+        var session = EnsureTrackedGameSession(555311);
+        session.RegisterWorld(worldId: 7, parentWorldId: 1);
+        var topologyBeforeUnknownRemoval =
+            session.WorldParentTopology.CaptureSnapshot();
+        var fetchTopologyVersionBeforeUnknownRemoval =
+            session.FetchRequestTopology.CaptureVersion();
+
+        var change = session.RemoveWorld(worldId: 999);
+
+        Assert.IsFalse(change.HasChanged);
+        Assert.AreSame(
+            topologyBeforeUnknownRemoval,
+            session.WorldParentTopology.CaptureSnapshot());
+        Assert.AreEqual(
+            fetchTopologyVersionBeforeUnknownRemoval,
+            session.FetchRequestTopology.CaptureVersion());
+    }
+
+    [TestMethod]
+    public void StopAcceptingPublications_WhenLateWorldCallbackArrives_RejectsMutation()
+    {
+        var session = EnsureTrackedGameSession(555312);
+        session.RegisterWorld(worldId: 7, parentWorldId: 1);
+        var topologyAtShutdownBoundary =
+            session.WorldParentTopology.CaptureSnapshot();
+        var fetchTopologyVersionAtShutdownBoundary =
+            session.FetchRequestTopology.CaptureVersion();
+        session.StopAcceptingPublications();
+
+        Assert.ThrowsExactly<InvalidOperationException>(() =>
+            session.RegisterWorld(worldId: 8, parentWorldId: 1));
+        Assert.ThrowsExactly<InvalidOperationException>(() =>
+            session.RemoveWorld(worldId: 7));
+        Assert.AreSame(
+            topologyAtShutdownBoundary,
+            session.WorldParentTopology.CaptureSnapshot());
+        Assert.AreEqual(
+            fetchTopologyVersionAtShutdownBoundary,
+            session.FetchRequestTopology.CaptureVersion());
+    }
+
+    [TestMethod]
+    public void WorldLifecycleOperations_WhenInspected_DoNotRetainCrossCatalogMutationLock()
+    {
+        var crossCatalogMutationLock = typeof(DeliveryTemperatureGameSession)
+            .GetField(
+                "worldTopologyMutationLock",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+
+        Assert.IsNull(
+            crossCatalogMutationLock,
+            "World topology and amount-catalog mutations must release each " +
+            "owned catalog lock before entering the next catalog; a session-level " +
+            "outer lock would nest those synchronization domains.");
     }
 
     [TestMethod]
@@ -1363,6 +1493,45 @@ public sealed class DeliveryTemperatureGameSessionTests
         DeliveryTemperatureConstraint.FromSerializedLimits(
             minimumInclusiveKelvin,
             maximumExclusiveKelvin);
+
+    private static void PublishCompleteWorldResourceAmount(
+        DeliveryTemperatureGameSession session,
+        int worldId,
+        WorldInventoryCollectionGeneration collectionGeneration,
+        Tag resourceTag,
+        float amount)
+    {
+        var builder = new CompleteWorldResourceTemperatureAmountsBuilder();
+        builder.BeginWorld(collectionGeneration);
+        builder.BeginResourceTag(resourceTag);
+        builder.AddTemperatureAmount(temperatureKelvin: 300.0f, amount);
+        builder.CompleteResourceTag();
+        Assert.IsTrue(
+            session.WorldResourceTemperatureAmounts
+                .PublishCompleteWorldResourceAmounts(
+                    worldId,
+                    builder.Build()));
+    }
+
+    private static float RequireCompleteTemperatureConstrainedAmount(
+        DeliveryTemperatureGameSession session,
+        int parentWorldId,
+        Tag resourceTag,
+        DeliveryTemperatureConstraint constraint,
+        WorldInventoryCollectionGeneration collectionGeneration)
+    {
+        var availability = session.WorldResourceTemperatureAmounts
+            .GetTemperatureConstrainedAmountAvailability(
+                parentWorldId,
+                resourceTag,
+                constraint,
+                collectionGeneration);
+        Assert.IsTrue(
+            availability.TryGetCompleteAvailableAmount(out var amount),
+            $"Expected a complete aggregate for parent world " +
+            $"{parentWorldId} and resource tag {resourceTag}.");
+        return amount;
+    }
 
     private static FetchTemperatureEligibilitySnapshot
         BuildCurrentFetchTemperatureEligibilityCandidate(

@@ -19,7 +19,6 @@ namespace DeliveryTemperatureLimit
         private const int OwnedStateReleaseCompleted = 2;
 
         private readonly object temperatureLimitMutationLock = new object();
-        private readonly object worldTopologyMutationLock = new object();
         private int publicationAcceptanceState = PublicationsAccepted;
         private int inFlightPublicationCount;
         private int ownedStateReleaseState = OwnedStateReleaseNotStarted;
@@ -414,24 +413,32 @@ namespace DeliveryTemperatureLimit
 
             try
             {
-                lock (worldTopologyMutationLock)
+                WorldParentTopologyChange change =
+                    WorldParentTopology.RegisterWorld(worldId, parentWorldId);
+                if (!change.HasChanged)
                 {
-                    WorldParentTopologyChange change =
-                        WorldParentTopology.RegisterWorld(worldId, parentWorldId);
-                    if (!change.HasChanged)
-                    {
-                        return change;
-                    }
-
-                    // Each catalog releases its own lock before returning. The fetch
-                    // version advances only after both topology projections agree.
-                    WorldResourceTemperatureAmounts.RegisterWorld(
-                        worldId,
-                        parentWorldId);
-                    ThrowIfNotAcceptingPublications();
-                    FetchRequestTopology.RecordEffectiveChange();
                     return change;
                 }
+
+                if (!change.CurrentParentWorldId.HasValue)
+                {
+                    throw new InvalidOperationException(
+                        "A changed world registration did not publish its current " +
+                        "parent-world identity.");
+                }
+
+                // WorldParentTopology has released its own synchronization before
+                // returning this immutable change. Drive the amount catalog from
+                // those captured identities rather than re-reading mutable topology;
+                // that catalog likewise releases its lock before the fetch version
+                // advances. Lifecycle callbacks are main-thread confined, so no
+                // session-level outer lock may nest the two catalog lock domains.
+                WorldResourceTemperatureAmounts.RegisterWorld(
+                    change.WorldId,
+                    change.CurrentParentWorldId.Value);
+                ThrowIfNotAcceptingPublications();
+                FetchRequestTopology.RecordEffectiveChange();
+                return change;
             }
             finally
             {
@@ -448,20 +455,28 @@ namespace DeliveryTemperatureLimit
 
             try
             {
-                lock (worldTopologyMutationLock)
+                WorldParentTopologyChange change =
+                    WorldParentTopology.RemoveWorld(worldId);
+                if (!change.HasChanged)
                 {
-                    WorldParentTopologyChange change =
-                        WorldParentTopology.RemoveWorld(worldId);
-                    if (!change.HasChanged)
-                    {
-                        return change;
-                    }
-
-                    WorldResourceTemperatureAmounts.RemoveWorld(worldId);
-                    ThrowIfNotAcceptingPublications();
-                    FetchRequestTopology.RecordEffectiveChange();
                     return change;
                 }
+
+                if (!change.PreviousParentWorldId.HasValue)
+                {
+                    throw new InvalidOperationException(
+                        "A changed world removal did not publish its previous " +
+                        "parent-world identity.");
+                }
+
+                // The change captures the removed world and prior parent at the
+                // topology publication boundary. The amount catalog invalidates
+                // that exact owned registration without consulting the now-mutated
+                // topology snapshot, and releases its own lock before versioning.
+                WorldResourceTemperatureAmounts.RemoveWorld(change.WorldId);
+                ThrowIfNotAcceptingPublications();
+                FetchRequestTopology.RecordEffectiveChange();
+                return change;
             }
             finally
             {

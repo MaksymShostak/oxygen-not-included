@@ -818,6 +818,325 @@ public sealed class HarmonyPatchContractVerifierTests
         Assert.IsFalse(result);
     }
 
+    [TestMethod]
+    public void GameDestroyInstancesContract_WhenInstalledShapeMatches_ReturnsExactMethod()
+    {
+        var method = HarmonyPatchContractVerifier.RequireInstanceMethod(
+            typeof(GameDestroyInstancesContractFixture),
+            "DestroyInstances",
+            DeclaredMemberVisibility.NonPublic,
+            typeof(void),
+            Array.Empty<Type>());
+
+        AssertExactInstanceMethod(
+            method,
+            typeof(GameDestroyInstancesContractFixture),
+            isPublic: false,
+            Array.Empty<Type>());
+    }
+
+    [TestMethod]
+    public void ClusterManagerRegisterWorldContainerContract_WhenInstalledShapeMatches_ReturnsExactMethod()
+    {
+        var method = HarmonyPatchContractVerifier.RequireInstanceMethod(
+            typeof(ClusterManagerWorldLifecycleContractFixture),
+            "RegisterWorldContainer",
+            DeclaredMemberVisibility.Public,
+            typeof(void),
+            [typeof(WorldContainerLifecycleContractFixture)]);
+
+        AssertExactInstanceMethod(
+            method,
+            typeof(ClusterManagerWorldLifecycleContractFixture),
+            isPublic: true,
+            [typeof(WorldContainerLifecycleContractFixture)]);
+    }
+
+    [TestMethod]
+    public void ClusterManagerUnregisterWorldContainerContract_WhenInstalledShapeMatches_ReturnsExactMethod()
+    {
+        var method = HarmonyPatchContractVerifier.RequireInstanceMethod(
+            typeof(ClusterManagerWorldLifecycleContractFixture),
+            "UnregisterWorldContainer",
+            DeclaredMemberVisibility.Public,
+            typeof(void),
+            [typeof(WorldContainerLifecycleContractFixture)]);
+
+        AssertExactInstanceMethod(
+            method,
+            typeof(ClusterManagerWorldLifecycleContractFixture),
+            isPublic: true,
+            [typeof(WorldContainerLifecycleContractFixture)]);
+    }
+
+    [TestMethod]
+    public void WorldContainerSetParentIdxContract_WhenInstalledShapeMatches_ReturnsExactMethod()
+    {
+        var method = HarmonyPatchContractVerifier.RequireInstanceMethod(
+            typeof(WorldContainerLifecycleContractFixture),
+            "SetParentIdx",
+            DeclaredMemberVisibility.Public,
+            typeof(void),
+            [typeof(int)]);
+
+        AssertExactInstanceMethod(
+            method,
+            typeof(WorldContainerLifecycleContractFixture),
+            isPublic: true,
+            [typeof(int)]);
+    }
+
+    [TestMethod]
+    public void LifecycleTargetContracts_WhenOnlyOverloadsMatch_ThrowContractViolations()
+    {
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            HarmonyPatchContractVerifier.RequireInstanceMethod(
+                typeof(GameDestroyInstancesOverloadOnlyFixture),
+                "DestroyInstances",
+                DeclaredMemberVisibility.NonPublic,
+                typeof(void),
+                Array.Empty<Type>()));
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            HarmonyPatchContractVerifier.RequireInstanceMethod(
+                typeof(ClusterManagerWorldLifecycleOverloadOnlyFixture),
+                "RegisterWorldContainer",
+                DeclaredMemberVisibility.Public,
+                typeof(void),
+                [typeof(WorldContainerLifecycleContractFixture)]));
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            HarmonyPatchContractVerifier.RequireInstanceMethod(
+                typeof(ClusterManagerWorldLifecycleOverloadOnlyFixture),
+                "UnregisterWorldContainer",
+                DeclaredMemberVisibility.Public,
+                typeof(void),
+                [typeof(WorldContainerLifecycleContractFixture)]));
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            HarmonyPatchContractVerifier.RequireInstanceMethod(
+                typeof(WorldContainerSetParentIdxOverloadOnlyFixture),
+                "SetParentIdx",
+                DeclaredMemberVisibility.Public,
+                typeof(void),
+                [typeof(int)]));
+    }
+
+    [TestMethod]
+    public void LifecycleTargetContracts_WhenReturnTypesChange_ThrowContractViolations()
+    {
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            HarmonyPatchContractVerifier.RequireInstanceMethod(
+                typeof(GameDestroyInstancesChangedReturnFixture),
+                "DestroyInstances",
+                DeclaredMemberVisibility.NonPublic,
+                typeof(void),
+                Array.Empty<Type>()));
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            HarmonyPatchContractVerifier.RequireInstanceMethod(
+                typeof(ClusterManagerWorldLifecycleChangedReturnFixture),
+                "RegisterWorldContainer",
+                DeclaredMemberVisibility.Public,
+                typeof(void),
+                [typeof(WorldContainerLifecycleContractFixture)]));
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            HarmonyPatchContractVerifier.RequireInstanceMethod(
+                typeof(ClusterManagerWorldLifecycleChangedReturnFixture),
+                "UnregisterWorldContainer",
+                DeclaredMemberVisibility.Public,
+                typeof(void),
+                [typeof(WorldContainerLifecycleContractFixture)]));
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            HarmonyPatchContractVerifier.RequireInstanceMethod(
+                typeof(WorldContainerSetParentIdxChangedReturnFixture),
+                "SetParentIdx",
+                DeclaredMemberVisibility.Public,
+                typeof(void),
+                [typeof(int)]));
+    }
+
+    [TestMethod]
+    public void LifecycleTargetContracts_WhenStaticnessChanges_ThrowContractViolations()
+    {
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            HarmonyPatchContractVerifier.RequireInstanceMethod(
+                typeof(GameDestroyInstancesStaticFixture),
+                "DestroyInstances",
+                DeclaredMemberVisibility.NonPublic,
+                typeof(void),
+                Array.Empty<Type>()));
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            HarmonyPatchContractVerifier.RequireInstanceMethod(
+                typeof(ClusterManagerWorldLifecycleStaticFixture),
+                "RegisterWorldContainer",
+                DeclaredMemberVisibility.Public,
+                typeof(void),
+                [typeof(WorldContainerLifecycleContractFixture)]));
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            HarmonyPatchContractVerifier.RequireInstanceMethod(
+                typeof(ClusterManagerWorldLifecycleStaticFixture),
+                "UnregisterWorldContainer",
+                DeclaredMemberVisibility.Public,
+                typeof(void),
+                [typeof(WorldContainerLifecycleContractFixture)]));
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            HarmonyPatchContractVerifier.RequireInstanceMethod(
+                typeof(WorldContainerSetParentIdxStaticFixture),
+                "SetParentIdx",
+                DeclaredMemberVisibility.Public,
+                typeof(void),
+                [typeof(int)]));
+    }
+
+    [TestMethod]
+    public void LifecycleAdapterSources_WhenInspected_DeclareExactResolversWithoutPatchDiscoveryAttributes()
+    {
+        var shutdownAdapterPath = ResolveProductionSourcePath(
+            "KleiImplementationAdapters",
+            "DeliveryTemperatureGameSessionShutdownPatches.cs");
+        var worldTopologyAdapterPath = ResolveProductionSourcePath(
+            "KleiImplementationAdapters",
+            "WorldParentTopologyPatches.cs");
+        Assert.IsTrue(
+            File.Exists(shutdownAdapterPath),
+            $"Missing lifecycle adapter source {shutdownAdapterPath}.");
+        Assert.IsTrue(
+            File.Exists(worldTopologyAdapterPath),
+            $"Missing world-topology adapter source {worldTopologyAdapterPath}.");
+        var combinedSource =
+            File.ReadAllText(shutdownAdapterPath) +
+            Environment.NewLine +
+            File.ReadAllText(worldTopologyAdapterPath);
+
+        Assert.AreEqual(
+            4,
+            CountOrdinalOccurrences(
+                combinedSource,
+                "HarmonyPatchContractVerifier.RequireInstanceMethod"));
+        StringAssert.Contains(
+            combinedSource,
+            "ResolveGameDestroyInstancesTarget");
+        StringAssert.Contains(
+            combinedSource,
+            "ResolveClusterManagerRegisterWorldContainerTarget");
+        StringAssert.Contains(
+            combinedSource,
+            "ResolveClusterManagerUnregisterWorldContainerTarget");
+        StringAssert.Contains(
+            combinedSource,
+            "ResolveWorldContainerSetParentIdxTarget");
+        StringAssert.Contains(combinedSource, "typeof(Game)");
+        StringAssert.Contains(combinedSource, "\"DestroyInstances\"");
+        StringAssert.Contains(combinedSource, "Array.Empty<Type>()");
+        Assert.AreEqual(
+            2,
+            CountOrdinalOccurrences(
+                combinedSource,
+                "new[] { typeof(WorldContainer) }"));
+        StringAssert.Contains(
+            combinedSource,
+            "\"RegisterWorldContainer\"");
+        StringAssert.Contains(
+            combinedSource,
+            "\"UnregisterWorldContainer\"");
+        StringAssert.Contains(combinedSource, "\"SetParentIdx\"");
+        StringAssert.Contains(
+            combinedSource,
+            "new[] { typeof(int) }");
+        Assert.AreEqual(
+            4,
+            CountOrdinalOccurrences(combinedSource, "typeof(void)"));
+        StringAssert.Contains(
+            combinedSource,
+            "DeclaredMemberVisibility.NonPublic");
+        StringAssert.Contains(
+            combinedSource,
+            "DeclaredMemberVisibility.Public");
+        Assert.IsFalse(
+            combinedSource.Contains("AccessTools", StringComparison.Ordinal));
+        Assert.IsFalse(
+            combinedSource.Contains("[HarmonyPatch", StringComparison.Ordinal));
+        Assert.IsFalse(
+            combinedSource.Contains("[HarmonyPrefix", StringComparison.Ordinal));
+        Assert.IsFalse(
+            combinedSource.Contains("[HarmonyPostfix", StringComparison.Ordinal));
+        Assert.IsFalse(
+            combinedSource.Contains("[HarmonyFinalizer", StringComparison.Ordinal));
+        Assert.IsFalse(
+            combinedSource.Contains("OnLoadLevel", StringComparison.Ordinal));
+    }
+
+    private static void AssertExactInstanceMethod(
+        MethodInfo method,
+        Type expectedDeclaringType,
+        bool isPublic,
+        IReadOnlyList<Type> expectedParameterTypes)
+    {
+        Assert.AreSame(expectedDeclaringType, method.DeclaringType);
+        Assert.AreEqual(isPublic, method.IsPublic);
+        Assert.IsFalse(method.IsStatic);
+        Assert.AreSame(typeof(void), method.ReturnType);
+        Assert.AreSequenceEqual(
+            expectedParameterTypes,
+            method.GetParameters()
+                .Select(parameter => parameter.ParameterType)
+                .ToArray());
+    }
+
+    private static string ResolveProductionSourcePath(
+        string semanticDirectoryName,
+        string sourceFileName)
+    {
+        var configuredRepositoryRoot = Environment.GetEnvironmentVariable(
+            "ONI_MOD_PIPELINE_REPOSITORY_ROOT");
+        var repositoryRoot = string.IsNullOrWhiteSpace(configuredRepositoryRoot)
+            ? FindRepositoryRoot(AppContext.BaseDirectory)
+            : Path.GetFullPath(configuredRepositoryRoot);
+        return Path.Combine(
+            repositoryRoot,
+            "mods",
+            "delivery-temperature-limit-supercooled",
+            "Source",
+            semanticDirectoryName,
+            sourceFileName);
+    }
+
+    private static string FindRepositoryRoot(string startingDirectory)
+    {
+        for (DirectoryInfo? candidate =
+                 new DirectoryInfo(Path.GetFullPath(startingDirectory));
+             candidate != null;
+             candidate = candidate.Parent)
+        {
+            if (Directory.Exists(Path.Combine(
+                candidate.FullName,
+                "mods",
+                "delivery-temperature-limit-supercooled",
+                "Source")))
+            {
+                return candidate.FullName;
+            }
+        }
+
+        throw new DirectoryNotFoundException(
+            "Could not locate the oxygen-not-included repository root from " +
+            startingDirectory +
+            ".");
+    }
+
+    private static int CountOrdinalOccurrences(string source, string value)
+    {
+        int occurrenceCount = 0;
+        int searchIndex = 0;
+        while ((searchIndex = source.IndexOf(
+                   value,
+                   searchIndex,
+                   StringComparison.Ordinal)) >= 0)
+        {
+            occurrenceCount++;
+            searchIndex += value.Length;
+        }
+
+        return occurrenceCount;
+    }
+
     private static ActiveHarmonyPatchDescriptor CreateDescriptor(
         MethodBase targetMethod,
         string patchMethodName,
@@ -970,6 +1289,122 @@ public sealed class HarmonyPatchContractVerifierTests
 
         public sealed class PublicNestedTarget
         {
+        }
+    }
+
+    private sealed class GameDestroyInstancesContractFixture
+    {
+        private void DestroyInstances()
+        {
+        }
+    }
+
+    private sealed class ClusterManagerWorldLifecycleContractFixture
+    {
+        public void RegisterWorldContainer(
+            WorldContainerLifecycleContractFixture worldContainer)
+        {
+            _ = worldContainer;
+        }
+
+        public void UnregisterWorldContainer(
+            WorldContainerLifecycleContractFixture worldContainer)
+        {
+            _ = worldContainer;
+        }
+    }
+
+    private sealed class WorldContainerLifecycleContractFixture
+    {
+        public void SetParentIdx(int parentWorldId)
+        {
+            _ = parentWorldId;
+        }
+    }
+
+    private sealed class GameDestroyInstancesOverloadOnlyFixture
+    {
+        private void DestroyInstances(int unusedArgument)
+        {
+            _ = unusedArgument;
+        }
+    }
+
+    private sealed class ClusterManagerWorldLifecycleOverloadOnlyFixture
+    {
+        public void RegisterWorldContainer(
+            WorldContainerLifecycleContractFixture worldContainer,
+            int unusedArgument)
+        {
+            _ = worldContainer;
+            _ = unusedArgument;
+        }
+
+        public void UnregisterWorldContainer(
+            WorldContainerLifecycleContractFixture worldContainer,
+            int unusedArgument)
+        {
+            _ = worldContainer;
+            _ = unusedArgument;
+        }
+    }
+
+    private sealed class WorldContainerSetParentIdxOverloadOnlyFixture
+    {
+        public void SetParentIdx(long parentWorldId)
+        {
+            _ = parentWorldId;
+        }
+    }
+
+    private sealed class GameDestroyInstancesChangedReturnFixture
+    {
+        private bool DestroyInstances() => true;
+    }
+
+    private sealed class ClusterManagerWorldLifecycleChangedReturnFixture
+    {
+        public bool RegisterWorldContainer(
+            WorldContainerLifecycleContractFixture worldContainer) =>
+            worldContainer != null;
+
+        public bool UnregisterWorldContainer(
+            WorldContainerLifecycleContractFixture worldContainer) =>
+            worldContainer != null;
+    }
+
+    private sealed class WorldContainerSetParentIdxChangedReturnFixture
+    {
+        public bool SetParentIdx(int parentWorldId) => parentWorldId >= 0;
+    }
+
+    private static class GameDestroyInstancesStaticFixture
+    {
+        private static void DestroyInstances()
+        {
+        }
+    }
+
+    private static class ClusterManagerWorldLifecycleStaticFixture
+    {
+        public static void RegisterWorldContainer(
+            WorldContainerLifecycleContractFixture worldContainer)
+        {
+            _ = worldContainer;
+        }
+
+        public static void UnregisterWorldContainer(
+            WorldContainerLifecycleContractFixture worldContainer)
+        {
+            _ = worldContainer;
+        }
+    }
+
+    private static class WorldContainerSetParentIdxStaticFixture
+    {
+        public static void SetParentIdx(int parentWorldId)
+        {
+            _ = parentWorldId;
         }
     }
 
