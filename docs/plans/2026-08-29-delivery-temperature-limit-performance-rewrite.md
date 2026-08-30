@@ -2837,6 +2837,7 @@ refactor: Allocate collision-free FastTrack pickup keys
 **Files:**
 - Create: `mods/delivery-temperature-limit-supercooled/Source/HarmonyTranspilerInfrastructure/HarmonyPatchContractViolationException.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Source/HarmonyTranspilerInfrastructure/HarmonyPatchContractVerifier.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/ActiveHarmonyPatchDescriptor.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/HarmonyTranspilerInfrastructure/HarmonyPatchContractVerifierTests.cs`
 
 **Interfaces:**
@@ -2902,7 +2903,7 @@ Each member primitive examines only the declared type with explicit visibility/s
 
 - [ ] **Step 5: Run tests green and validate linked test source**
 
-Expected: `HarmonyPatchContractVerifierTests` PASS under the approved test-project links. Verify the two production files import only `System`, `System.Collections.Generic`, and `System.Reflection` namespaces actually required.
+Expected: `HarmonyPatchContractVerifierTests` PASS under the approved test-project links. Verify the three production files import only `System`, `System.Collections.Generic`, and `System.Reflection` namespaces actually required. `ActiveHarmonyPatchDescriptor` is created here because it is part of the frozen Task 15 verifier signature; Task 21 consumes this already-complete reflection-only value rather than introducing a temporary declaration or moving the type later.
 
 - [ ] **Step 6: Run mandatory pipeline gates**
 
@@ -2910,7 +2911,7 @@ Run pipeline `validate`, `build`, and `test` separately. Confirm the linked refl
 
 - [ ] **Step 7: Prepare and commit**
 
-Use the three task paths, allowed type `refactor`, and exact subject:
+Use the four task paths, allowed type `refactor`, and exact subject:
 
 ```text
 refactor: Verify Harmony patch contracts explicitly
@@ -3412,7 +3413,7 @@ refactor: Centralize direct fetch temperature checks
 - Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/FastTrackAssemblyFileIdentity.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/IFastTrackAssemblyFileIdentityReader.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/FastTrackAssemblyFileIdentityReader.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/ActiveHarmonyPatchDescriptor.cs`
+- Consume unchanged from Task 15: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/ActiveHarmonyPatchDescriptor.cs` (not a Task 21 commit path)
 - Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/FastTrackCompatibilityInspector.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackCompatibilityInspectorTests.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackAssemblyFileIdentityReaderTests.cs`
@@ -3564,7 +3565,7 @@ Inspect the new production files and confirm they reference only BCL reflection/
 
 - [ ] **Step 9: Prepare and commit**
 
-Use all twenty exact task paths, allowed type `test`, and exact subject:
+Use all nineteen created or modified Task 21 paths, excluding the unchanged Task 15 descriptor, allowed type `test`, and exact subject:
 
 ```text
 test: Verify active FastTrack feature contracts
