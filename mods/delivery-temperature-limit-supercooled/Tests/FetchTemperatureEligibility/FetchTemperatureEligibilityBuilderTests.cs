@@ -204,6 +204,36 @@ public sealed class FetchTemperatureEligibilityBuilderTests
     }
 
     [TestMethod]
+    public void Discard_WhenBuiltCandidatePublicationIsRejected_AllowsNextAuthoritativeTraversal()
+    {
+        var builder = BeginBuilder();
+        var iron = new Tag("Iron");
+        builder.AddTemperatureConstrainedFetchRequest(
+            parentWorldId: 1,
+            requestedTags: [iron],
+            enabledConstraint: Constraint(10, 20));
+        var rejectedCandidate = builder.Build();
+
+        // The adapter cannot know whether publication will succeed until after the
+        // candidate has been built. Its finalizer therefore performs defensive
+        // cleanup even on this already-completed builder state.
+        builder.Discard();
+        BeginBuilder(builder);
+        builder.AddUnconstrainedFetchRequest(2, [iron]);
+        var nextCandidate = builder.Build();
+
+        Assert.AreSequenceEqual(
+            new[] { 10, 20 },
+            rejectedCandidate.CreateSortedDecisionEndpointUnion(1, [iron]));
+        Assert.IsTrue(nextCandidate.TryGetStorageEligibility(
+            parentWorldId: 2,
+            requestedTag: iron,
+            out var nextEligibility));
+        Assert.IsTrue(nextEligibility.Allows(
+            TemperatureDecisionBucket.FromTemperature(10_000.0f)));
+    }
+
+    [TestMethod]
     public void Builder_WhenPriorEntryCountExceedsHighWater_ReplacesMutableMaps()
     {
         var builder = new FetchTemperatureEligibilityBuilder();

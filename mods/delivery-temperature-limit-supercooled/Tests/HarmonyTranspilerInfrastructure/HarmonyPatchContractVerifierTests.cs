@@ -853,6 +853,182 @@ public sealed class HarmonyPatchContractVerifierTests
     }
 
     [TestMethod]
+    public void AuthoritativeFetchTargetContracts_WhenInstalledShapesMatch_ReturnExactMethods()
+    {
+        var addChore = HarmonyPatchContractVerifier.RequireInstanceMethod(
+            typeof(GlobalChoreProviderFetchContractFixture),
+            "AddChore",
+            DeclaredMemberVisibility.Public,
+            typeof(void),
+            [typeof(ChoreContractFixture)]);
+        var removeChore = HarmonyPatchContractVerifier.RequireInstanceMethod(
+            typeof(GlobalChoreProviderFetchContractFixture),
+            "RemoveChore",
+            DeclaredMemberVisibility.Public,
+            typeof(void),
+            [typeof(ChoreContractFixture)]);
+        var updateStorageFetchableBits =
+            HarmonyPatchContractVerifier.RequireInstanceMethod(
+                typeof(GlobalChoreProviderFetchContractFixture),
+                "UpdateStorageFetchableBits",
+                DeclaredMemberVisibility.NonPublic,
+                typeof(void),
+                Array.Empty<Type>());
+        var clearableHasDestination =
+            HarmonyPatchContractVerifier.RequireInstanceMethod(
+                typeof(GlobalChoreProviderFetchContractFixture),
+                "ClearableHasDestination",
+                DeclaredMemberVisibility.Public,
+                typeof(bool),
+                [typeof(PickupableContractFixture)]);
+        var onTagsChanged = HarmonyPatchContractVerifier.RequireInstanceMethod(
+            typeof(FetchChoreTagChangeContractFixture),
+            "OnTagsChanged",
+            DeclaredMemberVisibility.NonPublic,
+            typeof(void),
+            [typeof(object)]);
+
+        AssertExactInstanceMethod(
+            addChore,
+            typeof(GlobalChoreProviderFetchContractFixture),
+            isPublic: true,
+            [typeof(ChoreContractFixture)]);
+        AssertExactInstanceMethod(
+            removeChore,
+            typeof(GlobalChoreProviderFetchContractFixture),
+            isPublic: true,
+            [typeof(ChoreContractFixture)]);
+        AssertExactInstanceMethod(
+            updateStorageFetchableBits,
+            typeof(GlobalChoreProviderFetchContractFixture),
+            isPublic: false,
+            Array.Empty<Type>());
+        AssertExactInstanceMethod(
+            clearableHasDestination,
+            typeof(GlobalChoreProviderFetchContractFixture),
+            isPublic: true,
+            typeof(bool),
+            [typeof(PickupableContractFixture)]);
+        AssertExactInstanceMethod(
+            onTagsChanged,
+            typeof(FetchChoreTagChangeContractFixture),
+            isPublic: false,
+            [typeof(object)]);
+    }
+
+    [TestMethod]
+    public void AuthoritativeFetchTargetContracts_WhenOnlyOverloadsArePresent_ThrowContractViolations()
+    {
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            HarmonyPatchContractVerifier.RequireInstanceMethod(
+                typeof(GlobalChoreProviderFetchOverloadOnlyFixture),
+                "AddChore",
+                DeclaredMemberVisibility.Public,
+                typeof(void),
+                [typeof(ChoreContractFixture)]));
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            HarmonyPatchContractVerifier.RequireInstanceMethod(
+                typeof(GlobalChoreProviderFetchOverloadOnlyFixture),
+                "RemoveChore",
+                DeclaredMemberVisibility.Public,
+                typeof(void),
+                [typeof(ChoreContractFixture)]));
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            HarmonyPatchContractVerifier.RequireInstanceMethod(
+                typeof(GlobalChoreProviderFetchOverloadOnlyFixture),
+                "UpdateStorageFetchableBits",
+                DeclaredMemberVisibility.NonPublic,
+                typeof(void),
+                Array.Empty<Type>()));
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            HarmonyPatchContractVerifier.RequireInstanceMethod(
+                typeof(GlobalChoreProviderFetchOverloadOnlyFixture),
+                "ClearableHasDestination",
+                DeclaredMemberVisibility.Public,
+                typeof(bool),
+                [typeof(PickupableContractFixture)]));
+    }
+
+    [TestMethod]
+    public void FetchChoreOnTagsChangedContract_WhenParameterTypeChanges_ThrowsContractViolation()
+    {
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            HarmonyPatchContractVerifier.RequireInstanceMethod(
+                typeof(FetchChoreChangedTagEventContractFixture),
+                "OnTagsChanged",
+                DeclaredMemberVisibility.NonPublic,
+                typeof(void),
+                [typeof(object)]));
+    }
+
+    [TestMethod]
+    public void AuthoritativeFetchTraversalInstructionContract_WhenCapturedInstalledShapeMatches_ResolvesParentAndSelectedChoreAnchorsOnce()
+    {
+        var anchors = RequireAuthoritativeFetchTraversalInstructionAnchors(
+            CapturedAuthoritativeFetchTraversalInstructions());
+
+        Assert.AreEqual(0, anchors.ParentWorldSectionStartIndex);
+        Assert.AreEqual(13, anchors.SelectedFetchChoreIndex);
+        Assert.AreEqual(2, anchors.SortedWorldIdsLocalIndex);
+        Assert.AreEqual(3, anchors.SortedWorldIdIndexLocalIndex);
+        Assert.AreEqual(6, anchors.SelectedFetchChoreLocalIndex);
+    }
+
+    [TestMethod]
+    public void AuthoritativeFetchTraversalInstructionContract_WhenSecondFetchMapTraversalExists_ThrowsContractViolation()
+    {
+        var instructions = CapturedAuthoritativeFetchTraversalInstructions();
+        instructions.AddRange(instructions.GetRange(0, 6));
+
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            RequireAuthoritativeFetchTraversalInstructionAnchors(instructions));
+    }
+
+    [TestMethod]
+    public void AuthoritativeFetchTraversalInstructionContract_WhenSelectedFetchChoreAnchorIsMissing_ThrowsContractViolation()
+    {
+        var instructions = CapturedAuthoritativeFetchTraversalInstructions();
+        instructions[15] = FieldInstruction("FetchChore.unrelatedTags");
+
+        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            RequireAuthoritativeFetchTraversalInstructionAnchors(instructions));
+    }
+
+    [TestMethod]
+    public void AuthoritativeFetchAdapterSource_WhenInspected_ExposesManualFailClosedContractsOnly()
+    {
+        var adapterPath = ResolveProductionSourcePath(
+            "KleiImplementationAdapters",
+            "KleiAuthoritativeFetchTemperatureEligibilityPatches.cs");
+        Assert.IsTrue(
+            File.Exists(adapterPath),
+            $"Missing authoritative fetch adapter source {adapterPath}.");
+        var source = File.ReadAllText(adapterPath);
+
+        StringAssert.Contains(source, "ResolveGlobalChoreProviderAddChoreTarget");
+        StringAssert.Contains(source, "ResolveGlobalChoreProviderRemoveChoreTarget");
+        StringAssert.Contains(source, "ResolveFetchChoreOnTagsChangedTarget");
+        StringAssert.Contains(
+            source,
+            "ResolveGlobalChoreProviderUpdateStorageFetchableBitsTarget");
+        StringAssert.Contains(
+            source,
+            "ResolveGlobalChoreProviderClearableHasDestinationTarget");
+        StringAssert.Contains(source, "UpdateStorageFetchableBitsTranspiler");
+        StringAssert.Contains(source, "BeginParentWorldFetchMapSection");
+        StringAssert.Contains(source, "RecordSelectedFetchChore");
+        StringAssert.Contains(source, "TryPublishFetchTemperatureEligibility");
+        StringAssert.Contains(
+            source,
+            "ClearableDestinationSweepEligibility.AllowsClearing");
+        Assert.IsFalse(source.Contains("[HarmonyPatch", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("AccessTools", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("operand.ToString", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("HashSet<Tag>[]", StringComparison.Ordinal));
+        Assert.IsFalse(source.Contains("storageFetchableTagsPerTemperatureIndex", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
     public void WorldInventoryInstructionContract_WhenCapturedInstalledShapeMatches_ResolvesEverySemanticAnchorOnce()
     {
         var anchors = RequireWorldInventoryInstructionAnchors(
@@ -1264,6 +1440,47 @@ public sealed class HarmonyPatchContractVerifierTests
             combinedSource.Contains("OnLoadLevel", StringComparison.Ordinal));
     }
 
+    private static AuthoritativeFetchTraversalInstructionAnchors
+        RequireAuthoritativeFetchTraversalInstructionAnchors(
+            IReadOnlyList<TranspilerInstructionFixture> instructions)
+    {
+        var candidateIndices = Enumerable.Range(0, instructions.Count).ToArray();
+        int parentWorldSectionStartIndex =
+            HarmonyPatchContractVerifier.RequireSingleMatch(
+                candidateIndices,
+                index => MatchesWindow(
+                    instructions,
+                    index,
+                    FieldInstruction("GlobalChoreProvider.fetchMap"),
+                    LoadLocalInstruction(localIndex: null),
+                    LoadLocalInstruction(localIndex: null),
+                    CallInstruction("List<int>.get_Item"),
+                    LoadLocalAddressInstruction(localIndex: null),
+                    CallInstruction(
+                        "Dictionary<int,List<FetchChore>>.TryGetValue")),
+                "GlobalChoreProvider.UpdateStorageFetchableBits parent-world " +
+                "fetch-map section start");
+        int selectedFetchChoreIndex =
+            HarmonyPatchContractVerifier.RequireSingleMatch(
+                candidateIndices,
+                index => MatchesWindow(
+                    instructions,
+                    index,
+                    FieldInstruction("GlobalChoreProvider.storageFetchableTags"),
+                    LoadLocalInstruction(localIndex: null),
+                    FieldInstruction("FetchChore.tags"),
+                    CallInstruction("HashSet<Tag>.UnionWith")),
+                "GlobalChoreProvider.UpdateStorageFetchableBits selected " +
+                "FetchChore traversal");
+
+        return new AuthoritativeFetchTraversalInstructionAnchors(
+            parentWorldSectionStartIndex,
+            selectedFetchChoreIndex,
+            instructions[parentWorldSectionStartIndex + 1].LocalIndex!.Value,
+            instructions[parentWorldSectionStartIndex + 2].LocalIndex!.Value,
+            instructions[selectedFetchChoreIndex + 1].LocalIndex!.Value);
+    }
+
     private static WorldInventoryInstructionAnchors
         RequireWorldInventoryInstructionAnchors(
             IReadOnlyList<TranspilerInstructionFixture> instructions)
@@ -1469,6 +1686,28 @@ public sealed class HarmonyPatchContractVerifierTests
     }
 
     private static List<TranspilerInstructionFixture>
+        CapturedAuthoritativeFetchTraversalInstructions() =>
+        [
+            FieldInstruction("GlobalChoreProvider.fetchMap"),
+            LoadLocalInstruction(2),
+            LoadLocalInstruction(3),
+            CallInstruction("List<int>.get_Item"),
+            LoadLocalAddressInstruction(4),
+            CallInstruction("Dictionary<int,List<FetchChore>>.TryGetValue"),
+            LoadLocalInstruction(6),
+            CallInstruction("Chore.get_choreType"),
+            LoadLocalInstruction(0),
+            BranchInstruction("beq.s"),
+            LoadLocalInstruction(6),
+            CallInstruction("FetchChore.get_destination"),
+            BranchInstruction("brfalse.s"),
+            FieldInstruction("GlobalChoreProvider.storageFetchableTags"),
+            LoadLocalInstruction(6),
+            FieldInstruction("FetchChore.tags"),
+            CallInstruction("HashSet<Tag>.UnionWith")
+        ];
+
+    private static List<TranspilerInstructionFixture>
         CapturedWorldInventoryUpdateInstructions() =>
         [
             CallInstruction(
@@ -1546,6 +1785,10 @@ public sealed class HarmonyPatchContractVerifierTests
         int? localIndex) =>
         new("store-local", null, localIndex);
 
+    private static TranspilerInstructionFixture LoadLocalAddressInstruction(
+        int? localIndex) =>
+        new("load-local-address", null, localIndex);
+
     private static TranspilerInstructionFixture OperationInstruction(
         string operation) =>
         new(operation, null, null);
@@ -1558,12 +1801,25 @@ public sealed class HarmonyPatchContractVerifierTests
         MethodInfo method,
         Type expectedDeclaringType,
         bool isPublic,
+        IReadOnlyList<Type> expectedParameterTypes) =>
+        AssertExactInstanceMethod(
+            method,
+            expectedDeclaringType,
+            isPublic,
+            typeof(void),
+            expectedParameterTypes);
+
+    private static void AssertExactInstanceMethod(
+        MethodInfo method,
+        Type expectedDeclaringType,
+        bool isPublic,
+        Type expectedReturnType,
         IReadOnlyList<Type> expectedParameterTypes)
     {
         Assert.AreSame(expectedDeclaringType, method.DeclaringType);
         Assert.AreEqual(isPublic, method.IsPublic);
         Assert.IsFalse(method.IsStatic);
-        Assert.AreSame(typeof(void), method.ReturnType);
+        Assert.AreSame(expectedReturnType, method.ReturnType);
         Assert.AreSequenceEqual(
             expectedParameterTypes,
             method.GetParameters()
@@ -1652,6 +1908,13 @@ public sealed class HarmonyPatchContractVerifierTests
         string Operation,
         string? MemberIdentity,
         int? LocalIndex);
+
+    private sealed record AuthoritativeFetchTraversalInstructionAnchors(
+        int ParentWorldSectionStartIndex,
+        int SelectedFetchChoreIndex,
+        int SortedWorldIdsLocalIndex,
+        int SortedWorldIdIndexLocalIndex,
+        int SelectedFetchChoreLocalIndex);
 
     private sealed record WorldInventoryInstructionAnchors(
         int InventoryEntryCaptureIndex,
@@ -1801,6 +2064,64 @@ public sealed class HarmonyPatchContractVerifierTests
         }
 
         public sealed class PublicNestedTarget
+        {
+        }
+    }
+
+    private sealed class ChoreContractFixture
+    {
+    }
+
+    private sealed class PickupableContractFixture
+    {
+    }
+
+    private sealed class GlobalChoreProviderFetchContractFixture
+    {
+        public void AddChore(ChoreContractFixture chore)
+        {
+        }
+
+        public void RemoveChore(ChoreContractFixture chore)
+        {
+        }
+
+        private void UpdateStorageFetchableBits()
+        {
+        }
+
+        public bool ClearableHasDestination(PickupableContractFixture pickupable) =>
+            pickupable != null;
+    }
+
+    private sealed class FetchChoreTagChangeContractFixture
+    {
+        private void OnTagsChanged(object eventData)
+        {
+        }
+    }
+
+    private sealed class GlobalChoreProviderFetchOverloadOnlyFixture
+    {
+        public void AddChore(object chore)
+        {
+        }
+
+        public void RemoveChore(object chore)
+        {
+        }
+
+        private void UpdateStorageFetchableBits(bool forceUpdate)
+        {
+        }
+
+        public bool ClearableHasDestination(object pickupable) =>
+            pickupable != null;
+    }
+
+    private sealed class FetchChoreChangedTagEventContractFixture
+    {
+        private void OnTagsChanged(string eventData)
         {
         }
     }
