@@ -771,11 +771,14 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
 
         if (request.Profile.Build is null)
         {
-            return build.PrimaryOutputPath is null && build.Outputs.Count == 0
+            return build.PrimaryOutputPath is null &&
+                   build.Outputs.Count == 0 &&
+                   build.PrimaryAssemblyTargetFrameworkMoniker is null &&
+                   build.PrimaryAssemblyTargetFrameworkName is null
                 ? null
                 : DiagnosticCatalog.BuildFailed(
                     projectPath,
-                    "A content-only profile returned unexpected compiled outputs.");
+                    "A content-only profile returned unexpected compiled outputs or target-framework metadata.");
         }
 
         if (build.PrimaryOutputPath is null)
@@ -785,11 +788,39 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
                 "A compiled mod build did not identify its primary output.");
         }
 
-        if (string.IsNullOrWhiteSpace(build.PrimaryTargetFrameworkMoniker))
+        if (string.IsNullOrWhiteSpace(
+                build.PrimaryAssemblyTargetFrameworkMoniker) ||
+            string.IsNullOrWhiteSpace(
+                build.PrimaryAssemblyTargetFrameworkName))
         {
             return DiagnosticCatalog.BuildFailed(
                 projectPath,
                 "A compiled mod build did not report target-framework metadata from its exact primary output.");
+        }
+
+        TargetFrameworkIdentity targetFrameworkIdentity;
+        try
+        {
+            targetFrameworkIdentity = TargetFrameworkIdentity.ParseFrameworkName(
+                build.PrimaryAssemblyTargetFrameworkName);
+        }
+        catch (InvalidDataException exception)
+        {
+            return DiagnosticCatalog.BuildFailed(
+                projectPath,
+                exception.Message);
+        }
+
+        if (!string.Equals(
+                targetFrameworkIdentity.Moniker,
+                build.PrimaryAssemblyTargetFrameworkMoniker,
+                StringComparison.Ordinal))
+        {
+            return DiagnosticCatalog.BuildFailed(
+                projectPath,
+                "Primary assembly target-framework moniker " +
+                $"'{build.PrimaryAssemblyTargetFrameworkMoniker}' does not match " +
+                $"framework name '{build.PrimaryAssemblyTargetFrameworkName}'.");
         }
 
         var primaryPath = Path.GetFullPath(build.PrimaryOutputPath);
@@ -931,7 +962,10 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
             build.DotnetSdkVersion,
             request.Profile.Build is null
                 ? "content-only"
-                : build.PrimaryTargetFrameworkMoniker!,
+                : build.PrimaryAssemblyTargetFrameworkMoniker!,
+            request.Profile.Build is null
+                ? null
+                : build.PrimaryAssemblyTargetFrameworkName,
             ReleaseConfiguration,
             "${WORKTREE}",
             "${GAME}",

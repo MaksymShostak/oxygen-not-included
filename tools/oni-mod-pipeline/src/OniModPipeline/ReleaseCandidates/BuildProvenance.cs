@@ -36,6 +36,7 @@ internal sealed record BuildProvenance(
     string Architecture,
     string DotnetSdkVersion,
     string TargetFramework,
+    string? PrimaryAssemblyTargetFrameworkName,
     string Configuration,
     string WorktreeRoot,
     string GameDirectory,

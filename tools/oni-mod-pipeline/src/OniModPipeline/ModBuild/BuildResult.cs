@@ -20,4 +20,5 @@ internal sealed record BuildResult(
     IReadOnlyList<string> StructuredBuildArguments,
     AssemblyVersionInfo? PrimaryAssemblyVersion,
     bool SourceBytesUnchanged,
-    string? PrimaryTargetFrameworkMoniker);
+    string? PrimaryAssemblyTargetFrameworkMoniker,
+    string? PrimaryAssemblyTargetFrameworkName);

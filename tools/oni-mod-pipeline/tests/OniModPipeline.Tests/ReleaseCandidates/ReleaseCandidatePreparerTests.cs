@@ -89,8 +89,13 @@ public sealed class ReleaseCandidatePreparerTests
             .GetProperty("repositoryCommit").GetString());
         Assert.IsTrue(provenance.RootElement.GetProperty("relevantPathsClean").GetBoolean());
         Assert.AreEqual(
-            ".NETStandard,Version=v2.1",
+            "netstandard2.1",
             provenance.RootElement.GetProperty("targetFramework").GetString());
+        Assert.AreEqual(
+            ".NETStandard,Version=v2.1",
+            provenance.RootElement
+                .GetProperty("primaryAssemblyTargetFrameworkName")
+                .GetString());
         Assert.AreEqual("Release", provenance.RootElement.GetProperty("configuration").GetString());
         Assert.AreEqual(
             plan.RootElement.GetProperty("preparedAtUtc").GetDateTimeOffset(),
@@ -228,6 +233,26 @@ public sealed class ReleaseCandidatePreparerTests
     }
 
     [TestMethod]
+    public async Task PrepareAsync_WhenTargetFrameworkIdentitiesDisagree_FailsClosedAndCleans()
+    {
+        using var fixture = new PreparationFixture(
+            PreparationFailure.MismatchedTargetFrameworkIdentity);
+
+        var result = await fixture.Preparer.PrepareAsync(
+            fixture.Request,
+            CancellationToken.None);
+
+        Assert.IsFalse(result.IsSuccess);
+        Assert.AreEqual(DiagnosticIds.BuildFailed, result.Diagnostics[0].Id);
+        Assert.Contains(
+            "does not match framework name",
+            result.Diagnostics[0].Evidence,
+            StringComparison.Ordinal);
+        Assert.IsFalse(Directory.Exists(fixture.Layout.CandidateDirectory));
+        AssertTransientSiblingsAreAbsent(fixture.Layout);
+    }
+
+    [TestMethod]
     [DataRow(PreparationFailure.Hash)]
     [DataRow(PreparationFailure.EvidenceWrite)]
     public async Task PrepareAsync_WhenInfrastructureStageThrows_ReturnsInternalFailureAndCleans(
@@ -357,7 +382,8 @@ public enum PreparationFailure
     SourceRecheck,
     InvalidBuildContract,
     InvalidTestContract,
-    MissingTargetFrameworkMetadata
+    MissingTargetFrameworkMetadata,
+    MismatchedTargetFrameworkIdentity
 }
 
 internal sealed class PreparationFixture : IDisposable
@@ -674,6 +700,7 @@ internal sealed class FixtureReleaseBuilder(PreparationFixture fixture) :
                     "1.2.3.0",
                     $"1.2.3+{request.SourceCommit[..12]}"),
                 true,
+                "netstandard2.1",
                 ".NETStandard,Version=v2.1");
         if (fixture.FailsAt(PreparationFailure.InvalidBuildContract))
         {
@@ -681,7 +708,18 @@ internal sealed class FixtureReleaseBuilder(PreparationFixture fixture) :
         }
         else if (fixture.FailsAt(PreparationFailure.MissingTargetFrameworkMetadata))
         {
-            buildResult = buildResult with { PrimaryTargetFrameworkMoniker = null };
+            buildResult = buildResult with
+            {
+                PrimaryAssemblyTargetFrameworkMoniker = null,
+                PrimaryAssemblyTargetFrameworkName = null
+            };
+        }
+        else if (fixture.FailsAt(PreparationFailure.MismatchedTargetFrameworkIdentity))
+        {
+            buildResult = buildResult with
+            {
+                PrimaryAssemblyTargetFrameworkMoniker = "net48"
+            };
         }
 
         return new OperationResult<BuildResult>(

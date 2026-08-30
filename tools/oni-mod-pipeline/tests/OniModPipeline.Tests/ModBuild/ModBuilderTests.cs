@@ -7,6 +7,7 @@ using MaksymShostak.OniModPipeline.Serialization;
 using MaksymShostak.OniModPipeline.Tests.Fixtures;
 using System.Reflection;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace MaksymShostak.OniModPipeline.Tests.ModBuild;
@@ -234,12 +235,56 @@ public sealed class ModBuilderTests
                 Path.Combine(fixture.RunRoot, "build-result.json")));
         Assert.IsTrue(
             buildResultJson.RootElement.TryGetProperty(
-                "primaryTargetFrameworkMoniker",
+                "primaryAssemblyTargetFrameworkMoniker",
                 out var targetFrameworkMoniker),
             "The build result must carry target-framework evidence read from the exact primary assembly.");
         Assert.AreEqual(
-            ".NETCoreApp,Version=v10.0",
+            "net10.0",
             targetFrameworkMoniker.GetString());
+    }
+
+    [TestMethod]
+    public async Task BuildAsync_WhenManagedArtifactDeclaresNetStandardFramework_RecordsCanonicalMonikerAndFrameworkName()
+    {
+        using var fixture = new BuildFixture();
+        var assembly = typeof(ModBuilderTests).Assembly;
+        var informationalVersion = assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()!
+            .InformationalVersion;
+        var releaseVersion = informationalVersion.Split('+')[0];
+        fixture.ProcessRunner.BuildAction = request =>
+        {
+            var destination = fixture.GetPrimaryOutputPath(request);
+            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+            File.Copy(assembly.Location, destination);
+            ReplaceUniqueEqualLengthUtf8Sequence(
+                destination,
+                ".NETCoreApp,Version=v10.0",
+                ".NETStandard,Version=v2.1");
+        };
+        var builder = new ModBuilder(fixture.ProcessRunner, new Utf8ArtifactWriter());
+
+        var result = await builder.BuildAsync(
+            fixture.CreateRequest(releaseVersion),
+            CancellationToken.None);
+
+        Assert.AreEqual(
+            PipelineExitCode.Success,
+            result.ExitCode,
+            string.Join(Environment.NewLine, result.Diagnostics.Select(d => d.Evidence)));
+        using var buildResultJson = JsonDocument.Parse(
+            await File.ReadAllBytesAsync(
+                Path.Combine(fixture.RunRoot, "build-result.json")));
+        Assert.AreEqual(
+            "netstandard2.1",
+            buildResultJson.RootElement
+                .GetProperty("primaryAssemblyTargetFrameworkMoniker")
+                .GetString());
+        Assert.AreEqual(
+            ".NETStandard,Version=v2.1",
+            buildResultJson.RootElement
+                .GetProperty("primaryAssemblyTargetFrameworkName")
+                .GetString());
     }
 
     [TestMethod]
@@ -344,6 +389,36 @@ public sealed class ModBuilderTests
         Assert.AreEqual(outputHashes[0], outputHashes[1]);
         Assert.AreEqual(0, CountFilesIfDirectoryExists(Path.Combine(sourceDirectory, "bin")));
         Assert.AreEqual(0, CountFilesIfDirectoryExists(Path.Combine(sourceDirectory, "obj")));
+    }
+
+    private static void ReplaceUniqueEqualLengthUtf8Sequence(
+        string filePath,
+        string existingValue,
+        string replacementValue)
+    {
+        var existingBytes = Encoding.UTF8.GetBytes(existingValue);
+        var replacementBytes = Encoding.UTF8.GetBytes(replacementValue);
+        Assert.AreEqual(
+            existingBytes.Length,
+            replacementBytes.Length,
+            "The metadata fixture replacement must preserve the PE blob length.");
+
+        var fileBytes = File.ReadAllBytes(filePath);
+        var matchOffsets = new List<int>();
+        for (var offset = 0; offset <= fileBytes.Length - existingBytes.Length; offset++)
+        {
+            if (fileBytes.AsSpan(offset, existingBytes.Length).SequenceEqual(existingBytes))
+            {
+                matchOffsets.Add(offset);
+            }
+        }
+
+        Assert.HasCount(
+            1,
+            matchOffsets,
+            "The managed test artifact must contain exactly one target-framework name payload.");
+        replacementBytes.CopyTo(fileBytes.AsSpan(matchOffsets[0], replacementBytes.Length));
+        File.WriteAllBytes(filePath, fileBytes);
     }
 
     private static void AssertDiagnostic(

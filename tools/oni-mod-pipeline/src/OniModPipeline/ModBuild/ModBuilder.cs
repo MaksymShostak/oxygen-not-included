@@ -19,7 +19,7 @@ internal sealed class ModBuilder(
 
     private sealed record PrimaryManagedAssemblyMetadata(
         AssemblyVersionInfo VersionInfo,
-        string? TargetFrameworkMoniker);
+        TargetFrameworkIdentity? TargetFramework);
 
     internal async Task<OperationResult<BuildResult>> BuildAsync(
         BuildRequest request,
@@ -65,6 +65,7 @@ internal sealed class ModBuilder(
                     [],
                     null,
                     true,
+                    null,
                     null);
                 await WriteResultAsync(contentOnlyResult, cancellationToken)
                     .ConfigureAwait(false);
@@ -281,7 +282,8 @@ internal sealed class ModBuilder(
                 buildArguments,
                 primaryAssemblyMetadata?.VersionInfo,
                 true,
-                primaryAssemblyMetadata?.TargetFrameworkMoniker);
+                primaryAssemblyMetadata?.TargetFramework?.Moniker,
+                primaryAssemblyMetadata?.TargetFramework?.FrameworkName);
             await WriteResultAsync(result, cancellationToken).ConfigureAwait(false);
             return Success(result);
         }
@@ -682,7 +684,7 @@ internal sealed class ModBuilder(
             var assembly = metadata.GetAssemblyDefinition();
             string? fileVersion = null;
             string? informationalVersion = null;
-            string? targetFrameworkMoniker = null;
+            string? targetFrameworkName = null;
             foreach (var attributeHandle in assembly.GetCustomAttributes())
             {
                 var attribute = metadata.GetCustomAttribute(attributeHandle);
@@ -699,22 +701,35 @@ internal sealed class ModBuilder(
                 else if (attributeName ==
                     "System.Runtime.Versioning.TargetFrameworkAttribute")
                 {
-                    targetFrameworkMoniker = ReadFixedStringAttribute(
+                    targetFrameworkName = ReadFixedStringAttribute(
                         metadata,
                         attribute);
                 }
             }
 
+            var targetFramework = targetFrameworkName is null
+                ? null
+                : TargetFrameworkIdentity.ParseFrameworkName(
+                    targetFrameworkName);
             assemblyMetadata = new PrimaryManagedAssemblyMetadata(
                 new AssemblyVersionInfo(
                     assembly.Version.ToString(),
                     fileVersion,
                     informationalVersion),
-                targetFrameworkMoniker);
+                targetFramework);
         }
         catch (BadImageFormatException)
         {
             return Success<PrimaryManagedAssemblyMetadata?>(null);
+        }
+        catch (InvalidDataException exception)
+        {
+            return new OperationResult<PrimaryManagedAssemblyMetadata?>(
+                null,
+                [DiagnosticCatalog.BuildFailed(
+                    primaryOutputPath,
+                    exception.Message)],
+                PipelineExitCode.BuildOrTestFailed);
         }
 
         var informationMatches =

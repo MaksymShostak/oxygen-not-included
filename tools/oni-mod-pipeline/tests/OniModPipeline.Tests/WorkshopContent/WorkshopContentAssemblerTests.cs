@@ -43,6 +43,7 @@ public sealed class WorkshopContentAssemblerTests
             [],
             null,
             true,
+            null,
             null);
         var stagingRoot = temporaryDirectory.GetPath("candidate", "workshop-content");
         Directory.CreateDirectory(stagingRoot);
@@ -349,6 +350,7 @@ public sealed class WorkshopContentAssemblerTests
                 [],
                 null,
                 true,
+                null,
                 null);
             Profile = new ModProfile(
                 1,
