@@ -78,6 +78,73 @@ internal sealed class ReferenceFetchTemperatureRequest
 
 internal static class ReferenceTemperatureEligibilityModel
 {
+    internal static float GetRepresentativeTemperatureKelvin(
+        int decisionBucketOrdinal)
+    {
+        if (decisionBucketOrdinal <
+                TemperatureDecisionBucket.BelowMinimumKelvinOrdinal ||
+            decisionBucketOrdinal >
+                TemperatureDecisionBucket.AtOrAboveMaximumKelvinOrdinal)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(decisionBucketOrdinal));
+        }
+
+        return GetRepresentativeTruncatedKelvin(decisionBucketOrdinal);
+    }
+
+    internal static int GetRepresentativeTruncatedKelvin(
+        int decisionBucketOrdinal)
+    {
+        if (decisionBucketOrdinal ==
+            TemperatureDecisionBucket.BelowMinimumKelvinOrdinal)
+        {
+            return OniStorableTemperatureBounds.MinimumTemperatureKelvin - 1;
+        }
+
+        if (decisionBucketOrdinal ==
+            TemperatureDecisionBucket.AtOrAboveMaximumKelvinOrdinal)
+        {
+            return OniStorableTemperatureBounds.MaximumTemperatureKelvin;
+        }
+
+        if (decisionBucketOrdinal <
+                TemperatureDecisionBucket.FirstIntegerKelvinOrdinal ||
+            decisionBucketOrdinal >
+                TemperatureDecisionBucket.HighestIntegerKelvinOrdinal)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(decisionBucketOrdinal));
+        }
+
+        return decisionBucketOrdinal -
+            TemperatureDecisionBucket.FirstIntegerKelvinOrdinal;
+    }
+
+    internal static bool AllowanceVectorsAreEqual(
+        IReadOnlyList<bool> first,
+        IReadOnlyList<bool> second)
+    {
+        ArgumentNullException.ThrowIfNull(first);
+        ArgumentNullException.ThrowIfNull(second);
+        if (first.Count != second.Count)
+        {
+            return false;
+        }
+
+        for (var allowanceIndex = 0;
+             allowanceIndex < first.Count;
+             allowanceIndex++)
+        {
+            if (first[allowanceIndex] != second[allowanceIndex])
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     internal static DeliveryTemperatureConstraint[]
         GetStorageDestinationConstraints(
             IReadOnlyList<ReferenceFetchTemperatureRequest> fetchRequests,
