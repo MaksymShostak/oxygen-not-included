@@ -211,7 +211,7 @@ The unqualified word **“vanilla” is forbidden** in architecture text, produc
 | **Klei pickup grouping path** | Klei `FetchManager.FetchablesByPrefabId.UpdatePickups` performs pickup grouping because FastTrack's replacement is not active. |
 | **FastTrack pickup grouping path** | The verified FastTrack pickup-update replacement performs grouping. This term does not imply that Spaced Out is enabled. |
 | **Klei implementation paths** | Collective term for the Klei inventory update, pickup grouping, and direct-comparison paths when more than one is meant. |
-| **FastTrack implementation paths** | Collective term for the independently verified FastTrack inventory, pickup grouping, and direct-comparison replacements when more than one is meant. |
+| **FastTrack implementation paths** | Collective term for the independently verified FastTrack inventory and pickup-grouping replacements plus the optional former direct-comparison replacement when an actually loaded same-file-version binary proves that feature active and structurally compatible. The official GitHub fixture contains only the first two. |
 
 Content mode and implementation path are independent axes. Production and acceptance naming must preserve that distinction, for example `KleiWorldInventoryTemperaturePatches`, `FastTrackWorldInventoryTemperaturePatches`, `BaseGameContentModeAcceptanceTests`, and `SpacedOutContentModeAcceptanceTests`. Names such as `VanillaInventoryAdapter` and `NonVanillaAdapter` are semantically invalid.
 
@@ -761,7 +761,7 @@ Comparator equality and suppression equality must use the same semantic key. No 
 
 FastTrack support is an optional named adapter over the canonical pickup grouping algorithm. It does not own an alternate temperature partition, fallback rule, or constraint representation.
 
-This specific compatibility work is justified because FastTrack is aimed at the same very-large-colony audience and actively replaces the exact Klei inventory, pickup-grouping, and delivery-comparison seams this mod must observe. Ignoring an active replacement would not merely omit an optimization: it could bypass temperature eligibility or merge eligibility-distinct pickups. That concrete overlap justifies one narrowly verified adapter. It does not justify a generic compatibility framework, support for unverified releases, or any hot-path cost when FastTrack is absent, disabled, or inactive.
+This specific compatibility work is justified because FastTrack is aimed at the same very-large-colony audience and replaces the exact Klei inventory and pickup-grouping seams this mod must observe. Earlier FastTrack code also replaced a direct-delivery comparison seam. The provenance-pinned official GitHub `0.18.4.0` artifact no longer contains that direct replacement, but the actual Workshop DLL could not be obtained or proven byte-identical. Ignoring an active replacement would not merely omit an optimization: it could bypass temperature eligibility or merge eligibility-distinct pickups. That concrete overlap justifies narrowly verified feature adapters and defensive detection of the former direct seam. It does not justify a generic compatibility framework, support for an unverified shape, or any hot-path cost when FastTrack is absent, disabled, or inactive.
 
 Adapter state is explicit per FastTrack feature:
 
@@ -822,6 +822,10 @@ Emitted in-memory structural fixtures deliberately have no physical identity. In
 
 The runtime verifier is structural and does not use a DLL hash allowlist. The recorded fixture hash proves which GitHub artifact the tests inspected; it does not authorize an unknown binary merely because a filename/version string matches.
 
+Static metadata proves that the official GitHub artifact contains the world-inventory and pickup-grouping replacements but lacks `PeterHan.FastTrack.GamePatches.ChoreComparator.CheckFetchChore` and `ChorePatches.GlobalChoreProvider_CollectChores_Patch`. Upstream removed those chore replacements in commit `201d2457162544504fbbf185ba076da1e9e9d41a`. Its direct feature is therefore `ReplacementInactive`, never `Ready` or `Incompatible`, and the Klei direct-delivery path remains authoritative. The emitted former-direct fixture exists only to make runtime inspection fail closed if an unproven same-file-version Workshop DLL actually activates that historical seam; it is not evidence that the official artifact does so.
+
+That conditional former-direct adapter is not a compatibility facade, fallback algorithm, or permission to discover targets speculatively. It may be selected only from exact active Harmony ownership plus exact physical identity, type, member, signature, and IL contracts. Its named owner is `FastTrackCompatibility/DirectDeliveryEligibilityAdapters`; its sole justification is preventing an active third-party replacement from bypassing canonical delivery eligibility; and it must be removed if verified distribution evidence establishes that no supported FastTrack binary can activate the seam. Assembly presence, the shared file version, or historical source alone is insufficient to select it.
+
 If an active FastTrack mismatch can alter direct delivery eligibility or pickup grouping, coordinated Delivery Temperature Limit activation aborts before installing any of its runtime patch set and throws `FastTrackDeliveryEligibilityCompatibilityException`. The one diagnostic names the FastTrack version, observed digest when available, feature, member/anchor contract, and why continuing would produce temperature-unaware behavior. Warning-and-continue, third-party unpatching, and an unproved Klei fallback are forbidden.
 
 If only the optional status adapter is incompatible while direct delivery eligibility and pickup grouping remain coherent, activation installs the coherent delivery patches, leaves ONI's existing lacks-resources availability behavior unchanged, and emits one rate-limited status-compatibility diagnostic. It must not publish partial or fabricated temperature inventory.
@@ -843,7 +847,7 @@ The static contract fixture is the latest available DLL from FastTrack's officia
 - fixture DLL SHA-256: `D291C0D58379B77B4A60FB6D386B3783E4061E5C620DEF93502AE984CD657ADD`; and
 - downloaded ZIP SHA-256: `8EA0263FBD64F3D94C4127A03EC15A8ED88A1DA6BBDEDDA7E8EE85C9E2B3FC1D`.
 
-The word `Beta` appears only because it is part of the upstream release URL/tag; this mod itself has no beta stage. The fixture directory and README must state that the actual Workshop-distributed DLL could not be found, so compatibility is to this available artifact/version on a best-efforts basis. The test project copies the DLL as a non-reference data item and reads it with `System.Reflection.Metadata`; it never links or executes it. The released Delivery Temperature Limit package must contain no FastTrack fixture bytes or full FastTrack mod package.
+The word `Beta` appears only because it is part of the upstream release URL/tag; this mod itself has no beta stage. The fixture directory and README must state that the actual Workshop-distributed DLL could not be found, so compatibility is to this available artifact/version on a best-efforts basis. The test project copies the DLL as a non-reference data item and reads it with `System.Reflection.Metadata`; it never links or executes it. Static contracts assert the direct replacement's absence as well as the two present replacement contracts. The released Delivery Temperature Limit package must contain no FastTrack fixture bytes or full FastTrack mod package.
 
 ## 16. Direct eligibility and fetch-coalescing patches
 
@@ -853,7 +857,7 @@ The direct correctness patches remain but become thin adapters over the immutabl
 - `ClearableManager.CollectChores`;
 - `FetchAreaChore.StatesInstance.Begin`;
 - its candidate `CanReach` delegate;
-- FastTrack `ChoreComparator.CheckFetchChore`; and
+- the former FastTrack `ChoreComparator.CheckFetchChore`, but only for a loaded same-file-version binary whose active owner and complete historical contract are structurally verified; and
 - `GlobalChoreProvider.ClearableHasDestination`.
 
 Each direct pickup/destination check is O(1), allocation-free in its ordinary path, and performs at most:
@@ -1001,7 +1005,7 @@ The required `net10.0` test project statically verifies all of the following wit
 - the merged output contains the intended PLib merge input but the pipeline package contains only `DeliveryTemperatureLimit.dll`, `mod.yaml`, and `mod_info.yaml`—never framework DLLs or an application configuration file;
 - serialized and curated public assembly contracts, including the deliberate absence of `TemperatureIndexData` and its getter;
 - linked algorithm/session sources invoke no Unity, Klei, Harmony, PLib, or FastTrack APIs, contain no conditional framework branches, belong to the exact production compile graph, compile successfully under the evaluated C# 8 production ceiling, and consume only the exact `global::Tag`/`DeliveryTemperatureLimit.TemperatureLimit` stub identities and parity-verified members;
-- the GitHub FastTrack `0.18.4.0` fixture has the recorded identity/digest and satisfies the expected structural contract; and
+- the GitHub FastTrack `0.18.4.0` fixture has the recorded identity/digest, satisfies the expected world-inventory and pickup-grouping structural contracts, and proves the former direct replacement is absent; and
 - the actual pipeline-built merged candidate, not merely a test assembly or copied source, satisfies all architecture/reference/package checks.
 
 The two reference warnings remain visible evidence. `TreatWarningsAsErrors` applies to compiler warnings; implementation must not claim the two MSBuild unification warnings were eliminated. An unexpected third root, a version change, or a new direct merged reference fails the contract and requires review.

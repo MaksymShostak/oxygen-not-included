@@ -3422,6 +3422,7 @@ refactor: Centralize direct fetch temperature checks
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/Fixtures/ThirdParty/FastTrack/0.18.4.0/README.md`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/Fixtures/ThirdParty/FastTrack/0.18.4.0/FastTrack.dll`
 - Modify: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj`
+- Modify: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureAssemblyContracts/LinkedProductionSourceBoundaryContractTests.cs`
 - Modify: `mods/delivery-temperature-limit-supercooled/Tests/HarmonyTranspilerInfrastructure/HarmonyPatchContractVerifierTests.cs`
 
 **Interfaces:**
@@ -3502,7 +3503,9 @@ download ZIP SHA-256: 8EA0263FBD64F3D94C4127A03EC15A8ED88A1DA6BBDEDDA7E8EE85C9E2
 
 If the implementation environment cannot retrieve that official asset, stop and ask the user to supply the official ZIP/DLL or clone the named upstream repository/revision, as they offered. Verify the supplied bytes against both recorded digests before use. Do not substitute a mirror, recompile a lookalike fixture, or weaken the provenance test.
 
-The fixture README must state plainly that the actual Steam Workshop-distributed DLL could not be located or proven byte-identical; support is to this available `0.18.4.0` artifact on a best-efforts basis. `FastTrackGitHubReleaseAssemblyContractTests` use `System.Reflection.Metadata`/`PEReader` to inspect the GitHub release DLL without resolving or executing its dependencies and assert every required type, field, method signature, branch/anchor shape, version, and digest.
+The fixture README must state plainly that the actual Steam Workshop-distributed DLL could not be located or proven byte-identical; support is to this available `0.18.4.0` artifact on a best-efforts basis. `FastTrackGitHubReleaseAssemblyContractTests` use `System.Reflection.Metadata`/`PEReader` to inspect the GitHub release DLL without resolving or executing its dependencies. They assert the exact version and digest, every required world-inventory and pickup-grouping type/member/branch/anchor contract, and the absence of the former direct chore replacement. That absence is affirmative contract evidence: the official artifact's direct feature is `ReplacementInactive`, and the Klei direct-delivery path remains authoritative.
+
+The GitHub artifact does not contain `PeterHan.FastTrack.GamePatches.ChoreComparator.CheckFetchChore` or `ChorePatches.GlobalChoreProvider_CollectChores_Patch`; upstream removed those replacements in commit `201d2457162544504fbbf185ba076da1e9e9d41a`. Do not invent a current-artifact direct contract, relabel absence as incompatibility, or imply that the static fixture verifies a direct adapter. The emitted fixture retains the former exact shape solely so runtime inspection can fail closed if an unproven same-file-version Workshop binary actually activates that replacement.
 
 Apply the exact Task 21 configuration approval by updating, not duplicating, the SDK-default `None` item:
 
@@ -3530,9 +3533,11 @@ The inspector must verify, by full name and exact signature, the installed equiv
 - the active FastTrack prefix replacing `WorldInventory.Update`;
 - `PeterHan.FastTrack.GamePatches.FetchManagerFastUpdate.BeforeUpdatePickups`;
 - nested `PickupTagDict.AddItem` and `PickupTagKey` constructor/equality shape; and
-- FastTrack's direct chore-comparison target used by the current mod.
+- the former FastTrack direct chore-comparison target only when active Harmony descriptors prove that a loaded same-file-version binary actually contains and activates it.
 
 Treat the loaded assembly and actual active Harmony ownership as authoritative at runtime. The production inspector instance must receive `FastTrackAssemblyFileIdentityReader`; require its successful physical-file result and file version exactly `0.18.4.0` for a `Ready` feature, then verify structure. Do not use the fixture SHA-256 as a runtime allowlist. Current upstream source and fixture are evidence for expected semantics, not permission to accept a structurally different loaded body. Assembly presence alone can produce only `ReplacementInactive`, never `Ready`; dynamic/unreadable/missing physical identity makes an active feature `Incompatible`, with the exact reader state in its diagnostic.
+
+Direct-delivery inspection is deliberately asymmetric. For the provenance-pinned official artifact, the missing replacement must remain `ReplacementInactive` and incur no FastTrack direct-path runtime work. If a not-proven-byte-identical Workshop DLL with the same file version exposes an active former replacement, only exact owner, target, member, signature, and IL verification may make that feature `Ready`; any mismatch is `Incompatible` so Task 24 can abort coherently. This defensive inspection does not broaden the support claim beyond the recorded best-efforts qualification.
 
 The world-inventory `Ready` contract must prove the two behavioral branches: first update iterates all inventory entries; later updates select one entry through `updateIndex`. It must also prove that removing a pickupable does not remove the dictionary key. If the latter cannot be proved, classify world inventory as `Incompatible` because a one-time coverage set could become false.
 
@@ -3565,7 +3570,7 @@ Inspect the new production files and confirm they reference only BCL reflection/
 
 - [ ] **Step 9: Prepare and commit**
 
-Use all nineteen created or modified Task 21 paths, excluding the unchanged Task 15 descriptor, allowed type `test`, and exact subject:
+Use all twenty created or modified Task 21 paths, excluding the unchanged Task 15 descriptor, allowed type `test`, and exact subject. The twentieth path is the linked-source boundary contract, which must continue forbidding compile-time third-party dependencies while permitting `PeterHan.` identities only as explicit reflection-contract string literals in the dedicated feature-verification directory:
 
 ```text
 test: Verify active FastTrack feature contracts
@@ -3691,8 +3696,8 @@ refactor: Preserve FastTrack incremental inventory updates
 - Modify: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackCompatibilityInspectorTests.cs`
 
 **Interfaces:**
-- Consumes: `Ready` pickup/direct-delivery FastTrack feature reports, canonical grouping session, collision-free key allocator, and canonical direct constraint checks.
-- Produces: collision-free FastTrack grouping with exact lifecycle cleanup and canonical direct delivery eligibility; inactive until Gate D. It does not modify, suppress, or unpatch FastTrack.
+- Consumes: a `Ready` pickup-grouping report; an optional `Ready` direct-delivery report only for a loaded same-file-version binary whose former direct replacement is active and fully verified; the canonical grouping session; the collision-free key allocator; and canonical direct constraint checks.
+- Produces: collision-free FastTrack grouping with exact lifecycle cleanup and, only for that verified optional former replacement, canonical direct-delivery eligibility; inactive until Gate D. The official GitHub `0.18.4.0` artifact keeps the Klei direct path because its direct replacement is absent. This adapter does not modify, suppress, or unpatch FastTrack.
 
 - [ ] **Step 1: Write failing full-key allocation integration tests**
 
@@ -3734,7 +3739,9 @@ Postfix completes both sessions. Finalizer discards both and restores any nested
 
 - [ ] **Step 6: Implement the inactive direct FastTrack chore adapter**
 
-Patch the exact installed FastTrack chore comparator target only when `DirectDeliveryEligibility` is `Ready`. Preserve an existing false result, resolve the destination through the component index, bypass disabled/missing constraints, preserve characterized missing-primary behavior, and call `DeliveryTemperatureConstraint.Allows` once. No alternative boundary calculation, global snapshot reconstruction, or per-call reflection is permitted.
+Patch the former exact installed FastTrack chore comparator target only when runtime inspection reports `DirectDeliveryEligibility` as `Ready`. The provenance-pinned GitHub artifact must never select this adapter: its absent replacement is `ReplacementInactive`, which selects the Klei direct-delivery implementation. The optional adapter exists only to preserve correctness if the unproven Workshop-distributed binary has the same file version but still activates the former replacement; emitted-contract tests, not the GitHub fixture, cover that conditional shape.
+
+When selected, preserve an existing false result, resolve the destination through the component index, bypass disabled/missing constraints, preserve characterized missing-primary behavior, and call `DeliveryTemperatureConstraint.Allows` once. No alternative boundary calculation, global snapshot reconstruction, per-call reflection, speculative target discovery, or assembly-presence fallback is permitted.
 
 - [ ] **Step 7: Prove fail-closed ownership and non-interference**
 
@@ -3750,7 +3757,7 @@ There is no Klei fallback shim for an active incompatible FastTrack replacement.
 
 - [ ] **Step 8: Run focused tests and production build**
 
-Run both new FastTrack test classes, allocator tests, grouping-session tests, real-DLL contracts, and compatibility-inspector tests separately. Then run pipeline `validate`, `build`, and `test`; do not install or launch ONI with FastTrack.
+Run both new FastTrack test classes, allocator tests, grouping-session tests, real-DLL contracts, and compatibility-inspector tests separately. The real-DLL suite must continue proving the direct replacement is absent; the emitted suite must prove any optional direct adapter binds only to the exact former active contract. Then run pipeline `validate`, `build`, and `test`; do not install or launch ONI with FastTrack.
 
 Expected: all pass. Verify there is no per-candidate reflection, option lookup, assembly lookup, logging, complete snapshot build, original-hash mutation, or unbounded dictionary retention.
 
