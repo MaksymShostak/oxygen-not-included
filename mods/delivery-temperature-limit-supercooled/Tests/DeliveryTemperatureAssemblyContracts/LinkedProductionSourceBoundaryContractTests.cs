@@ -297,7 +297,6 @@ public sealed class LinkedProductionSourceBoundaryContractTests
             "using KMod",
             "HarmonyLib.",
             "UnityEngine.",
-            "PeterHan.",
             "KMod.",
             "#if",
             "#elif",
@@ -309,6 +308,45 @@ public sealed class LinkedProductionSourceBoundaryContractTests
                 source.Contains(forbiddenFragment, StringComparison.Ordinal),
                 $"Linked pure source {sourcePath} contains '{forbiddenFragment}' and crosses " +
                 "the game/runtime or conditional-test boundary.");
+        }
+
+        AssertPeterHanNamespaceReferencesAreReflectionContractLiterals(
+            sourcePath,
+            source);
+    }
+
+    private static void AssertPeterHanNamespaceReferencesAreReflectionContractLiterals(
+        string sourcePath,
+        string source)
+    {
+        const string thirdPartyNamespacePrefix = "PeterHan.";
+        var referenceIndex = source.IndexOf(
+            thirdPartyNamespacePrefix,
+            StringComparison.Ordinal);
+        if (referenceIndex < 0)
+        {
+            return;
+        }
+
+        var permittedDirectory = Path.Combine(
+            "FastTrackCompatibility",
+            "FeatureContractVerification");
+        Assert.IsTrue(
+            sourcePath.Contains(permittedDirectory, StringComparison.Ordinal),
+            $"Linked pure source {sourcePath} may name PeterHan types only in " +
+            "the dedicated reflection-only feature-contract verifier.");
+
+        while (referenceIndex >= 0)
+        {
+            Assert.IsTrue(
+                referenceIndex > 0 && source[referenceIndex - 1] == '"',
+                $"Linked pure source {sourcePath} contains a PeterHan namespace " +
+                "reference that is not the start of an explicit reflection " +
+                "contract string literal.");
+            referenceIndex = source.IndexOf(
+                thirdPartyNamespacePrefix,
+                referenceIndex + thirdPartyNamespacePrefix.Length,
+                StringComparison.Ordinal);
         }
     }
 

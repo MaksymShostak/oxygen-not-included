@@ -1606,6 +1606,62 @@ public sealed class HarmonyPatchContractVerifierTests
     }
 
     [TestMethod]
+    public void FastTrackCompatibilityInspectorSource_WhenInspected_KeepsFileIdentityIoAndThirdPartyTypesOutsideStructuralVerification()
+    {
+        var inspectorPath = ResolveProductionSourcePath(
+            Path.Combine(
+                "FastTrackCompatibility",
+                "FeatureContractVerification"),
+            "FastTrackCompatibilityInspector.cs");
+        var identityReaderPath = ResolveProductionSourcePath(
+            Path.Combine(
+                "FastTrackCompatibility",
+                "FeatureContractVerification"),
+            "FastTrackAssemblyFileIdentityReader.cs");
+        Assert.IsTrue(File.Exists(inspectorPath));
+        Assert.IsTrue(File.Exists(identityReaderPath));
+        var inspectorSource = File.ReadAllText(inspectorPath);
+        var identityReaderSource = File.ReadAllText(identityReaderPath);
+
+        StringAssert.Contains(
+            inspectorSource,
+            "HarmonyPatchContractVerifier.RequireSingleMatch");
+        StringAssert.Contains(
+            inspectorSource,
+            "IFastTrackAssemblyFileIdentityReader");
+        StringAssert.Contains(
+            inspectorSource,
+            "new Version(0, 18, 4, 0)");
+        Assert.AreEqual(
+            1,
+            CountOrdinalOccurrences(
+                inspectorSource,
+                "assemblyFileIdentityReader.Read("),
+            "One loaded FastTrack assembly must produce one shared physical-file identity read.");
+        Assert.IsFalse(inspectorSource.Contains("using HarmonyLib", StringComparison.Ordinal));
+        Assert.IsFalse(inspectorSource.Contains("using UnityEngine", StringComparison.Ordinal));
+        Assert.IsFalse(inspectorSource.Contains("using PeterHan", StringComparison.Ordinal));
+        Assert.IsFalse(inspectorSource.Contains("AccessTools", StringComparison.Ordinal));
+        Assert.IsFalse(inspectorSource.Contains("Type.GetType", StringComparison.Ordinal));
+        Assert.IsFalse(inspectorSource.Contains("Assembly.GetAssemblies", StringComparison.Ordinal));
+        Assert.IsFalse(inspectorSource.Contains("File.Open", StringComparison.Ordinal));
+        Assert.IsFalse(inspectorSource.Contains("FileVersionInfo", StringComparison.Ordinal));
+        Assert.IsFalse(inspectorSource.Contains("SHA256", StringComparison.Ordinal));
+        Assert.IsFalse(
+            inspectorSource.Contains(
+                "D291C0D58379B77B4A60FB6D386B3783E4061E5C620DEF93502AE984CD657ADD",
+                StringComparison.Ordinal));
+
+        StringAssert.Contains(identityReaderSource, "fastTrackAssembly.Location");
+        StringAssert.Contains(identityReaderSource, "FileVersionInfo.GetVersionInfo");
+        StringAssert.Contains(identityReaderSource, "SHA256.Create()");
+        StringAssert.Contains(identityReaderSource, "ComputeHash(stream)");
+        Assert.IsFalse(identityReaderSource.Contains("using HarmonyLib", StringComparison.Ordinal));
+        Assert.IsFalse(identityReaderSource.Contains("using UnityEngine", StringComparison.Ordinal));
+        Assert.IsFalse(identityReaderSource.Contains("using PeterHan", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
     public void GameDestroyInstancesContract_WhenInstalledShapeMatches_ReturnsExactMethod()
     {
         var method = HarmonyPatchContractVerifier.RequireInstanceMethod(

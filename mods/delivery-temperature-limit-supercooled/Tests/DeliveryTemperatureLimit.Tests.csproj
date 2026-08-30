@@ -23,4 +23,9 @@
     <Compile Include="..\Source\RuntimePatchInstallation\DeliveryTemperatureRuntimePatchGroup.cs" Link="Production\RuntimePatchInstallation\DeliveryTemperatureRuntimePatchGroup.cs" Condition="Exists('..\Source\RuntimePatchInstallation\DeliveryTemperatureRuntimePatchGroup.cs')" />
     <Compile Include="..\Source\RuntimePatchInstallation\DeliveryTemperatureRuntimePatchPlan.cs" Link="Production\RuntimePatchInstallation\DeliveryTemperatureRuntimePatchPlan.cs" Condition="Exists('..\Source\RuntimePatchInstallation\DeliveryTemperatureRuntimePatchPlan.cs')" />
   </ItemGroup>
+  <ItemGroup>
+    <None Update="Fixtures\ThirdParty\FastTrack\0.18.4.0\FastTrack.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>
