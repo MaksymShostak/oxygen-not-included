@@ -19,4 +19,5 @@ internal sealed record BuildResult(
     string DotnetSdkVersion,
     IReadOnlyList<string> StructuredBuildArguments,
     AssemblyVersionInfo? PrimaryAssemblyVersion,
-    bool SourceBytesUnchanged);
+    bool SourceBytesUnchanged,
+    string? PrimaryTargetFrameworkMoniker);

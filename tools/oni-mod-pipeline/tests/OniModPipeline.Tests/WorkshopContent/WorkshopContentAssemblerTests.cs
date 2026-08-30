@@ -42,7 +42,8 @@ public sealed class WorkshopContentAssemblerTests
             "10.0.400",
             [],
             null,
-            true);
+            true,
+            null);
         var stagingRoot = temporaryDirectory.GetPath("candidate", "workshop-content");
         Directory.CreateDirectory(stagingRoot);
 
@@ -347,7 +348,8 @@ public sealed class WorkshopContentAssemblerTests
                 "10.0.400",
                 [],
                 null,
-                true);
+                true,
+                null);
             Profile = new ModProfile(
                 1,
                 Path.Combine(ModRoot, "oni-mod-pipeline.toml"),

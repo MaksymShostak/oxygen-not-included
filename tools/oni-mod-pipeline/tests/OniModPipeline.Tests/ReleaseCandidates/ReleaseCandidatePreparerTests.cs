@@ -88,7 +88,9 @@ public sealed class ReleaseCandidatePreparerTests
         Assert.AreEqual(PreparationFixture.Commit, provenance.RootElement
             .GetProperty("repositoryCommit").GetString());
         Assert.IsTrue(provenance.RootElement.GetProperty("relevantPathsClean").GetBoolean());
-        Assert.AreEqual("net48", provenance.RootElement.GetProperty("targetFramework").GetString());
+        Assert.AreEqual(
+            ".NETStandard,Version=v2.1",
+            provenance.RootElement.GetProperty("targetFramework").GetString());
         Assert.AreEqual("Release", provenance.RootElement.GetProperty("configuration").GetString());
         Assert.AreEqual(
             plan.RootElement.GetProperty("preparedAtUtc").GetDateTimeOffset(),
@@ -201,6 +203,26 @@ public sealed class ReleaseCandidatePreparerTests
 
         Assert.IsFalse(result.IsSuccess);
         Assert.AreEqual(fixture.ExpectedPrimaryDiagnosticId, result.Diagnostics[0].Id);
+        Assert.IsFalse(Directory.Exists(fixture.Layout.CandidateDirectory));
+        AssertTransientSiblingsAreAbsent(fixture.Layout);
+    }
+
+    [TestMethod]
+    public async Task PrepareAsync_WhenCompiledBuildOmitsTargetFrameworkMetadata_FailsClosedAndCleans()
+    {
+        using var fixture = new PreparationFixture(
+            PreparationFailure.MissingTargetFrameworkMetadata);
+
+        var result = await fixture.Preparer.PrepareAsync(
+            fixture.Request,
+            CancellationToken.None);
+
+        Assert.IsFalse(result.IsSuccess);
+        Assert.AreEqual(DiagnosticIds.BuildFailed, result.Diagnostics[0].Id);
+        Assert.Contains(
+            "target-framework metadata",
+            result.Diagnostics[0].Evidence,
+            StringComparison.Ordinal);
         Assert.IsFalse(Directory.Exists(fixture.Layout.CandidateDirectory));
         AssertTransientSiblingsAreAbsent(fixture.Layout);
     }
@@ -334,7 +356,8 @@ public enum PreparationFailure
     PromotionCollision,
     SourceRecheck,
     InvalidBuildContract,
-    InvalidTestContract
+    InvalidTestContract,
+    MissingTargetFrameworkMetadata
 }
 
 internal sealed class PreparationFixture : IDisposable
@@ -650,10 +673,15 @@ internal sealed class FixtureReleaseBuilder(PreparationFixture fixture) :
                     "1.2.3.0",
                     "1.2.3.0",
                     $"1.2.3+{request.SourceCommit[..12]}"),
-                true);
+                true,
+                ".NETStandard,Version=v2.1");
         if (fixture.FailsAt(PreparationFailure.InvalidBuildContract))
         {
             buildResult = buildResult with { SourceBytesUnchanged = false };
+        }
+        else if (fixture.FailsAt(PreparationFailure.MissingTargetFrameworkMetadata))
+        {
+            buildResult = buildResult with { PrimaryTargetFrameworkMoniker = null };
         }
 
         return new OperationResult<BuildResult>(

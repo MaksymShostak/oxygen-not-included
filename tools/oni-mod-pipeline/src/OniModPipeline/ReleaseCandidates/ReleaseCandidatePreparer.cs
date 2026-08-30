@@ -203,7 +203,6 @@ internal sealed class ReleaseCandidateFileSystem : IReleaseCandidateFileSystem
 
 internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
 {
-    private const string TargetFramework = "net48";
     private const string ReleaseConfiguration = "Release";
 
     private static readonly StringComparer HostPathComparer = OperatingSystem.IsWindows()
@@ -786,6 +785,13 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
                 "A compiled mod build did not identify its primary output.");
         }
 
+        if (string.IsNullOrWhiteSpace(build.PrimaryTargetFrameworkMoniker))
+        {
+            return DiagnosticCatalog.BuildFailed(
+                projectPath,
+                "A compiled mod build did not report target-framework metadata from its exact primary output.");
+        }
+
         var primaryPath = Path.GetFullPath(build.PrimaryOutputPath);
         var primaryMatches = build.Outputs.Count(output => HostPathComparer.Equals(
             Path.GetFullPath(output.Path),
@@ -923,7 +929,9 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
             request.Environment.OperatingSystem,
             request.Environment.Architecture,
             build.DotnetSdkVersion,
-            request.Profile.Build is null ? "content-only" : TargetFramework,
+            request.Profile.Build is null
+                ? "content-only"
+                : build.PrimaryTargetFrameworkMoniker!,
             ReleaseConfiguration,
             "${WORKTREE}",
             "${GAME}",

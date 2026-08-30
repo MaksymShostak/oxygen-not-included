@@ -17,6 +17,10 @@ internal sealed class ModBuilder(
 {
     private const string BuildOutputPrefix = "{build-output}/";
 
+    private sealed record PrimaryManagedAssemblyMetadata(
+        AssemblyVersionInfo VersionInfo,
+        string? TargetFrameworkMoniker);
+
     internal async Task<OperationResult<BuildResult>> BuildAsync(
         BuildRequest request,
         CancellationToken cancellationToken)
@@ -60,7 +64,8 @@ internal sealed class ModBuilder(
                     request.Environment.DotnetSdkVersion,
                     [],
                     null,
-                    true);
+                    true,
+                    null);
                 await WriteResultAsync(contentOnlyResult, cancellationToken)
                     .ConfigureAwait(false);
                 return Success(contentOnlyResult);
@@ -252,14 +257,16 @@ internal sealed class ModBuilder(
             var gameReferenceDigests = referenceInventory.GameReferencePaths
                 .Select(CaptureFile)
                 .ToArray();
-            var assemblyVersionResult = ReadAssemblyVersionInfo(
+            var primaryAssemblyMetadataResult = ReadPrimaryManagedAssemblyMetadata(
                 primaryOutputPath,
                 request.ReleaseVersion);
-            if (!assemblyVersionResult.IsSuccess)
+            if (!primaryAssemblyMetadataResult.IsSuccess)
             {
-                return ConvertFailure<AssemblyVersionInfo?, BuildResult>(
-                    assemblyVersionResult);
+                return ConvertFailure<PrimaryManagedAssemblyMetadata?, BuildResult>(
+                    primaryAssemblyMetadataResult);
             }
+
+            var primaryAssemblyMetadata = primaryAssemblyMetadataResult.Value;
 
             var result = new BuildResult(
                 runRoot,
@@ -272,8 +279,9 @@ internal sealed class ModBuilder(
                 request.ReleaseVersion,
                 request.Environment.DotnetSdkVersion,
                 buildArguments,
-                assemblyVersionResult.Value,
-                true);
+                primaryAssemblyMetadata?.VersionInfo,
+                true,
+                primaryAssemblyMetadata?.TargetFrameworkMoniker);
             await WriteResultAsync(result, cancellationToken).ConfigureAwait(false);
             return Success(result);
         }
@@ -642,13 +650,16 @@ internal sealed class ModBuilder(
         }
     }
 
-    private static OperationResult<AssemblyVersionInfo?> ReadAssemblyVersionInfo(
+    private static OperationResult<PrimaryManagedAssemblyMetadata?> ReadPrimaryManagedAssemblyMetadata(
         string primaryOutputPath,
         string releaseVersion)
     {
-        AssemblyVersionInfo? versionInfo;
+        PrimaryManagedAssemblyMetadata? assemblyMetadata;
         try
         {
+            // The compiled artifact is authoritative. Command-line MSBuild
+            // properties can change the effective target independently of the
+            // project file, so provenance must come from the exact packaged bytes.
             using var stream = new FileStream(
                 primaryOutputPath,
                 FileMode.Open,
@@ -659,18 +670,19 @@ internal sealed class ModBuilder(
             using var peReader = new PEReader(stream, PEStreamOptions.LeaveOpen);
             if (!peReader.HasMetadata)
             {
-                return Success<AssemblyVersionInfo?>(null);
+                return Success<PrimaryManagedAssemblyMetadata?>(null);
             }
 
             var metadata = peReader.GetMetadataReader();
             if (!metadata.IsAssembly)
             {
-                return Success<AssemblyVersionInfo?>(null);
+                return Success<PrimaryManagedAssemblyMetadata?>(null);
             }
 
             var assembly = metadata.GetAssemblyDefinition();
             string? fileVersion = null;
             string? informationalVersion = null;
+            string? targetFrameworkMoniker = null;
             foreach (var attributeHandle in assembly.GetCustomAttributes())
             {
                 var attribute = metadata.GetCustomAttribute(attributeHandle);
@@ -684,33 +696,42 @@ internal sealed class ModBuilder(
                 {
                     informationalVersion = ReadFixedStringAttribute(metadata, attribute);
                 }
+                else if (attributeName ==
+                    "System.Runtime.Versioning.TargetFrameworkAttribute")
+                {
+                    targetFrameworkMoniker = ReadFixedStringAttribute(
+                        metadata,
+                        attribute);
+                }
             }
 
-            versionInfo = new AssemblyVersionInfo(
-                assembly.Version.ToString(),
-                fileVersion,
-                informationalVersion);
+            assemblyMetadata = new PrimaryManagedAssemblyMetadata(
+                new AssemblyVersionInfo(
+                    assembly.Version.ToString(),
+                    fileVersion,
+                    informationalVersion),
+                targetFrameworkMoniker);
         }
         catch (BadImageFormatException)
         {
-            return Success<AssemblyVersionInfo?>(null);
+            return Success<PrimaryManagedAssemblyMetadata?>(null);
         }
 
         var informationMatches =
             string.Equals(
-                versionInfo.InformationalVersion,
+                assemblyMetadata.VersionInfo.InformationalVersion,
                 releaseVersion,
                 StringComparison.Ordinal) ||
-            versionInfo.InformationalVersion?.StartsWith(
+            assemblyMetadata.VersionInfo.InformationalVersion?.StartsWith(
                 $"{releaseVersion}+",
                 StringComparison.Ordinal) == true;
         return informationMatches
-            ? Success<AssemblyVersionInfo?>(versionInfo)
-            : new OperationResult<AssemblyVersionInfo?>(
+            ? Success<PrimaryManagedAssemblyMetadata?>(assemblyMetadata)
+            : new OperationResult<PrimaryManagedAssemblyMetadata?>(
                 null,
                 [DiagnosticCatalog.BuildFailed(
                     primaryOutputPath,
-                    $"Managed primary output informational version '{versionInfo.InformationalVersion ?? "<missing>"}' does not begin with validated release version '{releaseVersion}'.")],
+                    $"Managed primary output informational version '{assemblyMetadata.VersionInfo.InformationalVersion ?? "<missing>"}' does not begin with validated release version '{releaseVersion}'.")],
                 PipelineExitCode.BuildOrTestFailed);
     }
 

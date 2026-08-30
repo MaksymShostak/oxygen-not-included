@@ -205,6 +205,44 @@ public sealed class ModBuilderTests
     }
 
     [TestMethod]
+    public async Task BuildAsync_WhenPrimaryOutputIsManagedAssembly_RecordsTargetFrameworkMonikerFromArtifactMetadata()
+    {
+        using var fixture = new BuildFixture();
+        var assembly = typeof(ModBuilderTests).Assembly;
+        var informationalVersion = assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()!
+            .InformationalVersion;
+        var releaseVersion = informationalVersion.Split('+')[0];
+        fixture.ProcessRunner.BuildAction = request =>
+        {
+            var destination = fixture.GetPrimaryOutputPath(request);
+            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+            File.Copy(assembly.Location, destination);
+        };
+        var builder = new ModBuilder(fixture.ProcessRunner, new Utf8ArtifactWriter());
+
+        var result = await builder.BuildAsync(
+            fixture.CreateRequest(releaseVersion),
+            CancellationToken.None);
+
+        Assert.AreEqual(
+            PipelineExitCode.Success,
+            result.ExitCode,
+            string.Join(Environment.NewLine, result.Diagnostics.Select(d => d.Evidence)));
+        using var buildResultJson = JsonDocument.Parse(
+            await File.ReadAllBytesAsync(
+                Path.Combine(fixture.RunRoot, "build-result.json")));
+        Assert.IsTrue(
+            buildResultJson.RootElement.TryGetProperty(
+                "primaryTargetFrameworkMoniker",
+                out var targetFrameworkMoniker),
+            "The build result must carry target-framework evidence read from the exact primary assembly.");
+        Assert.AreEqual(
+            ".NETCoreApp,Version=v10.0",
+            targetFrameworkMoniker.GetString());
+    }
+
+    [TestMethod]
     public async Task BuildAsync_WhenProfileIsContentOnly_ProducesEmptySuccessfulBuildResult()
     {
         using var fixture = new BuildFixture(hasBuild: false);
