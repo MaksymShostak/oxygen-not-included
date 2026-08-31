@@ -8,6 +8,15 @@
 - **Privacy model:** Local generation, allowlisted collection, explicit extended-log action, user-reviewed upload, no telemetry
 - **Development model:** Focused TDD followed by the repository-local ONI Mod Pipeline gates
 
+> **Runtime-activation supersession:** The approved
+> [Lifecycle-Contained Activation Design](2026-08-31-temperature-limit-lifecycle-contained-activation-design.md)
+> supersedes this document's lifecycle exception propagation, Harmony
+> installation, settings-capture, and report-schema assumptions. The manual
+> support flows and community-health decisions here remain in force. Report
+> schema version 1 is the implemented historical baseline; the activation work
+> advances new reports to the availability-aware version 2 contract defined by
+> the superseding specification.
+
 ## 1. Decision
 
 Implement one low-friction support-reporting subsystem and a matching GitHub community-health surface.
@@ -47,7 +56,7 @@ The implementation must:
 3. Work from the Mods/options screen without requiring a colony to be loaded.
 4. Initialize reporting before risky Harmony installation so a later initialization failure can still be described where ONI leaves the options entry available.
 5. Preserve active loaded-mod order and publish no local installation paths.
-6. Capture the installed runtime patch plan and FastTrack compatibility result from their existing semantic owners rather than re-inspecting Harmony or FastTrack during report generation.
+6. Capture the installed runtime patch plan and generic declared-integration outcomes from their existing semantic owners rather than re-inspecting Harmony or any third-party mod during report generation.
 7. Keep report generation off gameplay hot paths and run only after an explicit player action.
 8. Bound diagnostic count, message length, URL length, optional log length, and total report size.
 9. Show a visible success or failure result and leave a recoverable local file even if opening GitHub or the directory fails.
@@ -134,8 +143,11 @@ The core accepts already-observed facts. It never reads the game, filesystem, cl
 - Unity/game version, platform, architecture, locale, persistent-data path, and console-log path where available;
 - active DLC/content identifiers;
 - mod static ID, package/assembly versions, title, active state, and loaded-mod order through supported `KMod` members;
-- `DeliveryTemperatureLimitOptions.Instance`;
-- the existing runtime patch plan and FastTrack compatibility snapshot; and
+- the already captured availability-aware activation settings outcome (the
+  version 1 implementation reads `DeliveryTemperatureLimitOptions.Instance`
+  directly, but the superseding activation design removes that repeated
+  access);
+- the existing runtime patch plan and generic declared-integration snapshots; and
 - the bounded mod diagnostic recorder.
 
 It serializes the completed document with the game-provided Newtonsoft.Json reference, writes UTF-8 without a BOM to a unique temporary file in the destination directory, and atomically promotes that file to its final unique name. It never overwrites an existing report.
@@ -144,13 +156,32 @@ The adapter also owns clipboard, directory reveal, GitHub URL opening, and visib
 
 ### 6.4 Runtime integration
 
-`DeliveryTemperatureLimitMod.OnLoad` initializes the reporter before runtime patch installation. Both topology-independent and topology-dependent installation calls record a stable failure event before rethrowing an installation exception; runtime behavior remains fail-closed.
-
-`OnAllModsLoaded` first publishes a sanitized active-mod snapshot, then performs the existing compatibility inspection and installation. On success, `DeliveryTemperatureRuntimePatchInstaller` publishes a read-only support snapshot from the already-verified plan and compatibility report. Reporting never performs a second Harmony authority scan.
+The superseding lifecycle-contained activation design owns runtime integration.
+`DeliveryTemperatureLimitMod.OnLoad` performs contained framework and
+diagnostic initialization without gameplay Harmony mutation.
+`OnAllModsLoaded` publishes the sanitized support snapshot, then performs one
+completely prepared gameplay activation attempt. A managed activation
+exception caught at either Klei lifecycle boundary is not deliberately
+rethrown. On success, the runtime owner publishes a read-only support snapshot
+from the already verified plan and declared-integration outcomes. On failure, reporting
+consumes the immutable activation failure and settings outcomes without a
+second Harmony/external-mod inspection or options-singleton access.
 
 Existing noteworthy `Debug.Log*` sites are routed through a small diagnostic method that preserves their current log output and additionally stores a bounded structured event. This first version records integration and compatibility milestones/failures, not every domain exception.
 
-## 7. Report schema version 1
+## 7. Report schema version 1 and approved version 2 evolution
+
+Version 1 below records the implemented manual-report baseline. The
+superseding activation design advances all newly generated reports to schema
+version 2, makes activation settings availability-aware, and records gameplay
+activation, patch-compensation, and optional activation-failure outcomes. An
+automatically generated activation-failure artifact remains a standard report
+without `Player.log`; no third report kind is added. Existing version 1 files
+remain valid historical artifacts and are not rewritten. Version 2 also
+replaces the singular version-1 FastTrack projection with the generic bounded
+`runtime.externalModIntegrations` collection defined by the superseding
+specification, so later declared integrations do not require another schema
+shape.
 
 The JSON root contains:
 
@@ -169,7 +200,7 @@ The JSON root contains:
 
 The report uses explicit `unavailable` states instead of empty strings or empty collections where absence has diagnostic meaning. A successfully captured empty DLC list means that no DLC is active; a null or failed DLC read remains unavailable and is never presented as `none`. Lists have deterministic order. It retains at most 128 distinct diagnostic entries, caps each stored diagnostic message at 2,048 characters, and retains at most 512 active-mod entries while recording any omitted count. A standard report targets well below 1 MiB. An extended report reads at most the most recent 6 MiB of raw `Player.log` data and must keep the final JSON below 12 MiB, safely below GitHub's current 25 MiB JSON upload limit; if redaction/JSON expansion would cross 12 MiB, the log content is shortened again and the additional truncation is disclosed.
 
-The compact URL/clipboard summary contains only the report ID, report filename, ONI build/branch, Temperature Limit version, platform, DLC IDs or their explicit unavailable state, FastTrack state, and whether `Player.log` is included. It does not contain the active-mod list or raw diagnostics. The URL builder percent-encodes every value and keeps the complete issue URL at or below 1,800 characters, shortening only the human-readable diagnostic summary and recording that shortening in the generated report.
+The compact URL/clipboard summary contains only the report ID, report filename, ONI build/branch, Temperature Limit version, platform, DLC IDs or their explicit unavailable state, bounded declared-integration states, and whether `Player.log` is included. It does not contain the active-mod list or raw diagnostics. The URL builder percent-encodes every value and keeps the complete issue URL at or below 1,800 characters, shortening only the human-readable diagnostic summary and recording that shortening in the generated report.
 
 ## 8. Privacy and security invariants
 

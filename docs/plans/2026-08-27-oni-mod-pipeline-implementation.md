@@ -1,6 +1,6 @@
 # ONI Mod Pipeline Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** Execute this plan task-by-task in dependency order. Follow the repository's test-driven-development and formal review gates, and use the checkboxes (`- [ ]`) to track progress.
 
 **Goal:** Build a local-first .NET 10 CLI that takes any conventionally packaged ONI mod from validated source through a fully tested, hashed, upload-ready Workshop release candidate, while keeping the authenticated ONI Uploader's final Publish action human-only.
 

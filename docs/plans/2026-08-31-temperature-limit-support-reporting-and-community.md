@@ -1,6 +1,6 @@
 # Temperature Limit Support Reporting and Community Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** Execute this plan task-by-task in dependency order. Follow the repository's test-driven-development and formal review gates, and use the checkboxes (`- [ ]`) to track progress.
 
 **Goal:** Give Temperature Limit players a local, privacy-conscious, one-file support reporter and give the repository concise issue, support, contribution, and pull-request paths that consume its output.
 
