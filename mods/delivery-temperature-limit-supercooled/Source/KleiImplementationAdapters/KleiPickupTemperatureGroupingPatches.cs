@@ -102,7 +102,7 @@ namespace DeliveryTemperatureLimit
         }
 
         internal static void UpdatePickupsPrefix(
-            Navigator navigator,
+            Navigator __0,
             out PickupTemperatureGroupingInvocation __state)
         {
             __state = PickupTemperatureGroupingInvocation.Inactive;
@@ -125,7 +125,7 @@ namespace DeliveryTemperatureLimit
             WorldParentTopologySnapshot worldTopology =
                 session.WorldParentTopology.CaptureSnapshot();
             int? resolvedParentWorldId = ResolveNavigatorParentWorldId(
-                navigator,
+                __0,
                 worldTopology);
             FetchTemperatureEligibilitySnapshot? eligibilitySnapshot =
                 session.CurrentFetchTemperatureEligibility;

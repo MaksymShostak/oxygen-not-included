@@ -74,6 +74,63 @@ namespace DeliveryTemperatureLimit
         /// </summary>
         internal string? StatusCompatibilityDiagnostic { get; }
 
+        internal SupportRuntimeSnapshot CreateSupportReportSnapshot(
+            string installationState)
+        {
+            var selectedPatchGroups = new List<string>(
+                OrderedPatchGroups.Count);
+            for (int index = 0; index < OrderedPatchGroups.Count; index++)
+            {
+                selectedPatchGroups.Add(OrderedPatchGroups[index].ToString());
+            }
+
+            var features = new List<SupportFastTrackFeatureSnapshot>(3);
+            FastTrackFeatureCompatibility worldInventory =
+                fastTrackCompatibility.GetFeature(
+                    FastTrackFeature.WorldInventory);
+            FastTrackFeatureCompatibility pickupGrouping =
+                fastTrackCompatibility.GetFeature(
+                    FastTrackFeature.PickupGrouping);
+            FastTrackFeatureCompatibility directDelivery =
+                fastTrackCompatibility.GetFeature(
+                    FastTrackFeature.DirectDeliveryEligibility);
+            features.Add(CreateSupportFeatureSnapshot(worldInventory));
+            features.Add(CreateSupportFeatureSnapshot(pickupGrouping));
+            features.Add(CreateSupportFeatureSnapshot(directDelivery));
+
+            var fastTrack = new SupportFastTrackSnapshot(
+                GetFastTrackSupportState(
+                    worldInventory.State,
+                    pickupGrouping.State,
+                    directDelivery.State),
+                CreateOptionalSupportFact(
+                    fastTrackCompatibility.AssemblyIdentity,
+                    "FastTrack assembly identity was not observed."),
+                CreateOptionalSupportFact(
+                    fastTrackCompatibility.AssemblyVersion,
+                    "FastTrack assembly version was not observed."),
+                CreateOptionalSupportFact(
+                    fastTrackCompatibility.FileVersion,
+                    "FastTrack file version was not available (" +
+                    fastTrackCompatibility.AssemblyFileIdentityReadState +
+                    ")."),
+                CreateOptionalSupportFact(
+                    fastTrackCompatibility.AssemblySha256,
+                    "FastTrack assembly SHA-256 was not available (" +
+                    fastTrackCompatibility.AssemblyFileIdentityReadState +
+                    ")."),
+                features);
+
+            return SupportRuntimeSnapshot.Available(
+                installationState,
+                selectedPatchGroups,
+                StatusCompatibilityDiagnostic == null
+                    ? null
+                    : CreateSupportStatusCompatibilityDiagnostic(
+                        worldInventory),
+                fastTrack);
+        }
+
         internal static DeliveryTemperatureRuntimePatchPlan Create(
             bool checkTemperatureForStatusItems,
             FastTrackCompatibilityReport fastTrackCompatibility)
@@ -140,6 +197,99 @@ namespace DeliveryTemperatureLimit
                     selectedPatchGroups),
                 statusCompatibilityDiagnostic,
                 fastTrackCompatibility);
+        }
+
+        private static SupportFastTrackFeatureSnapshot
+            CreateSupportFeatureSnapshot(
+                FastTrackFeatureCompatibility compatibility) =>
+            new SupportFastTrackFeatureSnapshot(
+                compatibility.Feature.ToString(),
+                GetFeatureSupportState(compatibility.State),
+                compatibility.FailureCode?.ToString(),
+                compatibility.FailureMessage == null
+                    ? null
+                    : CreateSupportCompatibilityFailureMessage(
+                        compatibility));
+
+        private static string CreateSupportStatusCompatibilityDiagnostic(
+            FastTrackFeatureCompatibility compatibility) =>
+            "Temperature-aware resource-status integration is disabled for " +
+            "this loaded game; existing ONI status availability remains " +
+            "unchanged. " +
+            CreateSupportCompatibilityFailureMessage(compatibility);
+
+        private static string CreateSupportCompatibilityFailureMessage(
+            FastTrackFeatureCompatibility compatibility) =>
+            "FastTrack " +
+            compatibility.Feature +
+            " compatibility verification failed (" +
+            compatibility.FailureCode +
+            ").";
+
+        private static SupportReportFact CreateOptionalSupportFact(
+            object? value,
+            string unavailableReason) =>
+            value == null
+                ? SupportReportFact.Unavailable(unavailableReason)
+                : SupportReportFact.Available(
+                    value.ToString() ??
+                    throw new InvalidOperationException(
+                        "An observed FastTrack identity value could not be formatted."));
+
+        private static string GetFastTrackSupportState(
+            FastTrackFeatureCompatibilityState worldInventory,
+            FastTrackFeatureCompatibilityState pickupGrouping,
+            FastTrackFeatureCompatibilityState directDelivery)
+        {
+            if (worldInventory ==
+                    FastTrackFeatureCompatibilityState.ModNotLoaded &&
+                pickupGrouping ==
+                    FastTrackFeatureCompatibilityState.ModNotLoaded &&
+                directDelivery ==
+                    FastTrackFeatureCompatibilityState.ModNotLoaded)
+            {
+                return "not-loaded";
+            }
+
+            if (worldInventory ==
+                    FastTrackFeatureCompatibilityState.Incompatible ||
+                pickupGrouping ==
+                    FastTrackFeatureCompatibilityState.Incompatible ||
+                directDelivery ==
+                    FastTrackFeatureCompatibilityState.Incompatible)
+            {
+                return "incompatible";
+            }
+
+            if (worldInventory == FastTrackFeatureCompatibilityState.Ready ||
+                pickupGrouping == FastTrackFeatureCompatibilityState.Ready ||
+                directDelivery == FastTrackFeatureCompatibilityState.Ready)
+            {
+                return "ready";
+            }
+
+            return "replacement-inactive";
+        }
+
+        private static string GetFeatureSupportState(
+            FastTrackFeatureCompatibilityState state)
+        {
+            switch (state)
+            {
+                case FastTrackFeatureCompatibilityState.ModNotLoaded:
+                    return "mod-not-loaded";
+                case FastTrackFeatureCompatibilityState.ReplacementInactive:
+                    return "replacement-inactive";
+                case FastTrackFeatureCompatibilityState.Ready:
+                    return "ready";
+                case FastTrackFeatureCompatibilityState.Incompatible:
+                    return "incompatible";
+                default:
+                    throw new ArgumentOutOfRangeException(
+                        nameof(state),
+                        state,
+                        "Unknown FastTrack compatibility state.");
+            }
         }
 
         /// <summary>
@@ -684,9 +834,18 @@ namespace DeliveryTemperatureLimit
             "; failure code " +
             FormatOptional(feature.FailureCode) +
             "; structural failure: " +
-            FormatOptional(feature.FailureMessage) +
+            FormatOptional(CreateRuntimeCompatibilityFailureEvidence(feature)) +
             ". FastTrack file version 0.18.4.0 support is best-efforts and " +
             "applies only to that verified version and member shape.";
+
+        private static string? CreateRuntimeCompatibilityFailureEvidence(
+            FastTrackFeatureCompatibility feature) =>
+            feature.FailureCode ==
+                FastTrackFeatureCompatibilityFailureCode
+                    .AssemblyFileIdentityUnavailable
+                ? "The FastTrack assembly file identity was unavailable; " +
+                  "raw file-system failure text was omitted."
+                : feature.FailureMessage;
 
         private static string FormatOptional(object? value) =>
             value == null

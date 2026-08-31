@@ -9,6 +9,7 @@ public sealed class LinkedProductionSourceBoundaryContractTests
 {
     private static readonly string[] ApprovedCompileIncludes =
     [
+        @"..\Source\SupportReporting\Core\**\*.cs",
         @"..\Source\TemperatureLimitedDeliveryTargets\TemperatureLimitedDeliveryTargetPrefabConfigurator.cs",
         @"..\Source\TemperatureConstraints\**\*.cs",
         @"..\Source\WorldParentTopology\**\*.cs",

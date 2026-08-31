@@ -42,12 +42,24 @@ public sealed class IntentionalRuntimeContractTests
         "OnAllModsLoaded"
     ];
 
-    private static readonly string[] IntentionalOptionPropertyNames =
+    private static readonly string[] IntentionalPersistedOptionPropertyNames =
     [
         "CheckTemperatureForStatusItems",
         "UnderConstructionLimit",
         "MaxConstructionTemperature",
         "MinConstructionTemperature"
+    ];
+
+    private static readonly string[] IntentionalSupportActionPropertyNames =
+    [
+        "CreateSupportReport",
+        "CreateExtendedSupportReport"
+    ];
+
+    private static readonly string[] IntentionalOptionPropertyNames =
+    [
+        .. IntentionalPersistedOptionPropertyNames,
+        .. IntentionalSupportActionPropertyNames
     ];
 
     private static readonly string[] IntentionalOptionMemberNames =
@@ -56,6 +68,8 @@ public sealed class IntentionalRuntimeContractTests
         "UnderConstructionLimit",
         "MaxConstructionTemperature",
         "MinConstructionTemperature",
+        "CreateSupportReport",
+        "CreateExtendedSupportReport",
         "ToString"
     ];
 
@@ -209,7 +223,7 @@ public sealed class IntentionalRuntimeContractTests
             "implementation types back into the assembly's public contract.");
         StringAssert.Contains(source, "CheckTemperatureForStatusItems = true;");
         StringAssert.Contains(source, "UnderConstructionLimit = false;");
-        foreach (string propertyName in IntentionalOptionPropertyNames)
+        foreach (string propertyName in IntentionalPersistedOptionPropertyNames)
         {
             Assert.AreEqual(
                 1,
@@ -220,6 +234,45 @@ public sealed class IntentionalRuntimeContractTests
                     @"\s*\{\s*get;\s*set;\s*\}",
                     RegexOptions.CultureInvariant).Count,
                 $"Option {propertyName} must be one exact public opt-in JSON property.");
+        }
+
+        string[] declaredOptionPropertyNames = Regex.Matches(
+                source,
+                @"public\s+(?:bool|int|System\.Action<object>)\s+([A-Za-z]\w*)\s*(?:\{\s*get;\s*set;\s*\}|=>)",
+                RegexOptions.CultureInvariant)
+            .Select(match => match.Groups[1].Value)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToArray();
+        CollectionAssert.AreEqual(
+            IntentionalOptionPropertyNames
+                .OrderBy(name => name, StringComparer.Ordinal)
+                .ToArray(),
+            declaredOptionPropertyNames,
+            "The options type must expose exactly the four persisted values and " +
+            "the two approved non-persisted support actions.");
+
+        foreach (string propertyName in IntentionalSupportActionPropertyNames)
+        {
+            Assert.AreEqual(
+                1,
+                Regex.Matches(
+                    source,
+                    @"\[Option\(\s*""[^""]+"",\s*""[^""]+"",\s*""Support""\)\]\s*" +
+                    @"\[JsonIgnore\]\s*public\s+System\.Action<object>\s+" +
+                    Regex.Escape(propertyName) +
+                    @"\s*=>",
+                    RegexOptions.CultureInvariant).Count,
+                $"Support action {propertyName} must be one read-only " +
+                "System.Action<object>, which PLib 4.24 maps to a button, " +
+                "with [Option] and [JsonIgnore].");
+            Assert.AreEqual(
+                0,
+                Regex.Matches(
+                    source,
+                    @"\[JsonProperty\][\s\S]{0,200}public\s+System\.Action<object>\s+" +
+                    Regex.Escape(propertyName),
+                    RegexOptions.CultureInvariant).Count,
+                $"Support action {propertyName} must not be persisted.");
         }
     }
 

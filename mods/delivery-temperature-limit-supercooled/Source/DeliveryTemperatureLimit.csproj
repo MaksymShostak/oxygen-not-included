@@ -42,6 +42,10 @@
       <HintPath>$(OniManagedAssemblyDirectory)/UnityEngine.CoreModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>$(OniManagedAssemblyDirectory)/UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>$(OniManagedAssemblyDirectory)/UnityEngine.UI.dll</HintPath>
       <Private>false</Private>

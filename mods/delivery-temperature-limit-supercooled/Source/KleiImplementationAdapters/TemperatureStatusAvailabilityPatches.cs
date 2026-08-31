@@ -26,7 +26,7 @@ namespace DeliveryTemperatureLimit
                 "Render200ms",
                 DeclaredMemberVisibility.Public,
                 typeof(void),
-                Array.Empty<Type>());
+                new[] { typeof(float) });
 
         internal static IEnumerable<CodeInstruction> Render200msTranspiler(
             IEnumerable<CodeInstruction> instructions)

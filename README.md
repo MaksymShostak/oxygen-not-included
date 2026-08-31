@@ -58,6 +58,17 @@ You can adjust mod settings directly in the game Options menu:
 
 ---
 
+## Support and contributing
+
+Use the in-game mod options to create a local support report without manually finding game versions, enabled DLCs, settings, or active mods. The standard report does not read `Player.log`; the clearly labeled extended report includes a bounded, best-effort-redacted copy for harder failures. Nothing is uploaded automatically.
+
+- [Report a bug](https://github.com/MaksymShostak/oxygen-not-included/issues/new?template=temperature-limit-bug.yml)
+- [Suggest a feature](https://github.com/MaksymShostak/oxygen-not-included/issues/new?template=temperature-limit-feature.yml)
+- [Support and privacy details](SUPPORT.md)
+- [Contributing](CONTRIBUTING.md)
+
+---
+
 ## Development and release workflow
 
 [ONI Mod Pipeline](docs/guides/oni-mod-development-workflow.md) is the repository's single supported path for validating, building, testing, installing, and preparing this mod for a manual Workshop upload. The user-facing command is `oni-mod-pipeline`.

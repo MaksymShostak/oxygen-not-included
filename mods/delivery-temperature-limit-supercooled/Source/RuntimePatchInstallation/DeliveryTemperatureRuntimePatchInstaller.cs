@@ -28,6 +28,20 @@ namespace DeliveryTemperatureLimit
         private static WeakReference<Game>? mostRecentlyEvaluatedGameLoad;
         private static bool mostRecentGameLoadWasAuthorized;
 
+        internal static SupportRuntimeSnapshot CaptureSupportReportSnapshot()
+        {
+            lock (InstallationSynchronization)
+            {
+                string installationState = runtimeInstallerState.ToString();
+                return installedPatchPlan != null
+                    ? installedPatchPlan.CreateSupportReportSnapshot(
+                        installationState)
+                    : SupportRuntimeSnapshot.Unavailable(
+                        installationState,
+                        "No verified runtime patch plan was published.");
+            }
+        }
+
         internal static void InstallLoadedModTopologyIndependentPatches(
             Harmony harmony)
         {
@@ -124,7 +138,9 @@ namespace DeliveryTemperatureLimit
 
                     if (patchPlan.StatusCompatibilityDiagnostic != null)
                     {
-                        Debug.LogError(
+                        DeliveryTemperatureSupportReporter.Record(
+                            "DTL-STATUS-COMPATIBILITY-DEGRADED",
+                            SupportDiagnosticSeverity.Error,
                             "Delivery Temperature Limit: " +
                             patchPlan.StatusCompatibilityDiagnostic);
                     }
@@ -179,10 +195,12 @@ namespace DeliveryTemperatureLimit
                 catch (HarmonyPatchContractViolationException exception)
                 {
                     CacheGameLoadAuthorityOutcome(game, wasAuthorized: false);
-                    Debug.LogError(
+                    DeliveryTemperatureSupportReporter.Record(
+                        "DTL-GAME-LOAD-AUTHORITY-REJECTED",
+                        SupportDiagnosticSeverity.Error,
                         "Delivery Temperature Limit rejected this game load " +
                         "because selected patch authority changed. No game " +
-                        "session or fallback was published. " +
+                        "session or fallback was published.",
                         exception);
                     return false;
                 }

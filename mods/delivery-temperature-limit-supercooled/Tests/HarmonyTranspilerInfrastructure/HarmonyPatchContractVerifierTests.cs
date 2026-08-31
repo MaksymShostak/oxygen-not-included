@@ -1,5 +1,6 @@
 using DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
 using System.Reflection;
+using System.Text.RegularExpressions;
 
 namespace DeliveryTemperatureLimit.Tests.HarmonyTranspilerInfrastructure;
 
@@ -844,13 +845,59 @@ public sealed class HarmonyPatchContractVerifierTests
             "Render200ms",
             DeclaredMemberVisibility.Public,
             typeof(void),
-            Array.Empty<Type>());
+            [typeof(float)]);
 
         AssertExactInstanceMethod(
             method,
             typeof(FetchListStatusRenderTargetContractFixture),
             isPublic: true,
-            Array.Empty<Type>());
+            [typeof(float)]);
+    }
+
+    [TestMethod]
+    public void FetchListStatusRenderContract_WhenInstalledOniAssemblyIsInspected_MatchesSingleFloatParameter()
+    {
+        string? managedAssemblyDirectory = Environment.GetEnvironmentVariable(
+            "ONI_MANAGED_ASSEMBLY_DIRECTORY");
+        if (string.IsNullOrWhiteSpace(managedAssemblyDirectory))
+        {
+            throw new AssertFailedException(
+                "The ONI mod pipeline must provide " +
+                "ONI_MANAGED_ASSEMBLY_DIRECTORY.");
+        }
+
+        string assemblyPath = DeliveryTemperatureAssemblyMetadataReader
+            .ResolveManagedAssemblyPath(
+                managedAssemblyDirectory,
+                "Assembly-CSharp.dll");
+        DeliveryTemperatureAssemblyMetadataReader
+            .AssertPublicInstanceVoidMethodWithSingleFloatParameter(
+                assemblyPath,
+                "FetchListStatusItemUpdater",
+                "Render200ms");
+    }
+
+    [TestMethod]
+    public void FetchListStatusRenderTargetContract_WhenSourceIsInspected_UsesSingleFloatParameter()
+    {
+        string adapterPath = ResolveProductionSourcePath(
+            "KleiImplementationAdapters",
+            "TemperatureStatusAvailabilityPatches.cs");
+        string source = File.ReadAllText(adapterPath);
+        const string expectedContractPattern =
+            @"typeof\(FetchListStatusItemUpdater\),\s*" +
+            @"""Render200ms"",\s*" +
+            @"DeclaredMemberVisibility\.Public,\s*" +
+            @"typeof\(void\),\s*" +
+            @"new\[\]\s*\{\s*typeof\(float\)\s*\}\s*\)";
+
+        Assert.IsTrue(
+            Regex.IsMatch(
+                source,
+                expectedContractPattern,
+                RegexOptions.CultureInvariant),
+            "The Render200ms resolver must model the installed public instance " +
+            "void method's single System.Single parameter.");
     }
 
     [TestMethod]
@@ -1027,6 +1074,48 @@ public sealed class HarmonyPatchContractVerifierTests
         Assert.IsFalse(source.Contains("operand.ToString", StringComparison.Ordinal));
         Assert.IsFalse(source.Contains("HashSet<Tag>[]", StringComparison.Ordinal));
         Assert.IsFalse(source.Contains("storageFetchableTagsPerTemperatureIndex", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void AuthoritativeFetchMapFieldContract_WhenComparedWithInstalledOni_UsesCurrentPublicInstanceField()
+    {
+        string? managedAssemblyDirectory = Environment.GetEnvironmentVariable(
+            "ONI_MANAGED_ASSEMBLY_DIRECTORY");
+        if (string.IsNullOrWhiteSpace(managedAssemblyDirectory))
+        {
+            throw new AssertFailedException(
+                "The ONI mod pipeline must provide " +
+                "ONI_MANAGED_ASSEMBLY_DIRECTORY.");
+        }
+
+        string assemblyPath = DeliveryTemperatureAssemblyMetadataReader
+            .ResolveManagedAssemblyPath(
+                managedAssemblyDirectory,
+                "Assembly-CSharp.dll");
+        DeliveryTemperatureAssemblyMetadataReader.AssertPublicInstanceField(
+            assemblyPath,
+            "GlobalChoreProvider",
+            "fetchMap");
+
+        string adapterPath = ResolveProductionSourcePath(
+            "KleiImplementationAdapters",
+            "KleiAuthoritativeFetchTemperatureEligibilityPatches.cs");
+        string source = File.ReadAllText(adapterPath);
+        const string expectedContractPattern =
+            @"RequireField\(\s*" +
+            @"typeof\(GlobalChoreProvider\),\s*" +
+            @"""fetchMap"",\s*" +
+            @"DeclaredMemberVisibility\.Public,\s*" +
+            @"FieldStorageKind\.Instance,\s*" +
+            @"typeof\(Dictionary<int,\s*List<FetchChore>>\)\s*\)";
+
+        Assert.IsTrue(
+            Regex.IsMatch(
+                source,
+                expectedContractPattern,
+                RegexOptions.CultureInvariant),
+            "The authoritative fetch-map reflection contract must use the " +
+            "public instance visibility verified in the installed ONI assembly.");
     }
 
     [TestMethod]
@@ -1225,6 +1314,30 @@ public sealed class HarmonyPatchContractVerifierTests
         Assert.IsFalse(source.Contains("AsyncLocal", StringComparison.Ordinal));
         Assert.IsFalse(source.Contains(".PartitionDefinitionId", StringComparison.Ordinal));
         Assert.IsFalse(source.Contains(".IntervalOrdinal", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
+    public void KleiPickupGroupingPrefix_WhenSourceIsInspected_BindsNavigatorByVerifiedPosition()
+    {
+        string adapterPath = ResolveProductionSourcePath(
+            "KleiImplementationAdapters",
+            "KleiPickupTemperatureGroupingPatches.cs");
+        string source = File.ReadAllText(adapterPath);
+
+        Assert.IsTrue(
+            Regex.IsMatch(
+                source,
+                @"UpdatePickupsPrefix\s*\(\s*Navigator\s+__0\s*,",
+                RegexOptions.CultureInvariant),
+            "The prefix must bind Harmony's verified first target argument by " +
+            "position so metadata-only parameter renames cannot break patching.");
+        Assert.IsTrue(
+            Regex.IsMatch(
+                source,
+                @"ResolveNavigatorParentWorldId\s*\(\s*__0\s*,",
+                RegexOptions.CultureInvariant),
+            "The positionally injected Navigator must remain the parent-world " +
+            "resolution input.");
     }
 
     [TestMethod]
@@ -1463,6 +1576,30 @@ public sealed class HarmonyPatchContractVerifierTests
         Assert.AreEqual(4, anchors.ResourceTagLocalIndex);
         Assert.AreEqual(5, anchors.AccumulatedAmountLocalIndex);
         Assert.AreEqual(7, anchors.PickupableLocalIndex);
+    }
+
+    [TestMethod]
+    public void WorldInventoryEnumeratorContract_WhenSourceIsInspected_UsesInstalledInterfaceDispatch()
+    {
+        string adapterPath = ResolveProductionSourcePath(
+            "KleiImplementationAdapters",
+            "KleiWorldInventoryTemperaturePatches.cs");
+        string source = File.ReadAllText(adapterPath);
+        const string expectedContractPattern =
+            @"RequireInstanceMethod\(\s*" +
+            @"typeof\(IEnumerable<Pickupable>\),\s*" +
+            @"""GetEnumerator"",\s*" +
+            @"DeclaredMemberVisibility\.Public,\s*" +
+            @"typeof\(IEnumerator<Pickupable>\),\s*" +
+            @"Array\.Empty<Type>\(\)\s*\)";
+
+        Assert.IsTrue(
+            Regex.IsMatch(
+                source,
+                expectedContractPattern,
+                RegexOptions.CultureInvariant),
+            "WorldInventory.Update dispatches pickup enumeration through " +
+            "IEnumerable<Pickupable>.GetEnumerator in the installed ONI runtime.");
     }
 
     [TestMethod]
@@ -2459,7 +2596,7 @@ public sealed class HarmonyPatchContractVerifierTests
                     StoreLocalInstruction(localIndex: null),
                     CallInstruction(
                         "KeyValuePair<Tag,HashSet<Pickupable>>.get_Value"),
-                    CallInstruction("HashSet<Pickupable>.GetEnumerator")),
+                    CallInstruction("IEnumerable<Pickupable>.GetEnumerator")),
                 "WorldInventory.Update resource-tag enumeration start");
         int resourceTagLocalIndex =
             instructions[resourceTagStartIndex + 1].LocalIndex!.Value;
@@ -2778,7 +2915,7 @@ public sealed class HarmonyPatchContractVerifierTests
             StoreLocalInstruction(4),
             CallInstruction(
                 "KeyValuePair<Tag,HashSet<Pickupable>>.get_Value"),
-            CallInstruction("HashSet<Pickupable>.GetEnumerator"),
+            CallInstruction("IEnumerable<Pickupable>.GetEnumerator"),
             LoadLocalInstruction(7),
             FieldInstruction("Pickupable.KPrefabID"),
             StaticFieldInstruction("GameTags.StoredPrivate"),
@@ -3294,11 +3431,11 @@ public sealed class HarmonyPatchContractVerifierTests
     private sealed class FetchablesByPrefabIdPickupGroupingContractFixture
     {
         public void UpdatePickups(
-            NavigatorPickupGroupingContractFixture navigator,
-            int minimumPathCost)
+            NavigatorPickupGroupingContractFixture worker_navigator,
+            int worker)
         {
-            _ = navigator;
-            _ = minimumPathCost;
+            _ = worker_navigator;
+            _ = worker;
         }
     }
 
@@ -3385,8 +3522,9 @@ public sealed class HarmonyPatchContractVerifierTests
 
     private sealed class FetchListStatusRenderTargetContractFixture
     {
-        public void Render200ms()
+        public void Render200ms(float deltaTime)
         {
+            _ = deltaTime;
         }
     }
 

@@ -708,7 +708,7 @@ namespace DeliveryTemperatureLimit
             HarmonyPatchContractVerifier.RequireField(
                 typeof(GlobalChoreProvider),
                 "fetchMap",
-                DeclaredMemberVisibility.NonPublic,
+                DeclaredMemberVisibility.Public,
                 FieldStorageKind.Instance,
                 typeof(Dictionary<int, List<FetchChore>>));
 

@@ -1,0 +1,45 @@
+name: Temperature Limit feature idea
+description: Suggest an improvement grounded in a player problem or use case.
+title: ""
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the player problem first. You do not need to design the implementation or write formal acceptance criteria.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What player problem would this solve?
+      description: Explain the limitation, repetitive task, or confusing behavior you encounter.
+    validations:
+      required: true
+  - type: textarea
+    id: desired-experience
+    attributes:
+      label: What would a better experience look like?
+      description: Describe the outcome from the player's perspective.
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: Example situation
+      description: Give a colony, building, material, or workflow example if one helps.
+    validations:
+      required: false
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Current workaround
+      description: Tell us how you handle this today, if at all.
+    validations:
+      required: false
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Optional suggested behavior or additional context
+      description: Share an idea, screenshot, comparison, or related mod if useful.
+    validations:
+      required: false

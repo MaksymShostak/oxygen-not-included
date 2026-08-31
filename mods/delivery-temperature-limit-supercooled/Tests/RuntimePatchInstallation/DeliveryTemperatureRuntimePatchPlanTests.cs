@@ -535,6 +535,162 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
         ]);
     }
 
+    [TestMethod]
+    public void CreateSupportReportSnapshot_WhenFastTrackIsAbsent_MapsUnavailableIdentityAndOrderedFeatures()
+    {
+        DeliveryTemperatureRuntimePatchPlan plan =
+            DeliveryTemperatureRuntimePatchPlan.Create(
+                checkTemperatureForStatusItems: true,
+                CreateReport(
+                    FastTrackFeatureCompatibilityState.ModNotLoaded,
+                    FastTrackFeatureCompatibilityState.ModNotLoaded,
+                    FastTrackFeatureCompatibilityState.ModNotLoaded,
+                    includeLoadedAssemblyIdentity: false));
+
+        SupportRuntimeSnapshot snapshot =
+            plan.CreateSupportReportSnapshot("Installed");
+
+        Assert.AreEqual("available", snapshot.State);
+        Assert.AreEqual("Installed", snapshot.InstallationState);
+        CollectionAssert.AreEqual(
+            plan.OrderedPatchGroups.Select(group => group.ToString()).ToArray(),
+            snapshot.SelectedPatchGroups.ToArray());
+        Assert.IsNotNull(snapshot.FastTrack);
+        Assert.AreEqual("not-loaded", snapshot.FastTrack.State);
+        Assert.AreEqual("unavailable", snapshot.FastTrack.AssemblyIdentity.State);
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                "WorldInventory",
+                "PickupGrouping",
+                "DirectDeliveryEligibility"
+            },
+            snapshot.FastTrack.Features
+                .Select(feature => feature.Feature)
+                .ToArray());
+        Assert.IsTrue(snapshot.FastTrack.Features.All(
+            feature => feature.State == "mod-not-loaded"));
+    }
+
+    [TestMethod]
+    public void CreateSupportReportSnapshot_WhenReplacementsAreInactive_MapsLoadedAssemblyIdentity()
+    {
+        DeliveryTemperatureRuntimePatchPlan plan =
+            DeliveryTemperatureRuntimePatchPlan.Create(
+                checkTemperatureForStatusItems: true,
+                CreateReport(
+                    FastTrackFeatureCompatibilityState.ReplacementInactive,
+                    FastTrackFeatureCompatibilityState.ReplacementInactive,
+                    FastTrackFeatureCompatibilityState.ReplacementInactive));
+
+        SupportRuntimeSnapshot snapshot =
+            plan.CreateSupportReportSnapshot("Installed");
+
+        Assert.IsNotNull(snapshot.FastTrack);
+        Assert.AreEqual("replacement-inactive", snapshot.FastTrack.State);
+        Assert.AreEqual(
+            "FastTrack, Version=0.18.4.0",
+            snapshot.FastTrack.AssemblyIdentity.Value);
+        Assert.AreEqual("0.18.0.0", snapshot.FastTrack.AssemblyVersion.Value);
+        Assert.AreEqual("0.18.4.0", snapshot.FastTrack.FileVersion.Value);
+        Assert.AreEqual(FixtureSha256, snapshot.FastTrack.AssemblySha256.Value);
+        Assert.IsTrue(snapshot.FastTrack.Features.All(
+            feature => feature.State == "replacement-inactive"));
+    }
+
+    [TestMethod]
+    public void CreateSupportReportSnapshot_WhenFeatureIsReady_DoesNotExposeVerifiedReflectedMembers()
+    {
+        DeliveryTemperatureRuntimePatchPlan plan =
+            DeliveryTemperatureRuntimePatchPlan.Create(
+                checkTemperatureForStatusItems: true,
+                CreateReport(
+                    FastTrackFeatureCompatibilityState.Ready,
+                    FastTrackFeatureCompatibilityState.Ready,
+                    FastTrackFeatureCompatibilityState.Ready));
+
+        SupportRuntimeSnapshot snapshot =
+            plan.CreateSupportReportSnapshot("Installed");
+
+        Assert.IsNotNull(snapshot.FastTrack);
+        Assert.AreEqual("ready", snapshot.FastTrack.State);
+        Assert.IsTrue(snapshot.FastTrack.Features.All(
+            feature => feature.State == "ready"));
+        Assert.IsFalse(
+            typeof(SupportFastTrackFeatureSnapshot)
+                .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                .Any(property =>
+                    typeof(MemberInfo).IsAssignableFrom(property.PropertyType) ||
+                    property.Name.Contains(
+                        "VerifiedMember",
+                        StringComparison.Ordinal)));
+    }
+
+    [TestMethod]
+    public void CreateSupportReportSnapshot_WhenStatusFeatureFailureContainsPath_MapsOnlySemanticFailureEvidence()
+    {
+        const string unsafeFailure =
+            @"Access to the path 'C:\Users\Player\SteamLibrary\steamapps\workshop\FastTrack.dll' is denied.";
+        var compatibility = new FastTrackCompatibilityReport(
+            "FastTrack, Version=0.18.4.0",
+            new Version(0, 18, 0, 0),
+            FastTrackAssemblyFileIdentityReadState.ReadFailed,
+            null,
+            null,
+            FastTrackFeatureCompatibility.Incompatible(
+                FastTrackFeature.WorldInventory,
+                FastTrackFeatureCompatibilityFailureCode
+                    .AssemblyFileIdentityUnavailable,
+                unsafeFailure),
+            FastTrackFeatureCompatibility.ReplacementInactive(
+                FastTrackFeature.PickupGrouping),
+            FastTrackFeatureCompatibility.ReplacementInactive(
+                FastTrackFeature.DirectDeliveryEligibility));
+        DeliveryTemperatureRuntimePatchPlan plan =
+            DeliveryTemperatureRuntimePatchPlan.Create(
+                checkTemperatureForStatusItems: true,
+                compatibility);
+
+        Assert.IsNotNull(plan.StatusCompatibilityDiagnostic);
+        Assert.Contains(
+            "AssemblyFileIdentityUnavailable",
+            plan.StatusCompatibilityDiagnostic);
+        Assert.DoesNotContain(
+            @"C:\Users\Player",
+            plan.StatusCompatibilityDiagnostic,
+            StringComparison.Ordinal);
+
+        SupportRuntimeSnapshot snapshot =
+            plan.CreateSupportReportSnapshot("InstalledWithDegradedStatus");
+
+        Assert.IsNotNull(snapshot.FastTrack);
+        Assert.AreEqual("incompatible", snapshot.FastTrack.State);
+        SupportFastTrackFeatureSnapshot worldInventory =
+            snapshot.FastTrack.Features[0];
+        Assert.AreEqual("incompatible", worldInventory.State);
+        Assert.AreEqual(
+            "AssemblyFileIdentityUnavailable",
+            worldInventory.FailureCode);
+        Assert.AreEqual(
+            "FastTrack WorldInventory compatibility verification failed " +
+            "(AssemblyFileIdentityUnavailable).",
+            worldInventory.FailureMessage);
+        Assert.AreEqual(
+            "Temperature-aware resource-status integration is disabled for " +
+            "this loaded game; existing ONI status availability remains " +
+            "unchanged. FastTrack WorldInventory compatibility verification " +
+            "failed (AssemblyFileIdentityUnavailable).",
+            snapshot.StatusCompatibilityDiagnostic);
+        Assert.DoesNotContain(
+            unsafeFailure,
+            worldInventory.FailureMessage!,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            @"C:\Users\Player",
+            snapshot.StatusCompatibilityDiagnostic!,
+            StringComparison.Ordinal);
+    }
+
     private static void AssertPatchGroups(
         DeliveryTemperatureRuntimePatchPlan plan,
         params DeliveryTemperatureRuntimePatchGroup[] expectedGroups) =>

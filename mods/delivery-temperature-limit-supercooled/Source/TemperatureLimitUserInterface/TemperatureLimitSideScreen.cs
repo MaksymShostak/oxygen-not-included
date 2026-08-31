@@ -26,7 +26,9 @@ namespace DeliveryTemperatureLimit
             TemperatureLimit? temperatureLimit = TemperatureLimit.Get(newTarget);
             if (temperatureLimit == null)
             {
-                Debug.LogError(
+                DeliveryTemperatureSupportReporter.Record(
+                    "DTL-SIDE-SCREEN-REGISTRATION-FAILED",
+                    SupportDiagnosticSeverity.Error,
                     "Delivery Temperature Limit received an unregistered side-screen target.");
                 return;
             }

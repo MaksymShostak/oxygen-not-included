@@ -1,6 +1,6 @@
 # Delivery Temperature Limit: Support Reporting and Community Design
 
-- **Status:** Approved product direction; written-spec, configuration, public-surface, and GitHub-metadata approval pending
+- **Status:** Approved specification, configuration, public surface, and GitHub metadata; implementation pending formal review
 - **Date:** 2026-08-31
 - **Mod:** Delivery Temperature Limit (Supercooled)
 - **Primary user:** An ONI player reporting a problem without manually locating versions, mods, settings, or logs
@@ -91,7 +91,7 @@ The action's tooltip is the consent boundary. It explains that `Player.log` incl
 
 ### 5.3 Partial failures
 
-Report creation is successful when the JSON file is durably written. Clipboard, directory reveal, and browser launch are separate best-effort presentation steps. A failure in any presentation step is recorded and shown with the exact local path; it does not delete the report or throw through the PLib action.
+Report creation is successful when the JSON file is durably written. Clipboard, directory reveal, browser launch, and the final success notification are separate best-effort presentation steps. A failure in any presentation step is recorded without deleting the report, reclassifying generation as failed, or throwing through the PLib action.
 
 If report creation itself fails, the player sees a concise in-game error and the full exception is emitted to `Player.log`. The support page provides the direct GitHub form and Klei's log-location fallback.
 
@@ -103,7 +103,7 @@ If the mod assembly never loads, no in-mod automation can run. The form therefor
 
 An internal `DeliveryTemperatureSupportReporter` is the single entry point. It owns early initialization, loaded-mod snapshot publication, runtime-patch snapshot publication, bounded diagnostic recording, and the two explicit report actions. Callers do not know file formats, paths, redaction rules, or GitHub query details.
 
-`DeliveryTemperatureLimitOptions` gains exactly two public read-only `System.Action` properties because PLib requires public option properties to render action buttons:
+`DeliveryTemperatureLimitOptions` gains exactly two public read-only `System.Action<object>` properties because PLib 4.24 maps that exact public option-property type to action buttons. The ignored argument is PLib presentation context, not persisted state:
 
 - `CreateSupportReport`
 - `CreateExtendedSupportReport`
@@ -158,18 +158,18 @@ The JSON root contains:
 - `reportId`: random per-report ID with no cross-report installation identity;
 - `generatedAtUtc`: ISO-8601 UTC timestamp;
 - `reportKind`: `standard` or `extended-player-log`;
-- `game`: build, branch, version, Unity version, platform, architecture, locale, and active DLC IDs;
-- `temperatureLimit`: static ID, title, package version, assembly version, and current settings;
-- `runtime`: reporter/installer state, selected ordered patch groups, optional status-degradation diagnostic, and FastTrack feature compatibility/identity evidence;
+- `game`: build, branch, version, Unity version, platform, architecture, locale, and an availability-aware active-DLC snapshot containing the deterministically ordered IDs when collection succeeds;
+- `temperatureLimit`: static ID, title, package version, assembly version, current settings, and the selected temperature unit used to interpret the displayed minimum and maximum values;
+- `runtime`: reporter/installer state, selected ordered patch groups, optional path-free status-degradation diagnostic, and path-free FastTrack feature compatibility/identity evidence;
 - `activeMods`: active mod title, static ID, declared version where available, assembly versions where safely available, load-order index, and source kind without any path;
 - `diagnostics`: bounded stable code, severity, first/last UTC time, repeat count, sanitized message, and optional sanitized exception type/message;
 - `playerLog`: absent for a standard report, otherwise source state, byte counts, truncation state, redaction placeholders, and bounded redacted content;
 - `generation`: included/unavailable facts and nonfatal collection warnings; and
 - `privacy`: explicit included, excluded, redacted, and potentially sensitive categories.
 
-The report uses explicit `unavailable` states instead of empty strings where absence has diagnostic meaning. Lists have deterministic order. It retains at most 128 distinct diagnostic entries, caps each stored diagnostic message at 2,048 characters, and retains at most 512 active-mod entries while recording any omitted count. A standard report targets well below 1 MiB. An extended report reads at most the most recent 6 MiB of raw `Player.log` data and must keep the final JSON below 12 MiB, safely below GitHub's current 25 MiB JSON upload limit; if redaction/JSON expansion would cross 12 MiB, the log content is shortened again and the additional truncation is disclosed.
+The report uses explicit `unavailable` states instead of empty strings or empty collections where absence has diagnostic meaning. A successfully captured empty DLC list means that no DLC is active; a null or failed DLC read remains unavailable and is never presented as `none`. Lists have deterministic order. It retains at most 128 distinct diagnostic entries, caps each stored diagnostic message at 2,048 characters, and retains at most 512 active-mod entries while recording any omitted count. A standard report targets well below 1 MiB. An extended report reads at most the most recent 6 MiB of raw `Player.log` data and must keep the final JSON below 12 MiB, safely below GitHub's current 25 MiB JSON upload limit; if redaction/JSON expansion would cross 12 MiB, the log content is shortened again and the additional truncation is disclosed.
 
-The compact URL/clipboard summary contains only the report ID, report filename, ONI build/branch, Temperature Limit version, platform, DLC IDs, FastTrack state, and whether `Player.log` is included. It does not contain the active-mod list or raw diagnostics. The URL builder percent-encodes every value and keeps the complete issue URL at or below 1,800 characters, shortening only the human-readable diagnostic summary and recording that shortening in the generated report.
+The compact URL/clipboard summary contains only the report ID, report filename, ONI build/branch, Temperature Limit version, platform, DLC IDs or their explicit unavailable state, FastTrack state, and whether `Player.log` is included. It does not contain the active-mod list or raw diagnostics. The URL builder percent-encodes every value and keeps the complete issue URL at or below 1,800 characters, shortening only the human-readable diagnostic summary and recording that shortening in the generated report.
 
 ## 8. Privacy and security invariants
 
@@ -277,6 +277,7 @@ Before implementation, the user must explicitly approve these exact changes beca
 
 | File or remote setting | Exact proposed change | Behavioral or pipeline impact | Defensive limit |
 | --- | --- | --- | --- |
+| `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureLimit.csproj` | Add an explicit `UnityEngine.IMGUIModule` reference to the game-managed `UnityEngine.IMGUIModule.dll` with `<Private>false</Private>` immediately after the existing `UnityEngine.CoreModule` reference. | Compiles the clipboard presentation step against the game-provided `GUIUtility` assembly. | No copied game assembly, package, property, lockfile, or pipeline-profile change. |
 | `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj` | Add exactly `<Compile Include="..\Source\SupportReporting\Core\**\*.cs" Link="Production\SupportReporting\Core\%(RecursiveDir)%(Filename)%(Extension)" />` to the existing first `ItemGroup`. | Compiles the same pure reporting core into the existing required test project. | No package/reference/property change; no second test project; no Unity/Klei adapter files linked. |
 | `CONTRIBUTING.md` | Create the contributor guide described in section 9.1. | GitHub surfaces repository contribution rules to issue/PR authors. | Do not duplicate internal agent instructions or promise nonexistent automation/response times. |
 | `SUPPORT.md` | Create the player support/privacy/fallback guide described in section 9.2. | GitHub surfaces a dedicated support route. | No external support channel is invented. |
@@ -287,9 +288,9 @@ Before implementation, the user must explicitly approve these exact changes beca
 | GitHub repository description | Set exactly the description in section 10. | Populates the repository About/search summary. | No rename or other repository setting. |
 | GitHub repository topics | Set exactly the ten topics in section 10. | Improves GitHub discovery and classification. | No homepage or feature-flag change. |
 
-The implementation also updates the existing intentional public-surface test for the two PLib `Action` properties, plus normal source/tests/README/Workshop-description text. Those are not configuration changes but remain limited to this design.
+The implementation also updates the existing intentional public-surface test for the two PLib `Action<object>` properties, plus normal source/tests/README/Workshop-description text. Those are not configuration changes but remain limited to this design.
 
-No change is approved or planned for `Source/DeliveryTemperatureLimit.csproj`, either lockfile, `global.json`, `oni-mod-pipeline.toml`, `mod.yaml`, `mod_info.yaml`, CI, deployment, or release configuration.
+Apart from the exact non-copy-local `UnityEngine.IMGUIModule` reference above, no further change is approved or planned for `Source/DeliveryTemperatureLimit.csproj`, either lockfile, `global.json`, `oni-mod-pipeline.toml`, `mod.yaml`, `mod_info.yaml`, CI, deployment, or release configuration.
 
 ## 12. TDD and verification
 
@@ -335,7 +336,7 @@ The work is complete when:
 8. Runtime patch/compatibility facts come from the existing verified plan rather than a second inspection path.
 9. Reporting failures cannot crash or alter gameplay behavior.
 10. The two action properties are non-persisted and the only new public members; no public type is added.
-11. No production/test package, production project property, lockfile, pipeline profile, mod metadata, or CI file changes.
+11. No production/test package, production project property, lockfile, pipeline profile, mod metadata, or CI file changes; the sole production-project change is an explicit non-copy-local reference to the game-provided `UnityEngine.IMGUIModule.dll` required for clipboard access.
 12. The community files accurately route players and contributors and use the existing verified `bug` and `enhancement` labels.
 13. The GitHub description and topics exactly match section 10 and all other metadata remains unchanged.
 14. Focused tests and the repository-local validate/build/test gates pass with fresh evidence.
@@ -369,4 +370,4 @@ Rejected because the process already knows these facts, manual fields become sta
 
 ## 15. Final decision
 
-Build a local-only, allowlisted, one-file support reporter behind two explicit PLib action buttons; publish a minimal player issue form and separate contributor/support guidance; dogfood the same contracts; and set only the exact GitHub description and topics stated above. Preserve the existing runtime, packaging, pipeline, release, and repository-feature configuration. No open product-design decision remains; implementation waits only for review and exact approval of this written specification and its configuration/metadata dossier.
+Build a local-only, allowlisted, one-file support reporter behind two explicit PLib action buttons; publish a minimal player issue form and separate contributor/support guidance; dogfood the same contracts; and set only the exact GitHub description and topics stated above. Preserve the existing runtime, packaging, pipeline, release, and repository-feature configuration except for the approved non-copy-local clipboard assembly reference. No open product-design decision remains; the approved implementation remains subject to the repository's formal review gate before completion or remote metadata mutation.

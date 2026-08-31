@@ -52,6 +52,22 @@ namespace DeliveryTemperatureLimit
         [JsonProperty]
         public int MinConstructionTemperature { get; set; }
 
+        [Option(
+            "Create Support Report",
+            "Creates a local diagnostic report, copies a summary, and opens the GitHub bug form. Player.log is not read.",
+            "Support")]
+        [JsonIgnore]
+        public System.Action<object> CreateSupportReport =>
+            _ => DeliveryTemperatureSupportReporter.CreateStandardReport();
+
+        [Option(
+            "Create Extended Support Report",
+            "Creates the same local report and includes a bounded, best-effort-redacted copy of the current Player.log. Review it before uploading.",
+            "Support")]
+        [JsonIgnore]
+        public System.Action<object> CreateExtendedSupportReport =>
+            _ => DeliveryTemperatureSupportReporter.CreateExtendedReport();
+
         public DeliveryTemperatureLimitOptions()
         {
             CheckTemperatureForStatusItems = true;

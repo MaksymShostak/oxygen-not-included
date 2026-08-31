@@ -35,7 +35,9 @@ namespace DeliveryTemperatureLimit
         {
             if (___configTable == null)
             {
-                Debug.LogError(
+                DeliveryTemperatureSupportReporter.Record(
+                    "DTL-PREFAB-CONFIGURATION-SKIPPED",
+                    SupportDiagnosticSeverity.Error,
                     "Delivery Temperature Limit could not read the verified " +
                     "building configuration table.");
                 return;
@@ -67,7 +69,9 @@ namespace DeliveryTemperatureLimit
                     buildingDefinition.BuildingUnderConstruction);
             }
 
-            Debug.Log(
+            DeliveryTemperatureSupportReporter.Record(
+                "DTL-PREFAB-CONFIGURATION-COMPLETE",
+                SupportDiagnosticSeverity.Information,
                 "Delivery Temperature Limit configured " +
                 configuredCompletePrefabCount +
                 " eligible complete-building prefab types.");

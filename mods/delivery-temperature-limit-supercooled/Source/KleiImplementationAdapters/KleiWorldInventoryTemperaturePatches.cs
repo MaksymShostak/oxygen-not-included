@@ -818,10 +818,10 @@ namespace DeliveryTemperatureLimit
 
         private static MethodInfo RequirePickupableSetEnumerator() =>
             HarmonyPatchContractVerifier.RequireInstanceMethod(
-                typeof(HashSet<Pickupable>),
+                typeof(IEnumerable<Pickupable>),
                 "GetEnumerator",
                 DeclaredMemberVisibility.Public,
-                typeof(HashSet<Pickupable>.Enumerator),
+                typeof(IEnumerator<Pickupable>),
                 Array.Empty<Type>());
 
         private static FieldInfo RequirePickupablePrefabIdentityField() =>

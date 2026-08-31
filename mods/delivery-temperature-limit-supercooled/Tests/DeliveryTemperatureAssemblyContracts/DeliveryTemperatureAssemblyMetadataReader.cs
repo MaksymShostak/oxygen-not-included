@@ -286,6 +286,57 @@ internal static class DeliveryTemperatureAssemblyMetadataReader
             return true;
         });
 
+    internal static void AssertPublicInstanceVoidMethodWithSingleFloatParameter(
+        string assemblyPath,
+        string declaringType,
+        string methodName) =>
+        Read(assemblyPath, (_, metadata) =>
+        {
+            var type = metadata.GetTypeDefinition(
+                FindType(metadata, declaringType));
+            var matchingMethods = type.GetMethods()
+                .Select(handle => metadata.GetMethodDefinition(handle))
+                .Where(method => string.Equals(
+                    metadata.GetString(method.Name),
+                    methodName,
+                    StringComparison.Ordinal))
+                .ToArray();
+            if (matchingMethods.Length != 1)
+            {
+                throw new InvalidDataException(
+                    $"Expected exactly one method {declaringType}.{methodName}, " +
+                    $"but found {matchingMethods.Length}.");
+            }
+
+            MethodDefinition method = matchingMethods[0];
+            MethodAttributes memberAccess =
+                method.Attributes & MethodAttributes.MemberAccessMask;
+            bool isInstance =
+                (method.Attributes & MethodAttributes.Static) == 0;
+            string signature = Convert.ToHexString(
+                metadata.GetBlobBytes(method.Signature));
+
+            // ECMA-335 method signature 20 01 01 0C means HASTHIS, one
+            // parameter, ELEMENT_TYPE_VOID, and ELEMENT_TYPE_R4.
+            const string publicInstanceVoidWithSingleFloatParameterSignature =
+                "2001010C";
+            if (memberAccess != MethodAttributes.Public ||
+                !isInstance ||
+                !string.Equals(
+                    signature,
+                    publicInstanceVoidWithSingleFloatParameterSignature,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidDataException(
+                    $"Method {declaringType}.{methodName} must be public, " +
+                    "instance, return System.Void, and declare one System.Single " +
+                    $"parameter. Observed attributes={method.Attributes}; " +
+                    $"signature={signature}.");
+            }
+
+            return true;
+        });
+
     internal static void AssertPrivateSerializedInt32Field(
         string assemblyPath,
         string declaringType,
@@ -333,6 +384,42 @@ internal static class DeliveryTemperatureAssemblyMetadataReader
                         $"Field {declaringType}.{fieldName} is missing required attribute {requiredAttributeTypeName}. " +
                         $"Observed: {string.Join(", ", observedAttributeTypeNames)}");
                 }
+            }
+
+            return true;
+        });
+
+    internal static void AssertPublicInstanceField(
+        string assemblyPath,
+        string declaringType,
+        string fieldName) =>
+        Read(assemblyPath, (_, metadata) =>
+        {
+            var type = metadata.GetTypeDefinition(
+                FindType(metadata, declaringType));
+            var matchingFields = type.GetFields()
+                .Select(handle => metadata.GetFieldDefinition(handle))
+                .Where(field => string.Equals(
+                    metadata.GetString(field.Name),
+                    fieldName,
+                    StringComparison.Ordinal))
+                .ToArray();
+            if (matchingFields.Length != 1)
+            {
+                throw new InvalidDataException(
+                    $"Expected exactly one field {declaringType}.{fieldName}, but found {matchingFields.Length}.");
+            }
+
+            FieldDefinition field = matchingFields[0];
+            FieldAttributes memberAccess =
+                field.Attributes & FieldAttributes.FieldAccessMask;
+            bool isStatic =
+                (field.Attributes & FieldAttributes.Static) != 0;
+            if (memberAccess != FieldAttributes.Public || isStatic)
+            {
+                throw new InvalidDataException(
+                    $"Field {declaringType}.{fieldName} must be public and instance. " +
+                    $"Observed attributes={field.Attributes}.");
             }
 
             return true;

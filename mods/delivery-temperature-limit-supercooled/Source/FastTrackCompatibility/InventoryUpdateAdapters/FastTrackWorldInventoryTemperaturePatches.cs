@@ -741,7 +741,9 @@ namespace DeliveryTemperatureLimit
             if (gameSession.DiagnosticLimiter.ShouldEmit(
                     UnknownCoverageDiagnosticKey))
             {
-                Debug.LogWarning(
+                DeliveryTemperatureSupportReporter.Record(
+                    "DTL-FASTTRACK-INVENTORY-PUBLICATION-SKIPPED",
+                    SupportDiagnosticSeverity.Warning,
                     "DeliveryTemperatureLimit: FastTrack world-inventory " +
                     "temperature publication was skipped because world " +
                     worldId +

@@ -1,0 +1,56 @@
+name: Temperature Limit bug
+description: Report behavior that is incorrect, broken, or unexpectedly slow.
+title: ""
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Delivery Temperature Limit (Supercooled).
+        The fastest route is **Mods → Delivery Temperature Limit → Options → Create Support Report**. Review the generated file before attaching it. If the mod cannot load, attach the current `Player.log` if available. See [SUPPORT.md](https://github.com/MaksymShostak/oxygen-not-included/blob/main/SUPPORT.md) for privacy and fallback details.
+  - type: textarea
+    id: observed
+    attributes:
+      label: What happened?
+      description: Describe the incorrect behavior or error in plain language.
+      placeholder: The Storage Bin accepted material hotter than its configured maximum.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: What were you doing when it happened?
+      description: Give the shortest sequence or situation that lets us see the problem.
+      placeholder: Configure the bin to 20–30 °C, make 40 °C material available, then allow storage errands.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+      description: Tell us what Temperature Limit should have done instead.
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Generated diagnostic summary
+      description: This is filled automatically when the in-game reporter opens the form. Leave it blank if the reporter was unavailable.
+    validations:
+      required: false
+  - type: upload
+    id: files
+    attributes:
+      label: Support report, log, or screenshot
+      description: Drag the generated JSON report here. For a startup failure, a current Player.log is also useful. Review files before uploading because GitHub issues are public.
+    validations:
+      required: false
+      accept: ".json,.log,.txt,.zip,.png,.jpg,.jpeg"
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else?
+      description: Add any context that is not already captured above.
+    validations:
+      required: false
