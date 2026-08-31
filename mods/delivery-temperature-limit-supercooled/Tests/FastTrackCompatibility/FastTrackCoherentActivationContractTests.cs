@@ -66,7 +66,7 @@ public sealed class FastTrackCoherentActivationContractTests
             "DeliveryTemperatureRuntimePatchInstaller.cs");
         string preparationMethod = ExtractSourceRegion(
             installerSource,
-            "private static IReadOnlyList<PreparedHarmonyPatch>\n            PrepareSelectedRuntimePatches(",
+            "private static HarmonyPatchContractBindingVerifier.VerifiedBindings\n            PrepareSelectedRuntimePatches(",
             "private static void PrepareGameSessionLifecyclePatches(");
 
         StringAssert.Contains(
@@ -92,6 +92,28 @@ public sealed class FastTrackCoherentActivationContractTests
                 "checkTemperatureForStatusItems",
                 StringComparison.Ordinal),
             "Status-off behavior is expressed only by absent ordered groups.");
+        StringAssert.Contains(
+            preparationMethod,
+            "return HarmonyPatchContractBindingVerifier.VerifyAll(\n                preparedPatches);");
+    }
+
+    [TestMethod]
+    public void PatchApplication_WhenInspected_RequiresVerifierIssuedSnapshot()
+    {
+        string installerSource = ReadProductionSource(
+            "RuntimePatchInstallation",
+            "DeliveryTemperatureRuntimePatchInstaller.cs");
+
+        StringAssert.Contains(
+            installerSource,
+            "private static void ApplyPreparedPatchesWithExactRollback(\n            Harmony harmony,\n            HarmonyPatchContractBindingVerifier.VerifiedBindings\n                preparedPatches)");
+        Assert.AreEqual(
+            2,
+            CountOrdinalOccurrences(
+                installerSource,
+                "return HarmonyPatchContractBindingVerifier.VerifyAll("),
+            "Both preparation transactions must mint their own verified " +
+            "snapshot before reaching the mutation gate.");
     }
 
     [TestMethod]

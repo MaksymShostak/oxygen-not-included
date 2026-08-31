@@ -53,7 +53,8 @@ namespace DeliveryTemperatureLimit
                     return;
                 }
 
-                IReadOnlyList<PreparedHarmonyPatch> preparedPatches =
+                HarmonyPatchContractBindingVerifier.VerifiedBindings
+                    preparedPatches =
                     PrepareLoadedModTopologyIndependentPatches();
                 ApplyPreparedPatchesWithExactRollback(
                     harmony,
@@ -121,13 +122,15 @@ namespace DeliveryTemperatureLimit
                     // This is the first authority pass. The plan owns the owner
                     // decision; the installer supplies only immutable descriptors.
                     patchPlan.VerifySelectedAuthority(startupActivePrefixes);
-                    IReadOnlyList<PreparedHarmonyPatch> preparedPatches =
+                    HarmonyPatchContractBindingVerifier.VerifiedBindings
+                        preparedPatches =
                         PrepareSelectedRuntimePatches(
                             patchPlan,
                             compatibilityReport);
 
-                    // Every target, member, IL anchor, optional binding, and owner
-                    // has now been verified. Only this point may mutate Harmony.
+                    // Every target, member, IL anchor, Harmony argument binding,
+                    // and owner has now been verified. Only this point may mutate
+                    // Harmony.
                     ApplyPreparedPatchesWithExactRollback(
                         harmony,
                         preparedPatches);
@@ -296,10 +299,10 @@ namespace DeliveryTemperatureLimit
                 activePrefixes);
         }
 
-        private static IReadOnlyList<PreparedHarmonyPatch>
+        private static HarmonyPatchContractBindingVerifier.VerifiedBindings
             PrepareLoadedModTopologyIndependentPatches()
         {
-            var preparedPatches = new List<PreparedHarmonyPatch>();
+            var preparedPatches = new List<HarmonyPatchContractBinding>();
 
             MethodInfo buildingConfigurationTarget =
                 TemperatureLimitedDeliveryTargetPrefabConfigurator
@@ -359,15 +362,16 @@ namespace DeliveryTemperatureLimit
                 nameof(ComplexFabricatorTemperatureLimitLayoutPatches
                     .ComplexFabricatorSideScreenShowPostfix));
 
-            return preparedPatches.AsReadOnly();
+            return HarmonyPatchContractBindingVerifier.VerifyAll(
+                preparedPatches);
         }
 
-        private static IReadOnlyList<PreparedHarmonyPatch>
+        private static HarmonyPatchContractBindingVerifier.VerifiedBindings
             PrepareSelectedRuntimePatches(
                 DeliveryTemperatureRuntimePatchPlan patchPlan,
                 FastTrackCompatibilityReport compatibilityReport)
         {
-            var preparedPatches = new List<PreparedHarmonyPatch>();
+            var preparedPatches = new List<HarmonyPatchContractBinding>();
             for (int groupIndex = 0;
                  groupIndex < patchPlan.OrderedPatchGroups.Count;
                  groupIndex++)
@@ -438,11 +442,12 @@ namespace DeliveryTemperatureLimit
                 }
             }
 
-            return preparedPatches.AsReadOnly();
+            return HarmonyPatchContractBindingVerifier.VerifyAll(
+                preparedPatches);
         }
 
         private static void PrepareGameSessionLifecyclePatches(
-            ICollection<PreparedHarmonyPatch> patches)
+            ICollection<HarmonyPatchContractBinding> patches)
         {
             AddPrefix(
                 patches,
@@ -470,7 +475,7 @@ namespace DeliveryTemperatureLimit
         }
 
         private static void PrepareWorldParentTopologyPatches(
-            ICollection<PreparedHarmonyPatch> patches)
+            ICollection<HarmonyPatchContractBinding> patches)
         {
             AddPostfix(
                 patches,
@@ -496,7 +501,7 @@ namespace DeliveryTemperatureLimit
 
         private static void
             PrepareKleiAuthoritativeFetchTemperatureEligibilityPatches(
-                ICollection<PreparedHarmonyPatch> patches)
+                ICollection<HarmonyPatchContractBinding> patches)
         {
             AddPostfix(
                 patches,
@@ -580,7 +585,7 @@ namespace DeliveryTemperatureLimit
         }
 
         private static void PrepareKleiWorldInventoryTemperaturePatches(
-            ICollection<PreparedHarmonyPatch> patches)
+            ICollection<HarmonyPatchContractBinding> patches)
         {
             MethodInfo target = KleiWorldInventoryTemperaturePatches
                 .ResolveWorldInventoryUpdateTarget();
@@ -615,7 +620,7 @@ namespace DeliveryTemperatureLimit
         }
 
         private static void PrepareFastTrackWorldInventoryTemperaturePatches(
-            ICollection<PreparedHarmonyPatch> patches,
+            ICollection<HarmonyPatchContractBinding> patches,
             FastTrackFeatureCompatibility feature)
         {
             FastTrackWorldInventoryTemperaturePatches
@@ -668,7 +673,7 @@ namespace DeliveryTemperatureLimit
         }
 
         private static void PrepareTemperatureStatusAvailabilityPatches(
-            ICollection<PreparedHarmonyPatch> patches)
+            ICollection<HarmonyPatchContractBinding> patches)
         {
             MethodInfo target = TemperatureStatusAvailabilityPatches
                 .ResolveFetchListStatusItemUpdaterRender200msTarget();
@@ -684,7 +689,7 @@ namespace DeliveryTemperatureLimit
         }
 
         private static void PrepareKleiPickupTemperatureGroupingPatches(
-            ICollection<PreparedHarmonyPatch> patches)
+            ICollection<HarmonyPatchContractBinding> patches)
         {
             KleiPickupTemperatureGroupingPatches
                 .VerifyKleiPickupGroupingPatchContracts();
@@ -722,7 +727,7 @@ namespace DeliveryTemperatureLimit
         }
 
         private static void PrepareFastTrackPickupTemperaturePatches(
-            ICollection<PreparedHarmonyPatch> patches,
+            ICollection<HarmonyPatchContractBinding> patches,
             FastTrackFeatureCompatibility feature)
         {
             FastTrackPickupTemperaturePatches
@@ -759,7 +764,7 @@ namespace DeliveryTemperatureLimit
         }
 
         private static void PrepareKleiDirectDeliveryEligibilityPatches(
-            ICollection<PreparedHarmonyPatch> patches)
+            ICollection<HarmonyPatchContractBinding> patches)
         {
             KleiDirectDeliveryEligibilityPatches
                 .VerifyKleiDirectDeliveryEligibilityPatchContracts();
@@ -794,7 +799,7 @@ namespace DeliveryTemperatureLimit
         }
 
         private static void PrepareFastTrackDirectDeliveryEligibilityPatches(
-            ICollection<PreparedHarmonyPatch> patches,
+            ICollection<HarmonyPatchContractBinding> patches,
             FastTrackFeatureCompatibility feature)
         {
             FastTrackDirectDeliveryEligibilityPatches
@@ -840,7 +845,7 @@ namespace DeliveryTemperatureLimit
         }
 
         private static void AddPrefix(
-            ICollection<PreparedHarmonyPatch> patches,
+            ICollection<HarmonyPatchContractBinding> patches,
             MethodBase targetMethod,
             Type patchDeclaringType,
             string patchMethodName) =>
@@ -849,10 +854,10 @@ namespace DeliveryTemperatureLimit
                 targetMethod,
                 patchDeclaringType,
                 patchMethodName,
-                PreparedHarmonyPatchKind.Prefix);
+                HarmonyPatchContractKind.Prefix);
 
         private static void AddPostfix(
-            ICollection<PreparedHarmonyPatch> patches,
+            ICollection<HarmonyPatchContractBinding> patches,
             MethodBase targetMethod,
             Type patchDeclaringType,
             string patchMethodName) =>
@@ -861,10 +866,10 @@ namespace DeliveryTemperatureLimit
                 targetMethod,
                 patchDeclaringType,
                 patchMethodName,
-                PreparedHarmonyPatchKind.Postfix);
+                HarmonyPatchContractKind.Postfix);
 
         private static void AddTranspiler(
-            ICollection<PreparedHarmonyPatch> patches,
+            ICollection<HarmonyPatchContractBinding> patches,
             MethodBase targetMethod,
             Type patchDeclaringType,
             string patchMethodName) =>
@@ -873,10 +878,10 @@ namespace DeliveryTemperatureLimit
                 targetMethod,
                 patchDeclaringType,
                 patchMethodName,
-                PreparedHarmonyPatchKind.Transpiler);
+                HarmonyPatchContractKind.Transpiler);
 
         private static void AddFinalizer(
-            ICollection<PreparedHarmonyPatch> patches,
+            ICollection<HarmonyPatchContractBinding> patches,
             MethodBase targetMethod,
             Type patchDeclaringType,
             string patchMethodName) =>
@@ -885,14 +890,14 @@ namespace DeliveryTemperatureLimit
                 targetMethod,
                 patchDeclaringType,
                 patchMethodName,
-                PreparedHarmonyPatchKind.Finalizer);
+                HarmonyPatchContractKind.Finalizer);
 
         private static void AddPreparedPatch(
-            ICollection<PreparedHarmonyPatch> patches,
+            ICollection<HarmonyPatchContractBinding> patches,
             MethodBase targetMethod,
             Type patchDeclaringType,
             string patchMethodName,
-            PreparedHarmonyPatchKind patchKind)
+            HarmonyPatchContractKind patchKind)
         {
             MethodInfo patchMethod = HarmonyPatchContractVerifier
                 .RequireSingleMatch(
@@ -905,7 +910,7 @@ namespace DeliveryTemperatureLimit
                         patchMethodName,
                         StringComparison.Ordinal),
                     patchDeclaringType.FullName + "." + patchMethodName);
-            patches.Add(new PreparedHarmonyPatch(
+            patches.Add(new HarmonyPatchContractBinding(
                 targetMethod,
                 patchMethod,
                 patchKind));
@@ -913,7 +918,8 @@ namespace DeliveryTemperatureLimit
 
         private static void ApplyPreparedPatchesWithExactRollback(
             Harmony harmony,
-            IReadOnlyList<PreparedHarmonyPatch> preparedPatches)
+            HarmonyPatchContractBindingVerifier.VerifiedBindings
+                preparedPatches)
         {
             var installedPatches = new List<InstalledHarmonyPatch>(
                 preparedPatches.Count);
@@ -923,28 +929,28 @@ namespace DeliveryTemperatureLimit
                      patchIndex < preparedPatches.Count;
                      patchIndex++)
                 {
-                    PreparedHarmonyPatch preparedPatch =
+                    HarmonyPatchContractBinding preparedPatch =
                         preparedPatches[patchIndex];
                     var harmonyMethod = new HarmonyMethod(
                         preparedPatch.PatchMethod);
                     switch (preparedPatch.PatchKind)
                     {
-                        case PreparedHarmonyPatchKind.Prefix:
+                        case HarmonyPatchContractKind.Prefix:
                             harmony.Patch(
                                 preparedPatch.TargetMethod,
                                 prefix: harmonyMethod);
                             break;
-                        case PreparedHarmonyPatchKind.Postfix:
+                        case HarmonyPatchContractKind.Postfix:
                             harmony.Patch(
                                 preparedPatch.TargetMethod,
                                 postfix: harmonyMethod);
                             break;
-                        case PreparedHarmonyPatchKind.Transpiler:
+                        case HarmonyPatchContractKind.Transpiler:
                             harmony.Patch(
                                 preparedPatch.TargetMethod,
                                 transpiler: harmonyMethod);
                             break;
-                        case PreparedHarmonyPatchKind.Finalizer:
+                        case HarmonyPatchContractKind.Finalizer:
                             harmony.Patch(
                                 preparedPatch.TargetMethod,
                                 finalizer: harmonyMethod);
@@ -1034,35 +1040,6 @@ namespace DeliveryTemperatureLimit
             Verifying,
             Installed,
             Failed
-        }
-
-        private enum PreparedHarmonyPatchKind
-        {
-            Prefix,
-            Postfix,
-            Transpiler,
-            Finalizer
-        }
-
-        private sealed class PreparedHarmonyPatch
-        {
-            internal PreparedHarmonyPatch(
-                MethodBase targetMethod,
-                MethodInfo patchMethod,
-                PreparedHarmonyPatchKind patchKind)
-            {
-                TargetMethod = targetMethod ??
-                    throw new ArgumentNullException(nameof(targetMethod));
-                PatchMethod = patchMethod ??
-                    throw new ArgumentNullException(nameof(patchMethod));
-                PatchKind = patchKind;
-            }
-
-            internal MethodBase TargetMethod { get; }
-
-            internal MethodInfo PatchMethod { get; }
-
-            internal PreparedHarmonyPatchKind PatchKind { get; }
         }
 
         private sealed class InstalledHarmonyPatch

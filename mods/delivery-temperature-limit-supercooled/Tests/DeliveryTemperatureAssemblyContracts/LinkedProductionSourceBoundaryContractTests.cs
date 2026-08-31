@@ -299,7 +299,6 @@ public sealed class LinkedProductionSourceBoundaryContractTests
             "using UnityEngine",
             "using PeterHan",
             "using KMod",
-            "HarmonyLib.",
             "UnityEngine.",
             "KMod.",
             "#if",
@@ -314,9 +313,38 @@ public sealed class LinkedProductionSourceBoundaryContractTests
                 "the game/runtime or conditional-test boundary.");
         }
 
+        AssertHarmonyNamespaceReferencesAreReflectionContractLiterals(
+            sourcePath,
+            source);
         AssertPeterHanNamespaceReferencesAreReflectionContractLiterals(
             sourcePath,
             source);
+    }
+
+    private static void AssertHarmonyNamespaceReferencesAreReflectionContractLiterals(
+        string sourcePath,
+        string source)
+    {
+        const string thirdPartyNamespacePrefix = "HarmonyLib.";
+        if (!source.Contains(
+                thirdPartyNamespacePrefix,
+                StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        string sourceOutsideRegularStringLiterals =
+            System.Text.RegularExpressions.Regex.Replace(
+                source,
+                "\"(?:\\\\.|[^\"\\\\])*\"",
+                string.Empty,
+                System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+        Assert.IsFalse(
+            sourceOutsideRegularStringLiterals.Contains(
+                thirdPartyNamespacePrefix,
+                StringComparison.Ordinal),
+            $"Linked pure source {sourcePath} may name HarmonyLib types only " +
+            "inside reflection-contract string literals.");
     }
 
     private static void AssertPeterHanNamespaceReferencesAreReflectionContractLiterals(
