@@ -6,9 +6,9 @@
 
 **Architecture:** Pure immutable identifiers, declarations, contributions, outcomes, and a deterministic selector live under `GameplayActivation/Core/ExternalModIntegration`. Klei and FastTrack preparation produce complete contributions containing resolved patch bindings plus exact authority requirements. `DeliveryTemperatureRuntimePatchPlan` consumes only the selected generic map. Schema version 2 projects the same generic outcomes without provider-name branches.
 
-**Tech Stack:** C# 8-compatible production source; MSTest; BCL reflection; existing Harmony contract binding types; existing FastTrack `0.18.4.0` inert binary fixture; Newtonsoft.Json through the production build only.
+**Tech Stack:** C# 8-compatible production source; MSTest; BCL reflection; existing Harmony contract binding types; repository-owned content-addressed FastTrack `0.18.4.0` and `0.18.5.0` inert binary fixtures; Newtonsoft.Json through the production build only.
 
-**Spec:** `docs/specs/2026-08-31-temperature-limit-lifecycle-contained-activation-design.md`, especially sections 10, 19, 20, and 21.
+**Specs:** `docs/specs/2026-08-31-temperature-limit-lifecycle-contained-activation-design.md`, especially sections 10, 19, 20, and 21, plus `docs/specs/2026-09-01-external-mod-compatibility-evidence-design.md`.
 
 ## Global Constraints
 
@@ -18,7 +18,7 @@
 - Catalog order controls deterministic inspection/report order only. It never breaks an ownership conflict.
 - Do not scan `AppDomain` for adapter types or accept assemblies based only on simple name.
 - Do not add Blueprints Expanded to the production catalog.
-- The only configuration edit in this plan is the already approved test-project linked-source item.
+- Configuration edits are limited to the already approved test-project linked-source item and the separately approved fixture-copy/Git-binary changes executed by `docs/plans/2026-09-01-fasttrack-compatibility-evidence-catalog.md`.
 
 ---
 
@@ -357,6 +357,39 @@ internal interface IAdditiveInteroperabilityInspector
 
 Expected green: only declared, exact identities are inspected and additive faults remain isolated.
 
+## Task 5A: Review and Commit the Provider-Neutral Foundation Checkpoint
+
+- [ ] Run the focused Task 1-5 tests and the complete test project.
+
+- [ ] Run `git diff --check`, show `git status --short` and `git diff --stat`,
+and confirm that the user-owned untracked `AGENTS.md` remains untouched and
+excluded.
+
+- [ ] State `Implementation complete; /review pending` and run built-in
+uncommitted review over only the provider-neutral identity, model, catalog,
+selector, loaded-mod preparation, approved linked-source item, and associated
+tests. Resolve or explicitly defer every confirmed P0-P2 finding and rerun all
+affected tests.
+
+- [ ] Stage only Tasks 1-5 and their tests. Load `committing-to-git`, verify the
+exact staged snapshot, and create the user-pre-authorized signed commit:
+
+```text
+refactor(temperature-limit): introduce declared integration selection core
+
+Add validated provider-neutral integration and capability identities,
+immutable authority contributions, and deterministic capability selection
+without coupling the activation core to FastTrack.
+
+Model authoritative loaded-mod matching and contained inspector outcomes so
+provider adapters can contribute complete runtime authority evidence through
+one narrow boundary.
+```
+
+- [ ] Do not push. Complete
+`docs/plans/2026-09-01-fasttrack-compatibility-evidence-catalog.md` before
+starting Task 6.
+
 ## Task 6: Project Existing FastTrack Verification Through the Generic Boundary
 
 **Files:**
@@ -376,8 +409,13 @@ Expected green: only declared, exact identities are inspected and additive fault
 - Modify: `mods/delivery-temperature-limit-supercooled/Tests/HarmonyTranspilerInfrastructure/HarmonyPatchContractVerifierTests.cs`
 - Modify: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/FastTrackLoadedGameInspectionInput.cs`
 - Modify: `mods/delivery-temperature-limit-supercooled/Source/RuntimePatchInstallation/DeliveryTemperatureRuntimePatchInstaller.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Tests/Fixtures/ThirdParty/FastTrack/0.18.4.0/README.md`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackRuntimeAuthorityIntegrationInspectorTests.cs`
+
+- [ ] Require the FastTrack compatibility evidence plan to be complete: both
+  admitted content-addressed fixtures pass their static matrix, the production
+  supported-build catalog contains their exact version-plus-DLL-SHA-256
+  identities, and `FastTrackCompatibilityInspector` fails closed for every
+  other active build.
 
 - [ ] Add projection tests for all existing FastTrack feature states. Assert this exact mapping:
 
@@ -390,7 +428,10 @@ Expected green: only declared, exact identities are inspected and additive fault
 
 - [ ] Assert an exact active mod with static ID `PeterHan.FastTrack` but no same-entry `FastTrack` assembly is `Matched` with inspection unavailable; a `FastTrack` assembly supplied by a different mod does not satisfy identity.
 
-- [ ] Re-obtain the official `FastTrack.zip` named by the existing fixture README, require its already recorded SHA-256 `8EA0263FBD64F3D94C4127A03EC15A8ED88A1DA6BBDEDDA7E8EE85C9E2B3FC1D`, inspect its packaged mod metadata read-only, and record the exact observed static ID plus archive member path in the README. The expected value is `PeterHan.FastTrack`; if the digest or packaged value differs, stop instead of changing the accepted identity by inference.
+- [ ] Reuse the evidence plan's exact packaged static ID
+  `PeterHan.FastTrack`. Do not reacquire a historical archive or introduce a
+  network dependency; the content-addressed fixture manifests are the
+  repository-owned evidence boundary.
 
 - [ ] Run:
 
@@ -400,7 +441,13 @@ dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatur
 
 Expected red: no generic FastTrack adapter exists.
 
-- [ ] Implement the adapter by invoking the existing `FastTrackCompatibilityInspector` once, then projecting each feature. Inject the narrow `IFastTrackRuntimePatchContributionBuilder` so linked tests can supply resolved BCL-only bindings without compiling game adapters; the production builder remains in `RuntimePatchInstallation`. Reuse all current verified members, file identity state, failure codes, and bounded structural messages.
+- [ ] Implement the adapter by invoking the catalog-backed
+`FastTrackCompatibilityInspector` once, then projecting each feature. Inject
+the narrow `IFastTrackRuntimePatchContributionBuilder` so linked tests can
+supply resolved BCL-only bindings without compiling game adapters; the
+production builder remains in `RuntimePatchInstallation`. Reuse all current
+verified members, file identity state, failure codes, and bounded structural
+messages.
 
 - [ ] Replace the provider-folder `ActiveHarmonyPatchDescriptor` with the core `ActiveHarmonyPrefixDescriptor` everywhere, then delete the old file. The new name reflects that selected-authority proof intentionally inspects skipping prefixes; it remains a BCL-only immutable copy rather than concrete Harmony metadata.
 
@@ -560,13 +607,20 @@ Expected: all tests pass; zero skipped/inconclusive; no whitespace errors.
 
 - [ ] Run the forbidden-configuration check from the program plan.
 
-Expected: only the approved test-project linked-source item differs.
+Expected: only the approved test-project linked-source item, exact FastTrack
+fixture-copy wildcard, and scoped fixture DLL Git attribute differ among
+configuration files.
 
-- [ ] State `Implementation complete; /review pending` for this milestone and ask the user to invoke built-in `/review` over the declared-integration, runtime-plan, FastTrack-adapter, schema-v2, approved test-project, and associated test changes. Resolve or explicitly defer every confirmed P0-P2 finding and rerun the affected focused/full gates.
+- [ ] State `Implementation complete; /review pending` for this milestone and
+run built-in uncommitted review over the declared-integration, runtime-plan,
+FastTrack-adapter, schema-v2, approved configuration, and associated test
+changes. Exclude the user-owned untracked `AGENTS.md`. Resolve or explicitly
+defer every confirmed P0-P2 finding and rerun the affected focused/full gates.
 
 - [ ] Show `git status --short` and `git diff --stat`. Stage only this plan's intended files after separating pre-existing user-owned changes.
 
-- [ ] If and only if the user explicitly authorizes this exact staged snapshot, load `committing-to-git` and create:
+- [ ] Confirm the staged snapshot is covered by the user's pre-authorization,
+load `committing-to-git`, and create:
 
 ```text
 refactor(temperature-limit): generalize external mod integration selection
