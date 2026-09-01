@@ -31,6 +31,7 @@
 | `.../RuntimeCapabilityId.cs` | Stable capability identity value and owned constants |
 | `.../RuntimePatchGroupId.cs` | Provider-neutral stable audit identity for one concrete prepared patch group |
 | `.../ExternalModIntegrationStates.cs` | The four exact state dimensions from the spec |
+| `.../RuntimeAuthorityImplementationIdentity.cs` | Origin-qualified identity for a Klei baseline or declared external implementation |
 | `.../RuntimeCapabilityDefinition.cs` | Criticality, Klei baseline, optional atomic bundle |
 | `.../RuntimeAuthorityRequirement.cs` | Exact target, permitted owner, and required replacement evidence |
 | `.../ActiveHarmonyPrefixDescriptor.cs` | Provider-neutral copied prefix authority evidence |
@@ -75,13 +76,13 @@ The preparation result feeds the selector; the selection feeds the runtime plan;
 - Modify: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureAssemblyContracts/LinkedProductionSourceBoundaryContractTests.cs`
 - Modify: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj`
 
-- [ ] Add this exact entry to the existing `ApprovedCompileIncludes` array before changing the project file:
+- [x] Add this exact entry to the existing `ApprovedCompileIncludes` array before changing the project file:
 
 ```csharp
 @"..\Source\GameplayActivation\Core\**\*.cs",
 ```
 
-- [ ] Run:
+- [x] Run:
 
 ```powershell
 dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj --no-restore --filter FullyQualifiedName~LinkedProductionSourceBoundaryContractTests
@@ -89,18 +90,18 @@ dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatur
 
 Expected red: `TestProject_WhenCompileLinksAreInspected_UsesExactApprovedProductionBoundary` reports that the approved include is missing from the project.
 
-- [ ] Add exactly this item to the existing production-source `ItemGroup`:
+- [x] Add exactly this item to the existing production-source `ItemGroup`:
 
 ```xml
 <Compile Include="..\Source\GameplayActivation\Core\**\*.cs"
          Link="Production\GameplayActivation\Core\%(RecursiveDir)%(Filename)%(Extension)" />
 ```
 
-- [ ] Run the same focused command.
+- [x] Run the same focused command.
 
 Expected green: all `LinkedProductionSourceBoundaryContractTests` pass.
 
-- [ ] Inspect `git diff -- mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj` and confirm this is the only project-file delta.
+- [x] Inspect `git diff -- mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj` and confirm this is the only project-file delta.
 
 ## Task 2: Add Validated Provider-Neutral Identities and State Dimensions
 
@@ -113,9 +114,9 @@ Expected green: all `LinkedProductionSourceBoundaryContractTests` pass.
 - Create: `mods/delivery-temperature-limit-supercooled/Source/GameplayActivation/Core/ExternalModIntegration/ExternalModIntegrationStates.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/GameplayActivation/ExternalModIntegration/IntegrationIdentifierTests.cs`
 
-- [ ] Write parameterized tests covering empty, whitespace, uppercase, underscore, period, leading/trailing hyphen, repeated hyphen, more than 64 characters, valid single segment, and valid multi-segment values. Assert ordinal equality and hash behavior for the integration, capability, and patch-group identity values.
+- [x] Write parameterized tests covering empty, whitespace, uppercase, underscore, period, leading/trailing hyphen, repeated hyphen, more than 64 characters, valid single segment, and valid multi-segment values. Assert ordinal equality and hash behavior for the integration, capability, and patch-group identity values.
 
-- [ ] Run:
+- [x] Run:
 
 ```powershell
 dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj --no-restore --filter FullyQualifiedName~IntegrationIdentifierTests
@@ -123,7 +124,7 @@ dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatur
 
 Expected red: the identity types do not exist.
 
-- [ ] Implement one validator used by both values. Its acceptance rule must be explicit rather than culture-sensitive:
+- [x] Implement one validator used by both values. Its acceptance rule must be explicit rather than culture-sensitive:
 
 ```csharp
 internal static string RequireKebabCase(string value, string parameterName)
@@ -163,7 +164,7 @@ internal static string RequireKebabCase(string value, string parameterName)
 }
 ```
 
-- [ ] Define exactly these capability constants:
+- [x] Define exactly these capability constants:
 
 ```csharp
 internal static readonly RuntimeCapabilityId WorldInventoryTemperaturePublication =
@@ -176,9 +177,9 @@ internal static readonly RuntimeCapabilityId TemperatureStatusAvailability =
     new RuntimeCapabilityId("temperature-status-availability");
 ```
 
-- [ ] Define the exact enums approved by the spec: `DeclaredModMatchState`, `RuntimeAuthorityObservation`, `IntegrationContractState`, and `IntegrationCapabilityDisposition`, without Boolean aliases. Add `ExternalModIntegrationCategory` with only `ExclusiveRuntimeAuthority` and `AdditiveInteroperability`; built-in Klei baselines are capability candidates, not external-mod categories.
+- [x] Define the exact enums approved by the spec: `DeclaredModMatchState`, `RuntimeAuthorityObservation`, `IntegrationContractState`, and `IntegrationCapabilityDisposition`, without Boolean aliases. Add `ExternalModIntegrationCategory` with only `ExclusiveRuntimeAuthority` and `AdditiveInteroperability`; built-in Klei baselines are capability candidates, not external-mod categories.
 
-- [ ] Run the focused tests again.
+- [x] Run the focused tests again.
 
 Expected green: all identifier and state tests pass.
 
@@ -187,6 +188,7 @@ Expected green: all identifier and state tests pass.
 **Files:**
 
 - Create: `mods/delivery-temperature-limit-supercooled/Source/GameplayActivation/Core/ExternalModIntegration/RuntimeCapabilityDefinition.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/GameplayActivation/Core/ExternalModIntegration/RuntimeAuthorityImplementationIdentity.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Source/GameplayActivation/Core/ExternalModIntegration/RuntimeAuthorityRequirement.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Source/GameplayActivation/Core/ExternalModIntegration/ActiveHarmonyPrefixDescriptor.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Source/GameplayActivation/Core/ExternalModIntegration/PreparedRuntimeAuthorityContribution.cs`
@@ -195,9 +197,9 @@ Expected green: all identifier and state tests pass.
 - Create: `mods/delivery-temperature-limit-supercooled/Source/GameplayActivation/Core/ExternalModIntegration/DeclaredModIntegrationDescriptor.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/GameplayActivation/ExternalModIntegration/DeclaredIntegrationModelTests.cs`
 
-- [ ] Test defensive copying, non-null elements, bounded display names and diagnostics, required upstream evidence reference, exact accepted static IDs/assembly names, duplicate patch identities, invalid owner evidence, and category ordering. Prove that changing an input list after construction does not mutate the object.
+- [x] Test defensive copying, non-null elements, bounded display names and diagnostics, required upstream evidence reference, exact accepted static IDs/assembly names, duplicate patch identities, invalid owner evidence, and category ordering. Model each declaration as a `DeclaredModIntegrationCapability` that assigns one capability to exactly one category; reject duplicate capability IDs even when they attempt to cross category boundaries. Prove that changing an input list after construction does not mutate the object.
 
-- [ ] Run:
+- [x] Run:
 
 ```powershell
 dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj --no-restore --filter FullyQualifiedName~DeclaredIntegrationModelTests
@@ -205,7 +207,7 @@ dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatur
 
 Expected red: the immutable model is absent.
 
-- [ ] Implement authority requirements around exact reflection identity:
+- [x] Implement authority requirements around exact reflection identity:
 
 ```csharp
 internal enum RuntimeAuthorityRequirementKind
@@ -239,11 +241,11 @@ internal sealed class RuntimeAuthorityRequirement
 }
 ```
 
-- [ ] Make `PreparedRuntimeAuthorityContribution` carry one integration ID, one capability ID, one or more stable `RuntimePatchGroupId` audit values, one authority observation, immutable verified `HarmonyPatchContractBinding` values, exact `RuntimeAuthorityRequirement` values, and a stable bounded diagnostic code/message. It must reject `DoesNotOwn` plus non-empty bindings and reject `OwnsCompatible` without a complete contribution.
+- [x] Make `PreparedRuntimeAuthorityContribution` carry one origin-qualified `RuntimeAuthorityImplementationIdentity`, one capability ID, one or more stable `RuntimePatchGroupId` audit values, one authority observation, immutable verified `HarmonyPatchContractBinding` values, exact `RuntimeAuthorityRequirement` values, and a stable bounded diagnostic code/message. It must reject `DoesNotOwn` plus non-empty bindings and reject `OwnsCompatible` without a complete contribution. A `RuntimeCapabilityDefinition` accepts a Klei baseline only when its implementation identity is the built-in Klei origin and every authority requirement is `KleiOriginal`.
 
-- [ ] Make `ExternalModIntegrationOutcome` contain only allowlisted scalar facts and immutable capability outcome values. Do not retain `Assembly`, `KMod.Mod`, `Harmony`, exception, stack trace, or filesystem path objects.
+- [x] Make `ExternalModIntegrationOutcome` contain only allowlisted scalar facts and immutable capability outcome values. Each capability outcome retains its exact declared category, and the outcome rejects a capability category outside its declared category set. Do not retain `Assembly`, `KMod.Mod`, `Harmony`, exception, stack trace, or filesystem path objects.
 
-- [ ] Run the focused tests again.
+- [x] Run the focused tests again.
 
 Expected green: all model invariants pass.
 
@@ -257,13 +259,13 @@ Expected green: all model invariants pass.
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/GameplayActivation/ExternalModIntegration/DeclaredModIntegrationCatalogTests.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/GameplayActivation/ExternalModIntegration/RuntimePatchCapabilitySelectorTests.cs`
 
-- [ ] Add catalog tests for duplicate integration ID, duplicate exact static ID, duplicate capability declaration inside one descriptor, stable insertion order, and a valid FastTrack-only catalog.
+- [x] Add catalog tests for duplicate integration ID, duplicate exact static ID, duplicate capability declaration inside one descriptor, stable insertion order, and a valid FastTrack-only catalog.
 
-- [ ] Add selector tests for Klei fallback, one compatible owner, incompatible required owner, unavailable required ownership, optional omission, two compatible owners, two claimed owners where one is incompatible, undeclared outcome rejection, an atomic bundle with one mixed member, and a valid all-Klei/all-external bundle.
+- [x] Add selector tests for Klei fallback, one compatible owner, incompatible required owner, unavailable required ownership, explicitly diagnosed optional omission both with and without an external owner, two compatible owners, two claimed owners where one is incompatible, undefined exclusive-runtime outcome rejection, additive-only outcome preservation without a runtime definition, an atomic bundle with one mixed member, a colliding textual ID across Klei and external origins, and a valid all-Klei/all-external bundle.
 
-- [ ] Add a synthetic second authority named `synthetic-runtime-authority` that owns `pickup-temperature-grouping`. Assert selection succeeds without a selector source branch or FastTrack type.
+- [x] Add a synthetic second authority named `synthetic-runtime-authority` that owns `pickup-temperature-grouping`. Assert selection succeeds without a selector source branch or FastTrack type.
 
-- [ ] Run:
+- [x] Run:
 
 ```powershell
 dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj --no-restore --filter "FullyQualifiedName~DeclaredModIntegrationCatalogTests|FullyQualifiedName~RuntimePatchCapabilitySelectorTests"
@@ -271,7 +273,7 @@ dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatur
 
 Expected red: selection and catalog APIs do not exist.
 
-- [ ] Implement the selection loop in capability-definition order:
+- [x] Implement the selection loop in capability-definition order:
 
 ```csharp
 foreach (RuntimeCapabilityDefinition definition in definitions)
@@ -298,11 +300,13 @@ foreach (RuntimeCapabilityDefinition definition in definitions)
 ValidateAtomicBundles(definitions, selected);
 ```
 
-- [ ] Ensure `FindClaims` treats `OwnsCompatible`, `OwnsIncompatible`, and `OwnershipUnavailable` as ownership claims. Never choose Klei after an external integration claims a required capability but cannot prove a compatible contribution.
+- [x] Ensure `FindClaims` treats `OwnsCompatible`, `OwnsIncompatible`, and `OwnershipUnavailable` as ownership claims. Never choose Klei after an external integration claims a required capability but cannot prove a compatible contribution.
 
-- [ ] Ensure the selector never consults catalog position or loaded-mod order when more than one integration claims one exclusive capability.
+- [x] Ensure the selector never consults catalog position or loaded-mod order when more than one integration claims one exclusive capability.
 
-- [ ] Run the focused tests again.
+- [x] Represent selection and omission with distinct `RuntimeCapabilitySelectionEntry` factories. A selected entry requires one compatible contribution for the same capability. An omitted optional entry is `Unavailable` and requires a validated stable diagnostic code and bounded message, including when neither a Klei baseline nor an external claim exists; do not fabricate an external-mod outcome for that case.
+
+- [x] Run the focused tests again.
 
 Expected green: every deterministic selection and bundle case passes.
 
@@ -317,9 +321,9 @@ Expected green: every deterministic selection and bundle case passes.
 - Create: `mods/delivery-temperature-limit-supercooled/Source/GameplayActivation/Core/ExternalModIntegration/DeclaredIntegrationPreparationResult.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/RuntimePatchInstallation/DeclaredExternalModIntegrationPreparationTests.cs`
 
-- [ ] Test exact static-ID match, assembly tied to the same active mod entry, inactive mod ignored, duplicate matching active entries ambiguous, duplicate same-name assemblies ambiguous, unknown mod ignored, runtime inspector exception converted to its declaration's inspection-unavailable outcome, and additive inspector exception isolated from runtime selection.
+- [x] Test exact static-ID match, assembly tied to the same active mod entry, inactive mod ignored, duplicate matching active entries ambiguous, duplicate same-name assemblies ambiguous, unknown mod ignored, runtime inspector exception converted to its declaration's inspection-unavailable outcome, and additive inspector exception isolated from runtime selection. Prove that one integration declaring both categories invokes both inspectors, validates each category's complete ordered capability subset and exact state matrix, and merges them into one deterministic outcome. A matched additive capability can be compatible and `Ready` but never `Selected`. Conflicting additive assembly facts or diagnostic code/message pairs—whether capability-scoped or integration-scoped—must become an unavailable additive category while preserving the valid runtime contribution. Reserve the preparation-owned additive-conflict diagnostic code so its fallback merge cannot collide with provider output.
 
-- [ ] Run:
+- [x] Run:
 
 ```powershell
 dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj --no-restore --filter FullyQualifiedName~DeclaredExternalModIntegrationPreparationTests
@@ -327,7 +331,7 @@ dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatur
 
 Expected red: the declared preparation layer is absent.
 
-- [ ] Define the narrow contracts exactly around declared descriptors:
+- [x] Define the narrow contracts exactly around declared descriptors:
 
 ```csharp
 internal interface IRuntimeAuthorityIntegrationInspector
@@ -349,23 +353,25 @@ internal interface IAdditiveInteroperabilityInspector
 }
 ```
 
-- [ ] Do not add `IModCompatibilityProvider`, runtime type scanning, `Assembly.Load`, or provider lookup by class name.
+- [x] Do not add `IModCompatibilityProvider`, runtime type scanning, `Assembly.Load`, or provider lookup by class name.
 
-- [ ] Build `LoadedModInspectionContext` from immutable `LoadedModCandidate` values containing active state, exact static ID, and BCL `Assembly` references plus copied active-Harmony descriptors. A thin runtime adapter creates those values only from the `IReadOnlyList<KMod.Mod>` received by `OnAllModsLoaded`. Keep the context short-lived and absent from support-document types.
+- [x] Emit an unavailable `PreparedRuntimeAuthorityContribution` for every runtime-authority capability whose exact identity or inspector cannot be evaluated. Require every non-`DoesNotOwn` runtime outcome to have one matching contribution with the same authority observation, so selection cannot silently fall back to Klei after an unavailable external owner.
 
-- [ ] Run the focused tests again.
+- [x] Build `LoadedModInspectionContext` from immutable `LoadedModCandidate` values containing active state, exact static ID, and BCL `Assembly` references plus copied active-Harmony descriptors. A thin runtime adapter creates those values only from the `IReadOnlyList<KMod.Mod>` received by `OnAllModsLoaded`. Keep the context short-lived and absent from support-document types.
+
+- [x] Run the focused tests again.
 
 Expected green: only declared, exact identities are inspected and additive faults remain isolated.
 
 ## Task 5A: Review and Commit the Provider-Neutral Foundation Checkpoint
 
-- [ ] Run the focused Task 1-5 tests and the complete test project.
+- [x] Run the focused Task 1-5 tests and the complete test project.
 
-- [ ] Run `git diff --check`, show `git status --short` and `git diff --stat`,
+- [x] Run `git diff --check`, show `git status --short` and `git diff --stat`,
 and confirm that the user-owned untracked `AGENTS.md` remains untouched and
 excluded.
 
-- [ ] State `Implementation complete; /review pending` and run built-in
+- [x] State `Implementation complete; /review pending` and run built-in
 uncommitted review over only the provider-neutral identity, model, catalog,
 selector, loaded-mod preparation, approved linked-source item, and associated
 tests. Resolve or explicitly defer every confirmed P0-P2 finding and rerun all
@@ -459,15 +465,20 @@ messages.
 new DeclaredModIntegrationDescriptor(
     new DeclaredModIntegrationId("fast-track"),
     "Fast Track",
-    new[] { ExternalModIntegrationCategory.ExclusiveRuntimeAuthority },
     new[] { "PeterHan.FastTrack" },
     new[] { "FastTrack" },
     "https://github.com/peterhaneve/ONIMods/releases/tag/FastTrackBeta",
     new[]
     {
-        RuntimeCapabilityId.WorldInventoryTemperaturePublication,
-        RuntimeCapabilityId.PickupTemperatureGrouping,
-        RuntimeCapabilityId.DirectDeliveryEligibility
+        new DeclaredModIntegrationCapability(
+            RuntimeCapabilityId.WorldInventoryTemperaturePublication,
+            ExternalModIntegrationCategory.ExclusiveRuntimeAuthority),
+        new DeclaredModIntegrationCapability(
+            RuntimeCapabilityId.PickupTemperatureGrouping,
+            ExternalModIntegrationCategory.ExclusiveRuntimeAuthority),
+        new DeclaredModIntegrationCapability(
+            RuntimeCapabilityId.DirectDeliveryEligibility,
+            ExternalModIntegrationCategory.ExclusiveRuntimeAuthority)
     });
 ```
 

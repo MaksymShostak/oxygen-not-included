@@ -416,7 +416,7 @@ public sealed class FastTrackGitHubReleaseAssemblyContractTests
     }
 
     [TestMethod]
-    public void TestProject_CopiesFastTrackFixtureAsDataWithoutLoadingItAsAReferencedAssembly()
+    public void TestProject_CopiesFastTrackFixtureAsDataWithoutLoadingPhysicalAssemblyWithItsSimpleName()
     {
         string fixturePath = RequireCopiedFixturePath();
         string expectedFullPath = Path.GetFullPath(Path.Combine(
@@ -428,11 +428,34 @@ public sealed class FastTrackGitHubReleaseAssemblyContractTests
             "FastTrack.dll"));
 
         Assert.AreEqual(expectedFullPath, fixturePath);
-        Assert.IsFalse(AppDomain.CurrentDomain.GetAssemblies().Any(assembly =>
-            string.Equals(
-                assembly.GetName().Name,
-                "FastTrack",
-                StringComparison.Ordinal)));
+        Assert.IsFalse(
+            IsPhysicalAssemblyWithFixtureSimpleNameLoaded(fixturePath));
+    }
+
+    [TestMethod]
+    public void PhysicalAssemblyNameDetection_WhenDynamicAssemblySimpleNameMatches_IgnoresIt()
+    {
+        Assembly loadedDynamicAssembly = AssemblyBuilder.DefineDynamicAssembly(
+            new AssemblyName("FastTrack"),
+            AssemblyBuilderAccess.Run);
+
+        Assert.IsFalse(ContainsPhysicalAssemblyWithSimpleName(
+            new[] { loadedDynamicAssembly },
+            "FastTrack"));
+    }
+
+    [TestMethod]
+    public void PhysicalAssemblyNameDetection_WhenLoadedAssemblySimpleNameMatches_ReportsIt()
+    {
+        Assembly loadedPhysicalAssembly =
+            typeof(FastTrackGitHubReleaseAssemblyContractTests).Assembly;
+        string loadedAssemblySimpleName =
+            loadedPhysicalAssembly.GetName().Name!;
+
+        Assert.IsFalse(loadedPhysicalAssembly.IsDynamic);
+        Assert.IsTrue(ContainsPhysicalAssemblyWithSimpleName(
+            new[] { loadedPhysicalAssembly },
+            loadedAssemblySimpleName));
     }
 
     private static int CountTokenInstructions<THandle>(
@@ -600,6 +623,33 @@ public sealed class FastTrackGitHubReleaseAssemblyContractTests
             "item by DeliveryTemperatureLimit.Tests.csproj.");
         return fixturePath;
     }
+
+    private static bool IsPhysicalAssemblyWithFixtureSimpleNameLoaded(
+        string fixturePath)
+    {
+        string expectedAssemblyName;
+        using (var fixture = new FastTrackPortableExecutableFixture(fixturePath))
+        {
+            AssemblyDefinition assemblyDefinition =
+                fixture.MetadataReader.GetAssemblyDefinition();
+            expectedAssemblyName = fixture.MetadataReader.GetString(
+                assemblyDefinition.Name);
+        }
+
+        return ContainsPhysicalAssemblyWithSimpleName(
+            AppDomain.CurrentDomain.GetAssemblies(),
+            expectedAssemblyName);
+    }
+
+    private static bool ContainsPhysicalAssemblyWithSimpleName(
+        IEnumerable<Assembly> loadedAssemblies,
+        string expectedAssemblySimpleName) =>
+        loadedAssemblies.Any(assembly =>
+            !assembly.IsDynamic &&
+            string.Equals(
+                assembly.GetName().Name,
+                expectedAssemblySimpleName,
+                StringComparison.Ordinal));
 
     private static string ComputeUppercaseSha256(string filePath)
     {

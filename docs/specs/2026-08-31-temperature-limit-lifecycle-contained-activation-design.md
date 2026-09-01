@@ -315,20 +315,22 @@ The shared architecture distinguishes semantic ownership instead of treating eve
 | Exclusive runtime authority | An active external mod replaces or suppresses an ONI seam | A required owned capability must verify and select exactly one implementation; incompatibility or ambiguous ownership blocks activation | FastTrack |
 | Additive interoperability | An external mod exchanges optional data through a bounded protocol without owning core delivery semantics | Failure is isolated and reported as capability unavailable; core enforcement may still become active | A future Blueprints Expanded settings-transfer integration |
 
-Capability criticality is owned by Temperature Limit's capability definition, not chosen by a third-party adapter. A required delivery-correctness capability cannot be downgraded to optional by its integration. An optional capability can be omitted only with an explicit generic outcome and stable diagnostic identifier.
+Capability criticality is owned by Temperature Limit's capability definition, not chosen by a third-party adapter. A required delivery-correctness capability cannot be downgraded to optional by its integration. An optional capability can be omitted only through an `Unavailable` `RuntimeCapabilitySelectionEntry` carrying a validated stable diagnostic identifier and bounded message. That generic selection outcome exists even when no external integration is present; the selector does not fabricate an external-mod outcome to explain an ownerless omission.
 
 ### 10.2 Provider-neutral core contracts
 
 The reusable core consists of small immutable types rather than a dynamic plugin framework:
 
 - `DeclaredModIntegrationCatalog` is the compile-time ordered list of integrations Temperature Limit intentionally recognizes. Its order makes inspection and reporting deterministic but grants no selection priority. Adding an integration requires an explicit catalog declaration; arbitrary assemblies are not discovered as Temperature Limit providers.
-- `DeclaredModIntegrationDescriptor` contains a stable integration ID, display name, exact mod-identity contract, upstream evidence reference, and capability declarations. It contains no Harmony or third-party mod object.
+- `DeclaredModIntegrationDescriptor` contains a stable integration ID, display name, exact mod-identity contract, upstream evidence reference, and immutable `DeclaredModIntegrationCapability` values. Each value assigns one capability to exactly one inspection category; the descriptor derives its ordered category and capability projections from those assignments, so a capability cannot ambiguously cross the runtime-authority and additive boundaries. It contains no Harmony or third-party mod object.
 - `LoadedModInspectionContext` is a short-lived preparation-layer input built from the authoritative Klei callback data. It may carry reflection identities and copied Harmony ownership descriptors, but it is not part of the pure core, support schema, or retained failure record.
 - `RuntimeCapabilityId` is a validated stable identifier value, not a mod-specific enum. Temperature Limit owns constants such as `world-inventory-temperature-publication`, `pickup-temperature-grouping`, and `direct-delivery-eligibility`.
-- `RuntimeCapabilityDefinition` states whether the capability is required for core enforcement, supplies the Klei baseline contribution when one exists, and may name an atomic bundle whose members must be selected coherently.
-- `PreparedRuntimeAuthorityContribution` contains one integration ID, one capability ID, its authority observation, immutable patch bindings or patch groups when compatible, permitted owner evidence, and bounded diagnostics.
+- `RuntimeAuthorityImplementationIdentity` distinguishes the built-in Klei baseline from a declared external integration structurally. Equality includes that origin discriminator, so a colliding textual integration ID cannot make a mixed atomic bundle appear coherent.
+- `RuntimeCapabilityDefinition` states whether the capability is required for core enforcement, supplies the Klei baseline contribution when one exists, and may name an atomic bundle whose members must be selected coherently. A baseline contribution must identify the built-in Klei implementation and may contain only `KleiOriginal` authority requirements.
+- `PreparedRuntimeAuthorityContribution` contains one implementation identity, one capability ID, its authority observation, immutable patch bindings or patch groups when compatible, permitted owner evidence, and bounded diagnostics.
+- `RuntimeCapabilitySelectionEntry` is constructed either from one compatible capability-matching contribution or as an explicitly diagnosed optional omission. Its factories prevent selected, omitted, and diagnostic state from contradicting one another.
 - `RuntimePatchCapabilitySelection` is the immutable selected map consumed by `DeliveryTemperatureRuntimePatchPlan`.
-- `ExternalModIntegrationOutcome` is the provider-neutral, sanitized projection retained for diagnostics and reporting.
+- `ExternalModIntegrationOutcome` is the provider-neutral, sanitized projection retained for diagnostics and reporting. Every capability outcome retains its exact `ExternalModIntegrationCategory`, so later runtime selection can preserve additive-only outcomes without weakening validation of undefined exclusive-runtime capabilities.
 
 Stable integration and capability identifiers use lowercase ASCII kebab case and are validated for non-blank bounded length and uniqueness when the catalog is constructed. Player-facing display names are separate and may be localized; they never serve as identity keys.
 
@@ -336,6 +338,8 @@ Integration mechanics remain behind two narrow contracts:
 
 - `IRuntimeAuthorityIntegrationInspector` inspects a declared replacement and returns runtime-authority contributions. It cannot mutate Harmony.
 - `IAdditiveInteroperabilityInspector` verifies an optional protocol and returns an availability outcome. It cannot contribute to the gameplay Harmony transaction.
+
+When one declared integration participates in both categories, authoritative identity matching occurs once and each category-specific inspector runs independently over only its assigned capabilities. Preparation validates complete ordered output for each category, contains either inspector's failure within that category, and merges the results into one ordered integration outcome. If additive output conflicts with already-validated runtime facts or reuses any runtime diagnostic code with a different message—whether the diagnostic is attached to one capability or to the integration outcome—only the additive category becomes unavailable; its invalid facts never abort or replace the valid runtime contribution. The preparation-owned `additive-integration-outcome-conflict` diagnostic code is reserved at the inspector boundary, making the contained fallback deterministic and collision-free. A runtime-authority observation other than `DoesNotOwn` always has a matching prepared contribution. An additive capability always reports `DoesNotOwn`; a matched compatible protocol is `Ready`, a matched incompatible or unverifiable protocol is `Unavailable`, and an inspection-unavailable protocol is verification-unavailable and `Unavailable`. It can never be `Selected` or `ActivationBlocking` as runtime authority.
 
 There is deliberately no broad `IModCompatibilityProvider`. Identity detection, runtime patch authority, and additive data exchange have different invariants and failure policies; merging them would expose a shallow interface whose callers still need provider-specific type tests and branches.
 
@@ -350,9 +354,9 @@ Selection is data-driven but not priority-driven:
 3. Ask each matched runtime-authority adapter whether the external mod does not own, compatibly owns, incompatibly owns, or cannot conclusively determine ownership of each declared capability.
 4. If no external integration owns a capability, select its Klei baseline.
 5. If exactly one integration compatibly owns it, select that prepared contribution.
-6. If an integration owns it but is incompatible or ownership inspection is unavailable, fail activation for a required capability; for an optional capability, omit it and publish capability unavailable.
+6. If an integration owns it but is incompatible or ownership inspection is unavailable, fail activation for a required capability; for an optional capability, retain an explicitly diagnosed unavailable selection entry and publish the matching external capability as unavailable.
 7. If more than one declared integration claims exclusive ownership, reject the conflict rather than choosing by catalog order, load order, or an undocumented priority.
-8. Validate each declared atomic bundle after per-capability selection. A bundle may prohibit a mixed implementation when its members share one correctness invariant.
+8. Validate each declared atomic bundle after per-capability selection using the origin-qualified implementation identity, not a bare textual integration ID. A bundle may prohibit a mixed implementation when its members share one correctness invariant. If bundle validation rejects the provisional selections, reproject every externally reported member of that bundle as `ActivationBlocking` with the stable `mixed-runtime-capability-bundle` diagnostic; a failure report must never retain a `Selected` claim that the selector rejected.
 
 The provider-neutral states are explicit:
 
@@ -395,7 +399,7 @@ Each declared integration must state and test:
 - exact Klei mod static ID or explicitly accepted IDs;
 - expected assembly simple names and the rule connecting those assemblies to the active mod entry;
 - version, file-version, digest, Harmony-owner, member, signature, IL, or protocol requirements that are semantically necessary for that integration;
-- every capability it can own or expose;
+- every capability it can own or expose, assigned to exactly one inspection category;
 - whether any capabilities form an atomic bundle;
 - bounded stable diagnostic identifiers for absence, incompatibility, ambiguity, and unavailable inspection;
 - fixture provenance and the upstream version or revision against which the contract was verified; and
@@ -723,7 +727,7 @@ The test suite injects controlled faults at these boundaries:
 | Declared identity matching | Missing, duplicate, ambiguous, or mismatched static ID/assembly ownership | Only the affected declaration receives the exact outcome; no name-based guess or arbitrary assembly scan |
 | Exclusive capability selection | Active owner is incompatible, inspection is unavailable, two integrations claim ownership, or an atomic bundle is mixed | Required capability blocks before mutation; optional capability is explicitly unavailable; no priority or Klei fallback |
 | FastTrack adapter | Wrong active-mod identity, file identity, owner, member, signature, or IL | Provider-neutral selector receives an exact incompatible outcome; no speculative or mixed-capability fallback; no patch call |
-| Additive integration inspection | Protocol is absent, changed, or inspector throws | Capability is unavailable with a stable diagnostic; no gameplay patch is contributed; otherwise valid core activation continues |
+| Additive integration inspection | Protocol is absent or changed, the inspector throws, or its category output conflicts with validated runtime facts or diagnostics | Capability is unavailable with a stable diagnostic; no gameplay patch is contributed; otherwise valid runtime contributions and core activation continue |
 | Undeclared co-resident mod | Unknown noninterfering mod and assembly are present | It remains only in the sanitized active-mod inventory and cannot be selected as a capability implementation |
 | Undeclared authority conflict | Unknown Harmony owner suppresses or ambiguously changes a required selected seam | Generic selected-owner verification rejects the topology before mutation without inventing an adapter or compatibility claim |
 | Harmony argument binding | Renamed target argument, wrong by-reference shape, invalid special injection, or wrong overload | Verifier rejects complete set before mutation |
