@@ -6,13 +6,21 @@ namespace DeliveryTemperatureLimit.Tests.FastTrackCompatibility;
 public sealed class FastTrackCompatibilityInspectorTests
 {
     private static readonly Version SupportedFileVersion = new(0, 18, 4, 0);
+    private const string SupportedDigest =
+        "D291C0D58379B77B4A60FB6D386B3783E4061E5C620DEF93502AE984CD657ADD";
+    private const string OtherAdmittedDigest =
+        "CDF0150546952FDA3A31A612D61FBEF3808E05DB89B9B6E8CCEEA1F3C752AA3B";
+    private const string UnknownDigest =
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
     [TestMethod]
     public void Inspect_WhenFastTrackModIsNotLoaded_ClassifiesEveryFeatureAsModNotLoaded()
     {
         var identityReader = new RecordingAssemblyFileIdentityReader(
             SuccessfulFileIdentity());
-        var inspector = new FastTrackCompatibilityInspector(identityReader);
+        var inspector = new FastTrackCompatibilityInspector(
+            identityReader,
+            CreateSupportedTestCatalog());
         var inspectionInput = new FastTrackLoadedGameInspectionInput(
             isFastTrackEnabledForLoadedGame: false,
             fastTrackAssembly: null,
@@ -94,30 +102,203 @@ public sealed class FastTrackCompatibilityInspectorTests
     }
 
     [TestMethod]
-    public void Inspect_WhenFileVersionIsNotExactly01840_ClassifiesActiveFeaturesAsIncompatible()
+    public void Inspect_WhenActiveBuildHasKnownVersionButDifferentDigest_ClassifiesActiveFeaturesAsUnsupportedAssemblyBuild()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract();
+        var supportedIdentity = new FastTrackAssemblyBuildIdentity(
+            new Version(0, 18, 4, 0),
+            SupportedDigest);
+        var otherSupportedIdentity = new FastTrackAssemblyBuildIdentity(
+            new Version(0, 18, 5, 0),
+            OtherAdmittedDigest);
         var identityReader = new RecordingAssemblyFileIdentityReader(
-            SuccessfulFileIdentity(new Version(0, 18, 4, 1)));
+            SuccessfulFileIdentity(
+                new Version(0, 18, 4, 0),
+                OtherAdmittedDigest));
 
         FastTrackCompatibilityReport report = Inspect(
             fixture,
             identityReader,
+            new FastTrackSupportedAssemblyBuildCatalog(new[]
+            {
+                supportedIdentity,
+                otherSupportedIdentity
+            }),
             fixture.WorldInventoryReplacement,
             fixture.PickupGroupingReplacement,
             fixture.DirectDeliveryEligibilityReplacement);
 
+        AssertEveryFeatureHasFailure(
+            report,
+            FastTrackFeatureCompatibilityFailureCode.UnsupportedAssemblyBuild);
+    }
+
+    [TestMethod]
+    public void Inspect_WhenActiveBuildHasUnknownVersionButKnownDigest_ClassifiesActiveFeaturesAsUnsupportedAssemblyBuild()
+    {
+        FastTrackEmittedAssembly fixture =
+            FastTrackReflectionEmitFixture.CreateExpectedContract();
+        var identityReader = new RecordingAssemblyFileIdentityReader(
+            SuccessfulFileIdentity(
+                new Version(0, 18, 6, 0),
+                SupportedDigest));
+
+        FastTrackCompatibilityReport report = Inspect(
+            fixture,
+            identityReader,
+            CreateSupportedTestCatalog(),
+            fixture.AllReplacements.ToArray());
+
+        AssertEveryFeatureHasFailure(
+            report,
+            FastTrackFeatureCompatibilityFailureCode.UnsupportedAssemblyBuild);
+    }
+
+    [TestMethod]
+    public void Inspect_WhenActiveBuildHasKnownVersionButUnknownDigest_ClassifiesActiveFeaturesAsUnsupportedAssemblyBuild()
+    {
+        FastTrackEmittedAssembly fixture =
+            FastTrackReflectionEmitFixture.CreateExpectedContract();
+        var identityReader = new RecordingAssemblyFileIdentityReader(
+            SuccessfulFileIdentity(SupportedFileVersion, UnknownDigest));
+
+        FastTrackCompatibilityReport report = Inspect(
+            fixture,
+            identityReader,
+            CreateSupportedTestCatalog(),
+            fixture.AllReplacements.ToArray());
+
+        AssertEveryFeatureHasFailure(
+            report,
+            FastTrackFeatureCompatibilityFailureCode.UnsupportedAssemblyBuild);
+    }
+
+    [TestMethod]
+    public void Inspect_WhenActiveBuildDigestUsesLowercase_ProceedsToStructuralVerification()
+    {
+        FastTrackEmittedAssembly fixture =
+            FastTrackReflectionEmitFixture.CreateExpectedContract();
+        var identityReader = new RecordingAssemblyFileIdentityReader(
+            SuccessfulFileIdentity(
+                SupportedFileVersion,
+                SupportedDigest.ToLowerInvariant()));
+
+        FastTrackCompatibilityReport report = Inspect(
+            fixture,
+            identityReader,
+            CreateSupportedTestCatalog(),
+            fixture.AllReplacements.ToArray());
+
         AssertEveryFeatureHasState(
             report,
-            FastTrackFeatureCompatibilityState.Incompatible);
-        Assert.AreEqual(new Version(0, 18, 4, 1), report.FileVersion);
-        foreach (FastTrackFeature feature in EnumerateFeatures())
+            FastTrackFeatureCompatibilityState.Ready);
+    }
+
+    [TestMethod]
+    public void Inspect_WhenActiveBuildDigestIsMalformed_ClassifiesActiveFeaturesAsUnsupportedWithoutThrowing()
+    {
+        FastTrackEmittedAssembly fixture =
+            FastTrackReflectionEmitFixture.CreateExpectedContract();
+        var identityReader = new RecordingAssemblyFileIdentityReader(
+            SuccessfulFileIdentity(
+                SupportedFileVersion,
+                "not-a-complete-sha256"));
+
+        FastTrackCompatibilityReport report = Inspect(
+            fixture,
+            identityReader,
+            CreateSupportedTestCatalog(),
+            fixture.AllReplacements.ToArray());
+
+        AssertEveryFeatureHasFailure(
+            report,
+            FastTrackFeatureCompatibilityFailureCode.UnsupportedAssemblyBuild);
+    }
+
+    [TestMethod]
+    public void Inspect_WhenUnsupportedBuildHasOneActiveReplacement_RejectsOnlyThatFeature()
+    {
+        FastTrackEmittedAssembly fixture =
+            FastTrackReflectionEmitFixture.CreateExpectedContract();
+        var identityReader = new RecordingAssemblyFileIdentityReader(
+            SuccessfulFileIdentity(SupportedFileVersion, UnknownDigest));
+
+        FastTrackCompatibilityReport report = Inspect(
+            fixture,
+            identityReader,
+            CreateSupportedTestCatalog(),
+            fixture.WorldInventoryReplacement);
+
+        Assert.AreEqual(
+            FastTrackFeatureCompatibilityFailureCode.UnsupportedAssemblyBuild,
+            report.GetFeature(FastTrackFeature.WorldInventory).FailureCode);
+        AssertFeatureState(
+            report,
+            FastTrackFeature.PickupGrouping,
+            FastTrackFeatureCompatibilityState.ReplacementInactive);
+        AssertFeatureState(
+            report,
+            FastTrackFeature.DirectDeliveryEligibility,
+            FastTrackFeatureCompatibilityState.ReplacementInactive);
+    }
+
+    [TestMethod]
+    public void Inspect_WhenUnsupportedBuildHasNoActiveReplacement_ClassifiesEveryFeatureAsReplacementInactive()
+    {
+        FastTrackEmittedAssembly fixture =
+            FastTrackReflectionEmitFixture.CreateExpectedContract();
+        var identityReader = new RecordingAssemblyFileIdentityReader(
+            SuccessfulFileIdentity(SupportedFileVersion, UnknownDigest));
+
+        FastTrackCompatibilityReport report = Inspect(
+            fixture,
+            identityReader,
+            CreateSupportedTestCatalog(),
+            Array.Empty<ActiveHarmonyPatchDescriptor>());
+
+        AssertEveryFeatureHasState(
+            report,
+            FastTrackFeatureCompatibilityState.ReplacementInactive);
+        Assert.AreEqual(1, identityReader.ReadCallCount);
+    }
+
+    [TestMethod]
+    public void Inspect_WhenAssemblyBuildIsUnsupported_DiagnosticIncludesObservedPairWithoutCatalogEnumeration()
+    {
+        FastTrackEmittedAssembly fixture =
+            FastTrackReflectionEmitFixture.CreateExpectedContract();
+        var identityReader = new RecordingAssemblyFileIdentityReader(
+            SuccessfulFileIdentity(
+                new Version(0, 18, 9, 0),
+                UnknownDigest));
+        var catalog = new FastTrackSupportedAssemblyBuildCatalog(new[]
         {
-            Assert.AreEqual(
-                FastTrackFeatureCompatibilityFailureCode.UnsupportedFileVersion,
-                report.GetFeature(feature).FailureCode);
-        }
+            new FastTrackAssemblyBuildIdentity(
+                SupportedFileVersion,
+                SupportedDigest),
+            new FastTrackAssemblyBuildIdentity(
+                new Version(0, 18, 5, 0),
+                OtherAdmittedDigest)
+        });
+
+        FastTrackCompatibilityReport report = Inspect(
+            fixture,
+            identityReader,
+            catalog,
+            fixture.WorldInventoryReplacement);
+
+        string diagnostic = report
+            .GetFeature(FastTrackFeature.WorldInventory)
+            .FailureMessage!;
+        StringAssert.Contains(diagnostic, "0.18.9.0");
+        StringAssert.Contains(diagnostic, UnknownDigest);
+        Assert.IsFalse(diagnostic.Contains(
+            SupportedDigest,
+            StringComparison.Ordinal));
+        Assert.IsFalse(diagnostic.Contains(
+            OtherAdmittedDigest,
+            StringComparison.Ordinal));
     }
 
     [TestMethod]
@@ -127,7 +308,9 @@ public sealed class FastTrackCompatibilityInspectorTests
             FastTrackReflectionEmitFixture.CreateExpectedContract();
         var identityReader = new RecordingAssemblyFileIdentityReader(
             SuccessfulFileIdentity());
-        var inspector = new FastTrackCompatibilityInspector(identityReader);
+        var inspector = new FastTrackCompatibilityInspector(
+            identityReader,
+            CreateSupportedTestCatalog());
         var input = new FastTrackLoadedGameInspectionInput(
             isFastTrackEnabledForLoadedGame: false,
             fixture.Assembly,
@@ -598,7 +781,7 @@ public sealed class FastTrackCompatibilityInspectorTests
         Assert.AreEqual(new Version(0, 18, 0, 0), report.AssemblyVersion);
         Assert.AreEqual(SupportedFileVersion, report.FileVersion);
         Assert.AreEqual(
-            "0123456789ABCDEF",
+            SupportedDigest,
             report.AssemblySha256);
         Assert.AreEqual(
             FastTrackAssemblyFileIdentityReadState.Success,
@@ -647,8 +830,21 @@ public sealed class FastTrackCompatibilityInspectorTests
         FastTrackEmittedAssembly fixture,
         RecordingAssemblyFileIdentityReader identityReader,
         params ActiveHarmonyPatchDescriptor[] activePatches)
+        => Inspect(
+            fixture,
+            identityReader,
+            CreateSupportedTestCatalog(),
+            activePatches);
+
+    private static FastTrackCompatibilityReport Inspect(
+        FastTrackEmittedAssembly fixture,
+        RecordingAssemblyFileIdentityReader identityReader,
+        FastTrackSupportedAssemblyBuildCatalog supportedAssemblyBuildCatalog,
+        params ActiveHarmonyPatchDescriptor[] activePatches)
     {
-        var inspector = new FastTrackCompatibilityInspector(identityReader);
+        var inspector = new FastTrackCompatibilityInspector(
+            identityReader,
+            supportedAssemblyBuildCatalog);
         var input = new FastTrackLoadedGameInspectionInput(
             isFastTrackEnabledForLoadedGame: true,
             fixture.Assembly,
@@ -658,12 +854,22 @@ public sealed class FastTrackCompatibilityInspectorTests
     }
 
     private static FastTrackAssemblyFileIdentity SuccessfulFileIdentity(
-        Version? fileVersion = null) =>
+        Version? fileVersion = null,
+        string? assemblySha256 = null) =>
         new(
             FastTrackAssemblyFileIdentityReadState.Success,
             fileVersion ?? SupportedFileVersion,
-            "0123456789ABCDEF",
+            assemblySha256 ?? SupportedDigest,
             failureMessage: null);
+
+    private static FastTrackSupportedAssemblyBuildCatalog
+        CreateSupportedTestCatalog() =>
+        new FastTrackSupportedAssemblyBuildCatalog(new[]
+        {
+            new FastTrackAssemblyBuildIdentity(
+                SupportedFileVersion,
+                SupportedDigest)
+        });
 
     private static void AssertEveryFeatureHasState(
         FastTrackCompatibilityReport report,
@@ -672,6 +878,22 @@ public sealed class FastTrackCompatibilityInspectorTests
         foreach (FastTrackFeature feature in EnumerateFeatures())
         {
             AssertFeatureState(report, feature, expectedState);
+        }
+    }
+
+    private static void AssertEveryFeatureHasFailure(
+        FastTrackCompatibilityReport report,
+        FastTrackFeatureCompatibilityFailureCode expectedFailureCode)
+    {
+        foreach (FastTrackFeature feature in EnumerateFeatures())
+        {
+            FastTrackFeatureCompatibility compatibility =
+                report.GetFeature(feature);
+            Assert.AreEqual(
+                FastTrackFeatureCompatibilityState.Incompatible,
+                compatibility.State);
+            Assert.AreEqual(expectedFailureCode, compatibility.FailureCode);
+            Assert.IsNotNull(compatibility.FailureMessage);
         }
     }
 

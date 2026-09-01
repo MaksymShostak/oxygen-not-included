@@ -1753,7 +1753,7 @@ public sealed class HarmonyPatchContractVerifierTests
     }
 
     [TestMethod]
-    public void FastTrackCompatibilityInspectorSource_WhenInspected_KeepsFileIdentityIoAndThirdPartyTypesOutsideStructuralVerification()
+    public void FastTrackCompatibilityInspectorSource_WhenInspected_CentralizesExactBuildPolicyAndSeparatesIdentityIo()
     {
         var inspectorPath = ResolveProductionSourcePath(
             Path.Combine(
@@ -1765,10 +1765,18 @@ public sealed class HarmonyPatchContractVerifierTests
                 "FastTrackCompatibility",
                 "FeatureContractVerification"),
             "FastTrackAssemblyFileIdentityReader.cs");
+        var supportedBuildCatalogPath = ResolveProductionSourcePath(
+            Path.Combine(
+                "FastTrackCompatibility",
+                "FeatureContractVerification"),
+            "FastTrackSupportedAssemblyBuildCatalog.cs");
         Assert.IsTrue(File.Exists(inspectorPath));
         Assert.IsTrue(File.Exists(identityReaderPath));
+        Assert.IsTrue(File.Exists(supportedBuildCatalogPath));
         var inspectorSource = File.ReadAllText(inspectorPath);
         var identityReaderSource = File.ReadAllText(identityReaderPath);
+        var supportedBuildCatalogSource =
+            File.ReadAllText(supportedBuildCatalogPath);
 
         StringAssert.Contains(
             inspectorSource,
@@ -1778,7 +1786,10 @@ public sealed class HarmonyPatchContractVerifierTests
             "IFastTrackAssemblyFileIdentityReader");
         StringAssert.Contains(
             inspectorSource,
-            "new Version(0, 18, 4, 0)");
+            "FastTrackSupportedAssemblyBuildCatalog");
+        StringAssert.Contains(
+            inspectorSource,
+            "supportedAssemblyBuildCatalog.Contains(");
         Assert.AreEqual(
             1,
             CountOrdinalOccurrences(
@@ -1794,9 +1805,47 @@ public sealed class HarmonyPatchContractVerifierTests
         Assert.IsFalse(inspectorSource.Contains("File.Open", StringComparison.Ordinal));
         Assert.IsFalse(inspectorSource.Contains("FileVersionInfo", StringComparison.Ordinal));
         Assert.IsFalse(inspectorSource.Contains("SHA256", StringComparison.Ordinal));
+
+        Assert.IsFalse(inspectorSource.Contains(
+            "new Version(0, 18, 4, 0)",
+            StringComparison.Ordinal));
+        Assert.IsFalse(inspectorSource.Contains(
+            "new Version(0, 18, 5, 0)",
+            StringComparison.Ordinal));
+        Assert.IsFalse(inspectorSource.Contains(
+            "D291C0D58379B77B4A60FB6D386B3783E4061E5C620DEF93502AE984CD657ADD",
+            StringComparison.Ordinal));
+        Assert.IsFalse(inspectorSource.Contains(
+            "CDF0150546952FDA3A31A612D61FBEF3808E05DB89B9B6E8CCEEA1F3C752AA3B",
+            StringComparison.Ordinal));
+        Assert.IsFalse(supportedBuildCatalogSource.Contains(
+            "System.IO",
+            StringComparison.Ordinal));
+        Assert.IsFalse(supportedBuildCatalogSource.Contains(
+            "System.Net",
+            StringComparison.Ordinal));
+
+        string supportedBuildCatalogDirectory =
+            Path.GetDirectoryName(supportedBuildCatalogPath)!;
+        string productionSourceDirectory = Directory.GetParent(
+            Directory.GetParent(supportedBuildCatalogDirectory)!.FullName)!
+            .FullName;
+
+        string gameplayActivationCoreDirectory = Path.Combine(
+            productionSourceDirectory,
+            "GameplayActivation",
+            "Core");
+        string gameplayActivationCoreSource = string.Join(
+            Environment.NewLine,
+            Directory.GetFiles(
+                    gameplayActivationCoreDirectory,
+                    "*.cs",
+                    SearchOption.AllDirectories)
+                .OrderBy(path => path, StringComparer.Ordinal)
+                .Select(File.ReadAllText));
         Assert.IsFalse(
-            inspectorSource.Contains(
-                "D291C0D58379B77B4A60FB6D386B3783E4061E5C620DEF93502AE984CD657ADD",
+            gameplayActivationCoreSource.Contains(
+                "FastTrackSupportedAssemblyBuildCatalog",
                 StringComparison.Ordinal));
 
         StringAssert.Contains(identityReaderSource, "fastTrackAssembly.Location");

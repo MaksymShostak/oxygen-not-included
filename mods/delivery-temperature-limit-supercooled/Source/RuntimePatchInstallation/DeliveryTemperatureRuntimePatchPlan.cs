@@ -835,8 +835,9 @@ namespace DeliveryTemperatureLimit
             FormatOptional(feature.FailureCode) +
             "; structural failure: " +
             FormatOptional(CreateRuntimeCompatibilityFailureEvidence(feature)) +
-            ". FastTrack file version 0.18.4.0 support is best-efforts and " +
-            "applies only to that verified version and member shape.";
+            ". FastTrack compatibility is best-efforts and applies only to an " +
+            "explicitly supported exact assembly build and its verified " +
+            "member shape.";
 
         private static string? CreateRuntimeCompatibilityFailureEvidence(
             FastTrackFeatureCompatibility feature) =>

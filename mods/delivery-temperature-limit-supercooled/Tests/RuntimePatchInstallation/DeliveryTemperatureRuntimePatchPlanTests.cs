@@ -233,6 +233,52 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
     }
 
     [TestMethod]
+    public void Create_WhenAdmittedFastTrackAssemblyBuildHasStructuralFailure_DiagnosticDescribesExactBuildScope()
+    {
+        FastTrackAssemblyBuildIdentity admittedBuild =
+            FastTrackSupportedAssemblyBuildCatalog.Declared.Builds.Single(
+                build => build.FileVersion == new Version(0, 18, 5, 0));
+        var compatibility = new FastTrackCompatibilityReport(
+            "FastTrack, Version=0.18.0.0",
+            new Version(0, 18, 0, 0),
+            FastTrackAssemblyFileIdentityReadState.Success,
+            admittedBuild.FileVersion,
+            admittedBuild.AssemblySha256,
+            FastTrackFeatureCompatibility.ReplacementInactive(
+                FastTrackFeature.WorldInventory),
+            FastTrackFeatureCompatibility.Incompatible(
+                FastTrackFeature.PickupGrouping,
+                FastTrackFeatureCompatibilityFailureCode
+                    .PickupGroupingContractViolation,
+                "The admitted build's PickupGrouping contract changed."),
+            FastTrackFeatureCompatibility.ReplacementInactive(
+                FastTrackFeature.DirectDeliveryEligibility));
+
+        FastTrackDeliveryEligibilityCompatibilityException exception =
+            Assert.ThrowsExactly<
+                FastTrackDeliveryEligibilityCompatibilityException>(() =>
+                DeliveryTemperatureRuntimePatchPlan.Create(
+                    checkTemperatureForStatusItems: true,
+                    compatibility));
+
+        StringAssert.Contains(
+            exception.Message,
+            "file version 0.18.5.0");
+        StringAssert.Contains(
+            exception.Message,
+            admittedBuild.AssemblySha256);
+        StringAssert.Contains(
+            exception.Message,
+            "FastTrack compatibility is best-efforts and applies only to an " +
+            "explicitly supported exact assembly build and its verified " +
+            "member shape.");
+        Assert.DoesNotContain(
+            "file version 0.18.4.0 support",
+            exception.Message,
+            StringComparison.Ordinal);
+    }
+
+    [TestMethod]
     public void Create_WhenActiveDirectDeliveryFeatureIsIncompatible_ThrowsFastTrackDeliveryEligibilityCompatibilityException()
     {
         FastTrackCompatibilityReport compatibility = CreateReport(
@@ -709,7 +755,9 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
         StringAssert.Contains(message, structuralFailure);
         StringAssert.Contains(
             message,
-            "FastTrack file version 0.18.4.0 support is best-efforts");
+            "FastTrack compatibility is best-efforts and applies only to an " +
+            "explicitly supported exact assembly build and its verified " +
+            "member shape.");
     }
 
     private static FastTrackCompatibilityReport CreateReport(

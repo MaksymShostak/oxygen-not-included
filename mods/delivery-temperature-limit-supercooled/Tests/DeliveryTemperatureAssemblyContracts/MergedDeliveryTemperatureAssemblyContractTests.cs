@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Security.Cryptography;
-using System.Text;
+using DeliveryTemperatureLimit.Tests.FastTrackCompatibility;
 using DeliveryTemperatureLimit.Tests.OniModPipelineIntegration;
 
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
@@ -14,8 +14,6 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
     private const string DeterministicBuildFixtureReleaseVersion = "2026.8.26";
     private const string DeterministicTestSourceCommit =
         "0123456789abcdef0123456789abcdef01234567";
-    private const string FastTrackFixtureSha256 =
-        "D291C0D58379B77B4A60FB6D386B3783E4061E5C620DEF93502AE984CD657ADD";
 
     public TestContext TestContext { get; set; } = null!;
 
@@ -109,7 +107,7 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
             IntentionalRuntimeContractTests.AssertMergedAssembly(assemblyPath);
             NoShimArchitectureContractTests.AssertMergedAssembly(assemblyPath);
             AssertPlibIsMergedRatherThanExternallyReferenced(assemblyPath);
-            await AssertFastTrackFixtureIsNotContainedAsync(
+            await AssertSupportedFastTrackFixturesAreNotContainedAsync(
                 repositoryRoot,
                 assemblyPath);
         }
@@ -334,41 +332,40 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
             "PLib must be merged and must not remain a runtime package dependency.");
     }
 
-    private static async Task AssertFastTrackFixtureIsNotContainedAsync(
+    private static async Task AssertSupportedFastTrackFixturesAreNotContainedAsync(
         string repositoryRoot,
         string assemblyPath)
     {
-        string fixturePath = Path.Combine(
+        string fixtureCatalogRoot = Path.Combine(
             repositoryRoot,
             "mods",
             "delivery-temperature-limit-supercooled",
             "Tests",
             "Fixtures",
             "ThirdParty",
-            "FastTrack",
-            "0.18.4.0",
-            "FastTrack.dll");
-        byte[] fixtureBytes = await File.ReadAllBytesAsync(fixturePath);
-        Assert.AreEqual(
-            FastTrackFixtureSha256,
-            Convert.ToHexString(SHA256.HashData(fixtureBytes)),
-            "The FastTrack exclusion check must remain bound to the reviewed " +
-            "0.18.4.0 static-contract fixture.");
-
+            "FastTrack");
         byte[] assemblyBytes = await File.ReadAllBytesAsync(assemblyPath);
-        Assert.AreEqual(
-            -1,
-            assemblyBytes.AsSpan().IndexOf(fixtureBytes),
-            $"Merged assembly {assemblyPath} contains the complete FastTrack " +
-            "fixture byte sequence.");
-        AssertEncodedTextIsAbsent(
-            assemblyBytes,
-            FastTrackFixtureSha256,
-            assemblyPath);
-        AssertEncodedTextIsAbsent(
-            assemblyBytes,
-            FastTrackFixtureSha256.ToLowerInvariant(),
-            assemblyPath);
+        foreach (FastTrackSupportedBuildFixtureExpectation fixtureExpectation in
+                 FastTrackSupportedBuildFixtureExpectation.DeclaredFixtures)
+        {
+            string fixtureAssemblyPath = Path.Combine(
+                fixtureCatalogRoot,
+                fixtureExpectation.RelativeFixtureDirectoryPath,
+                "FastTrack.dll");
+            byte[] fixtureAssemblyBytes =
+                await File.ReadAllBytesAsync(fixtureAssemblyPath);
+            Assert.AreEqual(
+                fixtureExpectation.AssemblyBuildIdentity.AssemblySha256,
+                Convert.ToHexString(SHA256.HashData(fixtureAssemblyBytes)),
+                "The FastTrack production-exclusion contract must remain " +
+                "bound to every exact supported-build fixture.");
+            Assert.AreEqual(
+                -1,
+                assemblyBytes.AsSpan().IndexOf(fixtureAssemblyBytes),
+                $"Merged assembly {assemblyPath} contains the complete " +
+                $"FastTrack {fixtureExpectation.AssemblyBuildIdentity.FileVersion} " +
+                "fixture byte sequence.");
+        }
 
         string[] assemblyReferences = DeliveryTemperatureAssemblyMetadataReader
             .ReadAssemblyReferences(assemblyPath)
@@ -386,25 +383,6 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
                     "FastTrack",
                     StringComparison.OrdinalIgnoreCase)),
             $"Merged assembly {assemblyPath} embeds a FastTrack-named resource.");
-    }
-
-    private static void AssertEncodedTextIsAbsent(
-        byte[] assemblyBytes,
-        string prohibitedText,
-        string assemblyPath)
-    {
-        byte[] utf8Bytes = Encoding.UTF8.GetBytes(prohibitedText);
-        byte[] utf16Bytes = Encoding.Unicode.GetBytes(prohibitedText);
-        Assert.AreEqual(
-            -1,
-            assemblyBytes.AsSpan().IndexOf(utf8Bytes),
-            $"Merged assembly {assemblyPath} contains prohibited UTF-8 text " +
-            $"'{prohibitedText}'.");
-        Assert.AreEqual(
-            -1,
-            assemblyBytes.AsSpan().IndexOf(utf16Bytes),
-            $"Merged assembly {assemblyPath} contains prohibited UTF-16 text " +
-            $"'{prohibitedText}'.");
     }
 
     private static string ReadTargetFrameworkName(string assemblyPath)

@@ -13,6 +13,7 @@
 ## Global Constraints
 
 - Treat the current working tree as authoritative and user-owned. Do not restore or overwrite the existing uncommitted Harmony binding work or any other pre-existing edit.
+- Use authoritative tools to execute and validate their own formats; write repository code only for project-specific policy and cross-artifact invariants those tools cannot know.
 - Approved configuration edits are limited to the exact `Compile` item for `Source/GameplayActivation/Core/**/*.cs`, the exact FastTrack fixture-copy wildcard in `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj`, and the scoped third-party fixture DLL `binary` rule in the root `.gitattributes`. Do not apply the fixture-copy wildcard until its separately required exact approval is recorded.
 - Do not change `oni-mod-pipeline.toml`, either `packages.lock.json`, `Source/DeliveryTemperatureLimit.csproj`, `mod.yaml`, `mod_info.yaml`, Workshop metadata, CI, package references, or target frameworks.
 - Do not add a second test project or compile-time reference to a third-party mod assembly.
@@ -69,7 +70,7 @@ Each plan ends with a green, reviewable repository state. Do not start the next 
 |---|---|---|
 | `GameplayActivation/Core/ExternalModIntegration` | Validated identities, capability definitions, deterministic selection, generic outcomes | Klei objects, concrete Harmony API, Unity, FastTrack result types |
 | `FastTrackCompatibility` | FastTrack identity matching, structural inspection, exact authority evidence, patch contribution preparation | Coordinator state, generic selection policy, support-document shape |
-| `Tests/Fixtures/ThirdParty/FastTrack` | Inert content-addressed DLL/package evidence, provenance, license, and explicit compatibility classification | Runtime support policy, assembly loading, network acquisition |
+| `Tests/Fixtures/ThirdParty/FastTrack` | Inert content-addressed supported DLL evidence, human origin notes, and license text | Runtime support policy, assembly loading, network acquisition, active generic provenance formats |
 | `RuntimePatchInstallation` | Cold composition, target resolution, complete preparation, installed authority recheck | An independent private activation state machine, player presentation |
 | `GameplayActivation/Core` | State transitions, safe gate publication, attempt journal, post-registration audit, compensation classification | Klei lifecycle calls, Unity UI, disk I/O, concrete Harmony calls |
 | `GameplayActivation/HarmonyIntegration` | Register, observe, and remove one exact Harmony binding | Compatibility selection, failure policy, reporting |
@@ -96,7 +97,7 @@ The implementation is acceptable only if all of these statements are mechanicall
 13. Player text distinguishes verified containment from incomplete or unavailable registration state and recommends restart before colony load only for the latter.
 14. An undeclared mod cannot become an integration candidate. An unknown Harmony authority conflict may block a required capability, but it never creates a guessed support claim.
 15. A future additive integration can report `Ready` or `Unavailable` without contributing gameplay Harmony registrations or changing core activation success.
-16. Every supported FastTrack build has exactly one complete repository-owned fixture, every preserved fixture is supported or explicitly incompatible, and runtime admission requires an exact file-version-plus-DLL-SHA-256 pair before deep verification of an active replacement.
+16. Every supported FastTrack build has exactly one repository-owned DLL fixture and one independent static-contract expectation, the active fixture tree contains only supported builds, and runtime admission requires an exact file-version-plus-DLL-SHA-256 pair before deep verification of an active replacement. General provenance and incompatible-fixture shapes remain non-operational until a concrete future plan activates them.
 
 ## Common Red-Green Commands
 

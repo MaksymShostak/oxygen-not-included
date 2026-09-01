@@ -13,6 +13,11 @@ namespace DeliveryTemperatureLimit.Tests.FastTrackCompatibility;
 [TestClass]
 public sealed class FastTrackInactivePathArchitectureContractTests
 {
+    private const string SupportedDigest =
+        "D291C0D58379B77B4A60FB6D386B3783E4061E5C620DEF93502AE984CD657ADD";
+    private const string UnsupportedDigest =
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+
     private static readonly DeliveryTemperatureRuntimePatchGroup[]
         RequiredKleiGroupsWhenStatusIsEnabled =
         [
@@ -43,7 +48,9 @@ public sealed class FastTrackInactivePathArchitectureContractTests
     public void RuntimePlan_WhenFastTrackIsNotLoaded_SelectsKleiImplementationPathsDirectly()
     {
         var identityReader = new RecordingAssemblyIdentityReader();
-        var inspector = new FastTrackCompatibilityInspector(identityReader);
+        var inspector = new FastTrackCompatibilityInspector(
+            identityReader,
+            CreateSupportedTestCatalog());
         FastTrackCompatibilityReport report = inspector.Inspect(
             new FastTrackLoadedGameInspectionInput(
                 isFastTrackEnabledForLoadedGame: false,
@@ -60,7 +67,9 @@ public sealed class FastTrackInactivePathArchitectureContractTests
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract();
         var identityReader = new RecordingAssemblyIdentityReader();
-        var inspector = new FastTrackCompatibilityInspector(identityReader);
+        var inspector = new FastTrackCompatibilityInspector(
+            identityReader,
+            CreateSupportedTestCatalog());
         FastTrackCompatibilityReport report = inspector.Inspect(
             new FastTrackLoadedGameInspectionInput(
                 isFastTrackEnabledForLoadedGame: false,
@@ -84,9 +93,11 @@ public sealed class FastTrackInactivePathArchitectureContractTests
             new FastTrackAssemblyFileIdentity(
                 FastTrackAssemblyFileIdentityReadState.Success,
                 new Version(0, 18, 4, 0),
-                "0123456789ABCDEF",
+                UnsupportedDigest,
                 failureMessage: null));
-        var inspector = new FastTrackCompatibilityInspector(identityReader);
+        var inspector = new FastTrackCompatibilityInspector(
+            identityReader,
+            CreateSupportedTestCatalog());
         FastTrackCompatibilityReport report = inspector.Inspect(
             new FastTrackLoadedGameInspectionInput(
                 isFastTrackEnabledForLoadedGame: true,
@@ -189,6 +200,15 @@ public sealed class FastTrackInactivePathArchitectureContractTests
         yield return FastTrackFeature.PickupGrouping;
         yield return FastTrackFeature.DirectDeliveryEligibility;
     }
+
+    private static FastTrackSupportedAssemblyBuildCatalog
+        CreateSupportedTestCatalog() =>
+        new FastTrackSupportedAssemblyBuildCatalog(new[]
+        {
+            new FastTrackAssemblyBuildIdentity(
+                new Version(0, 18, 4, 0),
+                SupportedDigest)
+        });
 
     private static string ExtractMethodBody(
         string source,

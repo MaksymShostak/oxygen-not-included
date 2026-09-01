@@ -110,7 +110,8 @@ namespace DeliveryTemperatureLimit
                             startupActivePrefixes);
                     var compatibilityInspector =
                         new FastTrackCompatibilityInspector(
-                            new FastTrackAssemblyFileIdentityReader());
+                            new FastTrackAssemblyFileIdentityReader(),
+                            FastTrackSupportedAssemblyBuildCatalog.Declared);
                     FastTrackCompatibilityReport compatibilityReport =
                         compatibilityInspector.Inspect(inspectionInput);
                     DeliveryTemperatureRuntimePatchPlan patchPlan =

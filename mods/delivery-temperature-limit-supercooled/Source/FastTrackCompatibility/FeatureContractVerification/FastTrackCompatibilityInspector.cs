@@ -34,8 +34,6 @@ namespace DeliveryTemperatureLimit
             "PeterHan.FastTrack.GamePatches.ChorePatches+" +
             "GlobalChoreProvider_CollectChores_Patch";
 
-        private static readonly Version SupportedFastTrackFileVersion =
-            new Version(0, 18, 4, 0);
         private static readonly OpCode[] SingleByteOpCodes =
             BuildOpCodeLookup(multiByte: false);
         private static readonly OpCode[] MultiByteOpCodes =
@@ -43,13 +41,20 @@ namespace DeliveryTemperatureLimit
 
         private readonly IFastTrackAssemblyFileIdentityReader
             assemblyFileIdentityReader;
+        private readonly FastTrackSupportedAssemblyBuildCatalog
+            supportedAssemblyBuildCatalog;
 
         internal FastTrackCompatibilityInspector(
-            IFastTrackAssemblyFileIdentityReader assemblyFileIdentityReader)
+            IFastTrackAssemblyFileIdentityReader assemblyFileIdentityReader,
+            FastTrackSupportedAssemblyBuildCatalog supportedAssemblyBuildCatalog)
         {
             this.assemblyFileIdentityReader = assemblyFileIdentityReader ??
                 throw new ArgumentNullException(
                     nameof(assemblyFileIdentityReader));
+            this.supportedAssemblyBuildCatalog =
+                supportedAssemblyBuildCatalog ??
+                throw new ArgumentNullException(
+                    nameof(supportedAssemblyBuildCatalog));
         }
 
         internal FastTrackCompatibilityReport Inspect(
@@ -73,6 +78,12 @@ namespace DeliveryTemperatureLimit
             // features and by diagnostics; no adapter may reopen the file.
             FastTrackAssemblyFileIdentity fileIdentity =
                 assemblyFileIdentityReader.Read(fastTrackAssembly);
+            bool assemblyBuildIsSupported =
+                fileIdentity.ReadState ==
+                    FastTrackAssemblyFileIdentityReadState.Success &&
+                supportedAssemblyBuildCatalog.Contains(
+                    fileIdentity.FileVersion!,
+                    fileIdentity.AssemblySha256!);
             IReadOnlyList<ActiveHarmonyPatchDescriptor> activePrefixes =
                 inspectionInput.ActiveHarmonyPrefixes;
 
@@ -91,17 +102,20 @@ namespace DeliveryTemperatureLimit
                 FastTrackFeature.WorldInventory,
                 worldInventoryIsActive,
                 fileIdentity,
+                assemblyBuildIsSupported,
                 () => VerifyWorldInventoryContract(fastTrackAssembly));
             FastTrackFeatureCompatibility pickupGrouping = ClassifyFeature(
                 FastTrackFeature.PickupGrouping,
                 pickupGroupingIsActive,
                 fileIdentity,
+                assemblyBuildIsSupported,
                 () => VerifyPickupGroupingContract(fastTrackAssembly));
             FastTrackFeatureCompatibility directDeliveryEligibility =
                 ClassifyFeature(
                     FastTrackFeature.DirectDeliveryEligibility,
                     directDeliveryEligibilityIsActive,
                     fileIdentity,
+                    assemblyBuildIsSupported,
                     () => VerifyDirectDeliveryEligibilityContract(
                         fastTrackAssembly));
 
@@ -134,6 +148,7 @@ namespace DeliveryTemperatureLimit
             FastTrackFeature feature,
             bool replacementIsActive,
             FastTrackAssemblyFileIdentity fileIdentity,
+            bool assemblyBuildIsSupported,
             Func<IDictionary<FastTrackVerifiedMember, MemberInfo>>
                 verifyStructuralContract)
         {
@@ -158,19 +173,21 @@ namespace DeliveryTemperatureLimit
                     fileIdentity.FailureMessage);
             }
 
-            if (!SupportedFastTrackFileVersion.Equals(fileIdentity.FileVersion))
+            if (!assemblyBuildIsSupported)
             {
                 return FastTrackFeatureCompatibility.Incompatible(
                     feature,
                     FastTrackFeatureCompatibilityFailureCode
-                        .UnsupportedFileVersion,
+                        .UnsupportedAssemblyBuild,
                     "The active " +
                     feature +
-                    " FastTrack replacement requires file version " +
-                    SupportedFastTrackFileVersion +
-                    " exactly, but the loaded file reports " +
+                    " FastTrack replacement reports an unsupported assembly " +
+                    "build. Observed file version: " +
                     fileIdentity.FileVersion +
-                    ".");
+                    "; observed DLL SHA-256: " +
+                    fileIdentity.AssemblySha256 +
+                    ". Compatibility requires one exact admitted " +
+                    "version-and-digest pair.");
             }
 
             try

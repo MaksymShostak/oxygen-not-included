@@ -43,15 +43,15 @@ public sealed class FastTrackDirectDeliveryEligibilityPatchContractTests
     }
 
     [TestMethod]
-    public void OfficialPinnedFixtureContract_WhenInspected_StillRequiresDirectAdapterToRemainInactive()
+    public void PreservedAssemblyContractSource_WhenInspected_ExercisesDirectReplacementAbsence()
     {
         string staticContractPath = ResolveTestSourcePath(
-            "FastTrackGitHubReleaseAssemblyContractTests.cs");
+            "PreservedFastTrackAssemblyContractTests.cs");
         string staticContractSource = File.ReadAllText(staticContractPath);
 
         StringAssert.Contains(
             staticContractSource,
-            "GitHubReleaseFixture_DirectChoreComparatorReplacementIsAbsentAndMustRemainInactive");
+            "PreservedFixture_DirectDeliveryReplacementMatchesDeclaredPresence");
         StringAssert.Contains(
             staticContractSource,
             "PeterHan.FastTrack.GamePatches.ChoreComparator");

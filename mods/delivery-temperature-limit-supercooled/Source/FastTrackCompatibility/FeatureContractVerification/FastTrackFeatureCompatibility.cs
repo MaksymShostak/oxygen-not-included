@@ -15,7 +15,7 @@ namespace DeliveryTemperatureLimit
     internal enum FastTrackFeatureCompatibilityFailureCode
     {
         AssemblyFileIdentityUnavailable,
-        UnsupportedFileVersion,
+        UnsupportedAssemblyBuild,
         WorldInventoryContractViolation,
         PickupGroupingContractViolation,
         DirectDeliveryEligibilityContractViolation

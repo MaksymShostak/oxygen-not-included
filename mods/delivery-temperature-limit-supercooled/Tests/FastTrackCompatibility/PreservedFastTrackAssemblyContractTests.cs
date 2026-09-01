@@ -9,37 +9,117 @@ using System.Security.Cryptography;
 namespace DeliveryTemperatureLimit.Tests.FastTrackCompatibility;
 
 /// <summary>
-/// Reads the provenance-pinned GitHub release DLL as portable-executable data.
-/// The fixture is never loaded, referenced, or executed, so missing ONI/Unity
+/// Reads every admitted preserved FastTrack DLL as portable-executable data.
+/// Fixtures are never loaded, referenced, or executed, so missing ONI/Unity
 /// dependencies cannot affect these static compatibility assertions.
 /// </summary>
 [TestClass]
-public sealed class FastTrackGitHubReleaseAssemblyContractTests
+public sealed class PreservedFastTrackAssemblyContractTests
 {
-    private const string ExpectedAssemblySha256 =
-        "D291C0D58379B77B4A60FB6D386B3783E4061E5C620DEF93502AE984CD657ADD";
-
-    [TestMethod]
-    public void GitHubReleaseFixture_HasPinnedDigestAssemblyVersionAndFileVersion()
+    public sealed class SupportedBuildFixtureCase
     {
-        string fixturePath = RequireCopiedFixturePath();
-        Assert.AreEqual(ExpectedAssemblySha256, ComputeUppercaseSha256(fixturePath));
-        using var fixture = new FastTrackPortableExecutableFixture(fixturePath);
+        internal SupportedBuildFixtureCase(
+            string assemblyPath,
+            FastTrackSupportedBuildFixtureExpectation expectation)
+        {
+            AssemblyPath = assemblyPath;
+            Expectation = expectation;
+        }
 
-        AssemblyDefinition assemblyDefinition =
-            fixture.MetadataReader.GetAssemblyDefinition();
+        internal string AssemblyPath { get; }
 
-        Assert.AreEqual(new Version(0, 18, 0, 0), assemblyDefinition.Version);
-        Assert.AreEqual(
-            "0.18.4.0",
-            fixture.RequireAssemblyFileVersionAttributeValue());
+        internal FastTrackSupportedBuildFixtureExpectation Expectation
+        {
+            get;
+        }
+    }
+
+    public static IEnumerable<object[]> SupportedPreservedBuildCases
+    {
+        get
+        {
+            string fixtureRoot = RequireCopiedFixtureRoot();
+            foreach (FastTrackSupportedBuildFixtureExpectation expectation in
+                     FastTrackSupportedBuildFixtureExpectation.DeclaredFixtures)
+            {
+                string assemblyPath = Path.GetFullPath(Path.Combine(
+                    fixtureRoot,
+                    expectation.RelativeFixtureDirectoryPath,
+                    "FastTrack.dll"));
+                yield return new object[]
+                {
+                    new SupportedBuildFixtureCase(assemblyPath, expectation)
+                };
+            }
+        }
+    }
+
+    public static string FormatSupportedPreservedBuildCaseName(
+        MethodInfo methodInfo,
+        object[] data)
+    {
+        var contractCase = (SupportedBuildFixtureCase)data[0];
+        FastTrackAssemblyBuildIdentity identity =
+            contractCase.Expectation.AssemblyBuildIdentity;
+        return $"{methodInfo.Name} ({identity.FileVersion}, " +
+            "sha256-" +
+            identity.AssemblySha256.Substring(0, 12) +
+            ")";
     }
 
     [TestMethod]
-    public void GitHubReleaseFixture_WorldInventoryContractHasCompleteAndIncrementalBranchesWithoutKeyDeletion()
+    [DynamicData(
+        nameof(SupportedPreservedBuildCases),
+        DynamicDataDisplayName = nameof(FormatSupportedPreservedBuildCaseName))]
+    public void PreservedFixture_AssemblyMetadataExactlyMatchesExpectedBuild(
+        SupportedBuildFixtureCase contractCase)
     {
+        FastTrackSupportedBuildFixtureExpectation expectation =
+            contractCase.Expectation;
+        Assert.AreEqual(
+            expectation.AssemblyBuildIdentity.AssemblySha256,
+            ComputeUppercaseSha256(contractCase.AssemblyPath));
         using var fixture = new FastTrackPortableExecutableFixture(
-            RequireCopiedFixturePath());
+            contractCase.AssemblyPath);
+
+        AssemblyDefinition assemblyDefinition =
+            fixture.MetadataReader.GetAssemblyDefinition();
+        ModuleDefinition moduleDefinition =
+            fixture.MetadataReader.GetModuleDefinition();
+
+        Assert.AreEqual(
+            expectation.ExpectedAssemblyName,
+            fixture.MetadataReader.GetString(assemblyDefinition.Name));
+        Assert.AreEqual(
+            expectation.ExpectedAssemblyVersion,
+            assemblyDefinition.Version);
+        Assert.AreEqual(
+            expectation.AssemblyBuildIdentity.FileVersion.ToString(),
+            fixture.RequireAssemblyFileVersionAttributeValue());
+        Assert.AreEqual(
+            expectation.ExpectedModuleVersionId,
+            fixture.MetadataReader.GetGuid(moduleDefinition.Mvid));
+    }
+
+    [TestMethod]
+    [DynamicData(
+        nameof(SupportedPreservedBuildCases),
+        DynamicDataDisplayName = nameof(FormatSupportedPreservedBuildCaseName))]
+    public void PreservedFixture_WorldInventoryContractMatchesDeclaredPresenceAndSemantics(
+        SupportedBuildFixtureCase contractCase)
+    {
+        FastTrackSupportedBuildFixtureExpectation expectation =
+            contractCase.Expectation;
+        using var fixture = new FastTrackPortableExecutableFixture(
+            contractCase.AssemblyPath);
+        if (!expectation.WorldInventoryReplacementIsPresent)
+        {
+            Assert.IsFalse(fixture.TryFindType(
+                "PeterHan.FastTrack.UIPatches.BackgroundWorldInventory",
+                out _));
+            return;
+        }
+
         TypeDefinitionHandle backgroundInventory = fixture.RequireType(
             "PeterHan.FastTrack.UIPatches.BackgroundWorldInventory");
         FieldDefinitionHandle firstUpdate = fixture.RequireField(
@@ -293,10 +373,24 @@ public sealed class FastTrackGitHubReleaseAssemblyContractTests
     }
 
     [TestMethod]
-    public void GitHubReleaseFixture_PickupGroupingContractUsesOneConstructorAnchorAndHashOnlyEquality()
+    [DynamicData(
+        nameof(SupportedPreservedBuildCases),
+        DynamicDataDisplayName = nameof(FormatSupportedPreservedBuildCaseName))]
+    public void PreservedFixture_PickupGroupingContractMatchesDeclaredPresenceAndSemantics(
+        SupportedBuildFixtureCase contractCase)
     {
+        FastTrackSupportedBuildFixtureExpectation expectation =
+            contractCase.Expectation;
         using var fixture = new FastTrackPortableExecutableFixture(
-            RequireCopiedFixturePath());
+            contractCase.AssemblyPath);
+        if (!expectation.PickupGroupingReplacementIsPresent)
+        {
+            Assert.IsFalse(fixture.TryFindType(
+                "PeterHan.FastTrack.GamePatches.FetchManagerFastUpdate",
+                out _));
+            return;
+        }
+
         TypeDefinitionHandle fastUpdate = fixture.RequireType(
             "PeterHan.FastTrack.GamePatches.FetchManagerFastUpdate");
         fixture.RequireMethod(
@@ -401,35 +495,40 @@ public sealed class FastTrackGitHubReleaseAssemblyContractTests
     }
 
     [TestMethod]
-    public void GitHubReleaseFixture_DirectChoreComparatorReplacementIsAbsentAndMustRemainInactive()
+    [DynamicData(
+        nameof(SupportedPreservedBuildCases),
+        DynamicDataDisplayName = nameof(FormatSupportedPreservedBuildCaseName))]
+    public void PreservedFixture_DirectDeliveryReplacementMatchesDeclaredPresence(
+        SupportedBuildFixtureCase contractCase)
     {
+        FastTrackSupportedBuildFixtureExpectation expectation =
+            contractCase.Expectation;
         using var fixture = new FastTrackPortableExecutableFixture(
-            RequireCopiedFixturePath());
+            contractCase.AssemblyPath);
 
-        Assert.IsFalse(fixture.TryFindType(
-            "PeterHan.FastTrack.GamePatches.ChoreComparator",
-            out _));
-        Assert.IsFalse(fixture.TryFindType(
-            "PeterHan.FastTrack.GamePatches.ChorePatches+" +
-            "GlobalChoreProvider_CollectChores_Patch",
-            out _));
+        Assert.AreEqual(
+            expectation.DirectDeliveryReplacementIsPresent,
+            fixture.TryFindType(
+                "PeterHan.FastTrack.GamePatches.ChoreComparator",
+                out _));
+        Assert.AreEqual(
+            expectation.DirectDeliveryReplacementIsPresent,
+            fixture.TryFindType(
+                "PeterHan.FastTrack.GamePatches.ChorePatches+" +
+                "GlobalChoreProvider_CollectChores_Patch",
+                out _));
     }
 
     [TestMethod]
-    public void TestProject_CopiesFastTrackFixtureAsDataWithoutLoadingPhysicalAssemblyWithItsSimpleName()
+    [DynamicData(
+        nameof(SupportedPreservedBuildCases),
+        DynamicDataDisplayName = nameof(FormatSupportedPreservedBuildCaseName))]
+    public void TestProject_CopiesPreservedFixtureAsDataWithoutLoadingItsPhysicalAssembly(
+        SupportedBuildFixtureCase contractCase)
     {
-        string fixturePath = RequireCopiedFixturePath();
-        string expectedFullPath = Path.GetFullPath(Path.Combine(
-            AppContext.BaseDirectory,
-            "Fixtures",
-            "ThirdParty",
-            "FastTrack",
-            "0.18.4.0",
-            "FastTrack.dll"));
-
-        Assert.AreEqual(expectedFullPath, fixturePath);
         Assert.IsFalse(
-            IsPhysicalAssemblyWithFixtureSimpleNameLoaded(fixturePath));
+            IsPhysicalAssemblyWithFixtureSimpleNameLoaded(
+                contractCase.AssemblyPath));
     }
 
     [TestMethod]
@@ -448,7 +547,7 @@ public sealed class FastTrackGitHubReleaseAssemblyContractTests
     public void PhysicalAssemblyNameDetection_WhenLoadedAssemblySimpleNameMatches_ReportsIt()
     {
         Assembly loadedPhysicalAssembly =
-            typeof(FastTrackGitHubReleaseAssemblyContractTests).Assembly;
+            typeof(PreservedFastTrackAssemblyContractTests).Assembly;
         string loadedAssemblySimpleName =
             loadedPhysicalAssembly.GetName().Name!;
 
@@ -608,20 +707,18 @@ public sealed class FastTrackGitHubReleaseAssemblyContractTests
         return string.Join(", ", callIdentities);
     }
 
-    private static string RequireCopiedFixturePath()
+    private static string RequireCopiedFixtureRoot()
     {
-        string fixturePath = Path.GetFullPath(Path.Combine(
+        string fixtureRoot = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory,
             "Fixtures",
             "ThirdParty",
-            "FastTrack",
-            "0.18.4.0",
-            "FastTrack.dll"));
+            "FastTrack"));
         Assert.IsTrue(
-            File.Exists(fixturePath),
-            "The FastTrack fixture must be copied as a non-reference test data " +
-            "item by DeliveryTemperatureLimit.Tests.csproj.");
-        return fixturePath;
+            Directory.Exists(fixtureRoot),
+            "The preserved FastTrack fixture catalog must be copied as " +
+            "non-reference test data by DeliveryTemperatureLimit.Tests.csproj.");
+        return fixtureRoot;
     }
 
     private static bool IsPhysicalAssemblyWithFixtureSimpleNameLoaded(

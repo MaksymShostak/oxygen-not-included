@@ -11,3 +11,5 @@ clean.py export-ignore
 # Exclude compiled bin/obj directories from individual mod source folders
 mods/delivery-temperature-limit-supercooled/Source/bin/ export-ignore
 mods/delivery-temperature-limit-supercooled/Source/obj/ export-ignore
+
+mods/delivery-temperature-limit-supercooled/Tests/Fixtures/ThirdParty/**/*.dll binary

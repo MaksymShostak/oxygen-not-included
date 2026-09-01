@@ -13,6 +13,7 @@
 ## Global Constraints
 
 - Execute after reviewing `docs/plans/2026-09-01-temperature-limit-safe-activation-program.md`.
+- Use authoritative tools to execute and validate their own formats; write repository code only for project-specific policy and cross-artifact invariants those tools cannot know.
 - Preserve all existing compatibility states and structural checks in `FastTrackCompatibilityInspector`.
 - Match FastTrack only when one active Klei mod has exact static ID `PeterHan.FastTrack` and that same mod supplies exactly one loaded assembly with simple name `FastTrack`.
 - Catalog order controls deterministic inspection/report order only. It never breaks an ownership conflict.
@@ -436,8 +437,9 @@ starting Task 6.
 
 - [ ] Reuse the evidence plan's exact packaged static ID
   `PeterHan.FastTrack`. Do not reacquire a historical archive or introduce a
-  network dependency; the content-addressed fixture manifests are the
-  repository-owned evidence boundary.
+  network dependency; the content-addressed DLL fixtures and independent
+  supported-build expectation matrix are the repository-owned evidence
+  boundary.
 
 - [ ] Run:
 
