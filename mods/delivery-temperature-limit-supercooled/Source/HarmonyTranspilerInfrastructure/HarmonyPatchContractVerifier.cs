@@ -218,7 +218,7 @@ namespace DeliveryTemperatureLimit
 
         internal static bool VerifyKleiAuthority(
             MethodBase targetMethod,
-            IReadOnlyList<ActiveHarmonyPatchDescriptor> activePatches,
+            IReadOnlyList<ActiveHarmonyPrefixDescriptor> activePatches,
             IReadOnlyCollection<string> permittedSkippingPrefixOwners)
         {
             if (targetMethod == null)
@@ -241,7 +241,7 @@ namespace DeliveryTemperatureLimit
                  patchIndex < activePatches.Count;
                  patchIndex++)
             {
-                ActiveHarmonyPatchDescriptor activePatch =
+                ActiveHarmonyPrefixDescriptor activePatch =
                     activePatches[patchIndex];
                 if (activePatch == null)
                 {
@@ -251,7 +251,7 @@ namespace DeliveryTemperatureLimit
                 }
 
                 if (!Equals(activePatch.TargetMethod, targetMethod) ||
-                    activePatch.PatchMethod.ReturnType != typeof(bool))
+                    activePatch.PrefixMethod.ReturnType != typeof(bool))
                 {
                     // The installer supplies active prefixes only. A prefix can
                     // suppress the original Klei body only when it targets this

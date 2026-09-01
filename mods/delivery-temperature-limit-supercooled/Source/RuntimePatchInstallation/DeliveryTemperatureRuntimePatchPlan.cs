@@ -298,7 +298,7 @@ namespace DeliveryTemperatureLimit
         /// load boundary, never from inventory, pickup, status, or delivery work.
         /// </summary>
         internal void VerifySelectedAuthority(
-            IReadOnlyList<ActiveHarmonyPatchDescriptor> activePatches)
+            IReadOnlyList<ActiveHarmonyPrefixDescriptor> activePatches)
         {
             if (activePatches == null)
             {
@@ -420,7 +420,7 @@ namespace DeliveryTemperatureLimit
 
         private static void VerifyKleiAuthorityForMatchingTargets(
             DeliveryTemperatureRuntimePatchGroup selectedGroup,
-            IReadOnlyList<ActiveHarmonyPatchDescriptor> activePatches,
+            IReadOnlyList<ActiveHarmonyPrefixDescriptor> activePatches,
             Func<MethodBase, bool> targetContract)
         {
             var verifiedTargets = new HashSet<MethodBase>();
@@ -428,7 +428,7 @@ namespace DeliveryTemperatureLimit
                  patchIndex < activePatches.Count;
                  patchIndex++)
             {
-                ActiveHarmonyPatchDescriptor patch = activePatches[patchIndex];
+                ActiveHarmonyPrefixDescriptor patch = activePatches[patchIndex];
                 MethodBase targetMethod = patch.TargetMethod;
                 if (!targetContract(targetMethod) ||
                     !verifiedTargets.Add(targetMethod))
@@ -444,7 +444,7 @@ namespace DeliveryTemperatureLimit
                     continue;
                 }
 
-                ActiveHarmonyPatchDescriptor conflictingPatch =
+                ActiveHarmonyPrefixDescriptor conflictingPatch =
                     RequireConflictingSkippingPrefix(
                         targetMethod,
                         activePatches,
@@ -461,7 +461,7 @@ namespace DeliveryTemperatureLimit
             DeliveryTemperatureRuntimePatchGroup selectedGroup,
             FastTrackFeatureCompatibility selectedFeature,
             FastTrackVerifiedMember replacementPrefixRole,
-            IReadOnlyList<ActiveHarmonyPatchDescriptor> activePatches,
+            IReadOnlyList<ActiveHarmonyPrefixDescriptor> activePatches,
             Func<MethodBase, bool> targetContract)
         {
             MemberInfo verifiedMember =
@@ -485,13 +485,13 @@ namespace DeliveryTemperatureLimit
                  patchIndex < activePatches.Count;
                  patchIndex++)
             {
-                ActiveHarmonyPatchDescriptor patch = activePatches[patchIndex];
+                ActiveHarmonyPrefixDescriptor patch = activePatches[patchIndex];
                 if (!targetContract(patch.TargetMethod))
                 {
                     continue;
                 }
 
-                if (Equals(patch.PatchMethod, verifiedReplacementPrefix) &&
+                if (Equals(patch.PrefixMethod, verifiedReplacementPrefix) &&
                     string.Equals(
                         patch.HarmonyOwner,
                         FastTrackHarmonyOwner,
@@ -509,7 +509,7 @@ namespace DeliveryTemperatureLimit
                     continue;
                 }
 
-                ActiveHarmonyPatchDescriptor conflictingPatch =
+                ActiveHarmonyPrefixDescriptor conflictingPatch =
                     RequireConflictingSkippingPrefix(
                         patch.TargetMethod,
                         activePatches,
@@ -535,19 +535,19 @@ namespace DeliveryTemperatureLimit
             }
         }
 
-        private static ActiveHarmonyPatchDescriptor
+        private static ActiveHarmonyPrefixDescriptor
             RequireConflictingSkippingPrefix(
                 MethodBase targetMethod,
-                IReadOnlyList<ActiveHarmonyPatchDescriptor> activePatches,
+                IReadOnlyList<ActiveHarmonyPrefixDescriptor> activePatches,
                 IReadOnlyCollection<string> permittedOwners)
         {
             for (int patchIndex = 0;
                  patchIndex < activePatches.Count;
                  patchIndex++)
             {
-                ActiveHarmonyPatchDescriptor patch = activePatches[patchIndex];
+                ActiveHarmonyPrefixDescriptor patch = activePatches[patchIndex];
                 if (Equals(patch.TargetMethod, targetMethod) &&
-                    patch.PatchMethod.ReturnType == typeof(bool) &&
+                    patch.PrefixMethod.ReturnType == typeof(bool) &&
                     !ContainsExactOwner(
                         permittedOwners,
                         patch.HarmonyOwner))
@@ -565,7 +565,7 @@ namespace DeliveryTemperatureLimit
             CreateChangedAuthorityException(
                 DeliveryTemperatureRuntimePatchGroup selectedGroup,
                 MethodBase targetMethod,
-                ActiveHarmonyPatchDescriptor conflictingPatch,
+                ActiveHarmonyPrefixDescriptor conflictingPatch,
                 string reason) =>
             new HarmonyPatchContractViolationException(
                 "Selected runtime group '" +
@@ -575,7 +575,7 @@ namespace DeliveryTemperatureLimit
                 "': " +
                 reason +
                 ". Conflicting patch '" +
-                GetMethodDisplayName(conflictingPatch.PatchMethod) +
+                GetMethodDisplayName(conflictingPatch.PrefixMethod) +
                 "', Harmony owner '" +
                 conflictingPatch.HarmonyOwner +
                 "', priority " +

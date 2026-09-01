@@ -343,12 +343,12 @@ amendments, approved configuration changes, and associated tests. Exclude the
 user-owned untracked root `AGENTS.md`. Resolve or explicitly defer every
 confirmed P0-P2 finding, then rerun affected tests and the authoritative suite.
 
-- [ ] **Step 7: Stage only this milestone and inspect the snapshot**
+- [x] **Step 7: Stage only this milestone and inspect the snapshot**
 
 Show `git status --short`, `git diff --stat`, `git diff --cached --check`, and
 the staged file list. Exclude root `AGENTS.md` and unrelated changes.
 
-- [ ] **Step 8: Create the authorized signed commit**
+- [x] **Step 8: Create the authorized signed commit**
 
 Load and follow `committing-to-git`, then use:
 
@@ -369,7 +369,7 @@ and classify future upstream changes through an explicit preservation and
 admission workflow.
 ```
 
-- [ ] **Step 9: Do not push**
+- [x] **Step 9: Do not push**
 
 Report the commit ID, subject, signature result, tests, review result, and next
 active plan task. Pushing requires separate explicit authorization.

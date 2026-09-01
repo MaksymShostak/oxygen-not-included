@@ -373,6 +373,63 @@ public sealed class IntentionalRuntimeContractTests
                 assemblyPath,
                 "DeliveryTemperatureLimit.TemperatureLimit",
                 "getTemperatureIndexData"));
+        Assert.IsTrue(
+            DeliveryTemperatureAssemblyMetadataReader.TypeExists(
+                assemblyPath,
+                "DeliveryTemperatureLimit." +
+                "FastTrackRuntimeAuthorityIntegrationInspector"));
+        Assert.IsTrue(
+            DeliveryTemperatureAssemblyMetadataReader.TypeExists(
+                assemblyPath,
+                "DeliveryTemperatureLimit." +
+                "FastTrackRuntimeAuthorityContributionBuilder"));
+        Assert.IsTrue(
+            DeliveryTemperatureAssemblyMetadataReader.MethodExists(
+                assemblyPath,
+                "DeliveryTemperatureLimit." +
+                "FastTrackRuntimeAuthorityContributionBuilder",
+                "Build"));
+        Assert.IsFalse(
+            DeliveryTemperatureAssemblyMetadataReader.MethodExists(
+                assemblyPath,
+                "DeliveryTemperatureLimit." +
+                "DeliveryTemperatureRuntimePatchInstaller",
+                "PrepareFastTrackWorldInventoryTemperaturePatches"));
+        Assert.IsFalse(
+            DeliveryTemperatureAssemblyMetadataReader.MethodExists(
+                assemblyPath,
+                "DeliveryTemperatureLimit." +
+                "DeliveryTemperatureRuntimePatchInstaller",
+                "PrepareFastTrackPickupTemperaturePatches"));
+        Assert.IsFalse(
+            DeliveryTemperatureAssemblyMetadataReader.MethodExists(
+                assemblyPath,
+                "DeliveryTemperatureLimit." +
+                "DeliveryTemperatureRuntimePatchInstaller",
+                "PrepareFastTrackDirectDeliveryEligibilityPatches"));
+        IReadOnlyList<AssemblyMethodBodyContract> selectionPreparationBodies =
+            DeliveryTemperatureAssemblyMetadataReader.ReadMethodBodies(
+                assemblyPath,
+                "DeliveryTemperatureLimit." +
+                "DeliveryTemperatureRuntimePatchInstaller",
+                "PrepareSelectedRuntimePatches");
+        Assert.AreEqual(1, selectionPreparationBodies.Count);
+        Assert.IsTrue(
+            selectionPreparationBodies[0].Instructions.Any(instruction =>
+                instruction.ResolvedOperand?.Contains(
+                    "DeliveryTemperatureLimit." +
+                    "FastTrackRuntimeAuthorityContributionBuilder.Build",
+                    StringComparison.Ordinal) == true),
+            "Selected runtime patch preparation must consume complete " +
+            "FastTrack runtime-authority contributions.");
+        Assert.IsTrue(
+            DeliveryTemperatureAssemblyMetadataReader.TypeExists(
+                assemblyPath,
+                "DeliveryTemperatureLimit.ActiveHarmonyPrefixDescriptor"));
+        Assert.IsFalse(
+            DeliveryTemperatureAssemblyMetadataReader.TypeExists(
+                assemblyPath,
+                "DeliveryTemperatureLimit.ActiveHarmonyPatchDescriptor"));
     }
 
     private static void AssertPublicMemberNamesAreIntentional(

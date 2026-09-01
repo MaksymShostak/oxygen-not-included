@@ -125,7 +125,7 @@ public sealed class FastTrackCoherentActivationContractTests
         string gameLoadMethod = ExtractSourceRegion(
             installerSource,
             "internal static bool TryStartAuthorizedGameSession(Game game)",
-            "internal static IReadOnlyList<ActiveHarmonyPatchDescriptor>");
+            "internal static IReadOnlyList<ActiveHarmonyPrefixDescriptor>");
 
         int repeatedIdentityIndex = RequireIndex(
             gameLoadMethod,

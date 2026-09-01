@@ -17,9 +17,19 @@ internal static class FastTrackReflectionEmitFixture
     internal static FastTrackEmittedAssembly CreateExpectedContract() =>
         Create(FastTrackContractMutation.None);
 
+    internal static FastTrackEmittedAssembly CreateExpectedContract(
+        string assemblySimpleName) =>
+        Create(FastTrackContractMutation.None, assemblySimpleName);
+
     internal static FastTrackEmittedAssembly
         CreateWithRunUpdateSignatureChanged() =>
         Create(FastTrackContractMutation.RunUpdateSignatureChanged);
+
+    internal static FastTrackEmittedAssembly
+        CreateWithRunUpdateSignatureChanged(string assemblySimpleName) =>
+        Create(
+            FastTrackContractMutation.RunUpdateSignatureChanged,
+            assemblySimpleName);
 
     internal static FastTrackEmittedAssembly
         CreateWithRunUpdateMissingSingleTagBranch() =>
@@ -93,6 +103,12 @@ internal static class FastTrackReflectionEmitFixture
         Create(FastTrackContractMutation.DirectComparatorSignatureChanged);
 
     internal static FastTrackEmittedAssembly
+        CreateWithDirectComparatorContractChanged(string assemblySimpleName) =>
+        Create(
+            FastTrackContractMutation.DirectComparatorSignatureChanged,
+            assemblySimpleName);
+
+    internal static FastTrackEmittedAssembly
         CreateWithDirectComparatorSuccessReturnMissing() =>
         Create(FastTrackContractMutation
             .DirectComparatorSuccessReturnMissing);
@@ -103,10 +119,12 @@ internal static class FastTrackReflectionEmitFixture
             .DirectComparatorSuccessReturnDuplicated);
 
     private static FastTrackEmittedAssembly Create(
-        FastTrackContractMutation mutation)
+        FastTrackContractMutation mutation,
+        string? assemblySimpleName = null)
     {
         var assemblyName = new AssemblyName(
-            $"FastTrack.EmittedContract.{Guid.NewGuid():N}")
+            assemblySimpleName ??
+                $"FastTrack.EmittedContract.{Guid.NewGuid():N}")
         {
             Version = new Version(0, 18, 0, 0)
         };
@@ -127,17 +145,17 @@ internal static class FastTrackReflectionEmitFixture
 
         return new FastTrackEmittedAssembly(
             assemblyBuilder,
-            new ActiveHarmonyPatchDescriptor(
+            new ActiveHarmonyPrefixDescriptor(
                 worldInventoryContract.WorldInventoryUpdateTarget,
                 worldInventoryContract.WorldInventoryReplacementPrefix,
                 FastTrackHarmonyOwner,
                 HarmonyNormalPriority),
-            new ActiveHarmonyPatchDescriptor(
+            new ActiveHarmonyPrefixDescriptor(
                 pickupGroupingContract.UpdatePickupsTarget,
                 pickupGroupingContract.BeforeUpdatePickupsPrefix,
                 FastTrackHarmonyOwner,
                 HarmonyNormalPriority),
-            new ActiveHarmonyPatchDescriptor(
+            new ActiveHarmonyPrefixDescriptor(
                 directDeliveryContract.GlobalChoreCollectionTarget,
                 directDeliveryContract.GlobalChoreCollectionPrefix,
                 FastTrackHarmonyOwner,
@@ -1204,9 +1222,9 @@ internal sealed class FastTrackEmittedAssembly
 {
     internal FastTrackEmittedAssembly(
         Assembly assembly,
-        ActiveHarmonyPatchDescriptor worldInventoryReplacement,
-        ActiveHarmonyPatchDescriptor pickupGroupingReplacement,
-        ActiveHarmonyPatchDescriptor directDeliveryEligibilityReplacement)
+        ActiveHarmonyPrefixDescriptor worldInventoryReplacement,
+        ActiveHarmonyPrefixDescriptor pickupGroupingReplacement,
+        ActiveHarmonyPrefixDescriptor directDeliveryEligibilityReplacement)
     {
         Assembly = assembly;
         WorldInventoryReplacement = worldInventoryReplacement;
@@ -1217,14 +1235,14 @@ internal sealed class FastTrackEmittedAssembly
 
     internal Assembly Assembly { get; }
 
-    internal ActiveHarmonyPatchDescriptor WorldInventoryReplacement { get; }
+    internal ActiveHarmonyPrefixDescriptor WorldInventoryReplacement { get; }
 
-    internal ActiveHarmonyPatchDescriptor PickupGroupingReplacement { get; }
+    internal ActiveHarmonyPrefixDescriptor PickupGroupingReplacement { get; }
 
-    internal ActiveHarmonyPatchDescriptor
+    internal ActiveHarmonyPrefixDescriptor
         DirectDeliveryEligibilityReplacement { get; }
 
-    internal IReadOnlyList<ActiveHarmonyPatchDescriptor> AllReplacements =>
+    internal IReadOnlyList<ActiveHarmonyPrefixDescriptor> AllReplacements =>
         new[]
         {
             WorldInventoryReplacement,
@@ -1232,12 +1250,12 @@ internal sealed class FastTrackEmittedAssembly
             DirectDeliveryEligibilityReplacement
         };
 
-    internal ActiveHarmonyPatchDescriptor WithHarmonyOwner(
-        ActiveHarmonyPatchDescriptor descriptor,
+    internal ActiveHarmonyPrefixDescriptor WithHarmonyOwner(
+        ActiveHarmonyPrefixDescriptor descriptor,
         string harmonyOwner) =>
         new(
             descriptor.TargetMethod,
-            descriptor.PatchMethod,
+            descriptor.PrefixMethod,
             harmonyOwner,
             descriptor.Priority);
 }

@@ -612,30 +612,30 @@ public sealed class HarmonyPatchContractVerifierTests
     }
 
     [TestMethod]
-    public void ActiveHarmonyPatchDescriptor_WhenConstructed_PreservesExactMetadata()
+    public void ActiveHarmonyPrefixDescriptor_WhenConstructed_PreservesExactMetadata()
     {
         var targetMethod = RequireFixtureMethod(
             nameof(HarmonyAuthorityFixture.KleiTarget));
         var patchMethod = RequireFixtureMethod(
             nameof(HarmonyAuthorityFixture.PermittedSkippingPrefix));
 
-        var descriptor = new ActiveHarmonyPatchDescriptor(
+        var descriptor = new ActiveHarmonyPrefixDescriptor(
             targetMethod,
             patchMethod,
             "permitted.owner",
             priority: -123);
 
         Assert.AreSame(targetMethod, descriptor.TargetMethod);
-        Assert.AreSame(patchMethod, descriptor.PatchMethod);
+        Assert.AreSame(patchMethod, descriptor.PrefixMethod);
         Assert.AreEqual("permitted.owner", descriptor.HarmonyOwner);
         Assert.AreEqual(-123, descriptor.Priority);
     }
 
     [TestMethod]
-    public void ActiveHarmonyPatchDescriptor_WhenTargetMethodIsNull_ThrowsArgumentNullException()
+    public void ActiveHarmonyPrefixDescriptor_WhenTargetMethodIsNull_ThrowsArgumentNullException()
     {
         Assert.ThrowsExactly<ArgumentNullException>(() =>
-            new ActiveHarmonyPatchDescriptor(
+            new ActiveHarmonyPrefixDescriptor(
                 null!,
                 RequireFixtureMethod(
                     nameof(HarmonyAuthorityFixture.PermittedSkippingPrefix)),
@@ -644,10 +644,10 @@ public sealed class HarmonyPatchContractVerifierTests
     }
 
     [TestMethod]
-    public void ActiveHarmonyPatchDescriptor_WhenPatchMethodIsNull_ThrowsArgumentNullException()
+    public void ActiveHarmonyPrefixDescriptor_WhenPatchMethodIsNull_ThrowsArgumentNullException()
     {
         Assert.ThrowsExactly<ArgumentNullException>(() =>
-            new ActiveHarmonyPatchDescriptor(
+            new ActiveHarmonyPrefixDescriptor(
                 RequireFixtureMethod(
                     nameof(HarmonyAuthorityFixture.KleiTarget)),
                 null!,
@@ -656,10 +656,10 @@ public sealed class HarmonyPatchContractVerifierTests
     }
 
     [TestMethod]
-    public void ActiveHarmonyPatchDescriptor_WhenHarmonyOwnerIsBlank_ThrowsArgumentException()
+    public void ActiveHarmonyPrefixDescriptor_WhenHarmonyOwnerIsBlank_ThrowsArgumentException()
     {
         Assert.ThrowsExactly<ArgumentException>(() =>
-            new ActiveHarmonyPatchDescriptor(
+            new ActiveHarmonyPrefixDescriptor(
                 RequireFixtureMethod(
                     nameof(HarmonyAuthorityFixture.KleiTarget)),
                 RequireFixtureMethod(
@@ -673,7 +673,7 @@ public sealed class HarmonyPatchContractVerifierTests
     {
         var result = HarmonyPatchContractVerifier.VerifyKleiAuthority(
             RequireFixtureMethod(nameof(HarmonyAuthorityFixture.KleiTarget)),
-            Array.Empty<ActiveHarmonyPatchDescriptor>(),
+            Array.Empty<ActiveHarmonyPrefixDescriptor>(),
             Array.Empty<string>());
 
         Assert.IsTrue(result);
@@ -3142,12 +3142,12 @@ public sealed class HarmonyPatchContractVerifierTests
         return occurrenceCount;
     }
 
-    private static ActiveHarmonyPatchDescriptor CreateDescriptor(
+    private static ActiveHarmonyPrefixDescriptor CreateDescriptor(
         MethodBase targetMethod,
         string patchMethodName,
         string harmonyOwner,
         int priority) =>
-        new ActiveHarmonyPatchDescriptor(
+        new ActiveHarmonyPrefixDescriptor(
             targetMethod,
             RequireFixtureMethod(patchMethodName),
             harmonyOwner,

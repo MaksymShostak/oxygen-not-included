@@ -24,7 +24,7 @@ public sealed class FastTrackCompatibilityInspectorTests
         var inspectionInput = new FastTrackLoadedGameInspectionInput(
             isFastTrackEnabledForLoadedGame: false,
             fastTrackAssembly: null,
-            Array.Empty<ActiveHarmonyPatchDescriptor>());
+            Array.Empty<ActiveHarmonyPrefixDescriptor>());
 
         FastTrackCompatibilityReport report = inspector.Inspect(inspectionInput);
 
@@ -255,7 +255,7 @@ public sealed class FastTrackCompatibilityInspectorTests
             fixture,
             identityReader,
             CreateSupportedTestCatalog(),
-            Array.Empty<ActiveHarmonyPatchDescriptor>());
+            Array.Empty<ActiveHarmonyPrefixDescriptor>());
 
         AssertEveryFeatureHasState(
             report,
@@ -627,7 +627,7 @@ public sealed class FastTrackCompatibilityInspectorTests
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract();
-        ActiveHarmonyPatchDescriptor unexpectedOwnerDescriptor =
+        ActiveHarmonyPrefixDescriptor unexpectedOwnerDescriptor =
             fixture.WithHarmonyOwner(
                 fixture.WorldInventoryReplacement,
                 "another.mod.owner");
@@ -820,7 +820,7 @@ public sealed class FastTrackCompatibilityInspectorTests
 
     private static FastTrackCompatibilityReport Inspect(
         FastTrackEmittedAssembly fixture,
-        params ActiveHarmonyPatchDescriptor[] activePatches) =>
+        params ActiveHarmonyPrefixDescriptor[] activePatches) =>
         Inspect(
             fixture,
             new RecordingAssemblyFileIdentityReader(SuccessfulFileIdentity()),
@@ -829,7 +829,7 @@ public sealed class FastTrackCompatibilityInspectorTests
     private static FastTrackCompatibilityReport Inspect(
         FastTrackEmittedAssembly fixture,
         RecordingAssemblyFileIdentityReader identityReader,
-        params ActiveHarmonyPatchDescriptor[] activePatches)
+        params ActiveHarmonyPrefixDescriptor[] activePatches)
         => Inspect(
             fixture,
             identityReader,
@@ -840,7 +840,7 @@ public sealed class FastTrackCompatibilityInspectorTests
         FastTrackEmittedAssembly fixture,
         RecordingAssemblyFileIdentityReader identityReader,
         FastTrackSupportedAssemblyBuildCatalog supportedAssemblyBuildCatalog,
-        params ActiveHarmonyPatchDescriptor[] activePatches)
+        params ActiveHarmonyPrefixDescriptor[] activePatches)
     {
         var inspector = new FastTrackCompatibilityInspector(
             identityReader,

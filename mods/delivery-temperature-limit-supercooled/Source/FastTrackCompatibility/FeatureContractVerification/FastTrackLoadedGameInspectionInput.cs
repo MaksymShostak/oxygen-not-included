@@ -16,7 +16,7 @@ namespace DeliveryTemperatureLimit
         internal FastTrackLoadedGameInspectionInput(
             bool isFastTrackEnabledForLoadedGame,
             Assembly? fastTrackAssembly,
-            IReadOnlyList<ActiveHarmonyPatchDescriptor> activeHarmonyPrefixes)
+            IReadOnlyList<ActiveHarmonyPrefixDescriptor> activeHarmonyPrefixes)
         {
             if (activeHarmonyPrefixes == null)
             {
@@ -24,12 +24,12 @@ namespace DeliveryTemperatureLimit
             }
 
             var copiedPrefixes =
-                new ActiveHarmonyPatchDescriptor[activeHarmonyPrefixes.Count];
+                new ActiveHarmonyPrefixDescriptor[activeHarmonyPrefixes.Count];
             for (var prefixIndex = 0;
                  prefixIndex < activeHarmonyPrefixes.Count;
                  prefixIndex++)
             {
-                ActiveHarmonyPatchDescriptor prefix =
+                ActiveHarmonyPrefixDescriptor prefix =
                     activeHarmonyPrefixes[prefixIndex];
                 if (prefix == null)
                 {
@@ -51,7 +51,7 @@ namespace DeliveryTemperatureLimit
 
         internal Assembly? FastTrackAssembly { get; }
 
-        internal IReadOnlyList<ActiveHarmonyPatchDescriptor>
+        internal IReadOnlyList<ActiveHarmonyPrefixDescriptor>
             ActiveHarmonyPrefixes { get; }
     }
 }

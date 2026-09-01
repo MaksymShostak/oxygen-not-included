@@ -386,7 +386,7 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
 
         plan.VerifySelectedAuthority(
         [
-            new ActiveHarmonyPatchDescriptor(
+            new ActiveHarmonyPrefixDescriptor(
                 worldInventoryUpdate,
                 observingPrefix,
                 "Unrelated.InventoryObserver",
@@ -420,7 +420,7 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
             Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
                 plan.VerifySelectedAuthority(
                 [
-                    new ActiveHarmonyPatchDescriptor(
+                    new ActiveHarmonyPrefixDescriptor(
                         updatePickups,
                         skippingPrefix,
                         "Unexpected.PickupReplacement",
@@ -460,7 +460,7 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
             Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
                 plan.VerifySelectedAuthority(
                 [
-                    new ActiveHarmonyPatchDescriptor(
+                    new ActiveHarmonyPrefixDescriptor(
                         collectChores,
                         skippingPrefix,
                         "Unexpected.DirectDeliveryReplacement",
@@ -498,7 +498,7 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
 
         plan.VerifySelectedAuthority(
         [
-            new ActiveHarmonyPatchDescriptor(
+            new ActiveHarmonyPrefixDescriptor(
                 updatePickups,
                 verifiedFastTrackPrefix,
                 "PeterHan.FastTrack",
@@ -534,7 +534,7 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
             Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
                 plan.VerifySelectedAuthority(
                 [
-                    new ActiveHarmonyPatchDescriptor(
+                    new ActiveHarmonyPrefixDescriptor(
                         updatePickups,
                         changedFastTrackPrefix,
                         "PeterHan.FastTrack",
@@ -573,7 +573,7 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
 
         plan.VerifySelectedAuthority(
         [
-            new ActiveHarmonyPatchDescriptor(
+            new ActiveHarmonyPrefixDescriptor(
                 worldInventoryUpdate,
                 skippingPrefix,
                 "Unselected.InventoryReplacement",

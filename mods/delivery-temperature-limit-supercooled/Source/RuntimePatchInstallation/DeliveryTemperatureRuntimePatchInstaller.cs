@@ -101,7 +101,7 @@ namespace DeliveryTemperatureLimit
 
                 try
                 {
-                    IReadOnlyList<ActiveHarmonyPatchDescriptor>
+                    IReadOnlyList<ActiveHarmonyPrefixDescriptor>
                         startupActivePrefixes =
                             CollectActiveHarmonyPrefixDescriptors();
                     FastTrackLoadedGameInspectionInput inspectionInput =
@@ -127,7 +127,8 @@ namespace DeliveryTemperatureLimit
                         preparedPatches =
                         PrepareSelectedRuntimePatches(
                             patchPlan,
-                            compatibilityReport);
+                            compatibilityReport,
+                            startupActivePrefixes);
 
                     // Every target, member, IL anchor, Harmony argument binding,
                     // and owner has now been verified. Only this point may mutate
@@ -190,7 +191,7 @@ namespace DeliveryTemperatureLimit
                         "runtime patch installation.");
                 }
 
-                IReadOnlyList<ActiveHarmonyPatchDescriptor> activePrefixes =
+                IReadOnlyList<ActiveHarmonyPrefixDescriptor> activePrefixes =
                     CollectActiveHarmonyPrefixDescriptors();
                 try
                 {
@@ -218,10 +219,10 @@ namespace DeliveryTemperatureLimit
             }
         }
 
-        internal static IReadOnlyList<ActiveHarmonyPatchDescriptor>
+        internal static IReadOnlyList<ActiveHarmonyPrefixDescriptor>
             CollectActiveHarmonyPrefixDescriptors()
         {
-            var descriptors = new List<ActiveHarmonyPatchDescriptor>();
+            var descriptors = new List<ActiveHarmonyPrefixDescriptor>();
             foreach (MethodBase targetMethod in Harmony.GetAllPatchedMethods())
             {
                 Patches? patchInformation = Harmony.GetPatchInfo(targetMethod);
@@ -242,7 +243,7 @@ namespace DeliveryTemperatureLimit
                             ".");
                     }
 
-                    descriptors.Add(new ActiveHarmonyPatchDescriptor(
+                    descriptors.Add(new ActiveHarmonyPrefixDescriptor(
                         targetMethod,
                         patchMethod,
                         prefix.owner,
@@ -256,7 +257,7 @@ namespace DeliveryTemperatureLimit
         private static FastTrackLoadedGameInspectionInput
             CreateFastTrackInspectionInput(
                 IReadOnlyList<KMod.Mod> loadedMods,
-                IReadOnlyList<ActiveHarmonyPatchDescriptor> activePrefixes)
+                IReadOnlyList<ActiveHarmonyPrefixDescriptor> activePrefixes)
         {
             Assembly? activeFastTrackAssembly = null;
             for (int modIndex = 0; modIndex < loadedMods.Count; modIndex++)
@@ -370,9 +371,16 @@ namespace DeliveryTemperatureLimit
         private static HarmonyPatchContractBindingVerifier.VerifiedBindings
             PrepareSelectedRuntimePatches(
                 DeliveryTemperatureRuntimePatchPlan patchPlan,
-                FastTrackCompatibilityReport compatibilityReport)
+                FastTrackCompatibilityReport compatibilityReport,
+                IReadOnlyList<ActiveHarmonyPrefixDescriptor>
+                    startupActivePrefixes)
         {
             var preparedPatches = new List<HarmonyPatchContractBinding>();
+            var fastTrackContributionBuilder =
+                new FastTrackRuntimeAuthorityContributionBuilder();
+            DeclaredModIntegrationId fastTrackIntegrationId =
+                FastTrackRuntimeAuthorityIntegrationInspector
+                    .DeclaredIntegrationDescriptor.IntegrationId;
             for (int groupIndex = 0;
                  groupIndex < patchPlan.OrderedPatchGroups.Count;
                  groupIndex++)
@@ -401,10 +409,15 @@ namespace DeliveryTemperatureLimit
                         break;
                     case DeliveryTemperatureRuntimePatchGroup
                         .FastTrackWorldInventoryTemperaturePublication:
-                        PrepareFastTrackWorldInventoryTemperaturePatches(
+                        AppendPreparedRuntimeAuthorityContributionBindings(
                             preparedPatches,
-                            compatibilityReport.GetFeature(
-                                FastTrackFeature.WorldInventory));
+                            fastTrackContributionBuilder.Build(
+                                fastTrackIntegrationId,
+                                RuntimeCapabilityId
+                                    .WorldInventoryTemperaturePublication,
+                                compatibilityReport.GetFeature(
+                                    FastTrackFeature.WorldInventory),
+                                startupActivePrefixes));
                         break;
                     case DeliveryTemperatureRuntimePatchGroup
                         .TemperatureStatusAvailability:
@@ -418,10 +431,14 @@ namespace DeliveryTemperatureLimit
                         break;
                     case DeliveryTemperatureRuntimePatchGroup
                         .FastTrackPickupTemperatureGrouping:
-                        PrepareFastTrackPickupTemperaturePatches(
+                        AppendPreparedRuntimeAuthorityContributionBindings(
                             preparedPatches,
-                            compatibilityReport.GetFeature(
-                                FastTrackFeature.PickupGrouping));
+                            fastTrackContributionBuilder.Build(
+                                fastTrackIntegrationId,
+                                RuntimeCapabilityId.PickupTemperatureGrouping,
+                                compatibilityReport.GetFeature(
+                                    FastTrackFeature.PickupGrouping),
+                                startupActivePrefixes));
                         break;
                     case DeliveryTemperatureRuntimePatchGroup
                         .KleiDirectDeliveryEligibility:
@@ -430,10 +447,14 @@ namespace DeliveryTemperatureLimit
                         break;
                     case DeliveryTemperatureRuntimePatchGroup
                         .FastTrackDirectDeliveryEligibility:
-                        PrepareFastTrackDirectDeliveryEligibilityPatches(
+                        AppendPreparedRuntimeAuthorityContributionBindings(
                             preparedPatches,
-                            compatibilityReport.GetFeature(
-                                FastTrackFeature.DirectDeliveryEligibility));
+                            fastTrackContributionBuilder.Build(
+                                fastTrackIntegrationId,
+                                RuntimeCapabilityId.DirectDeliveryEligibility,
+                                compatibilityReport.GetFeature(
+                                    FastTrackFeature.DirectDeliveryEligibility),
+                                startupActivePrefixes));
                         break;
                     default:
                         throw new ArgumentOutOfRangeException(
@@ -445,6 +466,20 @@ namespace DeliveryTemperatureLimit
 
             return HarmonyPatchContractBindingVerifier.VerifyAll(
                 preparedPatches);
+        }
+
+        private static void
+            AppendPreparedRuntimeAuthorityContributionBindings(
+                ICollection<HarmonyPatchContractBinding> preparedPatches,
+                PreparedRuntimeAuthorityContribution contribution)
+        {
+            for (int bindingIndex = 0;
+                 bindingIndex < contribution.PatchBindings.Count;
+                 bindingIndex++)
+            {
+                preparedPatches.Add(
+                    contribution.PatchBindings[bindingIndex]);
+            }
         }
 
         private static void PrepareGameSessionLifecyclePatches(
@@ -620,59 +655,6 @@ namespace DeliveryTemperatureLimit
                     .WorldInventoryUpdateFinalizer));
         }
 
-        private static void PrepareFastTrackWorldInventoryTemperaturePatches(
-            ICollection<HarmonyPatchContractBinding> patches,
-            FastTrackFeatureCompatibility feature)
-        {
-            FastTrackWorldInventoryTemperaturePatches
-                .BindVerifiedWorldInventoryFeature(feature);
-            MethodInfo runUpdateTarget =
-                FastTrackWorldInventoryTemperaturePatches
-                    .ResolveBackgroundWorldInventoryRunUpdateTarget();
-            MethodInfo sumTotalTarget =
-                FastTrackWorldInventoryTemperaturePatches
-                    .ResolveBackgroundWorldInventorySumTotalTarget();
-            VerifyTranspiler(
-                runUpdateTarget,
-                FastTrackWorldInventoryTemperaturePatches
-                    .BackgroundWorldInventoryRunUpdateTranspiler);
-            VerifyTranspiler(
-                sumTotalTarget,
-                FastTrackWorldInventoryTemperaturePatches
-                    .BackgroundWorldInventorySumTotalTranspiler);
-
-            AddPrefix(
-                patches,
-                runUpdateTarget,
-                typeof(FastTrackWorldInventoryTemperaturePatches),
-                nameof(FastTrackWorldInventoryTemperaturePatches
-                    .BackgroundWorldInventoryRunUpdatePrefix));
-            AddTranspiler(
-                patches,
-                runUpdateTarget,
-                typeof(FastTrackWorldInventoryTemperaturePatches),
-                nameof(FastTrackWorldInventoryTemperaturePatches
-                    .BackgroundWorldInventoryRunUpdateTranspiler));
-            AddPostfix(
-                patches,
-                runUpdateTarget,
-                typeof(FastTrackWorldInventoryTemperaturePatches),
-                nameof(FastTrackWorldInventoryTemperaturePatches
-                    .BackgroundWorldInventoryRunUpdatePostfix));
-            AddFinalizer(
-                patches,
-                runUpdateTarget,
-                typeof(FastTrackWorldInventoryTemperaturePatches),
-                nameof(FastTrackWorldInventoryTemperaturePatches
-                    .BackgroundWorldInventoryRunUpdateFinalizer));
-            AddTranspiler(
-                patches,
-                sumTotalTarget,
-                typeof(FastTrackWorldInventoryTemperaturePatches),
-                nameof(FastTrackWorldInventoryTemperaturePatches
-                    .BackgroundWorldInventorySumTotalTranspiler));
-        }
-
         private static void PrepareTemperatureStatusAvailabilityPatches(
             ICollection<HarmonyPatchContractBinding> patches)
         {
@@ -727,43 +709,6 @@ namespace DeliveryTemperatureLimit
                     .PickupComparerTranspiler));
         }
 
-        private static void PrepareFastTrackPickupTemperaturePatches(
-            ICollection<HarmonyPatchContractBinding> patches,
-            FastTrackFeatureCompatibility feature)
-        {
-            FastTrackPickupTemperaturePatches
-                .BindVerifiedPickupGroupingFeature(feature);
-            FastTrackPickupTemperaturePatches
-                .VerifyFastTrackPickupTemperaturePatchContracts();
-            MethodInfo updateTarget = FastTrackPickupTemperaturePatches
-                .ResolveFetchManagerBeforeUpdatePickupsTarget();
-            AddPrefix(
-                patches,
-                updateTarget,
-                typeof(FastTrackPickupTemperaturePatches),
-                nameof(FastTrackPickupTemperaturePatches
-                    .BeforeUpdatePickupsPrefix));
-            AddPostfix(
-                patches,
-                updateTarget,
-                typeof(FastTrackPickupTemperaturePatches),
-                nameof(FastTrackPickupTemperaturePatches
-                    .BeforeUpdatePickupsPostfix));
-            AddFinalizer(
-                patches,
-                updateTarget,
-                typeof(FastTrackPickupTemperaturePatches),
-                nameof(FastTrackPickupTemperaturePatches
-                    .BeforeUpdatePickupsFinalizer));
-            AddTranspiler(
-                patches,
-                FastTrackPickupTemperaturePatches
-                    .ResolvePickupTagDictionaryAddItemTarget(),
-                typeof(FastTrackPickupTemperaturePatches),
-                nameof(FastTrackPickupTemperaturePatches
-                    .PickupTagDictionaryAddItemTranspiler));
-        }
-
         private static void PrepareKleiDirectDeliveryEligibilityPatches(
             ICollection<HarmonyPatchContractBinding> patches)
         {
@@ -797,23 +742,6 @@ namespace DeliveryTemperatureLimit
                 typeof(KleiDirectDeliveryEligibilityPatches),
                 nameof(KleiDirectDeliveryEligibilityPatches
                     .FetchAreaCandidateDelegateTranspiler));
-        }
-
-        private static void PrepareFastTrackDirectDeliveryEligibilityPatches(
-            ICollection<HarmonyPatchContractBinding> patches,
-            FastTrackFeatureCompatibility feature)
-        {
-            FastTrackDirectDeliveryEligibilityPatches
-                .BindVerifiedDirectDeliveryEligibilityFeature(feature);
-            FastTrackDirectDeliveryEligibilityPatches
-                .VerifyFastTrackDirectDeliveryEligibilityPatchContracts();
-            AddTranspiler(
-                patches,
-                FastTrackDirectDeliveryEligibilityPatches
-                    .ResolveChoreComparatorCheckFetchChoreTarget(),
-                typeof(FastTrackDirectDeliveryEligibilityPatches),
-                nameof(FastTrackDirectDeliveryEligibilityPatches
-                    .CheckFetchChoreTranspiler));
         }
 
         private static void VerifyTranspiler(

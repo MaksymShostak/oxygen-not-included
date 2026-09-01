@@ -378,7 +378,7 @@ selector, loaded-mod preparation, approved linked-source item, and associated
 tests. Resolve or explicitly defer every confirmed P0-P2 finding and rerun all
 affected tests.
 
-- [ ] Stage only Tasks 1-5 and their tests. Load `committing-to-git`, verify the
+- [x] Stage only Tasks 1-5 and their tests. Load `committing-to-git`, verify the
 exact staged snapshot, and create the user-pre-authorized signed commit:
 
 ```text
@@ -393,7 +393,7 @@ provider adapters can contribute complete runtime authority evidence through
 one narrow boundary.
 ```
 
-- [ ] Do not push. Complete
+- [x] Do not push. Complete
 `docs/plans/2026-09-01-fasttrack-compatibility-evidence-catalog.md` before
 starting Task 6.
 
@@ -402,8 +402,8 @@ starting Task 6.
 **Files:**
 
 - Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/FastTrackRuntimeAuthorityIntegrationInspector.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/IFastTrackRuntimePatchContributionBuilder.cs`
-- Create: `mods/delivery-temperature-limit-supercooled/Source/RuntimePatchInstallation/FastTrackRuntimePatchContributionBuilder.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/IFastTrackRuntimeAuthorityContributionBuilder.cs`
+- Create: `mods/delivery-temperature-limit-supercooled/Source/RuntimePatchInstallation/FastTrackRuntimeAuthorityContributionBuilder.cs`
 - Delete: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/ActiveHarmonyPatchDescriptor.cs`
 - Modify: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/FastTrackCompatibilityInspector.cs`
 - Modify: `mods/delivery-temperature-limit-supercooled/Source/HarmonyTranspilerInfrastructure/HarmonyPatchContractVerifier.cs`
@@ -415,16 +415,15 @@ starting Task 6.
 - Modify: `mods/delivery-temperature-limit-supercooled/Tests/RuntimePatchInstallation/DeliveryTemperatureRuntimePatchPlanTests.cs`
 - Modify: `mods/delivery-temperature-limit-supercooled/Tests/HarmonyTranspilerInfrastructure/HarmonyPatchContractVerifierTests.cs`
 - Modify: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/FastTrackLoadedGameInspectionInput.cs`
-- Modify: `mods/delivery-temperature-limit-supercooled/Source/RuntimePatchInstallation/DeliveryTemperatureRuntimePatchInstaller.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackRuntimeAuthorityIntegrationInspectorTests.cs`
 
-- [ ] Require the FastTrack compatibility evidence plan to be complete: both
+- [x] Require the FastTrack compatibility evidence plan to be complete: both
   admitted content-addressed fixtures pass their static matrix, the production
   supported-build catalog contains their exact version-plus-DLL-SHA-256
   identities, and `FastTrackCompatibilityInspector` fails closed for every
   other active build.
 
-- [ ] Add projection tests for all existing FastTrack feature states. Assert this exact mapping:
+- [x] Add projection tests for all existing FastTrack feature states. Assert this exact mapping:
 
 | Existing feature state | Authority | Contract | Required disposition | Optional disposition |
 |---|---|---|---|---|
@@ -433,15 +432,15 @@ starting Task 6.
 | `Ready` | `OwnsCompatible` | `Compatible` | `Selected` | `Selected` |
 | `Incompatible` | `OwnsIncompatible` | `Incompatible` | `ActivationBlocking` | `Unavailable` |
 
-- [ ] Assert an exact active mod with static ID `PeterHan.FastTrack` but no same-entry `FastTrack` assembly is `Matched` with inspection unavailable; a `FastTrack` assembly supplied by a different mod does not satisfy identity.
+- [x] Assert an exact active mod with static ID `PeterHan.FastTrack` but no same-entry `FastTrack` assembly is `Matched` with inspection unavailable; a `FastTrack` assembly supplied by a different mod does not satisfy identity.
 
-- [ ] Reuse the evidence plan's exact packaged static ID
+- [x] Reuse the evidence plan's exact packaged static ID
   `PeterHan.FastTrack`. Do not reacquire a historical archive or introduce a
   network dependency; the content-addressed DLL fixtures and independent
   supported-build expectation matrix are the repository-owned evidence
   boundary.
 
-- [ ] Run:
+- [x] Run:
 
 ```powershell
 dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj --no-restore --filter FullyQualifiedName~FastTrackRuntimeAuthorityIntegrationInspectorTests
@@ -449,19 +448,19 @@ dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatur
 
 Expected red: no generic FastTrack adapter exists.
 
-- [ ] Implement the adapter by invoking the catalog-backed
+- [x] Implement the adapter by invoking the catalog-backed
 `FastTrackCompatibilityInspector` once, then projecting each feature. Inject
-the narrow `IFastTrackRuntimePatchContributionBuilder` so linked tests can
+the narrow `IFastTrackRuntimeAuthorityContributionBuilder` so linked tests can
 supply resolved BCL-only bindings without compiling game adapters; the
 production builder remains in `RuntimePatchInstallation`. Reuse all current
 verified members, file identity state, failure codes, and bounded structural
 messages.
 
-- [ ] Replace the provider-folder `ActiveHarmonyPatchDescriptor` with the core `ActiveHarmonyPrefixDescriptor` everywhere, then delete the old file. The new name reflects that selected-authority proof intentionally inspects skipping prefixes; it remains a BCL-only immutable copy rather than concrete Harmony metadata.
+- [x] Replace the provider-folder `ActiveHarmonyPatchDescriptor` with the core `ActiveHarmonyPrefixDescriptor` everywhere, then delete the old file. The new name reflects that selected-authority proof intentionally inspects skipping prefixes; it remains a BCL-only immutable copy rather than concrete Harmony metadata.
 
-- [ ] Move FastTrack patch binding preparation behind this adapter or an adapter-owned builder so each `Ready` contribution is already complete. Do not let the generic selector call `GetFeature(FastTrackFeature...)`.
+- [x] Move FastTrack patch binding preparation behind this adapter or an adapter-owned builder so each `Ready` contribution is already complete. Do not let the generic selector call `GetFeature(FastTrackFeature...)`.
 
-- [ ] Construct the one production descriptor with:
+- [x] Construct the one production descriptor with:
 
 ```csharp
 new DeclaredModIntegrationDescriptor(
@@ -484,9 +483,9 @@ new DeclaredModIntegrationDescriptor(
     });
 ```
 
-- [ ] Keep `temperature-status-availability` owned by Temperature Limit as an optional dependent capability whose availability follows the selected world-inventory contribution; do not claim FastTrack owns the status UI itself.
+- [x] Keep `temperature-status-availability` owned by Temperature Limit as an optional dependent capability whose availability follows the selected world-inventory contribution; do not claim FastTrack owns the status UI itself.
 
-- [ ] Run the focused adapter tests and the existing `FastTrackCompatibilityInspectorTests`.
+- [x] Run the focused adapter tests and the existing `FastTrackCompatibilityInspectorTests`.
 
 Expected green: legacy structural coverage remains green and generic outcomes preserve all distinctions.
 

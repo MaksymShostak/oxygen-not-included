@@ -84,7 +84,7 @@ namespace DeliveryTemperatureLimit
                 supportedAssemblyBuildCatalog.Contains(
                     fileIdentity.FileVersion!,
                     fileIdentity.AssemblySha256!);
-            IReadOnlyList<ActiveHarmonyPatchDescriptor> activePrefixes =
+            IReadOnlyList<ActiveHarmonyPrefixDescriptor> activePrefixes =
                 inspectionInput.ActiveHarmonyPrefixes;
 
             bool worldInventoryIsActive = HasActiveWorldInventoryReplacement(
@@ -229,7 +229,7 @@ namespace DeliveryTemperatureLimit
 
         private static bool HasActiveWorldInventoryReplacement(
             Assembly fastTrackAssembly,
-            IReadOnlyList<ActiveHarmonyPatchDescriptor> activePrefixes) =>
+            IReadOnlyList<ActiveHarmonyPrefixDescriptor> activePrefixes) =>
             ContainsOwnedPrefix(
                 fastTrackAssembly,
                 activePrefixes,
@@ -239,7 +239,7 @@ namespace DeliveryTemperatureLimit
 
         private static bool HasActivePickupGroupingReplacement(
             Assembly fastTrackAssembly,
-            IReadOnlyList<ActiveHarmonyPatchDescriptor> activePrefixes) =>
+            IReadOnlyList<ActiveHarmonyPrefixDescriptor> activePrefixes) =>
             ContainsOwnedPrefix(
                 fastTrackAssembly,
                 activePrefixes,
@@ -249,7 +249,7 @@ namespace DeliveryTemperatureLimit
 
         private static bool HasActiveDirectDeliveryEligibilityReplacement(
             Assembly fastTrackAssembly,
-            IReadOnlyList<ActiveHarmonyPatchDescriptor> activePrefixes) =>
+            IReadOnlyList<ActiveHarmonyPrefixDescriptor> activePrefixes) =>
             ContainsOwnedPrefix(
                 fastTrackAssembly,
                 activePrefixes,
@@ -259,7 +259,7 @@ namespace DeliveryTemperatureLimit
 
         private static bool ContainsOwnedPrefix(
             Assembly fastTrackAssembly,
-            IReadOnlyList<ActiveHarmonyPatchDescriptor> activePrefixes,
+            IReadOnlyList<ActiveHarmonyPrefixDescriptor> activePrefixes,
             string patchDeclaringTypeName,
             string patchMethodName,
             Func<MethodBase, bool> targetContract)
@@ -268,9 +268,9 @@ namespace DeliveryTemperatureLimit
                  prefixIndex < activePrefixes.Count;
                  prefixIndex++)
             {
-                ActiveHarmonyPatchDescriptor prefix =
+                ActiveHarmonyPrefixDescriptor prefix =
                     activePrefixes[prefixIndex];
-                Type? patchDeclaringType = prefix.PatchMethod.DeclaringType;
+                Type? patchDeclaringType = prefix.PrefixMethod.DeclaringType;
                 if (patchDeclaringType != null &&
                     ReferenceEquals(
                         patchDeclaringType.Module,
@@ -280,7 +280,7 @@ namespace DeliveryTemperatureLimit
                         patchDeclaringTypeName,
                         StringComparison.Ordinal) &&
                     string.Equals(
-                        prefix.PatchMethod.Name,
+                        prefix.PrefixMethod.Name,
                         patchMethodName,
                         StringComparison.Ordinal) &&
                     string.Equals(
