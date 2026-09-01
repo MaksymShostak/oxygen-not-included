@@ -332,12 +332,11 @@ namespace DeliveryTemperatureLimit
             ICollection<RuntimeCapabilitySelectionEntry> selected,
             IReadOnlyList<ExternalModIntegrationOutcome> outcomes)
         {
-            if (definition.KleiBaselineContribution != null)
+            if (definition.HasKleiBaselineContribution)
             {
                 selected.Add(
-                    RuntimeCapabilitySelectionEntry.ForSelectedContribution(
-                        definition,
-                        definition.KleiBaselineContribution));
+                    RuntimeCapabilitySelectionEntry.ForSelectedKleiBaseline(
+                        definition));
                 return;
             }
 
@@ -448,10 +447,7 @@ namespace DeliveryTemperatureLimit
                 RuntimeCapabilityBundleId bundleId =
                     selection.Definition.AtomicBundleId.Value;
                 RuntimeAuthorityImplementationIdentity? selectedOwner =
-                    selection.SelectedContribution == null
-                        ? (RuntimeAuthorityImplementationIdentity?)null
-                        : selection.SelectedContribution
-                            .ImplementationIdentity;
+                    selection.SelectedImplementationIdentity;
 
                 RuntimeAuthorityImplementationIdentity? existingOwner;
                 if (!selectedOwnerByBundle.TryGetValue(

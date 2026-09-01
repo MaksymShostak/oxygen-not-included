@@ -17,8 +17,42 @@ namespace DeliveryTemperatureLimit
         internal const string HarmonyOwner =
             "MaksymShostak.DeliveryTemperatureLimit";
 
-        private const string FastTrackAssemblySimpleName = "FastTrack";
         private static readonly object InstallationSynchronization = new object();
+
+        private static readonly RuntimeCapabilityId
+            GameSessionLifecycleCapabilityId =
+                new RuntimeCapabilityId("game-session-lifecycle");
+        private static readonly RuntimeCapabilityId
+            WorldParentTopologyCapabilityId =
+                new RuntimeCapabilityId("world-parent-topology");
+        private static readonly RuntimeCapabilityId
+            AuthoritativeFetchTemperatureEligibilityCapabilityId =
+                new RuntimeCapabilityId(
+                    "authoritative-fetch-temperature-eligibility");
+
+        private static readonly RuntimePatchGroupId
+            GameSessionLifecyclePatchGroupId =
+                new RuntimePatchGroupId("game-session-lifecycle");
+        private static readonly RuntimePatchGroupId
+            WorldParentTopologyPatchGroupId =
+                new RuntimePatchGroupId("world-parent-topology");
+        private static readonly RuntimePatchGroupId
+            KleiAuthoritativeFetchTemperatureEligibilityPatchGroupId =
+                new RuntimePatchGroupId(
+                    "klei-authoritative-fetch-temperature-eligibility");
+        private static readonly RuntimePatchGroupId
+            KleiWorldInventoryTemperaturePublicationPatchGroupId =
+                new RuntimePatchGroupId(
+                    "klei-world-inventory-temperature-publication");
+        private static readonly RuntimePatchGroupId
+            TemperatureStatusAvailabilityPatchGroupId =
+                new RuntimePatchGroupId("temperature-status-availability");
+        private static readonly RuntimePatchGroupId
+            KleiPickupTemperatureGroupingPatchGroupId =
+                new RuntimePatchGroupId("klei-pickup-temperature-grouping");
+        private static readonly RuntimePatchGroupId
+            KleiDirectDeliveryEligibilityPatchGroupId =
+                new RuntimePatchGroupId("klei-direct-delivery-eligibility");
 
         private static RuntimePatchInstallerState runtimeInstallerState =
             RuntimePatchInstallerState.NotStarted;
@@ -104,31 +138,55 @@ namespace DeliveryTemperatureLimit
                     IReadOnlyList<ActiveHarmonyPrefixDescriptor>
                         startupActivePrefixes =
                             CollectActiveHarmonyPrefixDescriptors();
-                    FastTrackLoadedGameInspectionInput inspectionInput =
-                        CreateFastTrackInspectionInput(
+                    LoadedModInspectionContext loadedModInspectionContext =
+                        CreateLoadedModInspectionContext(
                             loadedMods,
                             startupActivePrefixes);
-                    var compatibilityInspector =
-                        new FastTrackCompatibilityInspector(
-                            new FastTrackAssemblyFileIdentityReader(),
-                            FastTrackSupportedAssemblyBuildCatalog.Declared);
-                    FastTrackCompatibilityReport compatibilityReport =
-                        compatibilityInspector.Inspect(inspectionInput);
+                    var declaredIntegrationCatalog =
+                        new DeclaredModIntegrationCatalog(new[]
+                        {
+                            FastTrackRuntimeAuthorityIntegrationInspector
+                                .DeclaredIntegrationDescriptor
+                        });
+                    var fastTrackRuntimeAuthorityInspector =
+                        new FastTrackRuntimeAuthorityIntegrationInspector(
+                            new FastTrackCompatibilityInspector(
+                                new FastTrackAssemblyFileIdentityReader(),
+                                FastTrackSupportedAssemblyBuildCatalog.Declared),
+                            new FastTrackRuntimeAuthorityContributionBuilder());
+                    DeclaredIntegrationPreparationResult
+                        declaredIntegrationPreparation =
+                            DeclaredExternalModIntegrationPreparation.Prepare(
+                                declaredIntegrationCatalog,
+                                loadedModInspectionContext,
+                                new IRuntimeAuthorityIntegrationInspector[]
+                                {
+                                    fastTrackRuntimeAuthorityInspector
+                                },
+                                Array.Empty<
+                                    IAdditiveInteroperabilityInspector>());
+                    IReadOnlyList<RuntimeCapabilityDefinition>
+                        runtimeCapabilityDefinitions =
+                            CreateRuntimeCapabilityDefinitions();
+                    RuntimePatchCapabilitySelection capabilitySelection =
+                        RuntimePatchCapabilitySelector.Select(
+                            runtimeCapabilityDefinitions,
+                            declaredIntegrationPreparation
+                                .RuntimeAuthorityContributions,
+                            declaredIntegrationPreparation
+                                .ExternalModIntegrationOutcomes);
                     DeliveryTemperatureRuntimePatchPlan patchPlan =
                         DeliveryTemperatureRuntimePatchPlan.Create(
                             DeliveryTemperatureLimitOptions.Instance
                                 .CheckTemperatureForStatusItems,
-                            compatibilityReport);
+                            capabilitySelection);
 
                     // This is the first authority pass. The plan owns the owner
                     // decision; the installer supplies only immutable descriptors.
                     patchPlan.VerifySelectedAuthority(startupActivePrefixes);
                     HarmonyPatchContractBindingVerifier.VerifiedBindings
                         preparedPatches =
-                        PrepareSelectedRuntimePatches(
-                            patchPlan,
-                            compatibilityReport,
-                            startupActivePrefixes);
+                        PrepareSelectedRuntimePatches(patchPlan);
 
                     // Every target, member, IL anchor, Harmony argument binding,
                     // and owner has now been verified. Only this point may mutate
@@ -254,51 +312,158 @@ namespace DeliveryTemperatureLimit
             return descriptors.AsReadOnly();
         }
 
-        private static FastTrackLoadedGameInspectionInput
-            CreateFastTrackInspectionInput(
+        private static LoadedModInspectionContext
+            CreateLoadedModInspectionContext(
                 IReadOnlyList<KMod.Mod> loadedMods,
                 IReadOnlyList<ActiveHarmonyPrefixDescriptor> activePrefixes)
         {
-            Assembly? activeFastTrackAssembly = null;
+            var loadedModCandidates = new List<LoadedModCandidate>(
+                loadedMods.Count);
             for (int modIndex = 0; modIndex < loadedMods.Count; modIndex++)
             {
                 KMod.Mod? loadedMod = loadedMods[modIndex];
                 if (loadedMod == null ||
-                    !loadedMod.IsActive() ||
-                    loadedMod.loaded_mod_data?.dlls == null)
+                    string.IsNullOrWhiteSpace(loadedMod.staticID))
                 {
                     continue;
                 }
 
-                foreach (Assembly loadedAssembly in
-                         loadedMod.loaded_mod_data.dlls)
+                var loadedAssemblies = new List<Assembly>();
+                if (loadedMod.loaded_mod_data?.dlls != null)
                 {
-                    if (!string.Equals(
-                            loadedAssembly.GetName().Name,
-                            FastTrackAssemblySimpleName,
-                            StringComparison.Ordinal))
+                    foreach (Assembly loadedAssembly in
+                             loadedMod.loaded_mod_data.dlls)
                     {
-                        continue;
+                        loadedAssemblies.Add(loadedAssembly);
                     }
-
-                    if (activeFastTrackAssembly != null &&
-                        !ReferenceEquals(
-                            activeFastTrackAssembly,
-                            loadedAssembly))
-                    {
-                        throw new HarmonyPatchContractViolationException(
-                            "More than one active loaded mod supplied an assembly " +
-                            "named FastTrack; compatibility identity is ambiguous.");
-                    }
-
-                    activeFastTrackAssembly = loadedAssembly;
                 }
+
+                loadedModCandidates.Add(new LoadedModCandidate(
+                    loadedMod.IsActive(),
+                    loadedMod.staticID,
+                    loadedAssemblies));
             }
 
-            return new FastTrackLoadedGameInspectionInput(
-                activeFastTrackAssembly != null,
-                activeFastTrackAssembly,
+            return new LoadedModInspectionContext(
+                loadedModCandidates,
                 activePrefixes);
+        }
+
+        private static IReadOnlyList<RuntimeCapabilityDefinition>
+            CreateRuntimeCapabilityDefinitions()
+        {
+            var definitions = new List<RuntimeCapabilityDefinition>(7)
+            {
+                CreateBuiltInRuntimeCapabilityDefinition(
+                    GameSessionLifecycleCapabilityId,
+                    RuntimeCapabilityCriticality.Required,
+                    GameSessionLifecyclePatchGroupId,
+                    PrepareGameSessionLifecyclePatches),
+                CreateBuiltInRuntimeCapabilityDefinition(
+                    WorldParentTopologyCapabilityId,
+                    RuntimeCapabilityCriticality.Required,
+                    WorldParentTopologyPatchGroupId,
+                    PrepareWorldParentTopologyPatches),
+                CreateBuiltInRuntimeCapabilityDefinition(
+                    AuthoritativeFetchTemperatureEligibilityCapabilityId,
+                    RuntimeCapabilityCriticality.Required,
+                    KleiAuthoritativeFetchTemperatureEligibilityPatchGroupId,
+                    PrepareKleiAuthoritativeFetchTemperatureEligibilityPatches),
+                CreateBuiltInRuntimeCapabilityDefinition(
+                    RuntimeCapabilityId
+                        .WorldInventoryTemperaturePublication,
+                    RuntimeCapabilityCriticality.Optional,
+                    KleiWorldInventoryTemperaturePublicationPatchGroupId,
+                    PrepareKleiWorldInventoryTemperaturePatches),
+                CreateBuiltInRuntimeCapabilityDefinition(
+                    RuntimeCapabilityId.TemperatureStatusAvailability,
+                    RuntimeCapabilityCriticality.Optional,
+                    TemperatureStatusAvailabilityPatchGroupId,
+                    PrepareTemperatureStatusAvailabilityPatches),
+                CreateBuiltInRuntimeCapabilityDefinition(
+                    RuntimeCapabilityId.PickupTemperatureGrouping,
+                    RuntimeCapabilityCriticality.Required,
+                    KleiPickupTemperatureGroupingPatchGroupId,
+                    PrepareKleiPickupTemperatureGroupingPatches),
+                CreateBuiltInRuntimeCapabilityDefinition(
+                    RuntimeCapabilityId.DirectDeliveryEligibility,
+                    RuntimeCapabilityCriticality.Required,
+                    KleiDirectDeliveryEligibilityPatchGroupId,
+                    PrepareKleiDirectDeliveryEligibilityPatches)
+            };
+            return definitions.AsReadOnly();
+        }
+
+        private static RuntimeCapabilityDefinition
+            CreateBuiltInRuntimeCapabilityDefinition(
+                RuntimeCapabilityId capabilityId,
+                RuntimeCapabilityCriticality criticality,
+                RuntimePatchGroupId patchGroupId,
+                Action<ICollection<HarmonyPatchContractBinding>>
+                    preparePatchBindings) =>
+            new RuntimeCapabilityDefinition(
+                capabilityId,
+                criticality,
+                () => PrepareKleiBaselineContribution(
+                        capabilityId,
+                        patchGroupId,
+                        preparePatchBindings),
+                atomicBundleId: null);
+
+        private static PreparedRuntimeAuthorityContribution
+            PrepareKleiBaselineContribution(
+                RuntimeCapabilityId capabilityId,
+                RuntimePatchGroupId patchGroupId,
+                Action<ICollection<HarmonyPatchContractBinding>>
+                    preparePatchBindings)
+        {
+            if (preparePatchBindings == null)
+            {
+                throw new ArgumentNullException(nameof(preparePatchBindings));
+            }
+
+            var bindings = new List<HarmonyPatchContractBinding>();
+            preparePatchBindings(bindings);
+            HarmonyPatchContractBindingVerifier.VerifiedBindings
+                verifiedBindings =
+                    HarmonyPatchContractBindingVerifier.VerifyAll(bindings);
+            return new PreparedRuntimeAuthorityContribution(
+                RuntimeAuthorityImplementationIdentity.KleiBaseline,
+                capabilityId,
+                new[] { patchGroupId },
+                RuntimeAuthorityObservation.OwnsCompatible,
+                verifiedBindings,
+                CreateKleiOriginalAuthorityRequirements(verifiedBindings),
+                diagnosticCode: null,
+                diagnosticMessage: null);
+        }
+
+        private static IReadOnlyList<RuntimeAuthorityRequirement>
+            CreateKleiOriginalAuthorityRequirements(
+                IReadOnlyList<HarmonyPatchContractBinding> bindings)
+        {
+            var requirements = new List<RuntimeAuthorityRequirement>(
+                bindings.Count);
+            var requiredTargets = new HashSet<MethodBase>();
+            for (int bindingIndex = 0;
+                 bindingIndex < bindings.Count;
+                 bindingIndex++)
+            {
+                MethodBase targetMethod = bindings[bindingIndex].TargetMethod;
+                if (!requiredTargets.Add(targetMethod))
+                {
+                    continue;
+                }
+
+                requirements.Add(new RuntimeAuthorityRequirement(
+                    targetMethod,
+                    RuntimeAuthorityRequirementKind.KleiOriginal,
+                    requiredHarmonyOwner: null,
+                    requiredPrefixMethod: null,
+                    Array.Empty<string>()));
+            }
+
+            return requirements.AsReadOnly();
         }
 
         private static HarmonyPatchContractBindingVerifier.VerifiedBindings
@@ -370,116 +535,9 @@ namespace DeliveryTemperatureLimit
 
         private static HarmonyPatchContractBindingVerifier.VerifiedBindings
             PrepareSelectedRuntimePatches(
-                DeliveryTemperatureRuntimePatchPlan patchPlan,
-                FastTrackCompatibilityReport compatibilityReport,
-                IReadOnlyList<ActiveHarmonyPrefixDescriptor>
-                    startupActivePrefixes)
+                DeliveryTemperatureRuntimePatchPlan patchPlan)
         {
-            var preparedPatches = new List<HarmonyPatchContractBinding>();
-            var fastTrackContributionBuilder =
-                new FastTrackRuntimeAuthorityContributionBuilder();
-            DeclaredModIntegrationId fastTrackIntegrationId =
-                FastTrackRuntimeAuthorityIntegrationInspector
-                    .DeclaredIntegrationDescriptor.IntegrationId;
-            for (int groupIndex = 0;
-                 groupIndex < patchPlan.OrderedPatchGroups.Count;
-                 groupIndex++)
-            {
-                DeliveryTemperatureRuntimePatchGroup selectedGroup =
-                    patchPlan.OrderedPatchGroups[groupIndex];
-                switch (selectedGroup)
-                {
-                    case DeliveryTemperatureRuntimePatchGroup
-                        .GameSessionLifecycle:
-                        PrepareGameSessionLifecyclePatches(preparedPatches);
-                        break;
-                    case DeliveryTemperatureRuntimePatchGroup
-                        .WorldParentTopology:
-                        PrepareWorldParentTopologyPatches(preparedPatches);
-                        break;
-                    case DeliveryTemperatureRuntimePatchGroup
-                        .KleiAuthoritativeFetchTemperatureEligibility:
-                        PrepareKleiAuthoritativeFetchTemperatureEligibilityPatches(
-                            preparedPatches);
-                        break;
-                    case DeliveryTemperatureRuntimePatchGroup
-                        .KleiWorldInventoryTemperaturePublication:
-                        PrepareKleiWorldInventoryTemperaturePatches(
-                            preparedPatches);
-                        break;
-                    case DeliveryTemperatureRuntimePatchGroup
-                        .FastTrackWorldInventoryTemperaturePublication:
-                        AppendPreparedRuntimeAuthorityContributionBindings(
-                            preparedPatches,
-                            fastTrackContributionBuilder.Build(
-                                fastTrackIntegrationId,
-                                RuntimeCapabilityId
-                                    .WorldInventoryTemperaturePublication,
-                                compatibilityReport.GetFeature(
-                                    FastTrackFeature.WorldInventory),
-                                startupActivePrefixes));
-                        break;
-                    case DeliveryTemperatureRuntimePatchGroup
-                        .TemperatureStatusAvailability:
-                        PrepareTemperatureStatusAvailabilityPatches(
-                            preparedPatches);
-                        break;
-                    case DeliveryTemperatureRuntimePatchGroup
-                        .KleiPickupTemperatureGrouping:
-                        PrepareKleiPickupTemperatureGroupingPatches(
-                            preparedPatches);
-                        break;
-                    case DeliveryTemperatureRuntimePatchGroup
-                        .FastTrackPickupTemperatureGrouping:
-                        AppendPreparedRuntimeAuthorityContributionBindings(
-                            preparedPatches,
-                            fastTrackContributionBuilder.Build(
-                                fastTrackIntegrationId,
-                                RuntimeCapabilityId.PickupTemperatureGrouping,
-                                compatibilityReport.GetFeature(
-                                    FastTrackFeature.PickupGrouping),
-                                startupActivePrefixes));
-                        break;
-                    case DeliveryTemperatureRuntimePatchGroup
-                        .KleiDirectDeliveryEligibility:
-                        PrepareKleiDirectDeliveryEligibilityPatches(
-                            preparedPatches);
-                        break;
-                    case DeliveryTemperatureRuntimePatchGroup
-                        .FastTrackDirectDeliveryEligibility:
-                        AppendPreparedRuntimeAuthorityContributionBindings(
-                            preparedPatches,
-                            fastTrackContributionBuilder.Build(
-                                fastTrackIntegrationId,
-                                RuntimeCapabilityId.DirectDeliveryEligibility,
-                                compatibilityReport.GetFeature(
-                                    FastTrackFeature.DirectDeliveryEligibility),
-                                startupActivePrefixes));
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException(
-                            nameof(selectedGroup),
-                            selectedGroup,
-                            "Unknown selected runtime patch group.");
-                }
-            }
-
-            return HarmonyPatchContractBindingVerifier.VerifyAll(
-                preparedPatches);
-        }
-
-        private static void
-            AppendPreparedRuntimeAuthorityContributionBindings(
-                ICollection<HarmonyPatchContractBinding> preparedPatches,
-                PreparedRuntimeAuthorityContribution contribution)
-        {
-            for (int bindingIndex = 0;
-                 bindingIndex < contribution.PatchBindings.Count;
-                 bindingIndex++)
-            {
-                preparedPatches.Add(
-                    contribution.PatchBindings[bindingIndex]);
-            }
+            return patchPlan.OrderedPatchBindings;
         }
 
         private static void PrepareGameSessionLifecyclePatches(

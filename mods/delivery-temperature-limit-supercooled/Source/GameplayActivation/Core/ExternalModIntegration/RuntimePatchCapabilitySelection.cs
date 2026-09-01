@@ -13,15 +13,23 @@ namespace DeliveryTemperatureLimit
     /// </summary>
     internal sealed class RuntimeCapabilitySelectionEntry
     {
+        private readonly Lazy<PreparedRuntimeAuthorityContribution>?
+            selectedContributionPreparation;
+
         private RuntimeCapabilitySelectionEntry(
             RuntimeCapabilityDefinition definition,
-            PreparedRuntimeAuthorityContribution? selectedContribution,
+            Lazy<PreparedRuntimeAuthorityContribution>?
+                selectedContributionPreparation,
+            RuntimeAuthorityImplementationIdentity?
+                selectedImplementationIdentity,
             IntegrationCapabilityDisposition disposition,
             string? diagnosticCode,
             string? diagnosticMessage)
         {
             Definition = definition;
-            SelectedContribution = selectedContribution;
+            this.selectedContributionPreparation =
+                selectedContributionPreparation;
+            SelectedImplementationIdentity = selectedImplementationIdentity;
             Disposition = disposition;
             DiagnosticCode = diagnosticCode;
             DiagnosticMessage = diagnosticMessage;
@@ -61,7 +69,35 @@ namespace DeliveryTemperatureLimit
 
             return new RuntimeCapabilitySelectionEntry(
                 definition,
-                selectedContribution,
+                new Lazy<PreparedRuntimeAuthorityContribution>(() =>
+                    selectedContribution),
+                selectedContribution.ImplementationIdentity,
+                IntegrationCapabilityDisposition.Selected,
+                null,
+                null);
+        }
+
+        internal static RuntimeCapabilitySelectionEntry
+            ForSelectedKleiBaseline(RuntimeCapabilityDefinition definition)
+        {
+            if (definition == null)
+            {
+                throw new ArgumentNullException(nameof(definition));
+            }
+
+            if (!definition.HasKleiBaselineContribution)
+            {
+                throw new ArgumentException(
+                    "A selected Klei baseline requires a declared baseline " +
+                    "preparation.",
+                    nameof(definition));
+            }
+
+            return new RuntimeCapabilitySelectionEntry(
+                definition,
+                new Lazy<PreparedRuntimeAuthorityContribution>(() =>
+                    definition.PrepareKleiBaselineContribution()),
+                RuntimeAuthorityImplementationIdentity.KleiBaseline,
                 IntegrationCapabilityDisposition.Selected,
                 null,
                 null);
@@ -97,6 +133,7 @@ namespace DeliveryTemperatureLimit
             return new RuntimeCapabilitySelectionEntry(
                 definition,
                 null,
+                null,
                 IntegrationCapabilityDisposition.Unavailable,
                 validatedDiagnosticCode,
                 validatedDiagnosticMessage);
@@ -106,8 +143,24 @@ namespace DeliveryTemperatureLimit
 
         internal RuntimeCapabilityId CapabilityId => Definition.Id;
 
-        internal PreparedRuntimeAuthorityContribution?
-            SelectedContribution { get; }
+        internal bool HasSelectedContribution =>
+            selectedContributionPreparation != null;
+
+        internal PreparedRuntimeAuthorityContribution
+            PrepareSelectedContribution()
+        {
+            if (selectedContributionPreparation == null)
+            {
+                throw new InvalidOperationException(
+                    "This runtime capability selection has no contribution " +
+                    "preparation.");
+            }
+
+            return selectedContributionPreparation.Value;
+        }
+
+        internal RuntimeAuthorityImplementationIdentity?
+            SelectedImplementationIdentity { get; }
 
         internal IntegrationCapabilityDisposition Disposition { get; }
 
@@ -146,8 +199,6 @@ namespace DeliveryTemperatureLimit
             var byCapability = new Dictionary<
                 RuntimeCapabilityId,
                 RuntimeCapabilitySelectionEntry>();
-            var selectedContributions =
-                new List<PreparedRuntimeAuthorityContribution>();
             foreach (RuntimeCapabilitySelectionEntry selection in
                      capabilitySelections)
             {
@@ -168,11 +219,6 @@ namespace DeliveryTemperatureLimit
 
                 copiedSelections.Add(selection);
                 byCapability.Add(selection.CapabilityId, selection);
-                if (selection.SelectedContribution != null)
-                {
-                    selectedContributions.Add(
-                        selection.SelectedContribution);
-                }
             }
 
             var copiedOutcomes = new List<ExternalModIntegrationOutcome>();
@@ -200,8 +246,6 @@ namespace DeliveryTemperatureLimit
 
             CapabilitySelections = new ReadOnlyCollection<
                 RuntimeCapabilitySelectionEntry>(copiedSelections);
-            SelectedContributions = new ReadOnlyCollection<
-                PreparedRuntimeAuthorityContribution>(selectedContributions);
             ExternalModIntegrationOutcomes = new ReadOnlyCollection<
                 ExternalModIntegrationOutcome>(copiedOutcomes);
             selectionsByCapability = new ReadOnlyDictionary<
@@ -211,9 +255,6 @@ namespace DeliveryTemperatureLimit
 
         internal IReadOnlyList<RuntimeCapabilitySelectionEntry>
             CapabilitySelections { get; }
-
-        internal IReadOnlyList<PreparedRuntimeAuthorityContribution>
-            SelectedContributions { get; }
 
         internal IReadOnlyList<ExternalModIntegrationOutcome>
             ExternalModIntegrationOutcomes { get; }

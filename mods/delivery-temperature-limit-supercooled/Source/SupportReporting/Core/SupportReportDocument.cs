@@ -332,7 +332,8 @@ namespace DeliveryTemperatureLimit
             string? unavailableReason,
             IEnumerable<string> selectedPatchGroups,
             string? statusCompatibilityDiagnostic,
-            SupportFastTrackSnapshot? fastTrack)
+            IEnumerable<SupportExternalModIntegrationSnapshot>
+                externalModIntegrations)
         {
             State = state;
             InstallationState = SupportReportCollections.RequireNonBlank(
@@ -344,7 +345,8 @@ namespace DeliveryTemperatureLimit
                 nameof(selectedPatchGroups));
             StatusCompatibilityDiagnostic =
                 statusCompatibilityDiagnostic;
-            FastTrack = fastTrack;
+            ExternalModIntegrations = CopyExternalModIntegrations(
+                externalModIntegrations);
         }
 
         public string State { get; }
@@ -357,20 +359,22 @@ namespace DeliveryTemperatureLimit
 
         public string? StatusCompatibilityDiagnostic { get; }
 
-        public SupportFastTrackSnapshot? FastTrack { get; }
+        public IReadOnlyList<SupportExternalModIntegrationSnapshot>
+            ExternalModIntegrations { get; }
 
         internal static SupportRuntimeSnapshot Available(
             string installationState,
             IEnumerable<string> selectedPatchGroups,
             string? statusCompatibilityDiagnostic,
-            SupportFastTrackSnapshot fastTrack) =>
+            IEnumerable<SupportExternalModIntegrationSnapshot>
+                externalModIntegrations) =>
             new SupportRuntimeSnapshot(
                 SupportReportLimits.AvailableState,
                 installationState,
                 null,
                 selectedPatchGroups,
                 statusCompatibilityDiagnostic,
-                fastTrack ?? throw new ArgumentNullException(nameof(fastTrack)));
+                externalModIntegrations);
 
         internal static SupportRuntimeSnapshot Unavailable(
             string installationState,
@@ -383,22 +387,61 @@ namespace DeliveryTemperatureLimit
                     nameof(reason)),
                 Array.Empty<string>(),
                 null,
-                null);
+                Array.Empty<SupportExternalModIntegrationSnapshot>());
+
+        private static IReadOnlyList<SupportExternalModIntegrationSnapshot>
+            CopyExternalModIntegrations(
+                IEnumerable<SupportExternalModIntegrationSnapshot>
+                    externalModIntegrations)
+        {
+            IReadOnlyList<SupportExternalModIntegrationSnapshot> copied =
+                SupportReportCollections.CopyObjectsBounded(
+                    externalModIntegrations,
+                    nameof(externalModIntegrations),
+                    SupportReportLimits.MaximumExternalModIntegrations);
+            var seenIntegrationIds = new HashSet<string>(
+                StringComparer.Ordinal);
+            for (int index = 0; index < copied.Count; index++)
+            {
+                if (!seenIntegrationIds.Add(copied[index].IntegrationId))
+                {
+                    throw new ArgumentException(
+                        "A runtime support snapshot cannot repeat an external " +
+                        "mod integration ID.",
+                        nameof(externalModIntegrations));
+                }
+            }
+
+            return copied;
+        }
     }
 
-    internal sealed class SupportFastTrackSnapshot
+    internal sealed class SupportExternalModIntegrationSnapshot
     {
-        internal SupportFastTrackSnapshot(
-            string state,
+        internal SupportExternalModIntegrationSnapshot(
+            string integrationId,
+            string displayName,
+            IEnumerable<string> categories,
+            string matchState,
             SupportReportFact assemblyIdentity,
             SupportReportFact assemblyVersion,
             SupportReportFact fileVersion,
             SupportReportFact assemblySha256,
-            IEnumerable<SupportFastTrackFeatureSnapshot> features)
+            IEnumerable<SupportExternalModCapabilitySnapshot> capabilities,
+            IEnumerable<SupportDiagnosticSnapshot> diagnostics)
         {
-            State = SupportReportCollections.RequireNonBlank(
-                state,
-                nameof(state));
+            IntegrationId = ValidatedIntegrationIdentifier.RequireKebabCase(
+                integrationId,
+                nameof(integrationId));
+            DisplayName = SupportReportCollections.RequireBoundedNonBlank(
+                displayName,
+                nameof(displayName),
+                ExternalModIntegrationModelValidation
+                    .MaximumDisplayNameCharacters);
+            Categories = CopyUniqueCategories(categories);
+            MatchState = ValidatedIntegrationIdentifier.RequireKebabCase(
+                matchState,
+                nameof(matchState));
             AssemblyIdentity = assemblyIdentity ??
                 throw new ArgumentNullException(nameof(assemblyIdentity));
             AssemblyVersion = assemblyVersion ??
@@ -407,12 +450,17 @@ namespace DeliveryTemperatureLimit
                 throw new ArgumentNullException(nameof(fileVersion));
             AssemblySha256 = assemblySha256 ??
                 throw new ArgumentNullException(nameof(assemblySha256));
-            Features = SupportReportCollections.CopyObjects(
-                features,
-                nameof(features));
+            Capabilities = CopyCapabilities(capabilities);
+            Diagnostics = CopyDiagnostics(diagnostics);
         }
 
-        public string State { get; }
+        public string IntegrationId { get; }
+
+        public string DisplayName { get; }
+
+        public IReadOnlyList<string> Categories { get; }
+
+        public string MatchState { get; }
 
         public SupportReportFact AssemblyIdentity { get; }
 
@@ -422,34 +470,153 @@ namespace DeliveryTemperatureLimit
 
         public SupportReportFact AssemblySha256 { get; }
 
-        public IReadOnlyList<SupportFastTrackFeatureSnapshot> Features { get; }
-    }
+        public IReadOnlyList<SupportExternalModCapabilitySnapshot>
+            Capabilities { get; }
 
-    internal sealed class SupportFastTrackFeatureSnapshot
-    {
-        internal SupportFastTrackFeatureSnapshot(
-            string feature,
-            string state,
-            string? failureCode,
-            string? failureMessage)
+        public IReadOnlyList<SupportDiagnosticSnapshot> Diagnostics { get; }
+
+        private static IReadOnlyList<string> CopyUniqueCategories(
+            IEnumerable<string> categories)
         {
-            Feature = SupportReportCollections.RequireNonBlank(
-                feature,
-                nameof(feature));
-            State = SupportReportCollections.RequireNonBlank(
-                state,
-                nameof(state));
-            FailureCode = failureCode;
-            FailureMessage = failureMessage;
+            IReadOnlyList<string> copied =
+                SupportReportCollections.CopyStringsBounded(
+                    categories,
+                    nameof(categories),
+                    2);
+            if (copied.Count == 0)
+            {
+                throw new ArgumentException(
+                    "An external mod integration snapshot requires at least " +
+                    "one declared category.",
+                    nameof(categories));
+            }
+
+            var seenCategories = new HashSet<string>(StringComparer.Ordinal);
+            for (int index = 0; index < copied.Count; index++)
+            {
+                ValidatedIntegrationIdentifier.RequireKebabCase(
+                    copied[index],
+                    nameof(categories));
+                if (!seenCategories.Add(copied[index]))
+                {
+                    throw new ArgumentException(
+                        "An external mod integration snapshot cannot repeat a " +
+                        "declared category.",
+                        nameof(categories));
+                }
+            }
+
+            return copied;
         }
 
-        public string Feature { get; }
+        private static IReadOnlyList<SupportExternalModCapabilitySnapshot>
+            CopyCapabilities(
+                IEnumerable<SupportExternalModCapabilitySnapshot>
+                    capabilities)
+        {
+            IReadOnlyList<SupportExternalModCapabilitySnapshot> copied =
+                SupportReportCollections.CopyObjectsBounded(
+                    capabilities,
+                    nameof(capabilities),
+                    SupportReportLimits
+                        .MaximumExternalModCapabilitiesPerIntegration);
+            var seenCapabilityIds = new HashSet<string>(StringComparer.Ordinal);
+            for (int index = 0; index < copied.Count; index++)
+            {
+                if (!seenCapabilityIds.Add(copied[index].CapabilityId))
+                {
+                    throw new ArgumentException(
+                        "An external mod integration snapshot cannot repeat a " +
+                        "capability ID.",
+                        nameof(capabilities));
+                }
+            }
 
-        public string State { get; }
+            return copied;
+        }
 
-        public string? FailureCode { get; }
+        private static IReadOnlyList<SupportDiagnosticSnapshot>
+            CopyDiagnostics(
+                IEnumerable<SupportDiagnosticSnapshot> diagnostics)
+        {
+            IReadOnlyList<SupportDiagnosticSnapshot> copied =
+                SupportReportCollections.CopyObjectsBounded(
+                    diagnostics,
+                    nameof(diagnostics),
+                    SupportReportLimits
+                        .MaximumExternalModDiagnosticsPerIntegration);
+            var seenDiagnosticCodes = new HashSet<string>(
+                StringComparer.Ordinal);
+            for (int index = 0; index < copied.Count; index++)
+            {
+                if (!seenDiagnosticCodes.Add(copied[index].Code))
+                {
+                    throw new ArgumentException(
+                        "An external mod integration snapshot cannot repeat a " +
+                        "diagnostic code.",
+                        nameof(diagnostics));
+                }
+            }
 
-        public string? FailureMessage { get; }
+            return copied;
+        }
+    }
+
+    internal sealed class SupportExternalModCapabilitySnapshot
+    {
+        internal SupportExternalModCapabilitySnapshot(
+            string capabilityId,
+            string authorityObservation,
+            string contractState,
+            string disposition,
+            string? diagnosticCode,
+            string? diagnosticMessage)
+        {
+            CapabilityId = ValidatedIntegrationIdentifier.RequireKebabCase(
+                capabilityId,
+                nameof(capabilityId));
+            AuthorityObservation =
+                ValidatedIntegrationIdentifier.RequireKebabCase(
+                    authorityObservation,
+                    nameof(authorityObservation));
+            ContractState = ValidatedIntegrationIdentifier.RequireKebabCase(
+                contractState,
+                nameof(contractState));
+            Disposition = ValidatedIntegrationIdentifier.RequireKebabCase(
+                disposition,
+                nameof(disposition));
+            if ((diagnosticCode == null) != (diagnosticMessage == null))
+            {
+                throw new ArgumentException(
+                    "A capability diagnostic code and message must be supplied " +
+                    "together.");
+            }
+
+            DiagnosticCode = diagnosticCode == null
+                ? null
+                : SupportReportCollections.RequireBoundedNonBlank(
+                    diagnosticCode,
+                    nameof(diagnosticCode),
+                    128);
+            DiagnosticMessage = diagnosticMessage == null
+                ? null
+                : SupportReportCollections.RequireBoundedNonBlank(
+                    diagnosticMessage,
+                    nameof(diagnosticMessage),
+                    SupportReportLimits.MaximumDiagnosticMessageCharacters);
+        }
+
+        public string CapabilityId { get; }
+
+        public string AuthorityObservation { get; }
+
+        public string ContractState { get; }
+
+        public string Disposition { get; }
+
+        public string? DiagnosticCode { get; }
+
+        public string? DiagnosticMessage { get; }
     }
 
     internal sealed class SupportActiveModSnapshot
@@ -723,6 +890,35 @@ namespace DeliveryTemperatureLimit
             string parameterName)
             where T : class
         {
+            return CopyObjectsCore(
+                source,
+                parameterName,
+                maximumCount: null);
+        }
+
+        internal static IReadOnlyList<T> CopyObjectsBounded<T>(
+            IEnumerable<T> source,
+            string parameterName,
+            int maximumCount)
+            where T : class
+        {
+            if (maximumCount < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(maximumCount));
+            }
+
+            return CopyObjectsCore(
+                source,
+                parameterName,
+                maximumCount);
+        }
+
+        private static IReadOnlyList<T> CopyObjectsCore<T>(
+            IEnumerable<T> source,
+            string parameterName,
+            int? maximumCount)
+            where T : class
+        {
             if (source == null)
             {
                 throw new ArgumentNullException(parameterName);
@@ -739,6 +935,14 @@ namespace DeliveryTemperatureLimit
                 }
 
                 copy.Add(item);
+                if (maximumCount.HasValue &&
+                    copy.Count > maximumCount.Value)
+                {
+                    throw new ArgumentException(
+                        "A report collection exceeded its declared safety " +
+                        "limit.",
+                        parameterName);
+                }
             }
 
             return new ReadOnlyCollection<T>(copy);
@@ -747,6 +951,30 @@ namespace DeliveryTemperatureLimit
         internal static IReadOnlyList<string> CopyStrings(
             IEnumerable<string> source,
             string parameterName)
+        {
+            return CopyStringsCore(
+                source,
+                parameterName,
+                maximumCount: null);
+        }
+
+        internal static IReadOnlyList<string> CopyStringsBounded(
+            IEnumerable<string> source,
+            string parameterName,
+            int maximumCount)
+        {
+            if (maximumCount < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(maximumCount));
+            }
+
+            return CopyStringsCore(source, parameterName, maximumCount);
+        }
+
+        private static IReadOnlyList<string> CopyStringsCore(
+            IEnumerable<string> source,
+            string parameterName,
+            int? maximumCount)
         {
             if (source == null)
             {
@@ -757,6 +985,14 @@ namespace DeliveryTemperatureLimit
             foreach (string item in source)
             {
                 copy.Add(RequireNonBlank(item, parameterName));
+                if (maximumCount.HasValue &&
+                    copy.Count > maximumCount.Value)
+                {
+                    throw new ArgumentException(
+                        "A report collection exceeded its declared safety " +
+                        "limit.",
+                        parameterName);
+                }
             }
 
             return new ReadOnlyCollection<string>(copy);
@@ -774,6 +1010,28 @@ namespace DeliveryTemperatureLimit
             }
 
             return value;
+        }
+
+        internal static string RequireBoundedNonBlank(
+            string value,
+            string parameterName,
+            int maximumCharacters)
+        {
+            if (maximumCharacters <= 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(maximumCharacters));
+            }
+
+            string validated = RequireNonBlank(value, parameterName);
+            if (validated.Length > maximumCharacters)
+            {
+                throw new ArgumentException(
+                    "A report value exceeded its declared character limit.",
+                    parameterName);
+            }
+
+            return validated;
         }
     }
 }

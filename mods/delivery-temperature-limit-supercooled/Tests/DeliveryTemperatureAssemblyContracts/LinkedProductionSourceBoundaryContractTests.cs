@@ -140,6 +140,28 @@ public sealed class LinkedProductionSourceBoundaryContractTests
     }
 
     [TestMethod]
+    public void DeclaredStaticMethodProtocol_WhenLocated_IsCoveredByThePureCoreWildcard()
+    {
+        string repositoryRoot = RequiredEnvironmentVariable(
+            "ONI_MOD_PIPELINE_REPOSITORY_ROOT");
+        string protocolPath = Path.Combine(
+            repositoryRoot,
+            "mods",
+            "delivery-temperature-limit-supercooled",
+            "Source",
+            "GameplayActivation",
+            "Core",
+            "ExternalModIntegration",
+            "DeclaredStaticMethodProtocol.cs");
+
+        Assert.IsTrue(
+            File.Exists(protocolPath),
+            "The BCL-only declared protocol verifier must remain inside the " +
+            "already linked GameplayActivation/Core boundary.");
+        AssertPureLinkedSource(protocolPath);
+    }
+
+    [TestMethod]
     public void OniGameTypeStubs_WhenIdentityAndMembersAreInspected_MatchPureSourceDependenciesExactly()
     {
         var tagType = typeof(global::Tag);

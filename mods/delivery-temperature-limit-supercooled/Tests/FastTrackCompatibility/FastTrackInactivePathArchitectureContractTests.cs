@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Reflection;
+using DeliveryTemperatureLimit.Tests.RuntimePatchInstallation;
 
 namespace DeliveryTemperatureLimit.Tests.FastTrackCompatibility;
 
@@ -18,30 +19,22 @@ public sealed class FastTrackInactivePathArchitectureContractTests
     private const string UnsupportedDigest =
         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
-    private static readonly DeliveryTemperatureRuntimePatchGroup[]
+    private static readonly string[]
         RequiredKleiGroupsWhenStatusIsEnabled =
         [
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiAuthoritativeFetchTemperatureEligibility,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiWorldInventoryTemperaturePublication,
-            DeliveryTemperatureRuntimePatchGroup
-                .TemperatureStatusAvailability,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiPickupTemperatureGrouping,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiDirectDeliveryEligibility
+            "klei-authoritative-fetch-temperature-eligibility",
+            "klei-world-inventory-temperature-publication",
+            "temperature-status-availability",
+            "klei-pickup-temperature-grouping",
+            "klei-direct-delivery-eligibility"
         ];
 
-    private static readonly DeliveryTemperatureRuntimePatchGroup[]
+    private static readonly string[]
         ProhibitedFastTrackGroups =
         [
-            DeliveryTemperatureRuntimePatchGroup
-                .FastTrackWorldInventoryTemperaturePublication,
-            DeliveryTemperatureRuntimePatchGroup
-                .FastTrackPickupTemperatureGrouping,
-            DeliveryTemperatureRuntimePatchGroup
-                .FastTrackDirectDeliveryEligibility
+            "fast-track-world-inventory-temperature-publication",
+            "fast-track-pickup-temperature-grouping",
+            "fast-track-direct-delivery-eligibility"
         ];
 
     [TestMethod]
@@ -170,25 +163,44 @@ public sealed class FastTrackInactivePathArchitectureContractTests
     private static void AssertKleiImplementationPathsAreSelected(
         FastTrackCompatibilityReport report)
     {
+        foreach (FastTrackFeature feature in EnumerateFeatures())
+        {
+            FastTrackFeatureCompatibilityState state =
+                report.GetFeature(feature).State;
+            Assert.IsTrue(
+                state == FastTrackFeatureCompatibilityState.ModNotLoaded ||
+                state ==
+                    FastTrackFeatureCompatibilityState.ReplacementInactive,
+                $"Inactive-path fixture unexpectedly observed {feature} as " +
+                $"{state}.");
+        }
+
         DeliveryTemperatureRuntimePatchPlan plan =
             DeliveryTemperatureRuntimePatchPlan.Create(
                 checkTemperatureForStatusItems: true,
-                report);
+                RuntimePatchCapabilitySelectionFixture
+                    .CreateKleiBaselineSelection());
 
-        foreach (DeliveryTemperatureRuntimePatchGroup requiredGroup in
+        foreach (string requiredGroup in
                  RequiredKleiGroupsWhenStatusIsEnabled)
         {
             Assert.IsTrue(
-                plan.OrderedPatchGroups.Contains(requiredGroup),
+                plan.OrderedPatchGroupIds.Any(group => string.Equals(
+                    group.Value,
+                    requiredGroup,
+                    StringComparison.Ordinal)),
                 $"The inactive FastTrack plan omitted required Klei group " +
                 $"{requiredGroup}.");
         }
 
-        foreach (DeliveryTemperatureRuntimePatchGroup prohibitedGroup in
+        foreach (string prohibitedGroup in
                  ProhibitedFastTrackGroups)
         {
             Assert.IsFalse(
-                plan.OrderedPatchGroups.Contains(prohibitedGroup),
+                plan.OrderedPatchGroupIds.Any(group => string.Equals(
+                    group.Value,
+                    prohibitedGroup,
+                    StringComparison.Ordinal)),
                 $"The inactive FastTrack plan selected prohibited group " +
                 $"{prohibitedGroup}.");
         }

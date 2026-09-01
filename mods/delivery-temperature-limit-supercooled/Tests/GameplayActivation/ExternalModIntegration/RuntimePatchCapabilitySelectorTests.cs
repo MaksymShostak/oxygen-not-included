@@ -30,7 +30,7 @@ public sealed class RuntimePatchCapabilitySelectorTests
             RuntimeAuthorityImplementationIdentity.KleiBaseline,
             selection.GetCapabilitySelection(
                 RuntimeCapabilityId.DirectDeliveryEligibility)
-                .SelectedContribution!
+                .PrepareSelectedContribution()
                 .ImplementationIdentity);
     }
 
@@ -56,12 +56,44 @@ public sealed class RuntimePatchCapabilitySelectorTests
             fastTrack,
             selection.GetCapabilitySelection(
                 RuntimeCapabilityId.DirectDeliveryEligibility)
-                .SelectedContribution);
+                .PrepareSelectedContribution());
         Assert.AreEqual(
             IntegrationCapabilityDisposition.Selected,
             selection.ExternalModIntegrationOutcomes[0]
                 .Capabilities[0]
                 .Disposition);
+    }
+
+    [TestMethod]
+    public void Select_WhenCompatibleExternalOwnerIsSelected_DoesNotPrepareKleiBaselineAlternative()
+    {
+        bool kleiBaselineWasPrepared = false;
+        var definition = new RuntimeCapabilityDefinition(
+            RuntimeCapabilityId.DirectDeliveryEligibility,
+            RuntimeCapabilityCriticality.Required,
+            () =>
+            {
+                kleiBaselineWasPrepared = true;
+                return KleiBaselineContribution(
+                    RuntimeCapabilityId.DirectDeliveryEligibility);
+            },
+            atomicBundleId: null);
+        PreparedRuntimeAuthorityContribution fastTrack = CompatibleContribution(
+            FastTrackId,
+            RuntimeCapabilityId.DirectDeliveryEligibility);
+
+        RuntimePatchCapabilitySelection selection =
+            RuntimePatchCapabilitySelector.Select(
+                new[] { definition },
+                new[] { fastTrack },
+                new[] { Outcome(fastTrack) });
+
+        Assert.AreSame(
+            fastTrack,
+            selection.GetCapabilitySelection(
+                RuntimeCapabilityId.DirectDeliveryEligibility)
+                .PrepareSelectedContribution());
+        Assert.IsFalse(kleiBaselineWasPrepared);
     }
 
     [TestMethod]
@@ -214,7 +246,7 @@ public sealed class RuntimePatchCapabilitySelectorTests
         RuntimeCapabilitySelectionEntry omission =
             selection.GetCapabilitySelection(
                 RuntimeCapabilityId.TemperatureStatusAvailability);
-        Assert.IsNull(omission.SelectedContribution);
+        Assert.IsFalse(omission.HasSelectedContribution);
         Assert.AreEqual(
             IntegrationCapabilityDisposition.Unavailable,
             omission.Disposition);
@@ -249,7 +281,7 @@ public sealed class RuntimePatchCapabilitySelectorTests
         RuntimeCapabilitySelectionEntry omission =
             selection.GetCapabilitySelection(
                 RuntimeCapabilityId.TemperatureStatusAvailability);
-        Assert.IsNull(omission.SelectedContribution);
+        Assert.IsFalse(omission.HasSelectedContribution);
         Assert.AreEqual(
             IntegrationCapabilityDisposition.Unavailable,
             omission.Disposition);
@@ -511,7 +543,7 @@ public sealed class RuntimePatchCapabilitySelectorTests
                 Array.Empty<ExternalModIntegrationOutcome>());
 
         Assert.IsTrue(selection.CapabilitySelections.All(entry =>
-            entry.SelectedContribution!.ImplementationIdentity.Equals(
+            entry.PrepareSelectedContribution().ImplementationIdentity.Equals(
                 RuntimeAuthorityImplementationIdentity.KleiBaseline)));
     }
 
@@ -543,7 +575,7 @@ public sealed class RuntimePatchCapabilitySelectorTests
                 new[] { Outcome(pickup, direct) });
 
         Assert.IsTrue(selection.CapabilitySelections.All(entry =>
-            entry.SelectedContribution!.ImplementationIdentity
+            entry.PrepareSelectedContribution().ImplementationIdentity
                 .DeclaredExternalIntegrationId
                 .Equals(FastTrackId)));
     }
@@ -570,7 +602,7 @@ public sealed class RuntimePatchCapabilitySelectorTests
             SyntheticAuthorityId,
             selection.GetCapabilitySelection(
                 RuntimeCapabilityId.PickupTemperatureGrouping)
-                .SelectedContribution!
+                .PrepareSelectedContribution()
                 .ImplementationIdentity
                 .DeclaredExternalIntegrationId);
     }
@@ -582,7 +614,7 @@ public sealed class RuntimePatchCapabilitySelectorTests
         new(
             capabilityId,
             criticality,
-            KleiBaselineContribution(capabilityId),
+            () => KleiBaselineContribution(capabilityId),
             bundleId);
 
     private static PreparedRuntimeAuthorityContribution CompatibleContribution(

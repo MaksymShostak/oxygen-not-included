@@ -1,7 +1,8 @@
 namespace DeliveryTemperatureLimit.Tests.FastTrackCompatibility;
 
 /// <summary>
-/// Constrains the cold composition root that chooses between Klei and FastTrack.
+/// Constrains the cold composition root that prepares declared integrations and
+/// consumes one provider-neutral capability selection.
 /// Behavioral selection and incompatibility cases live in
 /// <see cref="RuntimePatchInstallation.DeliveryTemperatureRuntimePatchPlanTests"/>;
 /// these tests deliberately avoid repeating that matrix and instead prove the
@@ -21,9 +22,15 @@ public sealed class FastTrackCoherentActivationContractTests
             "internal static void InstallLoadedModTopologyDependentPatches(",
             "internal static bool TryStartAuthorizedGameSession(");
 
-        int compatibilityInspectionIndex = RequireIndex(
+        int loadedModContextIndex = RequireIndex(
             installationMethod,
-            "compatibilityInspector.Inspect(inspectionInput)");
+            "CreateLoadedModInspectionContext(");
+        int declaredPreparationIndex = RequireIndex(
+            installationMethod,
+            "DeclaredExternalModIntegrationPreparation.Prepare(");
+        int capabilitySelectionIndex = RequireIndex(
+            installationMethod,
+            "RuntimePatchCapabilitySelector.Select(");
         int planCreationIndex = RequireIndex(
             installationMethod,
             "DeliveryTemperatureRuntimePatchPlan.Create(");
@@ -38,12 +45,15 @@ public sealed class FastTrackCoherentActivationContractTests
             "ApplyPreparedPatchesWithExactRollback(");
 
         Assert.IsTrue(
-            compatibilityInspectionIndex < planCreationIndex &&
+            loadedModContextIndex < declaredPreparationIndex &&
+            declaredPreparationIndex < capabilitySelectionIndex &&
+            capabilitySelectionIndex < planCreationIndex &&
             planCreationIndex < authorityVerificationIndex &&
             authorityVerificationIndex < preparationIndex &&
             preparationIndex < applicationIndex,
-            "Compatibility, immutable selection, authority, complete patch " +
-            "preparation, and mutation must remain in that exact order.");
+            "Loaded-mod copying, declared preparation, immutable capability " +
+            "selection, authority proof, binding retrieval, and mutation must " +
+            "remain in that exact order.");
         Assert.AreEqual(
             1,
             CountOrdinalOccurrences(
@@ -59,7 +69,7 @@ public sealed class FastTrackCoherentActivationContractTests
     }
 
     [TestMethod]
-    public void SelectedPatchPreparation_WhenInspected_ConsumesOnlyImmutableOrderedGroups()
+    public void SelectedPatchPreparation_WhenInspected_ReturnsOnlyPlanOwnedVerifiedBindings()
     {
         string installerSource = ReadProductionSource(
             "RuntimePatchInstallation",
@@ -71,30 +81,24 @@ public sealed class FastTrackCoherentActivationContractTests
 
         StringAssert.Contains(
             preparationMethod,
-            "patchPlan.OrderedPatchGroups.Count");
-        StringAssert.Contains(
-            preparationMethod,
-            "patchPlan.OrderedPatchGroups[groupIndex]");
-        StringAssert.Contains(preparationMethod, "switch (selectedGroup)");
-        Assert.AreEqual(
-            Enum.GetValues<DeliveryTemperatureRuntimePatchGroup>().Length,
-            CountOrdinalOccurrences(
-                preparationMethod,
-                "case DeliveryTemperatureRuntimePatchGroup"),
-            "Every semantic runtime group must have exactly one preparation case.");
+            "return patchPlan.OrderedPatchBindings;");
         Assert.IsFalse(
             preparationMethod.Contains(
-                "FastTrackFeatureCompatibilityState",
+                "switch (",
                 StringComparison.Ordinal),
-            "The installer must not recompute the immutable path decision.");
+            "The installer must not dispatch on selected provider or group " +
+            "identity after the plan is complete.");
         Assert.IsFalse(
             preparationMethod.Contains(
-                "checkTemperatureForStatusItems",
+                "FastTrack",
                 StringComparison.Ordinal),
-            "Status-off behavior is expressed only by absent ordered groups.");
-        StringAssert.Contains(
-            preparationMethod,
-            "return HarmonyPatchContractBindingVerifier.VerifyAll(\n                preparedPatches);");
+            "Selected binding retrieval must be provider-neutral.");
+        Assert.IsFalse(
+            preparationMethod.Contains(
+                "DeliveryTemperatureRuntimePatchGroup",
+                StringComparison.Ordinal),
+            "The deleted provider-shaped patch-group enum must not survive in " +
+            "selected binding retrieval.");
     }
 
     [TestMethod]
@@ -108,12 +112,12 @@ public sealed class FastTrackCoherentActivationContractTests
             installerSource,
             "private static void ApplyPreparedPatchesWithExactRollback(\n            Harmony harmony,\n            HarmonyPatchContractBindingVerifier.VerifiedBindings\n                preparedPatches)");
         Assert.AreEqual(
-            2,
+            1,
             CountOrdinalOccurrences(
                 installerSource,
                 "return HarmonyPatchContractBindingVerifier.VerifyAll("),
-            "Both preparation transactions must mint their own verified " +
-            "snapshot before reaching the mutation gate.");
+            "Only the topology-independent transaction remains verified in the " +
+            "installer; the selected plan already owns its verified snapshot.");
     }
 
     [TestMethod]

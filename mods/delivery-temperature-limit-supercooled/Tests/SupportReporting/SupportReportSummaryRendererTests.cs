@@ -23,7 +23,9 @@ public sealed class SupportReportSummaryRendererTests
             "- Temperature Limit version: `1.3.0`\n" +
             "- Platform: `WindowsPlayer`\n" +
             "- DLCs: `EXPANSION1_ID`, `BASE_GAME`\n" +
-            "- FastTrack: `not-loaded`\n" +
+            "- External mod integrations:\n" +
+            "  - Fast Track: match `not-matched`; capabilities: " +
+            "`world-inventory-temperature-publication=not-applicable`\n" +
             "- Player.log: not included";
         Assert.AreEqual(expected, summary);
         Assert.DoesNotContain("SECRET ACTIVE MOD TITLE", summary);
@@ -98,18 +100,31 @@ public sealed class SupportReportSummaryRendererTests
             temperatureUnit: "Celsius",
             maxConstructionTemperature: 45,
             minConstructionTemperature: -50);
-        var fastTrack = new SupportFastTrackSnapshot(
-            "not-loaded",
-            SupportReportFact.Unavailable("FastTrack is not loaded."),
-            SupportReportFact.Unavailable("FastTrack is not loaded."),
-            SupportReportFact.Unavailable("FastTrack is not loaded."),
-            SupportReportFact.Unavailable("FastTrack is not loaded."),
-            Array.Empty<SupportFastTrackFeatureSnapshot>());
+        var fastTrack = new SupportExternalModIntegrationSnapshot(
+            "fast-track",
+            "Fast Track",
+            new[] { "exclusive-runtime-authority" },
+            "not-matched",
+            SupportReportFact.Unavailable("Fast Track is not loaded."),
+            SupportReportFact.Unavailable("Fast Track is not loaded."),
+            SupportReportFact.Unavailable("Fast Track is not loaded."),
+            SupportReportFact.Unavailable("Fast Track is not loaded."),
+            new[]
+            {
+                new SupportExternalModCapabilitySnapshot(
+                    "world-inventory-temperature-publication",
+                    "does-not-own",
+                    "not-evaluated",
+                    "not-applicable",
+                    diagnosticCode: null,
+                    diagnosticMessage: null)
+            },
+            Array.Empty<SupportDiagnosticSnapshot>());
         SupportRuntimeSnapshot runtime = SupportRuntimeSnapshot.Available(
             "Installed",
             new[] { "GameSessionLifecycle" },
             statusCompatibilityDiagnostic: null,
-            fastTrack);
+            new[] { fastTrack });
         var activeMod = new SupportActiveModSnapshot(
             0,
             activeModTitle,

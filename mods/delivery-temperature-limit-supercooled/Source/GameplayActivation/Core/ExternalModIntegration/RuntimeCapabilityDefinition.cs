@@ -45,10 +45,14 @@ namespace DeliveryTemperatureLimit
     /// </summary>
     internal sealed class RuntimeCapabilityDefinition
     {
+        private readonly Lazy<PreparedRuntimeAuthorityContribution>?
+            kleiBaselineContributionPreparation;
+
         internal RuntimeCapabilityDefinition(
             RuntimeCapabilityId id,
             RuntimeCapabilityCriticality criticality,
-            PreparedRuntimeAuthorityContribution? kleiBaselineContribution,
+            Func<PreparedRuntimeAuthorityContribution>?
+                prepareKleiBaselineContribution,
             RuntimeCapabilityBundleId? atomicBundleId)
         {
             if (string.IsNullOrEmpty(id.Value))
@@ -66,51 +70,6 @@ namespace DeliveryTemperatureLimit
                     "Unknown runtime capability criticality.");
             }
 
-            if (kleiBaselineContribution != null)
-            {
-                if (!kleiBaselineContribution.CapabilityId.Equals(id))
-                {
-                    throw new ArgumentException(
-                        "The Klei baseline contribution must implement the " +
-                        "capability being defined.",
-                        nameof(kleiBaselineContribution));
-                }
-
-                if (kleiBaselineContribution.AuthorityObservation !=
-                    RuntimeAuthorityObservation.OwnsCompatible)
-                {
-                    throw new ArgumentException(
-                        "A Klei baseline must be a complete compatible " +
-                        "runtime-authority contribution.",
-                        nameof(kleiBaselineContribution));
-                }
-
-                if (!kleiBaselineContribution.ImplementationIdentity
-                        .IsKleiBaseline)
-                {
-                    throw new ArgumentException(
-                        "A Klei baseline contribution must identify the " +
-                        "built-in Klei implementation.",
-                        nameof(kleiBaselineContribution));
-                }
-
-                for (int requirementIndex = 0;
-                     requirementIndex <
-                        kleiBaselineContribution.AuthorityRequirements.Count;
-                     requirementIndex++)
-                {
-                    if (kleiBaselineContribution
-                            .AuthorityRequirements[requirementIndex]
-                            .Kind != RuntimeAuthorityRequirementKind.KleiOriginal)
-                    {
-                        throw new ArgumentException(
-                            "A Klei baseline contribution may require only " +
-                            "Klei-original runtime authority.",
-                            nameof(kleiBaselineContribution));
-                    }
-                }
-            }
-
             if (atomicBundleId.HasValue &&
                 string.IsNullOrEmpty(atomicBundleId.Value.Value))
             {
@@ -121,7 +80,13 @@ namespace DeliveryTemperatureLimit
 
             Id = id;
             Criticality = criticality;
-            KleiBaselineContribution = kleiBaselineContribution;
+            kleiBaselineContributionPreparation =
+                prepareKleiBaselineContribution == null
+                    ? null
+                    : new Lazy<PreparedRuntimeAuthorityContribution>(() =>
+                        ValidateKleiBaselineContribution(
+                            id,
+                            prepareKleiBaselineContribution()));
             AtomicBundleId = atomicBundleId;
         }
 
@@ -132,9 +97,75 @@ namespace DeliveryTemperatureLimit
         internal bool IsRequired =>
             Criticality == RuntimeCapabilityCriticality.Required;
 
-        internal PreparedRuntimeAuthorityContribution?
-            KleiBaselineContribution { get; }
+        internal bool HasKleiBaselineContribution =>
+            kleiBaselineContributionPreparation != null;
+
+        internal PreparedRuntimeAuthorityContribution
+            PrepareKleiBaselineContribution()
+        {
+            if (kleiBaselineContributionPreparation == null)
+            {
+                throw new InvalidOperationException(
+                    "This runtime capability has no Klei baseline " +
+                    "preparation.");
+            }
+
+            return kleiBaselineContributionPreparation.Value;
+        }
 
         internal RuntimeCapabilityBundleId? AtomicBundleId { get; }
+
+        private static PreparedRuntimeAuthorityContribution
+            ValidateKleiBaselineContribution(
+                RuntimeCapabilityId capabilityId,
+                PreparedRuntimeAuthorityContribution? contribution)
+        {
+            if (contribution == null)
+            {
+                throw new InvalidOperationException(
+                    "Klei baseline contribution preparation returned null.");
+            }
+
+            if (!contribution.CapabilityId.Equals(capabilityId))
+            {
+                throw new ArgumentException(
+                    "The Klei baseline contribution must implement the " +
+                    "capability being defined.",
+                    nameof(contribution));
+            }
+
+            if (contribution.AuthorityObservation !=
+                RuntimeAuthorityObservation.OwnsCompatible)
+            {
+                throw new ArgumentException(
+                    "A Klei baseline must be a complete compatible " +
+                    "runtime-authority contribution.",
+                    nameof(contribution));
+            }
+
+            if (!contribution.ImplementationIdentity.IsKleiBaseline)
+            {
+                throw new ArgumentException(
+                    "A Klei baseline contribution must identify the built-in " +
+                    "Klei implementation.",
+                    nameof(contribution));
+            }
+
+            for (int requirementIndex = 0;
+                 requirementIndex < contribution.AuthorityRequirements.Count;
+                 requirementIndex++)
+            {
+                if (contribution.AuthorityRequirements[requirementIndex].Kind !=
+                    RuntimeAuthorityRequirementKind.KleiOriginal)
+                {
+                    throw new ArgumentException(
+                        "A Klei baseline contribution may require only " +
+                        "Klei-original runtime authority.",
+                        nameof(contribution));
+                }
+            }
+
+            return contribution;
+        }
     }
 }

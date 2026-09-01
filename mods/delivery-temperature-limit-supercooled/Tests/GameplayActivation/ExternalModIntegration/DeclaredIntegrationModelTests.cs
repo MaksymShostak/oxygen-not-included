@@ -130,7 +130,7 @@ public sealed class DeclaredIntegrationModelTests
         var definition = new RuntimeCapabilityDefinition(
             RuntimeCapabilityId.DirectDeliveryEligibility,
             RuntimeCapabilityCriticality.Required,
-            baseline,
+            () => baseline,
             bundleId);
 
         Assert.AreEqual(
@@ -140,7 +140,7 @@ public sealed class DeclaredIntegrationModelTests
             RuntimeCapabilityCriticality.Required,
             definition.Criticality);
         Assert.IsTrue(definition.IsRequired);
-        Assert.AreSame(baseline, definition.KleiBaselineContribution);
+        Assert.AreSame(baseline, definition.PrepareKleiBaselineContribution());
         Assert.AreEqual(bundleId, definition.AtomicBundleId);
     }
 
@@ -151,11 +151,14 @@ public sealed class DeclaredIntegrationModelTests
             RuntimeCapabilityId.PickupTemperatureGrouping);
 
         Assert.ThrowsExactly<ArgumentException>(() =>
-            new RuntimeCapabilityDefinition(
+        {
+            var definition = new RuntimeCapabilityDefinition(
                 RuntimeCapabilityId.DirectDeliveryEligibility,
                 RuntimeCapabilityCriticality.Required,
-                mismatchedBaseline,
-                null));
+                () => mismatchedBaseline,
+                null);
+            _ = definition.PrepareKleiBaselineContribution();
+        });
     }
 
     [TestMethod]
@@ -173,11 +176,14 @@ public sealed class DeclaredIntegrationModelTests
                 null);
 
         Assert.ThrowsExactly<ArgumentException>(() =>
-            new RuntimeCapabilityDefinition(
+        {
+            var definition = new RuntimeCapabilityDefinition(
                 RuntimeCapabilityId.DirectDeliveryEligibility,
                 RuntimeCapabilityCriticality.Required,
-                replacementBackedBaseline,
-                null));
+                () => replacementBackedBaseline,
+                null);
+            _ = definition.PrepareKleiBaselineContribution();
+        });
     }
 
     [TestMethod]
@@ -189,7 +195,7 @@ public sealed class DeclaredIntegrationModelTests
         var definition = new RuntimeCapabilityDefinition(
             RuntimeCapabilityId.DirectDeliveryEligibility,
             RuntimeCapabilityCriticality.Required,
-            baseline,
+            () => baseline,
             null);
 
         RuntimeCapabilitySelectionEntry selection =
@@ -198,7 +204,7 @@ public sealed class DeclaredIntegrationModelTests
                 baseline);
 
         Assert.AreSame(definition, selection.Definition);
-        Assert.AreSame(baseline, selection.SelectedContribution);
+        Assert.AreSame(baseline, selection.PrepareSelectedContribution());
         Assert.AreEqual(
             IntegrationCapabilityDisposition.Selected,
             selection.Disposition);
@@ -215,7 +221,7 @@ public sealed class DeclaredIntegrationModelTests
         var definition = new RuntimeCapabilityDefinition(
             RuntimeCapabilityId.DirectDeliveryEligibility,
             RuntimeCapabilityCriticality.Required,
-            baseline,
+            () => baseline,
             null);
         PreparedRuntimeAuthorityContribution mismatchedContribution =
             KleiBaselineContribution(
@@ -243,7 +249,7 @@ public sealed class DeclaredIntegrationModelTests
                 "No implementation was available for the optional capability.");
 
         Assert.AreSame(definition, omission.Definition);
-        Assert.IsNull(omission.SelectedContribution);
+        Assert.IsFalse(omission.HasSelectedContribution);
         Assert.AreEqual(
             IntegrationCapabilityDisposition.Unavailable,
             omission.Disposition);
@@ -264,7 +270,7 @@ public sealed class DeclaredIntegrationModelTests
         var definition = new RuntimeCapabilityDefinition(
             RuntimeCapabilityId.DirectDeliveryEligibility,
             RuntimeCapabilityCriticality.Required,
-            baseline,
+            () => baseline,
             null);
 
         Assert.ThrowsExactly<ArgumentException>(() =>

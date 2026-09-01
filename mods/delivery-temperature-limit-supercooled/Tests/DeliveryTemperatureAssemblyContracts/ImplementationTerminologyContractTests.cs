@@ -61,6 +61,55 @@ public sealed partial class ImplementationTerminologyContractTests
         }
     }
 
+    [TestMethod]
+    public void GenericSelectionBoundaries_WhenSourceIsInspected_ContainNoProviderOrGameRuntimeDependencies()
+    {
+        string repositoryRoot = ResolveRepositoryRoot();
+        string sourceRoot = Path.Combine(
+            repositoryRoot,
+            "mods",
+            "delivery-temperature-limit-supercooled",
+            "Source");
+        string gameplayActivationCore = Path.Combine(
+            sourceRoot,
+            "GameplayActivation",
+            "Core");
+        string runtimePlanPath = Path.Combine(
+            sourceRoot,
+            "RuntimePatchInstallation",
+            "DeliveryTemperatureRuntimePatchPlan.cs");
+        string[] inspectedPaths = Directory
+            .EnumerateFiles(
+                gameplayActivationCore,
+                "*.cs",
+                SearchOption.AllDirectories)
+            .Append(runtimePlanPath)
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+        string[] forbiddenTokens =
+        [
+            "FastTrackCompatibilityReport",
+            "FastTrackFeature",
+            "PeterHan.FastTrack",
+            "BlueprintsV2",
+            "KMod.Mod",
+            "HarmonyLib",
+            "UnityEngine"
+        ];
+
+        foreach (string inspectedPath in inspectedPaths)
+        {
+            string source = File.ReadAllText(inspectedPath);
+            foreach (string forbiddenToken in forbiddenTokens)
+            {
+                Assert.IsFalse(
+                    source.Contains(forbiddenToken, StringComparison.Ordinal),
+                    $"Generic selection boundary {inspectedPath} contains " +
+                    $"provider/runtime token '{forbiddenToken}'.");
+            }
+        }
+    }
+
     private static Regex AmbiguousWordRegex() => new(
         "\\b" + Regex.Escape(AmbiguousUnqualifiedTerm) + "\\b",
         RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);

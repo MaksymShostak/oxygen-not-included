@@ -499,9 +499,9 @@ Expected green: legacy structural coverage remains green and generic outcomes pr
 - Modify: `mods/delivery-temperature-limit-supercooled/Tests/RuntimePatchInstallation/DeliveryTemperatureRuntimePatchPlanTests.cs`
 - Modify: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackCoherentActivationContractTests.cs`
 
-- [ ] Rewrite plan tests first so `Create` receives a `RuntimePatchCapabilitySelection`. Preserve Klei-only, each independent FastTrack-ready feature, status-only degradation, required incompatibility, selected-authority change, an unknown noninterfering mod, and an undeclared skipping-prefix owner that must fail generic authority proof without creating an integration outcome.
+- [x] Rewrite plan tests first so `Create` receives a `RuntimePatchCapabilitySelection`. Preserve Klei-only, each independent FastTrack-ready feature, status-only degradation, required incompatibility, selected-authority change, an unknown noninterfering mod, and an undeclared skipping-prefix owner that must fail generic authority proof without creating an integration outcome.
 
-- [ ] Run:
+- [x] Run:
 
 ```powershell
 dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj --no-restore --filter "FullyQualifiedName~DeliveryTemperatureRuntimePatchPlanTests|FullyQualifiedName~FastTrackCoherentActivationContractTests"
@@ -509,7 +509,7 @@ dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatur
 
 Expected red: the plan still requires `FastTrackCompatibilityReport`.
 
-- [ ] Change the plan boundary to this shape:
+- [x] Change the plan boundary to this shape:
 
 ```csharp
 internal static DeliveryTemperatureRuntimePatchPlan Create(
@@ -517,11 +517,11 @@ internal static DeliveryTemperatureRuntimePatchPlan Create(
     RuntimePatchCapabilitySelection capabilitySelection)
 ```
 
-- [ ] Store only immutable selected generic contributions, ordered verified bindings, stable generic patch-group audit IDs, exact generic authority requirements, generic outcomes, and the optional status diagnostic. Remove the `fastTrackCompatibility` field and all `FastTrackFeature`/`FastTrackCompatibilityReport` access. Delete the now-unused provider-named patch-group enum; leave its existing conditional test-project link unchanged so this plan introduces no additional configuration delta.
+- [x] Store only immutable selected generic contributions, ordered verified bindings, stable generic patch-group audit IDs, exact generic authority requirements, generic outcomes, and the optional status diagnostic. Remove the `fastTrackCompatibility` field and all `FastTrackFeature`/`FastTrackCompatibilityReport` access. Delete the now-unused provider-named patch-group enum; leave its existing conditional test-project link unchanged so this plan introduces no additional configuration delta.
 
-- [ ] Replace `VerifyFastTrackAuthority` and `VerifyKleiAuthorityForMatchingTargets` branches with one generic loop over exact `RuntimeAuthorityRequirement` values. For `ExactOwnedReplacement`, require the exact target, method, owner, and permitted-owner set. For `KleiOriginal`, reject every unpermitted Boolean skipping prefix.
+- [x] Replace `VerifyFastTrackAuthority` and `VerifyKleiAuthorityForMatchingTargets` branches with one generic loop over exact `RuntimeAuthorityRequirement` values. For `ExactOwnedReplacement`, require the exact target, method, owner, and permitted-owner set. For `KleiOriginal`, reject every unpermitted Boolean skipping prefix.
 
-- [ ] Run the focused tests again.
+- [x] Run the focused tests again.
 
 Expected green: all previous topology semantics pass through generic selection.
 
@@ -536,9 +536,9 @@ Expected green: all previous topology semantics pass through generic selection.
 - Modify: `mods/delivery-temperature-limit-supercooled/Tests/SupportReporting/SupportReportSummaryRendererTests.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/SupportReporting/SupportJsonReportSizeLimiterTests.cs`
 
-- [ ] Change JSON contract tests first. Require `schemaVersion: 2`, `runtime.externalModIntegrations`, zero/one/multiple integration arrays, deterministic order, bounded capability arrays, and absence of `runtime.fastTrack` anywhere in JSON.
+- [x] Change JSON contract tests first. Require `schemaVersion: 2`, `runtime.externalModIntegrations`, zero/one/multiple integration arrays, deterministic order, bounded capability arrays, and absence of `runtime.fastTrack` anywhere in JSON.
 
-- [ ] Run:
+- [x] Run:
 
 ```powershell
 dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj --no-restore --filter "FullyQualifiedName~SupportReportDocumentJsonContractTests|FullyQualifiedName~SupportReportSummaryRendererTests|FullyQualifiedName~SupportJsonReportSizeLimiterTests"
@@ -546,7 +546,7 @@ dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatur
 
 Expected red: schema version and runtime shape are still FastTrack-specific.
 
-- [ ] Replace `SupportFastTrackSnapshot` and `SupportFastTrackFeatureSnapshot` with:
+- [x] Replace `SupportFastTrackSnapshot` and `SupportFastTrackFeatureSnapshot` with:
 
 ```csharp
 internal sealed class SupportExternalModIntegrationSnapshot
@@ -574,9 +574,9 @@ internal sealed class SupportExternalModCapabilitySnapshot
 }
 ```
 
-- [ ] Enforce existing collection/message/JSON limits at construction and final serialization. Render summaries by display name and generic capability state; do not add `if (IntegrationId == "fast-track")`.
+- [x] Enforce existing collection/message/JSON limits at construction and final serialization. Render summaries by display name and generic capability state; do not add `if (IntegrationId == "fast-track")`.
 
-- [ ] Run the focused tests again.
+- [x] Run the focused tests again.
 
 Expected green: schema-v2 projection is deterministic, bounded, and provider-neutral.
 
@@ -590,15 +590,15 @@ Expected green: schema-v2 projection is deterministic, bounded, and provider-neu
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/GameplayActivation/ExternalModIntegration/ExternalIntegrationExtensionContractTests.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/GameplayActivation/ExternalModIntegration/DeclaredStaticMethodProtocolTests.cs`
 
-- [ ] Add a compiled/source boundary asserting `GameplayActivation/Core`, `RuntimePatchCapabilitySelector`, and `DeliveryTemperatureRuntimePatchPlan` contain none of these tokens: `FastTrackCompatibilityReport`, `FastTrackFeature`, `PeterHan.FastTrack`, `BlueprintsV2`, `KMod.Mod`, `HarmonyLib`, `UnityEngine`.
+- [x] Add a compiled/source boundary asserting `GameplayActivation/Core`, `RuntimePatchCapabilitySelector`, and `DeliveryTemperatureRuntimePatchPlan` contain none of these tokens: `FastTrackCompatibilityReport`, `FastTrackFeature`, `PeterHan.FastTrack`, `BlueprintsV2`, `KMod.Mod`, `HarmonyLib`, `UnityEngine`.
 
-- [ ] Add the synthetic runtime-authority and synthetic additive inspectors. Prove the former supplies a capability without selector/schema edits and the latter reports `Ready`, `Unavailable`, and contained throw outcomes while contributing zero Harmony bindings.
+- [x] Add the synthetic runtime-authority and synthetic additive inspectors. Prove the former supplies a capability without selector/schema edits and the latter reports `Ready`, `Unavailable`, and contained throw outcomes while contributing zero Harmony bindings.
 
-- [ ] Add a BCL-only declared static-method protocol verifier that receives an explicit endpoint type and exact method descriptors; it never scans arbitrary assemblies. With reflection-emitted top-level public static fixtures, verify exact getter/setter/ID names, return types, parameter types, static/public/top-level requirements, missing member, overload ambiguity, renamed parameter type, wrong by-reference shape, and changed return type.
+- [x] Add a BCL-only declared static-method protocol verifier that receives an explicit endpoint type and exact method descriptors; it never scans arbitrary assemblies. With reflection-emitted top-level public static fixtures, verify exact getter/setter/ID names, return types, parameter types, static/public/top-level requirements, missing member, overload ambiguity, renamed parameter type, wrong by-reference shape, and changed return type.
 
-- [ ] Assert the production catalog contains exactly `fast-track` at this milestone and does not contain `blueprints-expanded`.
+- [x] Assert the production catalog contains exactly `fast-track` at this milestone and does not contain `blueprints-expanded`.
 
-- [ ] Run:
+- [x] Run:
 
 ```powershell
 dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj --no-restore --filter "FullyQualifiedName~ExternalIntegrationExtensionContractTests|FullyQualifiedName~DeclaredStaticMethodProtocolTests|FullyQualifiedName~LinkedProductionSourceBoundaryContractTests|FullyQualifiedName~ImplementationTerminologyContractTests"
@@ -608,7 +608,7 @@ Expected green: core boundaries are provider-neutral and the additive seam is pr
 
 ## Task 10: Milestone Verification and Gated Commit
 
-- [ ] Run:
+- [x] Run:
 
 ```powershell
 dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj --no-restore
@@ -617,21 +617,21 @@ git diff --check
 
 Expected: all tests pass; zero skipped/inconclusive; no whitespace errors.
 
-- [ ] Run the forbidden-configuration check from the program plan.
+- [x] Run the forbidden-configuration check from the program plan.
 
 Expected: only the approved test-project linked-source item, exact FastTrack
 fixture-copy wildcard, and scoped fixture DLL Git attribute differ among
 configuration files.
 
-- [ ] State `Implementation complete; /review pending` for this milestone and
+- [x] State `Implementation complete; /review pending` for this milestone and
 run built-in uncommitted review over the declared-integration, runtime-plan,
 FastTrack-adapter, schema-v2, approved configuration, and associated test
 changes. Exclude the user-owned untracked `AGENTS.md`. Resolve or explicitly
 defer every confirmed P0-P2 finding and rerun the affected focused/full gates.
 
-- [ ] Show `git status --short` and `git diff --stat`. Stage only this plan's intended files after separating pre-existing user-owned changes.
+- [x] Show `git status --short` and `git diff --stat`. Stage only this plan's intended files after separating pre-existing user-owned changes.
 
-- [ ] Confirm the staged snapshot is covered by the user's pre-authorization,
+- [x] Confirm the staged snapshot is covered by the user's pre-authorization,
 load `committing-to-git`, and create:
 
 ```text
@@ -643,4 +643,4 @@ and publish schema-v2 generic integration diagnostics without claiming
 Blueprints Expanded support.
 ```
 
-- [ ] Do not push.
+- [x] Do not push.

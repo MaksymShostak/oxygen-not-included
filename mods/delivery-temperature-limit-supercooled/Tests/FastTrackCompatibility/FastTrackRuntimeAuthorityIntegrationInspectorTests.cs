@@ -253,7 +253,7 @@ public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
         Assert.AreEqual(
             IntegrationCapabilityDisposition.Unavailable,
             worldInventory.Disposition);
-        Assert.IsNull(worldInventory.SelectedContribution);
+        Assert.IsFalse(worldInventory.HasSelectedContribution);
         ExternalModIntegrationOutcome outcome =
             AssertSingleFinalOutcome(selection);
         Assert.AreEqual(
@@ -447,21 +447,21 @@ public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
             new RuntimeCapabilityDefinition(
                 RuntimeCapabilityId.WorldInventoryTemperaturePublication,
                 RuntimeCapabilityCriticality.Optional,
-                CreateKleiBaselineContribution(
-                    RuntimeCapabilityId
-                        .WorldInventoryTemperaturePublication),
+                () => CreateKleiBaselineContribution(
+                        RuntimeCapabilityId
+                            .WorldInventoryTemperaturePublication),
                 atomicBundleId: null),
             new RuntimeCapabilityDefinition(
                 RuntimeCapabilityId.PickupTemperatureGrouping,
                 RuntimeCapabilityCriticality.Required,
-                CreateKleiBaselineContribution(
-                    RuntimeCapabilityId.PickupTemperatureGrouping),
+                () => CreateKleiBaselineContribution(
+                        RuntimeCapabilityId.PickupTemperatureGrouping),
                 atomicBundleId: null),
             new RuntimeCapabilityDefinition(
                 RuntimeCapabilityId.DirectDeliveryEligibility,
                 RuntimeCapabilityCriticality.Required,
-                CreateKleiBaselineContribution(
-                    RuntimeCapabilityId.DirectDeliveryEligibility),
+                () => CreateKleiBaselineContribution(
+                        RuntimeCapabilityId.DirectDeliveryEligibility),
                 atomicBundleId: null)
         };
 
@@ -518,8 +518,8 @@ public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
                 capabilitySelection.Disposition);
             Assert.AreEqual(
                 expectedImplementationKind,
-                capabilitySelection.SelectedContribution
-                    ?.ImplementationIdentity.Kind);
+                capabilitySelection.PrepareSelectedContribution()
+                    .ImplementationIdentity.Kind);
         }
     }
 

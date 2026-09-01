@@ -4,6 +4,7 @@ using System.Collections;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text.RegularExpressions;
+using DeliveryTemperatureLimit.Tests.RuntimePatchInstallation;
 
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
 
@@ -414,23 +415,23 @@ public sealed class PerformanceArchitectureContractTests
         DeliveryTemperatureRuntimePatchPlan plan =
             DeliveryTemperatureRuntimePatchPlan.Create(
                 checkTemperatureForStatusItems: false,
-                CreateFastTrackNotLoadedReport());
-        DeliveryTemperatureRuntimePatchGroup[] prohibitedGroups =
+                RuntimePatchCapabilitySelectionFixture
+                    .CreateKleiBaselineSelection());
+        string[] prohibitedGroupIds =
         [
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiWorldInventoryTemperaturePublication,
-            DeliveryTemperatureRuntimePatchGroup
-                .FastTrackWorldInventoryTemperaturePublication,
-            DeliveryTemperatureRuntimePatchGroup
-                .TemperatureStatusAvailability
+            "klei-world-inventory-temperature-publication",
+            "fast-track-world-inventory-temperature-publication",
+            "temperature-status-availability"
         ];
 
-        foreach (DeliveryTemperatureRuntimePatchGroup prohibitedGroup in
-                 prohibitedGroups)
+        foreach (string prohibitedGroupId in prohibitedGroupIds)
         {
             Assert.IsFalse(
-                plan.OrderedPatchGroups.Contains(prohibitedGroup),
-                $"Disabled status integration selected {prohibitedGroup}.");
+                plan.OrderedPatchGroupIds.Any(group => string.Equals(
+                    group.Value,
+                    prohibitedGroupId,
+                    StringComparison.Ordinal)),
+                $"Disabled status integration selected {prohibitedGroupId}.");
         }
     }
 
@@ -1019,20 +1020,6 @@ public sealed class PerformanceArchitectureContractTests
             $"tag hash {resourceTag.GetHashCode()}.");
         return new object();
     }
-
-    private static FastTrackCompatibilityReport CreateFastTrackNotLoadedReport() =>
-        new(
-            assemblyIdentity: null,
-            assemblyVersion: null,
-            FastTrackAssemblyFileIdentityReadState.NotRead,
-            fileVersion: null,
-            assemblySha256: null,
-            FastTrackFeatureCompatibility.ModNotLoaded(
-                FastTrackFeature.WorldInventory),
-            FastTrackFeatureCompatibility.ModNotLoaded(
-                FastTrackFeature.PickupGrouping),
-            FastTrackFeatureCompatibility.ModNotLoaded(
-                FastTrackFeature.DirectDeliveryEligibility));
 
     private static string ResolveSourceRoot() =>
         Path.Combine(ResolveModRoot(), "Source");

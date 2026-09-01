@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace DeliveryTemperatureLimit
@@ -42,12 +43,9 @@ namespace DeliveryTemperatureLimit
             summary.Append("- DLCs: ");
             AppendDlcIds(summary, document.Game.ActiveDlcs);
             summary.Append('\n');
-            summary.Append("- FastTrack: `");
-            summary.Append(
-                document.Runtime.FastTrack == null
-                    ? SupportReportLimits.UnavailableState
-                    : document.Runtime.FastTrack.State);
-            summary.Append("`\n");
+            AppendExternalModIntegrations(
+                summary,
+                document.Runtime.ExternalModIntegrations);
             summary.Append("- Player.log: ");
             summary.Append(GetPlayerLogState(document.PlayerLog));
             return summary.ToString();
@@ -120,6 +118,65 @@ namespace DeliveryTemperatureLimit
                     StringComparison.Ordinal)
                 ? "included (bounded and best-effort redacted)"
                 : "requested but unavailable";
+        }
+
+        private static void AppendExternalModIntegrations(
+            StringBuilder summary,
+            IReadOnlyList<SupportExternalModIntegrationSnapshot> integrations)
+        {
+            summary.Append("- External mod integrations:");
+            if (integrations.Count == 0)
+            {
+                summary.Append(" none\n");
+                return;
+            }
+
+            summary.Append('\n');
+            for (int integrationIndex = 0;
+                 integrationIndex < integrations.Count;
+                 integrationIndex++)
+            {
+                SupportExternalModIntegrationSnapshot integration =
+                    integrations[integrationIndex];
+                summary.Append("  - ");
+                summary.Append(integration.DisplayName);
+                summary.Append(": match `");
+                summary.Append(integration.MatchState);
+                summary.Append("`; capabilities: ");
+                AppendCapabilityDispositions(
+                    summary,
+                    integration.Capabilities);
+                summary.Append('\n');
+            }
+        }
+
+        private static void AppendCapabilityDispositions(
+            StringBuilder summary,
+            IReadOnlyList<SupportExternalModCapabilitySnapshot> capabilities)
+        {
+            if (capabilities.Count == 0)
+            {
+                summary.Append("none");
+                return;
+            }
+
+            for (int capabilityIndex = 0;
+                 capabilityIndex < capabilities.Count;
+                 capabilityIndex++)
+            {
+                if (capabilityIndex > 0)
+                {
+                    summary.Append(", ");
+                }
+
+                SupportExternalModCapabilitySnapshot capability =
+                    capabilities[capabilityIndex];
+                summary.Append('`');
+                summary.Append(capability.CapabilityId);
+                summary.Append('=');
+                summary.Append(capability.Disposition);
+                summary.Append('`');
+            }
         }
     }
 }

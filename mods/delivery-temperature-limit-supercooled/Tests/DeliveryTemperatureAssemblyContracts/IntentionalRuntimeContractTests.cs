@@ -418,10 +418,18 @@ public sealed class IntentionalRuntimeContractTests
             selectionPreparationBodies[0].Instructions.Any(instruction =>
                 instruction.ResolvedOperand?.Contains(
                     "DeliveryTemperatureLimit." +
+                    "DeliveryTemperatureRuntimePatchPlan." +
+                    "get_OrderedPatchBindings",
+                    StringComparison.Ordinal) == true),
+            "Selected runtime patch preparation must consume only the plan's " +
+            "complete verified binding snapshot.");
+        Assert.IsFalse(
+            selectionPreparationBodies[0].Instructions.Any(instruction =>
+                instruction.ResolvedOperand?.Contains(
                     "FastTrackRuntimeAuthorityContributionBuilder.Build",
                     StringComparison.Ordinal) == true),
-            "Selected runtime patch preparation must consume complete " +
-            "FastTrack runtime-authority contributions.");
+            "Provider-specific contribution construction must finish before " +
+            "selected runtime patch preparation.");
         Assert.IsTrue(
             DeliveryTemperatureAssemblyMetadataReader.TypeExists(
                 assemblyPath,

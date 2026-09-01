@@ -1,597 +1,410 @@
 using System.Reflection;
-using System.Reflection.Emit;
 
 namespace DeliveryTemperatureLimit.Tests.RuntimePatchInstallation;
 
 [TestClass]
 public sealed class DeliveryTemperatureRuntimePatchPlanTests
 {
-    private static readonly Version SupportedFastTrackVersion =
-        new(0, 18, 4, 0);
-    private const string FixtureSha256 =
+    private const string FastTrackHarmonyOwner = "PeterHan.FastTrack";
+    private const string FastTrackAssemblySha256 =
         "8B7914F7E50D0A53F96779A1D47E875585F6A45607959D4885D722067BE30C86";
 
+    private static readonly DeclaredModIntegrationId FastTrackIntegrationId =
+        new("fast-track");
+    private static readonly RuntimeCapabilityId GameSessionLifecycleCapabilityId =
+        new("game-session-lifecycle");
+    private static readonly RuntimeCapabilityId WorldParentTopologyCapabilityId =
+        new("world-parent-topology");
+    private static readonly RuntimeCapabilityId
+        AuthoritativeFetchTemperatureEligibilityCapabilityId =
+            new("authoritative-fetch-temperature-eligibility");
+
     [TestMethod]
-    public void Create_WhenFastTrackIsNotLoadedOrDisabledForLoadedGame_OrdersKleiInventoryPickupAndDirectGroups()
+    public void Create_WhenCapabilitySelectionIsNull_ThrowsArgumentNullException()
     {
-        FastTrackCompatibilityReport compatibility = CreateReport(
-            FastTrackFeatureCompatibilityState.ModNotLoaded,
-            FastTrackFeatureCompatibilityState.ModNotLoaded,
-            FastTrackFeatureCompatibilityState.ModNotLoaded,
-            includeLoadedAssemblyIdentity: false);
+        Assert.ThrowsExactly<ArgumentNullException>(() =>
+            DeliveryTemperatureRuntimePatchPlan.Create(
+                checkTemperatureForStatusItems: true,
+                capabilitySelection: null!));
+    }
+
+    [TestMethod]
+    public void Create_WhenKleiBaselinesAreSelected_PreservesCompleteContributionOrder()
+    {
+        RuntimePatchCapabilitySelection selection = CreateSelection();
 
         DeliveryTemperatureRuntimePatchPlan plan =
             DeliveryTemperatureRuntimePatchPlan.Create(
                 checkTemperatureForStatusItems: true,
-                compatibility);
+                selection);
 
-        AssertPatchGroups(
+        AssertPatchGroupIds(
             plan,
-            DeliveryTemperatureRuntimePatchGroup.GameSessionLifecycle,
-            DeliveryTemperatureRuntimePatchGroup.WorldParentTopology,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiAuthoritativeFetchTemperatureEligibility,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiWorldInventoryTemperaturePublication,
-            DeliveryTemperatureRuntimePatchGroup
-                .TemperatureStatusAvailability,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiPickupTemperatureGrouping,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiDirectDeliveryEligibility);
+            "game-session-lifecycle",
+            "world-parent-topology",
+            "klei-authoritative-fetch-temperature-eligibility",
+            "klei-world-inventory-temperature-publication",
+            "temperature-status-availability",
+            "klei-pickup-temperature-grouping",
+            "klei-direct-delivery-eligibility");
+        Assert.AreEqual(7, plan.SelectedContributions.Count);
+        Assert.AreEqual(7, plan.OrderedPatchBindings.Count);
+        Assert.AreEqual(7, plan.AuthorityRequirements.Count);
+        Assert.IsTrue(plan.SelectedContributions.All(
+            contribution => contribution.ImplementationIdentity.IsKleiBaseline));
+        Assert.IsNull(plan.StatusCompatibilityDiagnostic);
+        Assert.AreSame(
+            selection.ExternalModIntegrationOutcomes[0],
+            plan.ExternalModIntegrationOutcomes[0]);
+    }
+
+    [TestMethod]
+    public void Create_WhenFastTrackWorldInventoryIsSelected_UsesItsCompleteContribution()
+    {
+        DeliveryTemperatureRuntimePatchPlan plan = CreatePlan(
+            checkTemperatureForStatusItems: true,
+            worldInventoryAuthority:
+                RuntimeAuthorityObservation.OwnsCompatible);
+
+        AssertPatchGroupIds(
+            plan,
+            "game-session-lifecycle",
+            "world-parent-topology",
+            "klei-authoritative-fetch-temperature-eligibility",
+            "fast-track-world-inventory-temperature-publication",
+            "temperature-status-availability",
+            "klei-pickup-temperature-grouping",
+            "klei-direct-delivery-eligibility");
+        AssertSelectedImplementation(
+            plan,
+            RuntimeCapabilityId.WorldInventoryTemperaturePublication,
+            RuntimeAuthorityImplementationKind.DeclaredExternalIntegration);
+    }
+
+    [TestMethod]
+    public void Create_WhenFastTrackPickupGroupingIsSelected_UsesItsCompleteContribution()
+    {
+        DeliveryTemperatureRuntimePatchPlan plan = CreatePlan(
+            checkTemperatureForStatusItems: true,
+            pickupGroupingAuthority:
+                RuntimeAuthorityObservation.OwnsCompatible);
+
+        AssertPatchGroupIds(
+            plan,
+            "game-session-lifecycle",
+            "world-parent-topology",
+            "klei-authoritative-fetch-temperature-eligibility",
+            "klei-world-inventory-temperature-publication",
+            "temperature-status-availability",
+            "fast-track-pickup-temperature-grouping",
+            "klei-direct-delivery-eligibility");
+        AssertSelectedImplementation(
+            plan,
+            RuntimeCapabilityId.PickupTemperatureGrouping,
+            RuntimeAuthorityImplementationKind.DeclaredExternalIntegration);
+    }
+
+    [TestMethod]
+    public void Create_WhenFastTrackDirectDeliveryIsSelected_UsesItsCompleteContribution()
+    {
+        DeliveryTemperatureRuntimePatchPlan plan = CreatePlan(
+            checkTemperatureForStatusItems: true,
+            directDeliveryAuthority:
+                RuntimeAuthorityObservation.OwnsCompatible);
+
+        AssertPatchGroupIds(
+            plan,
+            "game-session-lifecycle",
+            "world-parent-topology",
+            "klei-authoritative-fetch-temperature-eligibility",
+            "klei-world-inventory-temperature-publication",
+            "temperature-status-availability",
+            "klei-pickup-temperature-grouping",
+            "fast-track-direct-delivery-eligibility");
+        AssertSelectedImplementation(
+            plan,
+            RuntimeCapabilityId.DirectDeliveryEligibility,
+            RuntimeAuthorityImplementationKind.DeclaredExternalIntegration);
+    }
+
+    [TestMethod]
+    public void Create_WhenStatusOptionIsDisabled_OmitsWorldPublicationAndStatusContributions()
+    {
+        DeliveryTemperatureRuntimePatchPlan plan = CreatePlan(
+            checkTemperatureForStatusItems: false,
+            worldInventoryAuthority:
+                RuntimeAuthorityObservation.OwnsCompatible,
+            pickupGroupingAuthority:
+                RuntimeAuthorityObservation.OwnsCompatible,
+            directDeliveryAuthority:
+                RuntimeAuthorityObservation.OwnsCompatible);
+
+        AssertPatchGroupIds(
+            plan,
+            "game-session-lifecycle",
+            "world-parent-topology",
+            "klei-authoritative-fetch-temperature-eligibility",
+            "fast-track-pickup-temperature-grouping",
+            "fast-track-direct-delivery-eligibility");
+        Assert.IsFalse(plan.SelectedContributions.Any(contribution =>
+            contribution.CapabilityId.Equals(
+                RuntimeCapabilityId.WorldInventoryTemperaturePublication) ||
+            contribution.CapabilityId.Equals(
+                RuntimeCapabilityId.TemperatureStatusAvailability)));
         Assert.IsNull(plan.StatusCompatibilityDiagnostic);
     }
 
     [TestMethod]
-    public void Create_WhenFastTrackReplacementsAreInactive_OrdersKleiInventoryPickupAndDirectGroups()
+    public void Create_WhenStatusOptionIsDisabled_DoesNotPrepareOmittedKleiContributions()
     {
-        FastTrackCompatibilityReport compatibility = CreateReport(
-            FastTrackFeatureCompatibilityState.ReplacementInactive,
-            FastTrackFeatureCompatibilityState.ReplacementInactive,
-            FastTrackFeatureCompatibilityState.ReplacementInactive);
-
-        DeliveryTemperatureRuntimePatchPlan plan =
-            DeliveryTemperatureRuntimePatchPlan.Create(
-                checkTemperatureForStatusItems: true,
-                compatibility);
-
-        AssertPatchGroups(
-            plan,
-            DeliveryTemperatureRuntimePatchGroup.GameSessionLifecycle,
-            DeliveryTemperatureRuntimePatchGroup.WorldParentTopology,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiAuthoritativeFetchTemperatureEligibility,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiWorldInventoryTemperaturePublication,
-            DeliveryTemperatureRuntimePatchGroup
-                .TemperatureStatusAvailability,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiPickupTemperatureGrouping,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiDirectDeliveryEligibility);
-    }
-
-    [TestMethod]
-    public void Create_WhenFastTrackWorldInventoryIsReady_OrdersFastTrackInventoryGroup()
-    {
-        FastTrackCompatibilityReport compatibility = CreateReport(
-            FastTrackFeatureCompatibilityState.Ready,
-            FastTrackFeatureCompatibilityState.ReplacementInactive,
-            FastTrackFeatureCompatibilityState.ReplacementInactive);
-
-        DeliveryTemperatureRuntimePatchPlan plan =
-            DeliveryTemperatureRuntimePatchPlan.Create(
-                checkTemperatureForStatusItems: true,
-                compatibility);
-
-        AssertPatchGroups(
-            plan,
-            DeliveryTemperatureRuntimePatchGroup.GameSessionLifecycle,
-            DeliveryTemperatureRuntimePatchGroup.WorldParentTopology,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiAuthoritativeFetchTemperatureEligibility,
-            DeliveryTemperatureRuntimePatchGroup
-                .FastTrackWorldInventoryTemperaturePublication,
-            DeliveryTemperatureRuntimePatchGroup
-                .TemperatureStatusAvailability,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiPickupTemperatureGrouping,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiDirectDeliveryEligibility);
-    }
-
-    [TestMethod]
-    public void Create_WhenFastTrackPickupGroupingIsReady_OrdersFastTrackPickupGroup()
-    {
-        FastTrackCompatibilityReport compatibility = CreateReport(
-            FastTrackFeatureCompatibilityState.ReplacementInactive,
-            FastTrackFeatureCompatibilityState.Ready,
-            FastTrackFeatureCompatibilityState.ReplacementInactive);
-
-        DeliveryTemperatureRuntimePatchPlan plan =
-            DeliveryTemperatureRuntimePatchPlan.Create(
-                checkTemperatureForStatusItems: true,
-                compatibility);
-
-        AssertPatchGroups(
-            plan,
-            DeliveryTemperatureRuntimePatchGroup.GameSessionLifecycle,
-            DeliveryTemperatureRuntimePatchGroup.WorldParentTopology,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiAuthoritativeFetchTemperatureEligibility,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiWorldInventoryTemperaturePublication,
-            DeliveryTemperatureRuntimePatchGroup
-                .TemperatureStatusAvailability,
-            DeliveryTemperatureRuntimePatchGroup
-                .FastTrackPickupTemperatureGrouping,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiDirectDeliveryEligibility);
-    }
-
-    [TestMethod]
-    public void Create_WhenFastTrackDirectDeliveryIsReady_OrdersFastTrackDirectGroup()
-    {
-        FastTrackCompatibilityReport compatibility = CreateReport(
-            FastTrackFeatureCompatibilityState.ReplacementInactive,
-            FastTrackFeatureCompatibilityState.ReplacementInactive,
-            FastTrackFeatureCompatibilityState.Ready);
-
-        DeliveryTemperatureRuntimePatchPlan plan =
-            DeliveryTemperatureRuntimePatchPlan.Create(
-                checkTemperatureForStatusItems: true,
-                compatibility);
-
-        AssertPatchGroups(
-            plan,
-            DeliveryTemperatureRuntimePatchGroup.GameSessionLifecycle,
-            DeliveryTemperatureRuntimePatchGroup.WorldParentTopology,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiAuthoritativeFetchTemperatureEligibility,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiWorldInventoryTemperaturePublication,
-            DeliveryTemperatureRuntimePatchGroup
-                .TemperatureStatusAvailability,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiPickupTemperatureGrouping,
-            DeliveryTemperatureRuntimePatchGroup
-                .FastTrackDirectDeliveryEligibility);
-    }
-
-    [TestMethod]
-    public void Create_WhenStatusOptionIsDisabled_SelectsNoInventoryOrStatusInstrumentation()
-    {
-        FastTrackCompatibilityReport compatibility = CreateReport(
-            FastTrackFeatureCompatibilityState.Ready,
-            FastTrackFeatureCompatibilityState.Ready,
-            FastTrackFeatureCompatibilityState.Ready);
+        int worldInventoryPreparationCount = 0;
+        int statusAvailabilityPreparationCount = 0;
+        RuntimePatchCapabilitySelection selection =
+            RuntimePatchCapabilitySelector.Select(
+                new[]
+                {
+                    new RuntimeCapabilityDefinition(
+                        RuntimeCapabilityId
+                            .WorldInventoryTemperaturePublication,
+                        RuntimeCapabilityCriticality.Optional,
+                        () =>
+                        {
+                            worldInventoryPreparationCount++;
+                            return CreateKleiBaselineContribution(
+                                RuntimeCapabilityId
+                                    .WorldInventoryTemperaturePublication,
+                                "klei-world-inventory-temperature-publication",
+                                nameof(WorldInventoryTarget));
+                        },
+                        atomicBundleId: null),
+                    new RuntimeCapabilityDefinition(
+                        RuntimeCapabilityId.TemperatureStatusAvailability,
+                        RuntimeCapabilityCriticality.Optional,
+                        () =>
+                        {
+                            statusAvailabilityPreparationCount++;
+                            return CreateKleiBaselineContribution(
+                                RuntimeCapabilityId
+                                    .TemperatureStatusAvailability,
+                                "temperature-status-availability",
+                                nameof(TemperatureStatusAvailabilityTarget));
+                        },
+                        atomicBundleId: null)
+                },
+                Array.Empty<PreparedRuntimeAuthorityContribution>(),
+                Array.Empty<ExternalModIntegrationOutcome>());
 
         DeliveryTemperatureRuntimePatchPlan plan =
             DeliveryTemperatureRuntimePatchPlan.Create(
                 checkTemperatureForStatusItems: false,
-                compatibility);
+                selection);
 
-        AssertPatchGroups(
-            plan,
-            DeliveryTemperatureRuntimePatchGroup.GameSessionLifecycle,
-            DeliveryTemperatureRuntimePatchGroup.WorldParentTopology,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiAuthoritativeFetchTemperatureEligibility,
-            DeliveryTemperatureRuntimePatchGroup
-                .FastTrackPickupTemperatureGrouping,
-            DeliveryTemperatureRuntimePatchGroup
-                .FastTrackDirectDeliveryEligibility);
-        Assert.IsNull(plan.StatusCompatibilityDiagnostic);
+        Assert.HasCount(0, plan.SelectedContributions);
+        Assert.AreEqual(0, worldInventoryPreparationCount);
+        Assert.AreEqual(0, statusAvailabilityPreparationCount);
     }
 
     [TestMethod]
-    public void Create_WhenStatusOptionIsDisabledAndFastTrackWorldInventoryIsIncompatible_DoesNotBlockUnusedStatusFeature()
+    public void Create_WhenWorldInventoryAuthorityIsIncompatible_OmitsOnlyPairedStatusResponsibilities()
     {
-        FastTrackCompatibilityReport compatibility = CreateReport(
-            FastTrackFeatureCompatibilityState.Incompatible,
-            FastTrackFeatureCompatibilityState.ReplacementInactive,
-            FastTrackFeatureCompatibilityState.ReplacementInactive);
-
-        DeliveryTemperatureRuntimePatchPlan plan =
-            DeliveryTemperatureRuntimePatchPlan.Create(
-                checkTemperatureForStatusItems: false,
-                compatibility);
-
-        AssertPatchGroups(
-            plan,
-            DeliveryTemperatureRuntimePatchGroup.GameSessionLifecycle,
-            DeliveryTemperatureRuntimePatchGroup.WorldParentTopology,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiAuthoritativeFetchTemperatureEligibility,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiPickupTemperatureGrouping,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiDirectDeliveryEligibility);
-        Assert.IsNull(plan.StatusCompatibilityDiagnostic);
-    }
-
-    [TestMethod]
-    public void Create_WhenActivePickupFeatureIsIncompatible_ThrowsFastTrackDeliveryEligibilityCompatibilityException()
-    {
-        FastTrackCompatibilityReport compatibility = CreateReport(
-            FastTrackFeatureCompatibilityState.ReplacementInactive,
-            FastTrackFeatureCompatibilityState.Incompatible,
-            FastTrackFeatureCompatibilityState.ReplacementInactive);
-
-        FastTrackDeliveryEligibilityCompatibilityException exception =
-            Assert.ThrowsExactly<
-                FastTrackDeliveryEligibilityCompatibilityException>(() =>
-                DeliveryTemperatureRuntimePatchPlan.Create(
-                    checkTemperatureForStatusItems: true,
-                    compatibility));
-
-        AssertCompatibilityFailureDetails(
-            exception.Message,
-            FastTrackFeature.PickupGrouping,
-            "The verified PickupGrouping structural anchor changed.");
-        Assert.AreSame(compatibility, exception.CompatibilityReport);
-    }
-
-    [TestMethod]
-    public void Create_WhenAdmittedFastTrackAssemblyBuildHasStructuralFailure_DiagnosticDescribesExactBuildScope()
-    {
-        FastTrackAssemblyBuildIdentity admittedBuild =
-            FastTrackSupportedAssemblyBuildCatalog.Declared.Builds.Single(
-                build => build.FileVersion == new Version(0, 18, 5, 0));
-        var compatibility = new FastTrackCompatibilityReport(
-            "FastTrack, Version=0.18.0.0",
-            new Version(0, 18, 0, 0),
-            FastTrackAssemblyFileIdentityReadState.Success,
-            admittedBuild.FileVersion,
-            admittedBuild.AssemblySha256,
-            FastTrackFeatureCompatibility.ReplacementInactive(
-                FastTrackFeature.WorldInventory),
-            FastTrackFeatureCompatibility.Incompatible(
-                FastTrackFeature.PickupGrouping,
-                FastTrackFeatureCompatibilityFailureCode
-                    .PickupGroupingContractViolation,
-                "The admitted build's PickupGrouping contract changed."),
-            FastTrackFeatureCompatibility.ReplacementInactive(
-                FastTrackFeature.DirectDeliveryEligibility));
-
-        FastTrackDeliveryEligibilityCompatibilityException exception =
-            Assert.ThrowsExactly<
-                FastTrackDeliveryEligibilityCompatibilityException>(() =>
-                DeliveryTemperatureRuntimePatchPlan.Create(
-                    checkTemperatureForStatusItems: true,
-                    compatibility));
-
-        StringAssert.Contains(
-            exception.Message,
-            "file version 0.18.5.0");
-        StringAssert.Contains(
-            exception.Message,
-            admittedBuild.AssemblySha256);
-        StringAssert.Contains(
-            exception.Message,
-            "FastTrack compatibility is best-efforts and applies only to an " +
-            "explicitly supported exact assembly build and its verified " +
-            "member shape.");
-        Assert.DoesNotContain(
-            "file version 0.18.4.0 support",
-            exception.Message,
-            StringComparison.Ordinal);
-    }
-
-    [TestMethod]
-    public void Create_WhenActiveDirectDeliveryFeatureIsIncompatible_ThrowsFastTrackDeliveryEligibilityCompatibilityException()
-    {
-        FastTrackCompatibilityReport compatibility = CreateReport(
-            FastTrackFeatureCompatibilityState.ReplacementInactive,
-            FastTrackFeatureCompatibilityState.ReplacementInactive,
-            FastTrackFeatureCompatibilityState.Incompatible);
-
-        FastTrackDeliveryEligibilityCompatibilityException exception =
-            Assert.ThrowsExactly<
-                FastTrackDeliveryEligibilityCompatibilityException>(() =>
-                DeliveryTemperatureRuntimePatchPlan.Create(
-                    checkTemperatureForStatusItems: true,
-                    compatibility));
-
-        AssertCompatibilityFailureDetails(
-            exception.Message,
-            FastTrackFeature.DirectDeliveryEligibility,
-            "The verified DirectDeliveryEligibility structural anchor changed.");
-        Assert.AreSame(compatibility, exception.CompatibilityReport);
-    }
-
-    [TestMethod]
-    public void Create_WhenStatusIsEnabledAndWorldInventoryFeatureIsIncompatible_OmitsOnlyStatusIntegrationAndReturnsDiagnostic()
-    {
-        FastTrackCompatibilityReport compatibility = CreateReport(
-            FastTrackFeatureCompatibilityState.Incompatible,
-            FastTrackFeatureCompatibilityState.Ready,
-            FastTrackFeatureCompatibilityState.Ready);
+        RuntimePatchCapabilitySelection selection = CreateSelection(
+            worldInventoryAuthority:
+                RuntimeAuthorityObservation.OwnsIncompatible,
+            pickupGroupingAuthority:
+                RuntimeAuthorityObservation.OwnsCompatible,
+            directDeliveryAuthority:
+                RuntimeAuthorityObservation.OwnsCompatible);
 
         DeliveryTemperatureRuntimePatchPlan plan =
             DeliveryTemperatureRuntimePatchPlan.Create(
                 checkTemperatureForStatusItems: true,
-                compatibility);
+                selection);
 
-        AssertPatchGroups(
+        AssertPatchGroupIds(
             plan,
-            DeliveryTemperatureRuntimePatchGroup.GameSessionLifecycle,
-            DeliveryTemperatureRuntimePatchGroup.WorldParentTopology,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiAuthoritativeFetchTemperatureEligibility,
-            DeliveryTemperatureRuntimePatchGroup
-                .FastTrackPickupTemperatureGrouping,
-            DeliveryTemperatureRuntimePatchGroup
-                .FastTrackDirectDeliveryEligibility);
+            "game-session-lifecycle",
+            "world-parent-topology",
+            "klei-authoritative-fetch-temperature-eligibility",
+            "fast-track-pickup-temperature-grouping",
+            "fast-track-direct-delivery-eligibility");
         Assert.IsNotNull(plan.StatusCompatibilityDiagnostic);
-        AssertCompatibilityFailureDetails(
+        StringAssert.Contains(
             plan.StatusCompatibilityDiagnostic,
-            FastTrackFeature.WorldInventory,
-            "The verified WorldInventory structural anchor changed.");
+            RuntimeCapabilityId.WorldInventoryTemperaturePublication.Value);
+        StringAssert.Contains(
+            plan.StatusCompatibilityDiagnostic,
+            DiagnosticCode(
+                RuntimeCapabilityId.WorldInventoryTemperaturePublication));
         StringAssert.Contains(
             plan.StatusCompatibilityDiagnostic,
             "existing ONI status availability remains unchanged");
+        ExternalModIntegrationCapabilityOutcome worldOutcome = selection
+            .ExternalModIntegrationOutcomes[0]
+            .Capabilities.Single(capability => capability.CapabilityId.Equals(
+                RuntimeCapabilityId.WorldInventoryTemperaturePublication));
+        Assert.AreEqual(
+            IntegrationCapabilityDisposition.Unavailable,
+            worldOutcome.Disposition);
     }
 
     [TestMethod]
-    public void Create_WhenOnlyDirectDeliveryFeatureIsInactive_SelectsKleiDirectGroupWithoutChangingReadyFastTrackGroups()
+    public void Select_WhenRequiredPickupAuthorityIsIncompatible_BlocksBeforePlanCreation()
     {
-        FastTrackCompatibilityReport compatibility = CreateReport(
-            FastTrackFeatureCompatibilityState.Ready,
-            FastTrackFeatureCompatibilityState.Ready,
-            FastTrackFeatureCompatibilityState.ReplacementInactive);
+        RuntimeCapabilitySelectionException exception =
+            Assert.ThrowsExactly<RuntimeCapabilitySelectionException>(() =>
+                CreateSelection(
+                    pickupGroupingAuthority:
+                        RuntimeAuthorityObservation.OwnsIncompatible));
 
-        DeliveryTemperatureRuntimePatchPlan plan =
-            DeliveryTemperatureRuntimePatchPlan.Create(
-                checkTemperatureForStatusItems: true,
-                compatibility);
-
-        AssertPatchGroups(
-            plan,
-            DeliveryTemperatureRuntimePatchGroup.GameSessionLifecycle,
-            DeliveryTemperatureRuntimePatchGroup.WorldParentTopology,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiAuthoritativeFetchTemperatureEligibility,
-            DeliveryTemperatureRuntimePatchGroup
-                .FastTrackWorldInventoryTemperaturePublication,
-            DeliveryTemperatureRuntimePatchGroup
-                .TemperatureStatusAvailability,
-            DeliveryTemperatureRuntimePatchGroup
-                .FastTrackPickupTemperatureGrouping,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiDirectDeliveryEligibility);
+        AssertRequiredCapabilityBlocked(
+            exception,
+            RuntimeCapabilityId.PickupTemperatureGrouping);
     }
 
     [TestMethod]
-    public void VerifySelectedAuthority_WhenSelectedKleiTargetHasOnlyNonSkippingObserver_ReturnsNormally()
+    public void Select_WhenRequiredDirectDeliveryAuthorityIsIncompatible_BlocksBeforePlanCreation()
     {
-        DeliveryTemperatureRuntimePatchPlan plan =
-            DeliveryTemperatureRuntimePatchPlan.Create(
-                checkTemperatureForStatusItems: true,
-                CreateReport(
-                    FastTrackFeatureCompatibilityState.ModNotLoaded,
-                    FastTrackFeatureCompatibilityState.ModNotLoaded,
-                    FastTrackFeatureCompatibilityState.ModNotLoaded,
-                    includeLoadedAssemblyIdentity: false));
-        MethodInfo worldInventoryUpdate = CreateEmittedMethod(
-            "WorldInventory",
-            "Update",
-            typeof(void),
-            Type.EmptyTypes);
-        MethodInfo observingPrefix = CreateEmittedMethod(
-            "UnrelatedInventoryObserver",
-            "Prefix",
-            typeof(void),
-            Type.EmptyTypes);
+        RuntimeCapabilitySelectionException exception =
+            Assert.ThrowsExactly<RuntimeCapabilitySelectionException>(() =>
+                CreateSelection(
+                    directDeliveryAuthority:
+                        RuntimeAuthorityObservation.OwnsIncompatible));
+
+        AssertRequiredCapabilityBlocked(
+            exception,
+            RuntimeCapabilityId.DirectDeliveryEligibility);
+    }
+
+    [TestMethod]
+    public void VerifySelectedAuthority_WhenKleiTargetHasOnlyNonSkippingObserver_ReturnsNormally()
+    {
+        DeliveryTemperatureRuntimePatchPlan plan = CreatePlan(
+            checkTemperatureForStatusItems: true,
+            includeDeclaredIntegrationOutcome: false);
 
         plan.VerifySelectedAuthority(
         [
             new ActiveHarmonyPrefixDescriptor(
-                worldInventoryUpdate,
-                observingPrefix,
-                "Unrelated.InventoryObserver",
+                RequireMethod(nameof(PickupGroupingTarget)),
+                RequireMethod(nameof(ObservingPrefix)),
+                "Unknown.PickupObserver",
                 priority: 400)
         ]);
+
+        Assert.AreEqual(0, plan.ExternalModIntegrationOutcomes.Count);
     }
 
     [TestMethod]
-    public void VerifySelectedAuthority_WhenSelectedKleiPickupTargetGainsSkippingPrefix_ThrowsAffectedAuthorityDiagnostic()
+    public void VerifySelectedAuthority_WhenExactExternalReplacementIsUnchanged_ReturnsNormally()
     {
-        DeliveryTemperatureRuntimePatchPlan plan =
-            DeliveryTemperatureRuntimePatchPlan.Create(
-                checkTemperatureForStatusItems: false,
-                CreateReport(
-                    FastTrackFeatureCompatibilityState.ModNotLoaded,
-                    FastTrackFeatureCompatibilityState.ModNotLoaded,
-                    FastTrackFeatureCompatibilityState.ModNotLoaded,
-                    includeLoadedAssemblyIdentity: false));
-        MethodInfo updatePickups = CreateEmittedMethod(
-            "FetchManager+FetchablesByPrefabId",
-            "UpdatePickups",
-            typeof(void),
-            [typeof(Navigator), typeof(int)]);
-        MethodInfo skippingPrefix = CreateEmittedMethod(
-            "UnexpectedPickupReplacement",
-            "Prefix",
-            typeof(bool),
-            Type.EmptyTypes);
-
-        HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
-                plan.VerifySelectedAuthority(
-                [
-                    new ActiveHarmonyPrefixDescriptor(
-                        updatePickups,
-                        skippingPrefix,
-                        "Unexpected.PickupReplacement",
-                        priority: 800)
-                ]));
-
-        StringAssert.Contains(
-            exception.Message,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiPickupTemperatureGrouping.ToString());
-        StringAssert.Contains(exception.Message, "UpdatePickups");
-        StringAssert.Contains(
-            exception.Message,
-            "Unexpected.PickupReplacement");
-    }
-
-    [TestMethod]
-    public void VerifySelectedAuthority_WhenSelectedKleiDirectDeliveryTargetGainsSkippingPrefix_ThrowsAffectedAuthorityDiagnostic()
-    {
-        DeliveryTemperatureRuntimePatchPlan plan =
-            DeliveryTemperatureRuntimePatchPlan.Create(
-                checkTemperatureForStatusItems: false,
-                CreateReport(
-                    FastTrackFeatureCompatibilityState.ModNotLoaded,
-                    FastTrackFeatureCompatibilityState.ModNotLoaded,
-                    FastTrackFeatureCompatibilityState.ModNotLoaded,
-                    includeLoadedAssemblyIdentity: false));
-        MethodInfo collectChores =
-            CreateEmittedGlobalChoreCollectionMethod();
-        MethodInfo skippingPrefix = CreateEmittedMethod(
-            "UnexpectedDirectDeliveryReplacement",
-            "Prefix",
-            typeof(bool),
-            Type.EmptyTypes);
-
-        HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
-                plan.VerifySelectedAuthority(
-                [
-                    new ActiveHarmonyPrefixDescriptor(
-                        collectChores,
-                        skippingPrefix,
-                        "Unexpected.DirectDeliveryReplacement",
-                        priority: 800)
-                ]));
-
-        StringAssert.Contains(
-            exception.Message,
-            DeliveryTemperatureRuntimePatchGroup
-                .KleiDirectDeliveryEligibility.ToString());
-        StringAssert.Contains(exception.Message, "CollectChores");
-        StringAssert.Contains(
-            exception.Message,
-            "Unexpected.DirectDeliveryReplacement");
-    }
-
-    [TestMethod]
-    public void VerifySelectedAuthority_WhenSelectedFastTrackPrefixIsUnchanged_ReturnsNormally()
-    {
-        MethodInfo verifiedFastTrackPrefix = CreateEmittedMethod(
-            "FastTrack.GamePatches.FetchManagerFastUpdate",
-            "BeforeUpdatePickups",
-            typeof(bool),
-            Type.EmptyTypes);
-        DeliveryTemperatureRuntimePatchPlan plan =
-            DeliveryTemperatureRuntimePatchPlan.Create(
-                checkTemperatureForStatusItems: false,
-                CreateReportWithReadyPickupReplacement(
-                    verifiedFastTrackPrefix));
-        MethodInfo updatePickups = CreateEmittedMethod(
-            "FetchManager+FetchablesByPrefabId",
-            "UpdatePickups",
-            typeof(void),
-            [typeof(Navigator), typeof(int)]);
+        DeliveryTemperatureRuntimePatchPlan plan = CreatePlan(
+            checkTemperatureForStatusItems: false,
+            pickupGroupingAuthority:
+                RuntimeAuthorityObservation.OwnsCompatible);
 
         plan.VerifySelectedAuthority(
         [
             new ActiveHarmonyPrefixDescriptor(
-                updatePickups,
-                verifiedFastTrackPrefix,
-                "PeterHan.FastTrack",
+                RequireMethod(nameof(PickupGroupingTarget)),
+                RequireMethod(nameof(FastTrackPickupGroupingPrefix)),
+                FastTrackHarmonyOwner,
                 priority: 800)
         ]);
     }
 
     [TestMethod]
-    public void VerifySelectedAuthority_WhenSelectedFastTrackPrefixMethodChanges_ThrowsAffectedAuthorityDiagnostic()
+    public void VerifySelectedAuthority_WhenSelectedExternalPrefixMethodChanges_ThrowsAffectedGroupDiagnostic()
     {
-        MethodInfo verifiedFastTrackPrefix = CreateEmittedMethod(
-            "FastTrack.GamePatches.FetchManagerFastUpdate",
-            "BeforeUpdatePickups",
-            typeof(bool),
-            Type.EmptyTypes);
-        DeliveryTemperatureRuntimePatchPlan plan =
-            DeliveryTemperatureRuntimePatchPlan.Create(
-                checkTemperatureForStatusItems: false,
-                CreateReportWithReadyPickupReplacement(
-                    verifiedFastTrackPrefix));
-        MethodInfo changedFastTrackPrefix = CreateEmittedMethod(
-            "FastTrack.GamePatches.FetchManagerFastUpdate",
-            "ChangedBeforeUpdatePickups",
-            typeof(bool),
-            Type.EmptyTypes);
-        MethodInfo updatePickups = CreateEmittedMethod(
-            "FetchManager+FetchablesByPrefabId",
-            "UpdatePickups",
-            typeof(void),
-            [typeof(Navigator), typeof(int)]);
+        DeliveryTemperatureRuntimePatchPlan plan = CreatePlan(
+            checkTemperatureForStatusItems: false,
+            pickupGroupingAuthority:
+                RuntimeAuthorityObservation.OwnsCompatible);
 
         HarmonyPatchContractViolationException exception =
             Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
                 plan.VerifySelectedAuthority(
                 [
                     new ActiveHarmonyPrefixDescriptor(
-                        updatePickups,
-                        changedFastTrackPrefix,
-                        "PeterHan.FastTrack",
+                        RequireMethod(nameof(PickupGroupingTarget)),
+                        RequireMethod(nameof(ChangedFastTrackPickupGroupingPrefix)),
+                        FastTrackHarmonyOwner,
                         priority: 800)
                 ]));
 
         StringAssert.Contains(
             exception.Message,
-            DeliveryTemperatureRuntimePatchGroup
-                .FastTrackPickupTemperatureGrouping.ToString());
-        StringAssert.Contains(exception.Message, "BeforeUpdatePickups");
-        StringAssert.Contains(exception.Message, "PeterHan.FastTrack");
+            "fast-track-pickup-temperature-grouping");
+        StringAssert.Contains(exception.Message, "FastTrackPickupGroupingPrefix");
+        StringAssert.Contains(exception.Message, FastTrackHarmonyOwner);
     }
 
     [TestMethod]
-    public void VerifySelectedAuthority_WhenUnselectedInventoryTargetChanges_DoesNotInspectThatOwner()
+    public void VerifySelectedAuthority_WhenUnknownModSkipsUnselectedTarget_DoesNotInterfereOrCreateOutcome()
     {
-        DeliveryTemperatureRuntimePatchPlan plan =
-            DeliveryTemperatureRuntimePatchPlan.Create(
-                checkTemperatureForStatusItems: false,
-                CreateReport(
-                    FastTrackFeatureCompatibilityState.ModNotLoaded,
-                    FastTrackFeatureCompatibilityState.ModNotLoaded,
-                    FastTrackFeatureCompatibilityState.ModNotLoaded,
-                    includeLoadedAssemblyIdentity: false));
-        MethodInfo worldInventoryUpdate = CreateEmittedMethod(
-            "WorldInventory",
-            "Update",
-            typeof(void),
-            Type.EmptyTypes);
-        MethodInfo skippingPrefix = CreateEmittedMethod(
-            "UnselectedInventoryReplacement",
-            "Prefix",
-            typeof(bool),
-            Type.EmptyTypes);
+        DeliveryTemperatureRuntimePatchPlan plan = CreatePlan(
+            checkTemperatureForStatusItems: false,
+            includeDeclaredIntegrationOutcome: false);
 
         plan.VerifySelectedAuthority(
         [
             new ActiveHarmonyPrefixDescriptor(
-                worldInventoryUpdate,
-                skippingPrefix,
-                "Unselected.InventoryReplacement",
-                priority: 800)
+                RequireMethod(nameof(UnknownModTarget)),
+                RequireMethod(nameof(UnknownSkippingPrefix)),
+                "Unknown.NoninterferingMod",
+                priority: 900)
+        ]);
+
+        Assert.AreEqual(0, plan.ExternalModIntegrationOutcomes.Count);
+    }
+
+    [TestMethod]
+    public void VerifySelectedAuthority_WhenUndeclaredOwnerSkipsSelectedTarget_RejectsWithoutCreatingOutcome()
+    {
+        DeliveryTemperatureRuntimePatchPlan plan = CreatePlan(
+            checkTemperatureForStatusItems: false,
+            includeDeclaredIntegrationOutcome: false);
+
+        HarmonyPatchContractViolationException exception =
+            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+                plan.VerifySelectedAuthority(
+                [
+                    new ActiveHarmonyPrefixDescriptor(
+                        RequireMethod(nameof(PickupGroupingTarget)),
+                        RequireMethod(nameof(UnknownSkippingPrefix)),
+                        "Unknown.UndeclaredReplacement",
+                        priority: 900)
+                ]));
+
+        Assert.AreEqual(0, plan.ExternalModIntegrationOutcomes.Count);
+        StringAssert.Contains(
+            exception.Message,
+            "klei-pickup-temperature-grouping");
+        StringAssert.Contains(
+            exception.Message,
+            "Unknown.UndeclaredReplacement");
+    }
+
+    [TestMethod]
+    public void VerifySelectedAuthority_WhenStatusIsDisabled_DoesNotInspectWorldAuthority()
+    {
+        DeliveryTemperatureRuntimePatchPlan plan = CreatePlan(
+            checkTemperatureForStatusItems: false);
+
+        plan.VerifySelectedAuthority(
+        [
+            new ActiveHarmonyPrefixDescriptor(
+                RequireMethod(nameof(WorldInventoryTarget)),
+                RequireMethod(nameof(UnknownSkippingPrefix)),
+                "Unknown.UnselectedWorldReplacement",
+                priority: 900)
         ]);
     }
 
     [TestMethod]
-    public void CreateSupportReportSnapshot_WhenFastTrackIsAbsent_MapsUnavailableIdentityAndOrderedFeatures()
+    public void CreateSupportReportSnapshot_WhenSelectionIsGeneric_PreservesAuditIdsAndSanitizedOutcomeFacts()
     {
-        DeliveryTemperatureRuntimePatchPlan plan =
-            DeliveryTemperatureRuntimePatchPlan.Create(
-                checkTemperatureForStatusItems: true,
-                CreateReport(
-                    FastTrackFeatureCompatibilityState.ModNotLoaded,
-                    FastTrackFeatureCompatibilityState.ModNotLoaded,
-                    FastTrackFeatureCompatibilityState.ModNotLoaded,
-                    includeLoadedAssemblyIdentity: false));
+        DeliveryTemperatureRuntimePatchPlan plan = CreatePlan(
+            checkTemperatureForStatusItems: true);
 
         SupportRuntimeSnapshot snapshot =
             plan.CreateSupportReportSnapshot("Installed");
@@ -599,436 +412,519 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
         Assert.AreEqual("available", snapshot.State);
         Assert.AreEqual("Installed", snapshot.InstallationState);
         CollectionAssert.AreEqual(
-            plan.OrderedPatchGroups.Select(group => group.ToString()).ToArray(),
+            plan.OrderedPatchGroupIds.Select(group => group.Value).ToArray(),
             snapshot.SelectedPatchGroups.ToArray());
-        Assert.IsNotNull(snapshot.FastTrack);
-        Assert.AreEqual("not-loaded", snapshot.FastTrack.State);
-        Assert.AreEqual("unavailable", snapshot.FastTrack.AssemblyIdentity.State);
+        Assert.HasCount(1, snapshot.ExternalModIntegrations);
+        SupportExternalModIntegrationSnapshot fastTrack =
+            snapshot.ExternalModIntegrations[0];
+        Assert.AreEqual("fast-track", fastTrack.IntegrationId);
+        Assert.AreEqual("not-matched", fastTrack.MatchState);
+        Assert.AreEqual("unavailable", fastTrack.AssemblyIdentity.State);
         CollectionAssert.AreEqual(
             new[]
             {
-                "WorldInventory",
-                "PickupGrouping",
-                "DirectDeliveryEligibility"
+                RuntimeCapabilityId.WorldInventoryTemperaturePublication.Value,
+                RuntimeCapabilityId.PickupTemperatureGrouping.Value,
+                RuntimeCapabilityId.DirectDeliveryEligibility.Value
             },
-            snapshot.FastTrack.Features
-                .Select(feature => feature.Feature)
+            fastTrack.Capabilities
+                .Select(capability => capability.CapabilityId)
                 .ToArray());
-        Assert.IsTrue(snapshot.FastTrack.Features.All(
-            feature => feature.State == "mod-not-loaded"));
     }
 
     [TestMethod]
-    public void CreateSupportReportSnapshot_WhenReplacementsAreInactive_MapsLoadedAssemblyIdentity()
+    public void CreateSupportReportSnapshot_WhenStatusOptionDisablesCompatibleExternalWorldCapability_ReportsReadyDisposition()
     {
-        DeliveryTemperatureRuntimePatchPlan plan =
-            DeliveryTemperatureRuntimePatchPlan.Create(
-                checkTemperatureForStatusItems: true,
-                CreateReport(
-                    FastTrackFeatureCompatibilityState.ReplacementInactive,
-                    FastTrackFeatureCompatibilityState.ReplacementInactive,
-                    FastTrackFeatureCompatibilityState.ReplacementInactive));
+        DeliveryTemperatureRuntimePatchPlan plan = CreatePlan(
+            checkTemperatureForStatusItems: false,
+            worldInventoryAuthority:
+                RuntimeAuthorityObservation.OwnsCompatible);
 
-        SupportRuntimeSnapshot snapshot =
-            plan.CreateSupportReportSnapshot("Installed");
+        SupportExternalModCapabilitySnapshot worldCapability = plan
+            .CreateSupportReportSnapshot("Installed")
+            .ExternalModIntegrations[0]
+            .Capabilities.Single(capability => string.Equals(
+                capability.CapabilityId,
+                RuntimeCapabilityId
+                    .WorldInventoryTemperaturePublication.Value,
+                StringComparison.Ordinal));
 
-        Assert.IsNotNull(snapshot.FastTrack);
-        Assert.AreEqual("replacement-inactive", snapshot.FastTrack.State);
-        Assert.AreEqual(
-            "FastTrack, Version=0.18.4.0",
-            snapshot.FastTrack.AssemblyIdentity.Value);
-        Assert.AreEqual("0.18.0.0", snapshot.FastTrack.AssemblyVersion.Value);
-        Assert.AreEqual("0.18.4.0", snapshot.FastTrack.FileVersion.Value);
-        Assert.AreEqual(FixtureSha256, snapshot.FastTrack.AssemblySha256.Value);
-        Assert.IsTrue(snapshot.FastTrack.Features.All(
-            feature => feature.State == "replacement-inactive"));
+        Assert.AreEqual("ready", worldCapability.Disposition);
     }
 
-    [TestMethod]
-    public void CreateSupportReportSnapshot_WhenFeatureIsReady_DoesNotExposeVerifiedReflectedMembers()
+    private static DeliveryTemperatureRuntimePatchPlan CreatePlan(
+        bool checkTemperatureForStatusItems,
+        RuntimeAuthorityObservation worldInventoryAuthority =
+            RuntimeAuthorityObservation.DoesNotOwn,
+        RuntimeAuthorityObservation pickupGroupingAuthority =
+            RuntimeAuthorityObservation.DoesNotOwn,
+        RuntimeAuthorityObservation directDeliveryAuthority =
+            RuntimeAuthorityObservation.DoesNotOwn,
+        bool includeDeclaredIntegrationOutcome = true) =>
+        DeliveryTemperatureRuntimePatchPlan.Create(
+            checkTemperatureForStatusItems,
+            CreateSelection(
+                worldInventoryAuthority,
+                pickupGroupingAuthority,
+                directDeliveryAuthority,
+                includeDeclaredIntegrationOutcome));
+
+    private static RuntimePatchCapabilitySelection CreateSelection(
+        RuntimeAuthorityObservation worldInventoryAuthority =
+            RuntimeAuthorityObservation.DoesNotOwn,
+        RuntimeAuthorityObservation pickupGroupingAuthority =
+            RuntimeAuthorityObservation.DoesNotOwn,
+        RuntimeAuthorityObservation directDeliveryAuthority =
+            RuntimeAuthorityObservation.DoesNotOwn,
+        bool includeDeclaredIntegrationOutcome = true)
     {
-        DeliveryTemperatureRuntimePatchPlan plan =
-            DeliveryTemperatureRuntimePatchPlan.Create(
-                checkTemperatureForStatusItems: true,
-                CreateReport(
-                    FastTrackFeatureCompatibilityState.Ready,
-                    FastTrackFeatureCompatibilityState.Ready,
-                    FastTrackFeatureCompatibilityState.Ready));
+        PreparedRuntimeAuthorityContribution gameSession =
+            CreateKleiBaselineContribution(
+                GameSessionLifecycleCapabilityId,
+                "game-session-lifecycle",
+                nameof(GameSessionLifecycleTarget));
+        PreparedRuntimeAuthorityContribution worldParent =
+            CreateKleiBaselineContribution(
+                WorldParentTopologyCapabilityId,
+                "world-parent-topology",
+                nameof(WorldParentTopologyTarget));
+        PreparedRuntimeAuthorityContribution authoritativeFetch =
+            CreateKleiBaselineContribution(
+                AuthoritativeFetchTemperatureEligibilityCapabilityId,
+                "klei-authoritative-fetch-temperature-eligibility",
+                nameof(AuthoritativeFetchTemperatureEligibilityTarget));
+        PreparedRuntimeAuthorityContribution worldInventory =
+            CreateKleiBaselineContribution(
+                RuntimeCapabilityId.WorldInventoryTemperaturePublication,
+                "klei-world-inventory-temperature-publication",
+                nameof(WorldInventoryTarget));
+        PreparedRuntimeAuthorityContribution statusAvailability =
+            CreateKleiBaselineContribution(
+                RuntimeCapabilityId.TemperatureStatusAvailability,
+                "temperature-status-availability",
+                nameof(TemperatureStatusAvailabilityTarget));
+        PreparedRuntimeAuthorityContribution pickupGrouping =
+            CreateKleiBaselineContribution(
+                RuntimeCapabilityId.PickupTemperatureGrouping,
+                "klei-pickup-temperature-grouping",
+                nameof(PickupGroupingTarget));
+        PreparedRuntimeAuthorityContribution directDelivery =
+            CreateKleiBaselineContribution(
+                RuntimeCapabilityId.DirectDeliveryEligibility,
+                "klei-direct-delivery-eligibility",
+                nameof(DirectDeliveryEligibilityTarget));
 
-        SupportRuntimeSnapshot snapshot =
-            plan.CreateSupportReportSnapshot("Installed");
+        RuntimeCapabilityDefinition[] definitions =
+        [
+            RequiredDefinition(
+                GameSessionLifecycleCapabilityId,
+                gameSession),
+            RequiredDefinition(
+                WorldParentTopologyCapabilityId,
+                worldParent),
+            RequiredDefinition(
+                AuthoritativeFetchTemperatureEligibilityCapabilityId,
+                authoritativeFetch),
+            OptionalDefinition(
+                RuntimeCapabilityId.WorldInventoryTemperaturePublication,
+                worldInventory),
+            OptionalDefinition(
+                RuntimeCapabilityId.TemperatureStatusAvailability,
+                statusAvailability),
+            RequiredDefinition(
+                RuntimeCapabilityId.PickupTemperatureGrouping,
+                pickupGrouping),
+            RequiredDefinition(
+                RuntimeCapabilityId.DirectDeliveryEligibility,
+                directDelivery)
+        ];
 
-        Assert.IsNotNull(snapshot.FastTrack);
-        Assert.AreEqual("ready", snapshot.FastTrack.State);
-        Assert.IsTrue(snapshot.FastTrack.Features.All(
-            feature => feature.State == "ready"));
-        Assert.IsFalse(
-            typeof(SupportFastTrackFeatureSnapshot)
-                .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .Any(property =>
-                    typeof(MemberInfo).IsAssignableFrom(property.PropertyType) ||
-                    property.Name.Contains(
-                        "VerifiedMember",
-                        StringComparison.Ordinal)));
-    }
+        RuntimeAuthorityObservation[] externalObservations =
+        [
+            worldInventoryAuthority,
+            pickupGroupingAuthority,
+            directDeliveryAuthority
+        ];
+        RuntimeCapabilityId[] externalCapabilities =
+        [
+            RuntimeCapabilityId.WorldInventoryTemperaturePublication,
+            RuntimeCapabilityId.PickupTemperatureGrouping,
+            RuntimeCapabilityId.DirectDeliveryEligibility
+        ];
+        var externalContributions =
+            new List<PreparedRuntimeAuthorityContribution>();
+        for (int index = 0; index < externalCapabilities.Length; index++)
+        {
+            PreparedRuntimeAuthorityContribution? contribution =
+                CreateExternalContribution(
+                    externalCapabilities[index],
+                    externalObservations[index]);
+            if (contribution != null)
+            {
+                externalContributions.Add(contribution);
+            }
+        }
 
-    [TestMethod]
-    public void CreateSupportReportSnapshot_WhenStatusFeatureFailureContainsPath_MapsOnlySemanticFailureEvidence()
-    {
-        const string unsafeFailure =
-            @"Access to the path 'C:\Users\Player\SteamLibrary\steamapps\workshop\FastTrack.dll' is denied.";
-        var compatibility = new FastTrackCompatibilityReport(
-            "FastTrack, Version=0.18.4.0",
-            new Version(0, 18, 0, 0),
-            FastTrackAssemblyFileIdentityReadState.ReadFailed,
-            null,
-            null,
-            FastTrackFeatureCompatibility.Incompatible(
-                FastTrackFeature.WorldInventory,
-                FastTrackFeatureCompatibilityFailureCode
-                    .AssemblyFileIdentityUnavailable,
-                unsafeFailure),
-            FastTrackFeatureCompatibility.ReplacementInactive(
-                FastTrackFeature.PickupGrouping),
-            FastTrackFeatureCompatibility.ReplacementInactive(
-                FastTrackFeature.DirectDeliveryEligibility));
-        DeliveryTemperatureRuntimePatchPlan plan =
-            DeliveryTemperatureRuntimePatchPlan.Create(
-                checkTemperatureForStatusItems: true,
-                compatibility);
-
-        Assert.IsNotNull(plan.StatusCompatibilityDiagnostic);
-        Assert.Contains(
-            "AssemblyFileIdentityUnavailable",
-            plan.StatusCompatibilityDiagnostic);
-        Assert.DoesNotContain(
-            @"C:\Users\Player",
-            plan.StatusCompatibilityDiagnostic,
-            StringComparison.Ordinal);
-
-        SupportRuntimeSnapshot snapshot =
-            plan.CreateSupportReportSnapshot("InstalledWithDegradedStatus");
-
-        Assert.IsNotNull(snapshot.FastTrack);
-        Assert.AreEqual("incompatible", snapshot.FastTrack.State);
-        SupportFastTrackFeatureSnapshot worldInventory =
-            snapshot.FastTrack.Features[0];
-        Assert.AreEqual("incompatible", worldInventory.State);
-        Assert.AreEqual(
-            "AssemblyFileIdentityUnavailable",
-            worldInventory.FailureCode);
-        Assert.AreEqual(
-            "FastTrack WorldInventory compatibility verification failed " +
-            "(AssemblyFileIdentityUnavailable).",
-            worldInventory.FailureMessage);
-        Assert.AreEqual(
-            "Temperature-aware resource-status integration is disabled for " +
-            "this loaded game; existing ONI status availability remains " +
-            "unchanged. FastTrack WorldInventory compatibility verification " +
-            "failed (AssemblyFileIdentityUnavailable).",
-            snapshot.StatusCompatibilityDiagnostic);
-        Assert.DoesNotContain(
-            unsafeFailure,
-            worldInventory.FailureMessage!,
-            StringComparison.Ordinal);
-        Assert.DoesNotContain(
-            @"C:\Users\Player",
-            snapshot.StatusCompatibilityDiagnostic!,
-            StringComparison.Ordinal);
-    }
-
-    private static void AssertPatchGroups(
-        DeliveryTemperatureRuntimePatchPlan plan,
-        params DeliveryTemperatureRuntimePatchGroup[] expectedGroups) =>
-        Assert.AreSequenceEqual(expectedGroups, plan.OrderedPatchGroups);
-
-    private static void AssertCompatibilityFailureDetails(
-        string message,
-        FastTrackFeature feature,
-        string structuralFailure)
-    {
-        StringAssert.Contains(message, feature.ToString());
-        StringAssert.Contains(message, "FastTrack, Version=0.18.4.0");
-        StringAssert.Contains(message, "assembly version 0.18.0.0");
-        StringAssert.Contains(message, "file version 0.18.4.0");
-        StringAssert.Contains(message, FixtureSha256);
-        StringAssert.Contains(message, structuralFailure);
-        StringAssert.Contains(
-            message,
-            "FastTrack compatibility is best-efforts and applies only to an " +
-            "explicitly supported exact assembly build and its verified " +
-            "member shape.");
-    }
-
-    private static FastTrackCompatibilityReport CreateReport(
-        FastTrackFeatureCompatibilityState worldInventoryState,
-        FastTrackFeatureCompatibilityState pickupGroupingState,
-        FastTrackFeatureCompatibilityState directDeliveryState,
-        bool includeLoadedAssemblyIdentity = true) =>
-        new(
-            includeLoadedAssemblyIdentity
-                ? "FastTrack, Version=0.18.4.0"
-                : null,
-            includeLoadedAssemblyIdentity
-                ? new Version(0, 18, 0, 0)
-                : null,
-            includeLoadedAssemblyIdentity
-                ? FastTrackAssemblyFileIdentityReadState.Success
-                : FastTrackAssemblyFileIdentityReadState.NotRead,
-            includeLoadedAssemblyIdentity ? SupportedFastTrackVersion : null,
-            includeLoadedAssemblyIdentity ? FixtureSha256 : null,
-            CreateFeatureCompatibility(
-                FastTrackFeature.WorldInventory,
-                worldInventoryState),
-            CreateFeatureCompatibility(
-                FastTrackFeature.PickupGrouping,
-                pickupGroupingState),
-            CreateFeatureCompatibility(
-                FastTrackFeature.DirectDeliveryEligibility,
-                directDeliveryState));
-
-    private static FastTrackCompatibilityReport
-        CreateReportWithReadyPickupReplacement(
-            MethodInfo verifiedFastTrackPrefix) =>
-        new(
-            "FastTrack, Version=0.18.4.0",
-            new Version(0, 18, 0, 0),
-            FastTrackAssemblyFileIdentityReadState.Success,
-            SupportedFastTrackVersion,
-            FixtureSha256,
-            FastTrackFeatureCompatibility.ReplacementInactive(
-                FastTrackFeature.WorldInventory),
-            FastTrackFeatureCompatibility.Ready(
-                FastTrackFeature.PickupGrouping,
-                new Dictionary<FastTrackVerifiedMember, MemberInfo>
+        IReadOnlyList<ExternalModIntegrationOutcome> outcomes =
+            includeDeclaredIntegrationOutcome
+                ? new[]
                 {
+                    CreateFastTrackOutcome(
+                        externalCapabilities,
+                        externalObservations)
+                }
+                : Array.Empty<ExternalModIntegrationOutcome>();
+        return RuntimePatchCapabilitySelector.Select(
+            definitions,
+            externalContributions,
+            outcomes);
+    }
+
+    private static PreparedRuntimeAuthorityContribution
+        CreateKleiBaselineContribution(
+            RuntimeCapabilityId capabilityId,
+            string patchGroupId,
+            string targetMethodName)
+    {
+        MethodInfo targetMethod = RequireMethod(targetMethodName);
+        return new PreparedRuntimeAuthorityContribution(
+            RuntimeAuthorityImplementationIdentity.KleiBaseline,
+            capabilityId,
+            new[] { new RuntimePatchGroupId(patchGroupId) },
+            RuntimeAuthorityObservation.OwnsCompatible,
+            new[]
+            {
+                new HarmonyPatchContractBinding(
+                    targetMethod,
+                    RequireMethod(nameof(PreparedPostfix)),
+                    HarmonyPatchContractKind.Postfix)
+            },
+            new[]
+            {
+                new RuntimeAuthorityRequirement(
+                    targetMethod,
+                    RuntimeAuthorityRequirementKind.KleiOriginal,
+                    requiredHarmonyOwner: null,
+                    requiredPrefixMethod: null,
+                    Array.Empty<string>())
+            },
+            diagnosticCode: null,
+            diagnosticMessage: null);
+    }
+
+    private static PreparedRuntimeAuthorityContribution?
+        CreateExternalContribution(
+            RuntimeCapabilityId capabilityId,
+            RuntimeAuthorityObservation observation)
+    {
+        switch (observation)
+        {
+            case RuntimeAuthorityObservation.DoesNotOwn:
+                return null;
+            case RuntimeAuthorityObservation.OwnsCompatible:
+                MethodInfo targetMethod = TargetMethod(capabilityId);
+                return new PreparedRuntimeAuthorityContribution(
+                    RuntimeAuthorityImplementationIdentity
+                        .ForDeclaredExternalIntegration(FastTrackIntegrationId),
+                    capabilityId,
+                    new[]
                     {
-                        FastTrackVerifiedMember
-                            .PickupGroupingBeforeUpdatePickupsPrefix,
-                        verifiedFastTrackPrefix
-                    }
-                }),
-            FastTrackFeatureCompatibility.ReplacementInactive(
-                FastTrackFeature.DirectDeliveryEligibility));
-
-    private static FastTrackFeatureCompatibility CreateFeatureCompatibility(
-        FastTrackFeature feature,
-        FastTrackFeatureCompatibilityState state) =>
-        state switch
-        {
-            FastTrackFeatureCompatibilityState.ModNotLoaded =>
-                FastTrackFeatureCompatibility.ModNotLoaded(feature),
-            FastTrackFeatureCompatibilityState.ReplacementInactive =>
-                FastTrackFeatureCompatibility.ReplacementInactive(feature),
-            FastTrackFeatureCompatibilityState.Ready =>
-                FastTrackFeatureCompatibility.Ready(
-                    feature,
-                    new Dictionary<FastTrackVerifiedMember, MemberInfo>
+                        new RuntimePatchGroupId(
+                            ExternalPatchGroupId(capabilityId))
+                    },
+                    RuntimeAuthorityObservation.OwnsCompatible,
+                    new[]
                     {
-                        {
-                            GetRepresentativeVerifiedMemberRole(feature),
-                            typeof(DeliveryTemperatureRuntimePatchPlanTests)
-                                .GetMethod(
-                                    nameof(RepresentativeVerifiedMember),
-                                    BindingFlags.Static |
-                                    BindingFlags.NonPublic)!
-                        }
-                    }),
-            FastTrackFeatureCompatibilityState.Incompatible =>
-                FastTrackFeatureCompatibility.Incompatible(
-                    feature,
-                    GetFailureCode(feature),
-                    "The verified " +
-                    feature +
-                    " structural anchor changed."),
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(state),
-                state,
-                "Unknown FastTrack compatibility state.")
-        };
+                        new HarmonyPatchContractBinding(
+                            targetMethod,
+                            RequireMethod(nameof(PreparedPostfix)),
+                            HarmonyPatchContractKind.Postfix)
+                    },
+                    new[]
+                    {
+                        new RuntimeAuthorityRequirement(
+                            targetMethod,
+                            RuntimeAuthorityRequirementKind
+                                .ExactOwnedReplacement,
+                            FastTrackHarmonyOwner,
+                            ExternalPrefixMethod(capabilityId),
+                            new[] { FastTrackHarmonyOwner })
+                    },
+                    diagnosticCode: null,
+                    diagnosticMessage: null);
+            case RuntimeAuthorityObservation.OwnsIncompatible:
+                return new PreparedRuntimeAuthorityContribution(
+                    RuntimeAuthorityImplementationIdentity
+                        .ForDeclaredExternalIntegration(FastTrackIntegrationId),
+                    capabilityId,
+                    Array.Empty<RuntimePatchGroupId>(),
+                    RuntimeAuthorityObservation.OwnsIncompatible,
+                    Array.Empty<HarmonyPatchContractBinding>(),
+                    Array.Empty<RuntimeAuthorityRequirement>(),
+                    DiagnosticCode(capabilityId),
+                    DiagnosticMessage(capabilityId));
+            default:
+                throw new ArgumentOutOfRangeException(
+                    nameof(observation),
+                    observation,
+                    "This fixture supports does-not-own, compatible, and " +
+                    "incompatible authority observations.");
+        }
+    }
 
-    private static FastTrackVerifiedMember GetRepresentativeVerifiedMemberRole(
-        FastTrackFeature feature) =>
-        feature switch
+    private static ExternalModIntegrationOutcome CreateFastTrackOutcome(
+        IReadOnlyList<RuntimeCapabilityId> capabilityIds,
+        IReadOnlyList<RuntimeAuthorityObservation> observations)
+    {
+        var capabilityOutcomes =
+            new List<ExternalModIntegrationCapabilityOutcome>(
+                capabilityIds.Count);
+        var diagnostics = new List<ExternalModIntegrationDiagnostic>();
+        bool matched = false;
+        for (int index = 0; index < capabilityIds.Count; index++)
         {
-            FastTrackFeature.WorldInventory =>
-                FastTrackVerifiedMember.BackgroundWorldInventoryRunUpdate,
-            FastTrackFeature.PickupGrouping =>
-                FastTrackVerifiedMember.PickupGroupingAddItem,
-            FastTrackFeature.DirectDeliveryEligibility =>
-                FastTrackVerifiedMember.DirectDeliveryEligibilityComparator,
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(feature),
-                feature,
-                "Unknown FastTrack feature.")
-        };
+            RuntimeCapabilityId capabilityId = capabilityIds[index];
+            RuntimeAuthorityObservation observation = observations[index];
+            matched |= observation != RuntimeAuthorityObservation.DoesNotOwn;
+            string? diagnosticCode =
+                observation == RuntimeAuthorityObservation.OwnsIncompatible
+                    ? DiagnosticCode(capabilityId)
+                    : null;
+            string? diagnosticMessage =
+                observation == RuntimeAuthorityObservation.OwnsIncompatible
+                    ? DiagnosticMessage(capabilityId)
+                    : null;
+            capabilityOutcomes.Add(
+                new ExternalModIntegrationCapabilityOutcome(
+                    capabilityId,
+                    ExternalModIntegrationCategory.ExclusiveRuntimeAuthority,
+                    observation,
+                    observation == RuntimeAuthorityObservation.DoesNotOwn
+                        ? IntegrationContractState.NotEvaluated
+                        : observation ==
+                            RuntimeAuthorityObservation.OwnsCompatible
+                            ? IntegrationContractState.Compatible
+                            : IntegrationContractState.Incompatible,
+                    observation == RuntimeAuthorityObservation.DoesNotOwn
+                        ? IntegrationCapabilityDisposition.NotApplicable
+                        : observation ==
+                            RuntimeAuthorityObservation.OwnsCompatible
+                            ? IntegrationCapabilityDisposition.Ready
+                            : IntegrationCapabilityDisposition.Unavailable,
+                    diagnosticCode,
+                    diagnosticMessage));
+            if (diagnosticCode != null && diagnosticMessage != null)
+            {
+                diagnostics.Add(new ExternalModIntegrationDiagnostic(
+                    diagnosticCode,
+                    diagnosticMessage));
+            }
+        }
 
-    private static FastTrackFeatureCompatibilityFailureCode GetFailureCode(
-        FastTrackFeature feature) =>
-        feature switch
+        return new ExternalModIntegrationOutcome(
+            FastTrackIntegrationId,
+            "Fast Track",
+            new[]
+            {
+                ExternalModIntegrationCategory.ExclusiveRuntimeAuthority
+            },
+            matched
+                ? DeclaredModMatchState.Matched
+                : DeclaredModMatchState.NotMatched,
+            matched ? "FastTrack, Version=0.18.4.0" : null,
+            matched ? "0.18.0.0" : null,
+            matched ? "0.18.4.0" : null,
+            matched ? FastTrackAssemblySha256 : null,
+            capabilityOutcomes,
+            diagnostics);
+    }
+
+    private static RuntimeCapabilityDefinition RequiredDefinition(
+        RuntimeCapabilityId capabilityId,
+        PreparedRuntimeAuthorityContribution baseline) =>
+        new(
+            capabilityId,
+            RuntimeCapabilityCriticality.Required,
+            () => baseline,
+            atomicBundleId: null);
+
+    private static RuntimeCapabilityDefinition OptionalDefinition(
+        RuntimeCapabilityId capabilityId,
+        PreparedRuntimeAuthorityContribution baseline) =>
+        new(
+            capabilityId,
+            RuntimeCapabilityCriticality.Optional,
+            () => baseline,
+            atomicBundleId: null);
+
+    private static void AssertPatchGroupIds(
+        DeliveryTemperatureRuntimePatchPlan plan,
+        params string[] expectedGroupIds) =>
+        Assert.AreSequenceEqual(
+            expectedGroupIds,
+            plan.OrderedPatchGroupIds.Select(group => group.Value));
+
+    private static void AssertSelectedImplementation(
+        DeliveryTemperatureRuntimePatchPlan plan,
+        RuntimeCapabilityId capabilityId,
+        RuntimeAuthorityImplementationKind expectedKind)
+    {
+        PreparedRuntimeAuthorityContribution contribution =
+            plan.SelectedContributions.Single(candidate =>
+                candidate.CapabilityId.Equals(capabilityId));
+        Assert.AreEqual(expectedKind, contribution.ImplementationIdentity.Kind);
+        if (expectedKind ==
+            RuntimeAuthorityImplementationKind.DeclaredExternalIntegration)
         {
-            FastTrackFeature.WorldInventory =>
-                FastTrackFeatureCompatibilityFailureCode
-                    .WorldInventoryContractViolation,
-            FastTrackFeature.PickupGrouping =>
-                FastTrackFeatureCompatibilityFailureCode
-                    .PickupGroupingContractViolation,
-            FastTrackFeature.DirectDeliveryEligibility =>
-                FastTrackFeatureCompatibilityFailureCode
-                    .DirectDeliveryEligibilityContractViolation,
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(feature),
-                feature,
-                "Unknown FastTrack feature.")
-        };
+            Assert.AreEqual(
+                FastTrackIntegrationId,
+                contribution.ImplementationIdentity
+                    .DeclaredExternalIntegrationId);
+        }
+    }
 
-    private static void RepresentativeVerifiedMember()
+    private static void AssertRequiredCapabilityBlocked(
+        RuntimeCapabilitySelectionException exception,
+        RuntimeCapabilityId expectedCapabilityId)
+    {
+        Assert.AreEqual(expectedCapabilityId, exception.CapabilityId);
+        Assert.AreEqual(
+            "required-runtime-capability-unavailable",
+            exception.DiagnosticCode);
+        ExternalModIntegrationCapabilityOutcome outcome = exception
+            .ExternalModIntegrationOutcomes[0]
+            .Capabilities.Single(capability =>
+                capability.CapabilityId.Equals(expectedCapabilityId));
+        Assert.AreEqual(
+            IntegrationCapabilityDisposition.ActivationBlocking,
+            outcome.Disposition);
+    }
+
+    private static string ExternalPatchGroupId(
+        RuntimeCapabilityId capabilityId)
+    {
+        if (capabilityId.Equals(
+                RuntimeCapabilityId.WorldInventoryTemperaturePublication))
+        {
+            return "fast-track-world-inventory-temperature-publication";
+        }
+
+        if (capabilityId.Equals(RuntimeCapabilityId.PickupTemperatureGrouping))
+        {
+            return "fast-track-pickup-temperature-grouping";
+        }
+
+        if (capabilityId.Equals(RuntimeCapabilityId.DirectDeliveryEligibility))
+        {
+            return "fast-track-direct-delivery-eligibility";
+        }
+
+        throw new ArgumentOutOfRangeException(nameof(capabilityId));
+    }
+
+    private static string DiagnosticCode(RuntimeCapabilityId capabilityId) =>
+        capabilityId.Value + "-incompatible";
+
+    private static string DiagnosticMessage(RuntimeCapabilityId capabilityId) =>
+        "The declared external owner could not verify runtime capability " +
+        capabilityId.Value + ".";
+
+    private static MethodInfo TargetMethod(RuntimeCapabilityId capabilityId)
+    {
+        if (capabilityId.Equals(
+                RuntimeCapabilityId.WorldInventoryTemperaturePublication))
+        {
+            return RequireMethod(nameof(WorldInventoryTarget));
+        }
+
+        if (capabilityId.Equals(RuntimeCapabilityId.PickupTemperatureGrouping))
+        {
+            return RequireMethod(nameof(PickupGroupingTarget));
+        }
+
+        if (capabilityId.Equals(RuntimeCapabilityId.DirectDeliveryEligibility))
+        {
+            return RequireMethod(nameof(DirectDeliveryEligibilityTarget));
+        }
+
+        throw new ArgumentOutOfRangeException(nameof(capabilityId));
+    }
+
+    private static MethodInfo ExternalPrefixMethod(
+        RuntimeCapabilityId capabilityId)
+    {
+        if (capabilityId.Equals(
+                RuntimeCapabilityId.WorldInventoryTemperaturePublication))
+        {
+            return RequireMethod(nameof(FastTrackWorldInventoryPrefix));
+        }
+
+        if (capabilityId.Equals(RuntimeCapabilityId.PickupTemperatureGrouping))
+        {
+            return RequireMethod(nameof(FastTrackPickupGroupingPrefix));
+        }
+
+        if (capabilityId.Equals(RuntimeCapabilityId.DirectDeliveryEligibility))
+        {
+            return RequireMethod(nameof(FastTrackDirectDeliveryPrefix));
+        }
+
+        throw new ArgumentOutOfRangeException(nameof(capabilityId));
+    }
+
+    private static MethodInfo RequireMethod(string name) =>
+        typeof(DeliveryTemperatureRuntimePatchPlanTests).GetMethod(
+            name,
+            BindingFlags.Static | BindingFlags.NonPublic) ??
+        throw new InvalidOperationException("Missing test method: " + name);
+
+    private static void PreparedPostfix()
     {
     }
 
-    private static MethodInfo CreateEmittedMethod(
-        string declaringTypeName,
-        string methodName,
-        Type returnType,
-        Type[] parameterTypes)
+    private static void GameSessionLifecycleTarget()
     {
-        var assemblyName = new AssemblyName(
-            "DeliveryTemperatureAuthorityFixture_" + Guid.NewGuid().ToString("N"));
-        string emittedAssemblyName = assemblyName.Name ??
-            throw new InvalidOperationException(
-                "The authority-contract fixture assembly has no name.");
-        AssemblyBuilder assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(
-            assemblyName,
-            AssemblyBuilderAccess.Run);
-        ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule(
-            emittedAssemblyName);
-        int nestedTypeSeparatorIndex = declaringTypeName.IndexOf(
-            '+',
-            StringComparison.Ordinal);
-        TypeBuilder? outerTypeBuilder = null;
-        TypeBuilder typeBuilder;
-        if (nestedTypeSeparatorIndex >= 0)
-        {
-            string outerTypeName = declaringTypeName.Substring(
-                0,
-                nestedTypeSeparatorIndex);
-            string nestedTypeName = declaringTypeName.Substring(
-                nestedTypeSeparatorIndex + 1);
-            outerTypeBuilder = moduleBuilder.DefineType(
-                outerTypeName,
-                TypeAttributes.Public | TypeAttributes.Class);
-            typeBuilder = outerTypeBuilder.DefineNestedType(
-                nestedTypeName,
-                TypeAttributes.NestedPublic |
-                TypeAttributes.Sealed |
-                TypeAttributes.Abstract);
-        }
-        else
-        {
-            typeBuilder = moduleBuilder.DefineType(
-                declaringTypeName,
-                TypeAttributes.Public |
-                TypeAttributes.Sealed |
-                TypeAttributes.Abstract);
-        }
-
-        MethodBuilder methodBuilder = typeBuilder.DefineMethod(
-            methodName,
-            MethodAttributes.Public | MethodAttributes.Static,
-            returnType,
-            parameterTypes);
-        ILGenerator generator = methodBuilder.GetILGenerator();
-        if (returnType == typeof(bool))
-        {
-            generator.Emit(OpCodes.Ldc_I4_1);
-        }
-
-        generator.Emit(OpCodes.Ret);
-        Type? emittedType;
-        if (outerTypeBuilder is null)
-        {
-            emittedType = typeBuilder.CreateType();
-        }
-        else
-        {
-            emittedType = typeBuilder.CreateType();
-            _ = outerTypeBuilder.CreateType() ??
-                throw new InvalidOperationException(
-                    "The authority-contract fixture outer type was not emitted.");
-        }
-
-        if (emittedType is null)
-        {
-            throw new InvalidOperationException(
-                "The authority-contract fixture type was not emitted.");
-        }
-
-        return emittedType.GetMethod(
-                methodName,
-                BindingFlags.Public | BindingFlags.Static) ??
-            throw new InvalidOperationException(
-                "The authority-contract fixture method was not emitted.");
     }
 
-    private static MethodInfo CreateEmittedGlobalChoreCollectionMethod()
+    private static void WorldParentTopologyTarget()
     {
-        var assemblyName = new AssemblyName(
-            "DeliveryTemperatureDirectAuthorityFixture_" +
-            Guid.NewGuid().ToString("N"));
-        string emittedAssemblyName = assemblyName.Name ??
-            throw new InvalidOperationException(
-                "The direct-authority fixture assembly has no name.");
-        AssemblyBuilder assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(
-            assemblyName,
-            AssemblyBuilderAccess.Run);
-        ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule(
-            emittedAssemblyName);
-
-        Type choreConsumerStateType = moduleBuilder.DefineType(
-                "ChoreConsumerState",
-                TypeAttributes.Public | TypeAttributes.Class)
-            .CreateType() ??
-            throw new InvalidOperationException(
-                "The ChoreConsumerState contract type was not emitted.");
-        TypeBuilder choreTypeBuilder = moduleBuilder.DefineType(
-            "Chore",
-            TypeAttributes.Public | TypeAttributes.Class);
-        TypeBuilder preconditionTypeBuilder = choreTypeBuilder.DefineNestedType(
-            "Precondition",
-            TypeAttributes.NestedPublic | TypeAttributes.Class);
-        TypeBuilder contextTypeBuilder =
-            preconditionTypeBuilder.DefineNestedType(
-                "Context",
-                TypeAttributes.NestedPublic | TypeAttributes.Class);
-        Type contextType = contextTypeBuilder.CreateType() ??
-            throw new InvalidOperationException(
-                "The Chore.Precondition.Context contract type was not emitted.");
-        _ = preconditionTypeBuilder.CreateType() ??
-            throw new InvalidOperationException(
-                "The Chore.Precondition contract type was not emitted.");
-        _ = choreTypeBuilder.CreateType() ??
-            throw new InvalidOperationException(
-                "The Chore contract type was not emitted.");
-
-        TypeBuilder providerTypeBuilder = moduleBuilder.DefineType(
-            "GlobalChoreProvider",
-            TypeAttributes.Public | TypeAttributes.Class);
-        MethodBuilder collectChoresMethod = providerTypeBuilder.DefineMethod(
-            "CollectChores",
-            MethodAttributes.Public,
-            typeof(void),
-            [
-                choreConsumerStateType,
-                typeof(List<>).MakeGenericType(contextType)
-            ]);
-        collectChoresMethod.GetILGenerator().Emit(OpCodes.Ret);
-        Type providerType = providerTypeBuilder.CreateType() ??
-            throw new InvalidOperationException(
-                "The GlobalChoreProvider contract type was not emitted.");
-        return providerType.GetMethod(
-                "CollectChores",
-                BindingFlags.Public | BindingFlags.Instance) ??
-            throw new InvalidOperationException(
-                "The GlobalChoreProvider.CollectChores contract method was not emitted.");
     }
+
+    private static void AuthoritativeFetchTemperatureEligibilityTarget()
+    {
+    }
+
+    private static void WorldInventoryTarget()
+    {
+    }
+
+    private static void TemperatureStatusAvailabilityTarget()
+    {
+    }
+
+    private static void PickupGroupingTarget()
+    {
+    }
+
+    private static void DirectDeliveryEligibilityTarget()
+    {
+    }
+
+    private static void UnknownModTarget()
+    {
+    }
+
+    private static void ObservingPrefix()
+    {
+    }
+
+    private static bool UnknownSkippingPrefix() => false;
+
+    private static bool FastTrackWorldInventoryPrefix() => false;
+
+    private static bool FastTrackPickupGroupingPrefix() => false;
+
+    private static bool ChangedFastTrackPickupGroupingPrefix() => false;
+
+    private static bool FastTrackDirectDeliveryPrefix() => false;
 }

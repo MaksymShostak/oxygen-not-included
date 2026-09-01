@@ -10,7 +10,7 @@ public sealed class SupportReportDocumentTests
             SupportReportKind.Standard,
             playerLog: null);
 
-        Assert.AreEqual(1, document.SchemaVersion);
+        Assert.AreEqual(2, document.SchemaVersion);
         Assert.AreEqual("standard", document.ReportKind);
         Assert.AreEqual("available", document.Game.Build.State);
         Assert.AreEqual("744825", document.Game.Build.Value);
@@ -127,7 +127,7 @@ public sealed class SupportReportDocumentTests
     }
 
     [TestMethod]
-    public void ReportKind_DefinesOnlyTheTwoSchemaVersionOneModes()
+    public void ReportKind_DefinesOnlyTheTwoSchemaVersionTwoModes()
     {
         CollectionAssert.AreEqual(
             new[] { "Standard", "ExtendedPlayerLog" },
@@ -304,20 +304,26 @@ public sealed class SupportReportDocumentTests
                 temperatureUnit,
                 maxConstructionTemperature,
                 minConstructionTemperature);
-            var fastTrack = new SupportFastTrackSnapshot(
-                "not-loaded",
-                SupportReportFact.Unavailable("FastTrack is not loaded."),
-                SupportReportFact.Unavailable("FastTrack is not loaded."),
-                SupportReportFact.Unavailable("FastTrack is not loaded."),
-                SupportReportFact.Unavailable("FastTrack is not loaded."),
+            var fastTrack = new SupportExternalModIntegrationSnapshot(
+                "fast-track",
+                "Fast Track",
+                new[] { "exclusive-runtime-authority" },
+                "not-matched",
+                SupportReportFact.Unavailable("Fast Track is not loaded."),
+                SupportReportFact.Unavailable("Fast Track is not loaded."),
+                SupportReportFact.Unavailable("Fast Track is not loaded."),
+                SupportReportFact.Unavailable("Fast Track is not loaded."),
                 new[]
                 {
-                    new SupportFastTrackFeatureSnapshot(
-                        "WorldInventory",
-                        "mod-not-loaded",
-                        failureCode: null,
-                        failureMessage: null)
-                });
+                    new SupportExternalModCapabilitySnapshot(
+                        "world-inventory-temperature-publication",
+                        "does-not-own",
+                        "not-evaluated",
+                        "not-applicable",
+                        diagnosticCode: null,
+                        diagnosticMessage: null)
+                },
+                Array.Empty<SupportDiagnosticSnapshot>());
             SupportRuntimeSnapshot runtime = SupportRuntimeSnapshot.Available(
                 "Installed",
                 new[]
@@ -326,7 +332,7 @@ public sealed class SupportReportDocumentTests
                     "WorldParentTopology"
                 },
                 statusCompatibilityDiagnostic: null,
-                fastTrack);
+                new[] { fastTrack });
             var generation = new SupportGenerationSnapshot(
                 new[] { "game.build", "temperatureLimit.settings" },
                 new[] { "game.gameVersion" },
