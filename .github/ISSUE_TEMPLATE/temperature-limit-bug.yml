@@ -1,6 +1,5 @@
 name: Temperature Limit bug
 description: Report behavior that is incorrect, broken, or unexpectedly slow.
-title: ""
 labels:
   - bug
 body:
