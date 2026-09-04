@@ -121,7 +121,7 @@ public sealed class ProjectTargetFrameworkContractTests
             dependencies,
             "PLib",
             "Direct",
-            "4.24.0");
+            "4.25.0");
         AssertLockedDependency(
             dependencies,
             "Lib.Harmony.Ref",

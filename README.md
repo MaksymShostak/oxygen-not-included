@@ -1,13 +1,15 @@
 # Delivery Temperature Limit (Supercooled)
 
 ![Oxygen Not Included Mod](https://img.shields.io/badge/Game-Oxygen_Not_Included-orange)
-![Compatible with Base Game](https://img.shields.io/badge/DLC-Base_Game-orange?style=flat&logo=steam)
-![Compatible with Spaced Out!](https://img.shields.io/badge/DLC-Spaced_Out!-blue?style=flat&logo=steam)
-![Compatible with Frosty Planet Pack](https://img.shields.io/badge/DLC-Frosty_Planet_Pack-cyan?style=flat&logo=steam)
-![Compatible with Bionic Booster Pack](https://img.shields.io/badge/DLC-Bionic_Booster_Pack-purple?style=flat&logo=steam)
-![Compatible with Prehistoric Planet Pack](https://img.shields.io/badge/DLC-Prehistoric_Planet_Pack-brown?style=flat&logo=steam)
-![Compatible with Aquatic Planet Pack](https://img.shields.io/badge/DLC-Aquatic_Planet_Pack-teal?style=flat&logo=steam)
-![API Version](https://img.shields.io/badge/API_Version-APIVersion_2-green)
+
+### DLC Compatibility
+![Base Game](docs/badges/VanillaYes.png)
+![Spaced Out!](docs/badges/Dlc1Yes.png)
+![The Frosty Planet Pack](docs/badges/Dlc2Yes.png)
+![The Bionic Booster Pack](docs/badges/Dlc3Yes.png)
+![The Prehistoric Planet Pack](docs/badges/Dlc4Yes.png)
+![The Aquatic Planet Pack](docs/badges/Dlc5Yes.png)
+
 
 Tired of Nisbet carrying a 95°C chunk of hot Igneous Rock straight from a volcano and storing it in a Storage Bin right next to your pristine Sleet Wheat farm, melting all the ice? Are your Duplicants cooking your base from the inside out because they keep bringing boiling dirt to fertilize your crops? 
 
@@ -29,15 +31,14 @@ Tired of Nisbet carrying a 95°C chunk of hot Igneous Rock straight from a volca
 
 The backend of the original mod has been completely overhauled to run as cleanly as a Thermo Regulator in a vacuum:
 
-1.  **Storage Tiles Check the Thermometer:** Storage Tiles now support delivery temperature limits, including aboard rockets. When a limit is set, Duplicants will no longer tuck volcano-fresh cargo under the floor and stamp it “properly stored.” Many thanks to [ShyLion](https://steamcommunity.com/id/shylion) for suggesting the fix before the next mission became an orbital sauna.
-2.  **Late-Game Lag Spikes Removed:** Completely optimized the temperature check logic. The mod now runs incredibly smoothly even in massive, highly populated late-game colonies with hundreds of delivery-capable buildings.
-3.  **No More Camera Lockups:** Fixed the bug where selecting the mod's temperature panel blocked you from moving your camera using the keyboard.
-4.  **UI Freeze Protection:** Fixed the interface lockup that occurred when clearing out temperature limit fields or typing a high limit first on a new bin.
-5.  **Game Loading Stability:** Resolved startup and loading crashes, ensuring the mod initializes safely when loading into a save.
-6.  **Inventory Update Crash Fix:** Resolved a crash that occurred when the colony's world inventory list refreshed.
-7.  **Modded Building Compatibility:** The mod now dynamically registers storage buildings, meaning it automatically works with custom storage bins and buildings introduced by other mods.
-8.  **Latest Game Update Support:** Fully compatible with Game Update 737790, resolving UI layout errors present in older versions.
-9.  **Full DLC Support & Future-Proofed:** Out-of-the-box compatibility with the Base Game, *Spaced Out!*, *The Frosty Planet Pack*, *The Bionic Booster Pack*, *The Prehistoric Planet Pack*, and *The Aquatic Planet Pack* DLCs. The mod dynamically hooks into the game's core delivery rules, meaning new buildings in upcoming DLCs are supported automatically.
+1.  **Late-Game Performance:** Our earlier claim of “lag spikes removed” was, we admit, researched before we unlocked the Virtual Planetarium. Asteroid-wide item scans are gone. Each eligible building keeps its allowed temperature range on file, and errands are checked against the file. Cycle 1000+ mega-bases hold up.
+2.  **Storage Tiles Check the Thermometer:** Storage Tiles now support delivery temperature limits, including aboard rockets. When a limit is set, Duplicants will no longer tuck volcano-fresh cargo under the floor and stamp it “properly stored.” Many thanks to [ShyLion](https://steamcommunity.com/id/shylion) for suggesting the fix before the next mission became an orbital sauna.
+3.  **Fresh Start on Every Load:** Returning to the main menu sweeps out all background tracking. A bin in your shiny new colony will never be haunted by the temperature rules of one you abandoned.
+4.  **Smooth Controls & UI:** Fixed the camera lockup when clicking temperature boxes, and made typing or wiping values instantaneous—no more frozen input fields or locked WASD panning.
+5.  **Rock-Solid Startup & Stability:** Pre-checks game hooks on startup and during colony resource refreshes, preventing crashes to desktop and ensuring safe loading every cycle.
+6.  **Custom Mod Storage Support:** Storage containers, hoppers, and lockers introduced by other mods are automatically detected and supported out of the box.
+7.  **Fast Track Compatibility:** Seamlessly coordinates with Peter Han's [*Fast Track*](https://github.com/peterhaneve/ONIMods/tree/main/FastTrack) if installed, with zero overhead when running on the standard game engine.
+8.  **Fully Tested on Current Game Builds:** Tested and verified against the latest game updates (Build 744825+).
 
 ---
 

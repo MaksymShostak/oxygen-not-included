@@ -263,7 +263,7 @@ public sealed class IntentionalRuntimeContractTests
                     @"\s*=>",
                     RegexOptions.CultureInvariant).Count,
                 $"Support action {propertyName} must be one read-only " +
-                "System.Action<object>, which PLib 4.24 maps to a button, " +
+                "System.Action<object>, which PLib maps to a button, " +
                 "with [Option] and [JsonIgnore].");
             Assert.AreEqual(
                 0,

@@ -2,7 +2,13 @@ Tired of Nisbet carrying a 95°C chunk of hot Igneous Rock straight from a volca
 
 [b]Delivery Temperature Limit (Supercooled)[/b] is here to put Duplicant thermal ignorance in check. It allows you to specify a safe temperature range for materials delivered to storage and other buildings, keeping your hot zones hot and your cold zones frost-bite fresh.
 
----
+[hr][/hr]
+
+[h1]🎮 DLC Compatibility[/h1]
+[img]https://raw.githubusercontent.com/MaksymShostak/oxygen-not-included/main/docs/badges/VanillaYes.png[/img] [img]https://raw.githubusercontent.com/MaksymShostak/oxygen-not-included/main/docs/badges/Dlc1Yes.png[/img] [img]https://raw.githubusercontent.com/MaksymShostak/oxygen-not-included/main/docs/badges/Dlc2Yes.png[/img]
+[img]https://raw.githubusercontent.com/MaksymShostak/oxygen-not-included/main/docs/badges/Dlc3Yes.png[/img] [img]https://raw.githubusercontent.com/MaksymShostak/oxygen-not-included/main/docs/badges/Dlc4Yes.png[/img] [img]https://raw.githubusercontent.com/MaksymShostak/oxygen-not-included/main/docs/badges/Dlc5Yes.png[/img]
+
+[hr][/hr]
 
 [h1]🚀 Key Features[/h1]
 [list]
@@ -13,24 +19,23 @@ Tired of Nisbet carrying a 95°C chunk of hot Igneous Rock straight from a volca
 [*] [b]UI Hint:[/b] Type a value in one field, and the min/max auto-populates. Hit the [b]Del[/b] key to wipe the fields and disable the limit entirely.
 [/list]
 
----
+[hr][/hr]
 
 [h1]⚡ What's New in the "Supercooled" Version?[/h1]
 The backend of the original mod has been completely overhauled to run as cleanly as a Thermo Regulator in a vacuum:
 
 [list]
+[*] [b]Late-Game Performance:[/b] Our earlier claim of “lag spikes removed” was, we admit, researched before we unlocked the Virtual Planetarium. Asteroid-wide item scans are gone. Each eligible building keeps its allowed temperature range on file, and errands are checked against the file. Cycle 1000+ mega-bases hold up.
 [*] [b]Storage Tiles Check the Thermometer:[/b] Storage Tiles now support delivery temperature limits, including aboard rockets. When a limit is set, Duplicants will no longer tuck volcano-fresh cargo under the floor and stamp it “properly stored.” Many thanks to [url=https://steamcommunity.com/id/shylion]ShyLion[/url] for suggesting the fix before the next mission became an orbital sauna.
-[*] [b]Late-Game Lag Spikes Removed:[/b] Completely optimized the temperature check logic. The mod now runs incredibly smoothly even in massive, highly populated late-game colonies with hundreds of delivery-capable buildings.
-[*] [b]No More Camera Lockups:[/b] Fixed the bug where selecting the mod's temperature panel blocked you from moving your camera using the keyboard.
-[*] [b]UI Freeze Protection:[/b] Fixed the interface lockup that occurred when clearing out temperature limit fields or typing a high limit first on a new bin.
-[*] [b]Game Loading Stability:[/b] Resolved startup and loading crashes, ensuring the mod initializes safely when loading into a save.
-[*] [b]Inventory Update Crash Fix:[/b] Resolved a crash that occurred when the colony's world inventory list refreshed.
-[*] [b]Modded Building Compatibility:[/b] The mod now dynamically registers storage buildings, meaning it automatically works with custom storage bins and buildings introduced by other mods.
-[*] [b]Latest Game Update Support:[/b] Fully compatible with Game Update 737790, resolving UI layout errors present in older versions.
-[*] [b]Full DLC Support & Future-Proofed:[/b] Out-of-the-box compatibility with the Base Game, [i]Spaced Out![/i], [i]The Frosty Planet Pack[/i], [i]The Bionic Booster Pack[/i], [i]The Prehistoric Planet Pack[/i], and [i]The Aquatic Planet Pack[/i] DLCs. The mod dynamically hooks into the game's core delivery rules, meaning new buildings in upcoming DLCs are supported automatically.
+[*] [b]Fresh Start on Every Load:[/b] Returning to the main menu sweeps out all background tracking. A bin in your shiny new colony will never be haunted by the temperature rules of one you abandoned.
+[*] [b]Smooth Controls & UI:[/b] Fixed the camera lockup when clicking temperature boxes, and made typing or wiping values instantaneous—no more frozen input fields or locked WASD panning.
+[*] [b]Rock-Solid Startup & Stability:[/b] Pre-checks game hooks on startup and during colony resource refreshes, preventing crashes to desktop and ensuring safe loading every cycle.
+[*] [b]Custom Mod Storage Support:[/b] Storage containers, hoppers, and lockers introduced by other mods are automatically detected and supported out of the box.
+[*] [b]Fast Track Compatibility:[/b] Seamlessly coordinates with Peter Han's [url=https://github.com/peterhaneve/ONIMods/tree/main/FastTrack][i]Fast Track[/i][/url] if installed, with zero overhead when running on the standard game engine.
+[*] [b]Fully Tested on Current Game Builds:[/b] Tested and verified against the latest game updates (Build 744825+).
 [/list]
 
----
+[hr][/hr]
 
 [h1]🎓 Homage & Credits[/h1]
 This mod is built upon the incredible work of the ONI modding community, standing on the shoulders of giants:
@@ -40,20 +45,23 @@ This mod is built upon the incredible work of the ONI modding community, standin
 [*] [b]Supercooled Edition:[/b] Maintained, refactored, and optimized by [url=https://github.com/MaksymShostak/oxygen-not-included]Maksym Shostak[/url].
 [/list]
 
----
+[hr][/hr]
 
 [h1]🛠️ Mod Settings[/h1]
 You can adjust mod settings directly in the game Options menu:
 [list]
 [*] [b]Include Temperature in "Lacks Resources" Warning:[/b] Toggle whether the yellow "Lacks Resources" warning takes your temperature limits into account (turn off for maximum late-game performance).
 [*] [b]Apply Limits to Construction Materials:[/b] Toggle whether temperature limits also apply to materials delivered to build new structures (prevents using hot materials in cold-area construction).
+[*] [b]Troubleshooting Reports:[/b] Generate a quick, privacy-safe report directly from the menu to help diagnose mod conflicts if anything ever behaves strangely.
 [/list]
 
----
-[h1]Support and bug reports[/h1]
-Open the mod's Options and choose [b]Create Support Report[/b] for a local diagnostic JSON that does not read Player.log. For harder failures, choose [b]Create Extended Support Report[/b] to include a bounded, best-effort-redacted copy of the current Player.log.
+[hr][/hr]
 
-Nothing is uploaded automatically. Review the local JSON, then attach it to the [url=https://github.com/MaksymShostak/oxygen-not-included/issues/new?template=temperature-limit-bug.yml]Temperature Limit bug form[/url].
+[h1]🐛 Support & Bug Reports[/h1]
+If you encounter a problem or unexpected conflict, open the mod's Options in-game and choose [b]Create Support Report[/b] to generate a clean, privacy-safe diagnostic file on your machine. For elusive issues, [b]Create Extended Support Report[/b] includes a sanitized excerpt of the game log.
 
----
+Nothing is ever sent over the internet automatically. You can review the file on your computer, then attach it to the [url=https://github.com/MaksymShostak/oxygen-not-included/issues/new?template=temperature-limit-bug.yml]Temperature Limit bug report form[/url] so we can help sort it out.
+
+[hr][/hr]
+
 [i]Disclaimer: This is a community mod. It is not affiliated with, sponsored by, or endorsed by Klei Entertainment.[/i]
