@@ -102,6 +102,10 @@ namespace DeliveryTemperatureLimit
             boundsGrid.AddColumn(new GridColumnSpec(72f, 0f));
             boundsGrid.AddColumn(new GridColumnSpec());
 
+            var labelMargin = new RectOffset(0, 6, 2, 2);
+            var inputMargin = new RectOffset(0, 0, 2, 2);
+            var unitMargin = new RectOffset(6, 0, 2, 2);
+
             var lowLabel = new PLabel("LowLabel")
             {
                 TextStyle = PUITuning.Fonts.TextDarkStyle,
@@ -109,7 +113,11 @@ namespace DeliveryTemperatureLimit
             };
             boundsGrid.AddChild(
                 lowLabel,
-                new GridComponentSpec(0, 0) { Alignment = TextAnchor.MiddleLeft });
+                new GridComponentSpec(0, 0)
+                {
+                    Alignment = TextAnchor.MiddleLeft,
+                    Margin = labelMargin
+                });
 
             var lowInputField = new PTextField("lowLimit")
             {
@@ -128,7 +136,11 @@ namespace DeliveryTemperatureLimit
             });
             boundsGrid.AddChild(
                 lowInputField,
-                new GridComponentSpec(0, 1) { Alignment = TextAnchor.MiddleLeft });
+                new GridComponentSpec(0, 1)
+                {
+                    Alignment = TextAnchor.MiddleLeft,
+                    Margin = inputMargin
+                });
 
             var lowUnit = new PLabel("LowUnit")
             {
@@ -141,7 +153,11 @@ namespace DeliveryTemperatureLimit
             });
             boundsGrid.AddChild(
                 lowUnit,
-                new GridComponentSpec(0, 2) { Alignment = TextAnchor.MiddleLeft });
+                new GridComponentSpec(0, 2)
+                {
+                    Alignment = TextAnchor.MiddleLeft,
+                    Margin = unitMargin
+                });
 
             var highLabel = new PLabel("HighLabel")
             {
@@ -150,7 +166,11 @@ namespace DeliveryTemperatureLimit
             };
             boundsGrid.AddChild(
                 highLabel,
-                new GridComponentSpec(1, 0) { Alignment = TextAnchor.MiddleLeft });
+                new GridComponentSpec(1, 0)
+                {
+                    Alignment = TextAnchor.MiddleLeft,
+                    Margin = labelMargin
+                });
 
             var highInputField = new PTextField("highLimit")
             {
@@ -169,7 +189,11 @@ namespace DeliveryTemperatureLimit
             });
             boundsGrid.AddChild(
                 highInputField,
-                new GridComponentSpec(1, 1) { Alignment = TextAnchor.MiddleLeft });
+                new GridComponentSpec(1, 1)
+                {
+                    Alignment = TextAnchor.MiddleLeft,
+                    Margin = inputMargin
+                });
 
             var highUnit = new PLabel("HighUnit")
             {
@@ -182,7 +206,11 @@ namespace DeliveryTemperatureLimit
             });
             boundsGrid.AddChild(
                 highUnit,
-                new GridComponentSpec(1, 2) { Alignment = TextAnchor.MiddleLeft });
+                new GridComponentSpec(1, 2)
+                {
+                    Alignment = TextAnchor.MiddleLeft,
+                    Margin = unitMargin
+                });
 
             var status = new PLabel("StatusLabel")
             {
@@ -378,6 +406,21 @@ namespace DeliveryTemperatureLimit
         {
             lowDraft = null;
             highDraft = null;
+            if (lowField != null && lowField.isFocused)
+            {
+                lowField.DeactivateInputField();
+            }
+
+            if (highField != null && highField.isFocused)
+            {
+                highField.DeactivateInputField();
+            }
+
+            if (UnityEngine.EventSystems.EventSystem.current != null)
+            {
+                UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);
+            }
+
             UpdateInputs();
         }
 

@@ -266,7 +266,7 @@ internal static class DeliveryTemperatureAssemblyMetadataReader
             // ECMA-335 method signature 20 00 01 means HASTHIS, zero
             // parameters, and ELEMENT_TYPE_VOID. Keeping this assertion here
             // prevents a future test author from accidentally treating any
-            // overload named OnLoadLevel as the runtime authority boundary.
+            // overload named OnPrefabInit as the runtime authority boundary.
             const string protectedInstanceVoidWithoutParametersSignature =
                 "200001";
             if (memberAccess != MethodAttributes.Family ||

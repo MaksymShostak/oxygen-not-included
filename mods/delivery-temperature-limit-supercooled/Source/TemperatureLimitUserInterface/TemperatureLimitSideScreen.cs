@@ -84,6 +84,36 @@ namespace DeliveryTemperatureLimit
             return transform?.gameObject;
         }
 
+        public override void OnKeyDown(KButtonEvent e)
+        {
+            bool isAnyTemperatureFieldFocused =
+                widget != null && widget.IsAnyFieldFocused();
+            if (isEditing != isAnyTemperatureFieldFocused)
+            {
+                isEditing = isAnyTemperatureFieldFocused;
+            }
+
+            if (!e.Consumed && isEditing)
+            {
+                e.Consumed = true;
+            }
+        }
+
+        public override void OnKeyUp(KButtonEvent e)
+        {
+            bool isAnyTemperatureFieldFocused =
+                widget != null && widget.IsAnyFieldFocused();
+            if (isEditing != isAnyTemperatureFieldFocused)
+            {
+                isEditing = isAnyTemperatureFieldFocused;
+            }
+
+            if (!e.Consumed && isEditing)
+            {
+                e.Consumed = true;
+            }
+        }
+
         private void Update()
         {
             bool isAnyTemperatureFieldFocused =

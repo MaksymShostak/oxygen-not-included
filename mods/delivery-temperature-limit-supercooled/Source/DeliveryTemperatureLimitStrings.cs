@@ -35,15 +35,15 @@ namespace STRINGS
 
         public static LocString STATUS_HIGH_ONLY = "Allows deliveries below {0}";
 
-        public static LocString STATUS_RANGE = "Allows deliveries: \u2265 {0} and < {1}";
+        public static LocString STATUS_RANGE = "Allows deliveries at or above {0} and below {1}";
 
-        public static LocString WARNING_EMPTY = "\u26a0 No deliveries can match this range.";
+        public static LocString WARNING_EMPTY = "<color=#F0B310>\u25B2</color> No deliveries can match this range.";
 
-        public static LocString ERROR_REVERSED = "\u26a0 \"At least\" must not be above \"Below\".";
+        public static LocString ERROR_REVERSED = "<color=#F44A47>\u25B2</color> \"At least\" must not be above \"Below\".";
 
-        public static LocString ERROR_NUMBER = "\u26a0 Enter a whole-number temperature.";
+        public static LocString ERROR_NUMBER = "<color=#F44A47>\u25B2</color> Enter a whole-number temperature.";
 
-        public static LocString ERROR_RANGE = "\u26a0 Temperature must be between {0} and {1}.";
+        public static LocString ERROR_RANGE = "<color=#F44A47>\u25B2</color> Temperature must be between {0} and {1}.";
 
         public static LocString TOOLTIP_LOW =
             "Minimum temperature for delivered materials. This value is included. Leave blank for no minimum.";

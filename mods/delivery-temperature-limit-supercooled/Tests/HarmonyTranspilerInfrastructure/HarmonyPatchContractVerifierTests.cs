@@ -2040,18 +2040,18 @@ public sealed class HarmonyPatchContractVerifierTests
     }
 
     [TestMethod]
-    public void GameOnLoadLevelContract_WhenFixtureShapeMatches_ReturnsExactProtectedMethod()
+    public void GameOnPrefabInitContract_WhenFixtureShapeMatches_ReturnsExactProtectedMethod()
     {
         var method = HarmonyPatchContractVerifier.RequireInstanceMethod(
-            typeof(GameOnLoadLevelContractFixture),
-            "OnLoadLevel",
+            typeof(GameOnPrefabInitContractFixture),
+            "OnPrefabInit",
             DeclaredMemberVisibility.NonPublic,
             typeof(void),
             Array.Empty<Type>());
 
         AssertExactInstanceMethod(
             method,
-            typeof(GameOnLoadLevelContractFixture),
+            typeof(GameOnPrefabInitContractFixture),
             isPublic: false,
             Array.Empty<Type>());
         Assert.IsTrue(
@@ -2060,7 +2060,7 @@ public sealed class HarmonyPatchContractVerifierTests
     }
 
     [TestMethod]
-    public void GameOnLoadLevelContract_WhenInstalledOniAssemblyIsInspected_MatchesProtectedInstanceVoidMethodWithoutParameters()
+    public void GameOnPrefabInitContract_WhenInstalledOniAssemblyIsInspected_MatchesProtectedInstanceVoidMethodWithoutParameters()
     {
         string? managedAssemblyDirectory = Environment.GetEnvironmentVariable(
             "ONI_MANAGED_ASSEMBLY_DIRECTORY");
@@ -2079,7 +2079,7 @@ public sealed class HarmonyPatchContractVerifierTests
             .AssertProtectedInstanceVoidMethodWithoutParameters(
                 assemblyPath,
                 "Game",
-                "OnLoadLevel");
+                "OnPrefabInit");
     }
 
     [TestMethod]
@@ -2090,9 +2090,9 @@ public sealed class HarmonyPatchContractVerifierTests
             "DeliveryTemperatureGameLoadAuthorityPatches.cs");
         string source = File.ReadAllText(adapterPath);
 
-        StringAssert.Contains(source, "ResolveGameOnLoadLevelTarget");
+        StringAssert.Contains(source, "ResolveGameOnPrefabInitTarget");
         StringAssert.Contains(source, "typeof(Game)");
-        StringAssert.Contains(source, "\"OnLoadLevel\"");
+        StringAssert.Contains(source, "\"OnPrefabInit\"");
         StringAssert.Contains(
             source,
             "DeclaredMemberVisibility.NonPublic");
@@ -2338,6 +2338,8 @@ public sealed class HarmonyPatchContractVerifierTests
             combinedSource.Contains("[HarmonyFinalizer", StringComparison.Ordinal));
         Assert.IsFalse(
             combinedSource.Contains("OnLoadLevel", StringComparison.Ordinal));
+        Assert.IsFalse(
+            combinedSource.Contains("OnPrefabInit", StringComparison.Ordinal));
     }
 
     private static KleiDirectEligibilityInstructionAnchors
@@ -3584,9 +3586,9 @@ public sealed class HarmonyPatchContractVerifierTests
         }
     }
 
-    private class GameOnLoadLevelContractFixture
+    private class GameOnPrefabInitContractFixture
     {
-        protected void OnLoadLevel()
+        protected void OnPrefabInit()
         {
         }
     }

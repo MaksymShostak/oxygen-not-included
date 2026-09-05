@@ -148,6 +148,88 @@ public sealed class IntentionalRuntimeContractTests
     }
 
     [TestMethod]
+    public void TemperatureLimitStrings_WhenInspected_DoNotContainUnrenderedUnicodeGlyphs()
+    {
+        string sourceRoot = ResolveSourceRoot();
+        string stringsSource = ReadRequiredSource(
+            sourceRoot,
+            "DeliveryTemperatureLimitStrings.cs");
+
+        Assert.IsFalse(
+            stringsSource.Contains("\\u26a0", StringComparison.OrdinalIgnoreCase) ||
+            stringsSource.Contains("\u26a0", StringComparison.Ordinal),
+            "Localization strings must not contain U+26A0 which renders as an unrendered tofu box in ONI's UI font.");
+
+        Assert.IsTrue(
+            stringsSource.Contains("\\u25b2", StringComparison.OrdinalIgnoreCase) ||
+            stringsSource.Contains("\u25b2", StringComparison.Ordinal),
+            "Warning and error strings must use the renderable U+25B2 hazard triangle glyph.");
+
+        Assert.IsFalse(
+            stringsSource.Contains("\\u2265", StringComparison.OrdinalIgnoreCase) ||
+            stringsSource.Contains("\u2265", StringComparison.Ordinal),
+            "Localization strings must not contain U+2265 which is absent from ONI's pre-baked TMP font atlas.");
+
+        StringAssert.Contains(
+            stringsSource,
+            "public static LocString STATUS_RANGE = \"Allows deliveries at or above {0} and below {1}\";",
+            "Range status string must use clear natural language matching STATUS_LOW_ONLY and STATUS_HIGH_ONLY.");
+    }
+
+    [TestMethod]
+    public void TemperatureLimitSideScreen_WhenKeyboardInputInspected_OverridesInputEventHandlersToProtectGameHotkeys()
+    {
+        string sourceRoot = ResolveSourceRoot();
+        string sideScreenSource = ReadRequiredSource(
+            sourceRoot,
+            "TemperatureLimitUserInterface",
+            "TemperatureLimitSideScreen.cs");
+
+        StringAssert.Contains(
+            sideScreenSource,
+            "public override void OnKeyDown(KButtonEvent e)",
+            "Side screen must explicitly override OnKeyDown to prevent KScreen from consuming game hotkeys when unfocused.");
+        StringAssert.Contains(
+            sideScreenSource,
+            "public override void OnKeyUp(KButtonEvent e)",
+            "Side screen must explicitly override OnKeyUp to prevent KScreen from consuming game hotkeys when unfocused.");
+        StringAssert.Contains(
+            sideScreenSource,
+            "if (!e.Consumed && isEditing)",
+            "Side screen must only consume key events when text input editing is active.");
+        Assert.IsFalse(
+            sideScreenSource.Contains("base.OnKeyDown", StringComparison.Ordinal),
+            "Side screen must not call base.OnKeyDown because KScreen consumes keys or processes child scroll rects.");
+        Assert.IsFalse(
+            sideScreenSource.Contains("base.OnKeyUp", StringComparison.Ordinal),
+            "Side screen must not call base.OnKeyUp because KScreen consumes keys or processes child scroll rects.");
+    }
+
+    [TestMethod]
+    public void TemperatureLimitWidget_WhenDraftsReverted_DeactivatesInputFieldsAndClearsSelection()
+    {
+        string sourceRoot = ResolveSourceRoot();
+        string widgetSource = ReadRequiredSource(
+            sourceRoot,
+            "TemperatureLimitUserInterface",
+            "TemperatureLimitWidget.cs");
+
+        StringAssert.Contains(
+            widgetSource,
+            "lowField.DeactivateInputField()",
+            "RevertDrafts must deactivate the low input field to drop focus.");
+        StringAssert.Contains(
+            widgetSource,
+            "highField.DeactivateInputField()",
+            "RevertDrafts must deactivate the high input field to drop focus.");
+        StringAssert.Contains(
+            widgetSource,
+            "UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null)",
+            "RevertDrafts must clear the active EventSystem selection.");
+    }
+
+
+    [TestMethod]
     public void TemperatureLimitSource_WhenGameSessionOwnershipIsInspected_UsesOneIndexedRegistrationWithoutGlobalFallback()
     {
         string source = ReadRequiredSource(

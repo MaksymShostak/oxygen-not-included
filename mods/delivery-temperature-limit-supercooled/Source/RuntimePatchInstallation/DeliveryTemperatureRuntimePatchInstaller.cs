@@ -546,10 +546,10 @@ namespace DeliveryTemperatureLimit
             AddPrefix(
                 patches,
                 DeliveryTemperatureGameLoadAuthorityPatches
-                    .ResolveGameOnLoadLevelTarget(),
+                    .ResolveGameOnPrefabInitTarget(),
                 typeof(DeliveryTemperatureGameLoadAuthorityPatches),
                 nameof(DeliveryTemperatureGameLoadAuthorityPatches
-                    .GameOnLoadLevelPrefix));
+                    .GameOnPrefabInitPrefix));
 
             MethodInfo destroyInstancesTarget =
                 DeliveryTemperatureGameSessionShutdownPatches
