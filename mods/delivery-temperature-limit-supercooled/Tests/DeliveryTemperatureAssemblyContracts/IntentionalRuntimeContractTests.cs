@@ -79,7 +79,23 @@ public sealed class IntentionalRuntimeContractTests
         "RANGE_SEPARATOR",
         "TOOLTIP_RANGE",
         "TOOLTIP_NOTSET",
-        "SIDESCREEN_TITLE"
+        "SIDESCREEN_TITLE",
+        "TEMPERATURE_RANGE",
+        "LOW_BOUND_LABEL",
+        "HIGH_BOUND_LABEL",
+        "CLEAR",
+        "STATUS_DISABLED",
+        "STATUS_LOW_ONLY",
+        "STATUS_HIGH_ONLY",
+        "STATUS_RANGE",
+        "WARNING_EMPTY",
+        "ERROR_REVERSED",
+        "ERROR_NUMBER",
+        "ERROR_RANGE",
+        "TOOLTIP_LOW",
+        "TOOLTIP_HIGH",
+        "TOOLTIP_CLEAR",
+        "TOOLTIP_STATUS"
     ];
 
     [TestMethod]
