@@ -534,7 +534,7 @@ public sealed class PerformanceArchitectureContractTests
             @"(?m)^\[\[package-files\]\]$",
             RegexOptions.CultureInvariant);
 
-        Assert.HasCount(3, packageMappings);
+        Assert.HasCount(4, packageMappings);
         Assert.IsFalse(
             profile.Contains("FastTrack.dll", StringComparison.Ordinal),
             "The static FastTrack fixture must not enter a package mapping.");
@@ -545,7 +545,8 @@ public sealed class PerformanceArchitectureContractTests
         [
             "destination = \"mod.yaml\"",
             "destination = \"mod_info.yaml\"",
-            "destination = \"DeliveryTemperatureLimit.dll\""
+            "destination = \"DeliveryTemperatureLimit.dll\"",
+            "destination = \"translations\""
         ];
         foreach (string destination in expectedDestinations)
         {

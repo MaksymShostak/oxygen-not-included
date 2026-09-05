@@ -175,7 +175,8 @@ public sealed class DeliveryTemperaturePackageBoundaryContractTests
             new OniModPipelinePackageFileContract("mod_info.yaml", "mod_info.yaml"),
             new OniModPipelinePackageFileContract(
                 "{build-output}/DeliveryTemperatureLimit.dll",
-                "DeliveryTemperatureLimit.dll")
+                "DeliveryTemperatureLimit.dll"),
+            new OniModPipelinePackageFileContract("translations", "translations")
         };
 
         CollectionAssert.AreEqual(

@@ -56,11 +56,29 @@ namespace DeliveryTemperatureLimit
                         "A Harmony patch binding cannot be null at index " +
                         bindingIndex + ".",
                         nameof(bindings));
+                VerifyTargetMethod(binding);
                 VerifyPatchMethodShape(binding);
                 VerifyTargetArgumentBindings(binding);
             }
 
             VerifySharedStateBindings(bindings);
+        }
+
+        private static void VerifyTargetMethod(
+            HarmonyPatchContractBinding binding)
+        {
+            MethodBase targetMethod = binding.TargetMethod;
+            if (targetMethod.DeclaringType != null &&
+                targetMethod.ReflectedType != null &&
+                targetMethod.ReflectedType != targetMethod.DeclaringType)
+            {
+                throw BindingViolation(
+                    binding,
+                    "target method must be declared on its reflected type " +
+                    GetTypeDisplayName(targetMethod.ReflectedType) +
+                    ", but was declared on " +
+                    GetTypeDisplayName(targetMethod.DeclaringType));
+            }
         }
 
         private static void VerifyPatchMethodShape(

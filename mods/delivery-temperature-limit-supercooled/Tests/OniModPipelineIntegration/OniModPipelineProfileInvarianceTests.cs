@@ -310,7 +310,10 @@ public sealed class OniModPipelineProfileInvarianceTests
                     "mod_info.yaml"),
                 new OniModPipelinePackageFileContract(
                     "{build-output}/DeliveryTemperatureLimit.dll",
-                    "DeliveryTemperatureLimit.dll")
+                    "DeliveryTemperatureLimit.dll"),
+                new OniModPipelinePackageFileContract(
+                    "translations",
+                    "translations")
             },
             profile.PackageFiles.ToArray());
         Assert.AreEqual("DeliveryTemperatureLimit", profile.LocalInstallDirectory);

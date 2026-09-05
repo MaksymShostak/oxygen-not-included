@@ -1,5 +1,7 @@
 #nullable enable
 
+using System.Reflection;
+
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
 
 [TestClass]
@@ -48,6 +50,50 @@ public sealed class DeliveryTemperatureUserInterfaceContractTests
         Assert.IsFalse(
             sideScreenSource.Contains("[DEBUG-KEY]", StringComparison.Ordinal),
             "TemperatureLimitSideScreen must not retain diagnostic debug log probes.");
+    }
+
+    [TestMethod]
+    public void DeliveryTemperatureOptionsUiBridge_WhenInspected_ResolvesImplementedMethodBeforeHarmonyPatch()
+    {
+        string sourceRoot = ResolveSourceRoot();
+        string bridgeSource = File.ReadAllText(
+            Path.Combine(sourceRoot, "Options", "DeliveryTemperatureOptionsUiBridge.cs"));
+
+        StringAssert.Contains(
+            bridgeSource,
+            "GetImplementedMethod",
+            "DeliveryTemperatureOptionsUiBridge must resolve the implemented method before Harmony patching.");
+        StringAssert.Contains(
+            bridgeSource,
+            "MethodBase.GetMethodFromHandle",
+            "DeliveryTemperatureOptionsUiBridge must resolve methods to their declaring type via MethodBase.GetMethodFromHandle.");
+        StringAssert.Contains(
+            bridgeSource,
+            "MethodInfo patchTarget = GetImplementedMethod(target);",
+            "DeliveryTemperatureOptionsUiBridge.Patch must resolve patchTarget via GetImplementedMethod.");
+
+        MethodInfo derivedMethod = typeof(ContractTestDerivedDialogScreenDouble).GetMethod("Deactivate")!;
+        Assert.AreNotEqual(
+            derivedMethod.DeclaringType,
+            derivedMethod.ReflectedType,
+            "Derived class reflection must produce an inherited method where ReflectedType differs from DeclaringType.");
+
+        MethodInfo resolvedMethod = ((MethodInfo?)MethodBase.GetMethodFromHandle(
+            derivedMethod.MethodHandle,
+            derivedMethod.DeclaringType!.TypeHandle))!;
+        Assert.AreEqual(
+            resolvedMethod.DeclaringType,
+            resolvedMethod.ReflectedType,
+            "Resolved method handle on DeclaringType must produce ReflectedType == DeclaringType to satisfy Harmony.");
+    }
+
+    private class ContractTestBaseKScreenDouble
+    {
+        public virtual void Deactivate() { }
+    }
+
+    private class ContractTestDerivedDialogScreenDouble : ContractTestBaseKScreenDouble
+    {
     }
 
     private static string ResolveSourceRoot()

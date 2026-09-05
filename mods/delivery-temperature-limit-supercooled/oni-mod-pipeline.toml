@@ -23,6 +23,10 @@ destination = "mod_info.yaml"
 source = "{build-output}/DeliveryTemperatureLimit.dll"
 destination = "DeliveryTemperatureLimit.dll"
 
+[[package-files]]
+source = "translations"
+destination = "translations"
+
 [workshop-listing]
 description = "STEAM_DESCRIPTION.bbcode"
 change-notes = "STEAM_CHANGE_NOTES.bbcode"

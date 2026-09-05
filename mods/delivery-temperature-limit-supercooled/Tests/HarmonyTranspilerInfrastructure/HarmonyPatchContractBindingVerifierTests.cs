@@ -548,6 +548,44 @@ public sealed class HarmonyPatchContractBindingVerifierTests
             HarmonyPatchContractKind.Transpiler);
     }
 
+    [TestMethod]
+    public void TargetMethod_WhenReflectedOnDerivedType_IsRejectedDuringPreparation()
+    {
+        MethodInfo targetMethod = typeof(DerivedTargetFixture)
+            .GetMethod(nameof(BaseTargetFixture.InheritedMethod))!;
+        MethodInfo patchMethod = RequireMethod(nameof(PrefixWithValidOriginalMethod));
+
+        HarmonyPatchContractViolationException exception =
+            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+                HarmonyPatchContractBindingVerifier.VerifyAll(
+                    [
+                        new HarmonyPatchContractBinding(
+                            targetMethod,
+                            patchMethod,
+                            HarmonyPatchContractKind.Prefix)
+                    ]));
+
+        StringAssert.Contains(exception.Message, "reflected type");
+        StringAssert.Contains(exception.Message, nameof(DerivedTargetFixture));
+        StringAssert.Contains(exception.Message, nameof(BaseTargetFixture));
+    }
+
+    [TestMethod]
+    public void TargetMethod_WhenDeclaredOnReflectedType_IsAccepted()
+    {
+        MethodInfo targetMethod = typeof(BaseTargetFixture)
+            .GetMethod(nameof(BaseTargetFixture.InheritedMethod))!;
+        MethodInfo patchMethod = RequireMethod(nameof(PrefixWithValidOriginalMethod));
+
+        HarmonyPatchContractBindingVerifier.VerifyAll(
+            [
+                new HarmonyPatchContractBinding(
+                    targetMethod,
+                    patchMethod,
+                    HarmonyPatchContractKind.Prefix)
+            ]);
+    }
+
     private static void VerifySingle(
         string targetMethodName,
         string patchMethodName,
@@ -830,5 +868,16 @@ public sealed class HarmonyPatchContractBindingVerifierTests
     {
         internal static void Prefix(NavigatorFixture navigator) =>
             _ = navigator;
+    }
+
+    private class BaseTargetFixture
+    {
+        public void InheritedMethod()
+        {
+        }
+    }
+
+    private sealed class DerivedTargetFixture : BaseTargetFixture
+    {
     }
 }

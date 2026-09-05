@@ -140,11 +140,23 @@ namespace DeliveryTemperatureLimit
 
         private static void Patch(MethodInfo target, string prefix)
         {
-            if (PatchedMethods.Contains(target)) return;
+            MethodInfo patchTarget = GetImplementedMethod(target);
+            if (PatchedMethods.Contains(patchTarget)) return;
             var method = typeof(DeliveryTemperatureOptionsUiBridge).GetMethod(prefix,
                 BindingFlags.NonPublic | BindingFlags.Static) ?? throw new MissingMethodException(prefix);
-            UiHarmony.Patch(target, prefix: new HarmonyMethod(method));
-            PatchedMethods.Add(target);
+            UiHarmony.Patch(patchTarget, prefix: new HarmonyMethod(method));
+            PatchedMethods.Add(patchTarget);
+        }
+
+        private static MethodInfo GetImplementedMethod(MethodInfo method)
+        {
+            if (method.DeclaringType != null && method.ReflectedType != method.DeclaringType)
+            {
+                return (MethodInfo?)MethodBase.GetMethodFromHandle(
+                    method.MethodHandle,
+                    method.DeclaringType.TypeHandle) ?? method.GetBaseDefinition();
+            }
+            return method;
         }
     }
 
