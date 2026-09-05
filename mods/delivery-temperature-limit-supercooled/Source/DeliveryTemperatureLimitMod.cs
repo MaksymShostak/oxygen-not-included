@@ -2,6 +2,7 @@
 
 using HarmonyLib;
 using PeterHan.PLib.Core;
+using PeterHan.PLib.Database;
 using PeterHan.PLib.Options;
 using System;
 using System.Collections.Generic;
@@ -20,10 +21,9 @@ namespace DeliveryTemperatureLimit
             DeliveryTemperatureSupportReporter.Initialize(mod, assembly);
             PUtil.InitLibrary(false);
             Localization.RegisterForTranslation(
-                typeof(STRINGS.TEMPERATURELIMIT));
-            new POptions().RegisterOptions(
-                this,
-                typeof(DeliveryTemperatureLimitOptions));
+                typeof(STRINGS.DELIVERY_TEMPERATURE_LIMIT));
+            new PLocalization().Register();
+            DeliveryTemperatureOptionsUiBridge.Register(this);
 
             // These targets exist independently of the loaded-mod topology.
             // The installer still resolves every member before it mutates

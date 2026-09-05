@@ -1,0 +1,413 @@
+msgid ""
+msgstr ""
+"Application: Oxygen Not Included\n"
+"POT Version: 2.0\n"
+"Project-Id-Version: DeliveryTemperatureLimit\n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: 2026-09-05 23:17+0300\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: ChatGPT localization workflow\n"
+"Language: de_DE\n"
+"Last-Translator: OpenAI ChatGPT (AI-generated; human review pending)\n"
+"X-Review-Status: Native-speaker and in-game review pending\n"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE"
+msgid "Delivery Limit"
+msgstr "Lieferlimit"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.SECTION_RANGE
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.SECTION_RANGE"
+msgid "Temperature range"
+msgstr "Temperaturbereich"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.LOWER_BOUND
+#. TRANSLATORS: Inclusive lower temperature bound: T >= minimum. Keep brief.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.LOWER_BOUND"
+msgid "At least"
+msgstr "Mindestens"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.UPPER_BOUND
+#. TRANSLATORS: Exclusive upper temperature bound: T < maximum. Do not translate as "at most".
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.UPPER_BOUND"
+msgid "Below"
+msgstr "Unter"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.BUTTON_CLEAR
+#. TRANSLATORS: Clears both fields; this removes both temperature limits, not factory defaults.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.BUTTON_CLEAR"
+msgid "Clear"
+msgstr "Leeren"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.DISABLED
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.DISABLED"
+msgid "No temperature limit"
+msgstr "Kein Temperaturlimit"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.LOWER_BOUND_ONLY
+#, csharp-format
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.LOWER_BOUND_ONLY"
+msgid "Allows deliveries at or above {0}"
+msgstr "Erlaubt Lieferungen mit mindestens {0}"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.UPPER_BOUND_ONLY
+#, csharp-format
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.UPPER_BOUND_ONLY"
+msgid "Allows deliveries below {0}"
+msgstr "Erlaubt Lieferungen mit weniger als {0}"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.INTERVAL
+#. TRANSLATORS: {0} is the inclusive minimum; {1} is the exclusive maximum. Both include units.
+#, csharp-format
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.INTERVAL"
+msgid "Allows deliveries at or above {0} and below {1}"
+msgstr "Erlaubt Lieferungen mit mindestens {0} und weniger als {1}"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.EMPTY_INTERVAL
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.EMPTY_INTERVAL"
+msgid "<color=#F0B310>▲</color> No deliveries can match this range."
+msgstr "<color=#F0B310>▲</color> In diesem Bereich sind keine Lieferungen möglich."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.BOUNDS_REVERSED
+#. TRANSLATORS: Reference the exact translated LOWER_BOUND and UPPER_BOUND labels. Equality is handled by a separate warning.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.BOUNDS_REVERSED"
+msgid "<color=#F44A47>▲</color> \"At least\" must not be above \"Below\"."
+msgstr "<color=#F44A47>▲</color> Der Wert bei „Mindestens“ darf nicht über dem Wert bei „Unter“ liegen."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.INVALID_NUMBER
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.INVALID_NUMBER"
+msgid "<color=#F44A47>▲</color> Enter a whole-number temperature."
+msgstr "<color=#F44A47>▲</color> Gib eine ganzzahlige Temperatur ein."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.OUT_OF_RANGE
+#, csharp-format
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.OUT_OF_RANGE"
+msgid "<color=#F44A47>▲</color> Temperature must be between {0} and {1}."
+msgstr "<color=#F44A47>▲</color> Die Temperatur muss zwischen {0} und {1} liegen."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.LOWER_BOUND
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.LOWER_BOUND"
+msgid "Minimum temperature for delivered materials. This value is included. Leave blank for no minimum."
+msgstr "Mindesttemperatur für gelieferte Materialien. Dieser Wert ist eingeschlossen. Leer lassen, um keine Mindesttemperatur festzulegen."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.UPPER_BOUND
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.UPPER_BOUND"
+msgid "Upper temperature boundary for delivered materials. Materials at exactly this boundary are excluded. Leave blank for no upper limit."
+msgstr "Obere Temperaturgrenze für gelieferte Materialien. Materialien mit genau dieser Temperatur sind ausgeschlossen. Leer lassen, um keine Obergrenze festzulegen."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.CLEAR
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.CLEAR"
+msgid "Remove both temperature limits."
+msgstr "Beide Temperaturlimits entfernen."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.STATUS
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.STATUS"
+msgid "Delivery Temperature Limit checks a material's temperature when choosing resources for delivery."
+msgstr "Delivery Temperature Limit prüft die Temperatur eines Materials, wenn Ressourcen für eine Lieferung ausgewählt werden."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_TITLE
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_TITLE"
+msgid "Delivery Temperature Limit - Options"
+msgstr "Delivery Temperature Limit - Optionen"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_INTRO
+#. TRANSLATORS: Building-specific ranges are set in building panels. Settings in this Options dialog are shared across colonies.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_INTRO"
+msgid "Set individual buildings' delivery ranges in their details panels. These settings are shared across your colonies."
+msgstr "Lege die Temperaturbereiche für Lieferungen an einzelne Gebäude in deren Detailansichten fest. Die Einstellungen hier gelten für alle deine Kolonien."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.RESTART_NOTICE
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.RESTART_NOTICE"
+msgid "Changes take effect after restarting Oxygen Not Included."
+msgstr "Änderungen werden nach einem Neustart von Oxygen Not Included wirksam."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.PENDING_RESTART_NOTICE
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.PENDING_RESTART_NOTICE"
+msgid "Saved changes are waiting for a restart. This session still uses its startup settings."
+msgstr "Gespeicherte Änderungen werden erst nach einem Neustart wirksam. Diese Sitzung verwendet weiterhin die Einstellungen vom Spielstart."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_CONSTRUCTION
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_CONSTRUCTION"
+msgid "Construction"
+msgstr "Bau"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.CHECKBOX_LIMIT_CONSTRUCTION
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.CHECKBOX_LIMIT_CONSTRUCTION"
+msgid "Limit construction material temperatures"
+msgstr "Temperaturen von Baumaterialien begrenzen"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_DEFAULT_CONSTRUCTION_RANGE
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_DEFAULT_CONSTRUCTION_RANGE"
+msgid "Default range for new construction"
+msgstr "Standardbereich für neue Bauvorhaben"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_DEFAULT_CONSTRUCTION_RANGE
+#. SOURCE REPAIR: English text recovered verbatim from TRANSLATION_HANDOFF_GUIDE.md.
+#. Verify the corresponding source declaration and extractor before the next regeneration.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_DEFAULT_CONSTRUCTION_RANGE"
+msgid "Existing construction sites are not updated. Limits are rounded to whole Kelvin values; the lower bound is included and the upper bound is excluded."
+msgstr "Bestehende Baustellen werden nicht aktualisiert. Die Grenzwerte werden auf ganze Kelvin gerundet; die Untergrenze ist eingeschlossen, die Obergrenze ausgeschlossen."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.HINT_CONSTRUCTION_DISABLED
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.HINT_CONSTRUCTION_DISABLED"
+msgid "Enable construction limits to edit this default range."
+msgstr "Aktiviere die Baulimits, um diesen Standardbereich zu bearbeiten."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_RESOURCE_WARNINGS
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_RESOURCE_WARNINGS"
+msgid "Resource warnings"
+msgstr "Ressourcenwarnungen"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.CHECKBOX_WARN_ON_BLOCKED
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.CHECKBOX_WARN_ON_BLOCKED"
+msgid "Warn when temperature limits block delivery"
+msgstr "Warnen, wenn Temperaturlimits Lieferungen verhindern"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_WARN_ON_BLOCKED
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_WARN_ON_BLOCKED"
+msgid "Includes temperature in the Lacks Resources check. Does not change delivery filtering."
+msgstr "Berücksichtigt die Temperatur bei der Prüfung auf fehlende Ressourcen. Ändert nicht die Lieferfilterung."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.NOTICE_RESOURCE_WARNINGS_UNAVAILABLE
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.NOTICE_RESOURCE_WARNINGS_UNAVAILABLE"
+msgid "Temperature-aware resource warnings are unavailable in this session. Your preference is retained."
+msgstr "Temperaturabhängige Ressourcenwarnungen sind in dieser Sitzung nicht verfügbar. Deine Einstellung bleibt erhalten."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_INTEGER_REQUIRED
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_INTEGER_REQUIRED"
+msgid "Enter a whole-number temperature in the unit shown."
+msgstr "Gib eine ganzzahlige Temperatur in der angezeigten Einheit ein."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_SUPPORTED_RANGE
+#. TRANSLATORS: {0} and {1} are the endpoints; {2} is the displayed unit. Preserve all three placeholders.
+#, csharp-format
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_SUPPORTED_RANGE"
+msgid "The rounded temperature must be within the supported range: {0} to {1} {2}."
+msgstr "Die gerundete Temperatur muss im unterstützten Bereich liegen: {0} bis {1} {2}."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_EMPTY_INTERVAL
+#. TRANSLATORS: Reference the exact translated bound labels. After rounding to integer kelvin values, minimum must be strictly less than maximum.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_EMPTY_INTERVAL"
+msgid "The 'At least' value must be lower than 'Below' after rounding to whole Kelvin values. Choose a nonempty construction range."
+msgstr "Nach dem Runden auf ganze Kelvin muss der Wert bei „Mindestens“ kleiner sein als der Wert bei „Unter“. Wähle einen nicht leeren Temperaturbereich für den Bau."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_INVALID_PENDING
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_INVALID_PENDING"
+msgid "Correct or revert the range before disabling construction limits. Invalid values will not be saved."
+msgstr "Korrigiere den Bereich oder verwirf die Änderungen, bevor du die Baulimits deaktivierst. Ungültige Werte werden nicht gespeichert."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_REVERT_RANGE
+#. TRANSLATORS: Undo unsaved range edits and restore the last-saved values; do not confuse with Restore defaults.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_REVERT_RANGE"
+msgid "Revert temperature edits"
+msgstr "Temperaturänderungen verwerfen"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BANNER_LEGACY_UNIT
+#. TRANSLATORS: Interpret existing numbers in the chosen unit; this is not a request to convert their numeric values. {0} is a unit symbol.
+#, csharp-format
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BANNER_LEGACY_UNIT"
+msgid "Unspecified unit in previous settings: pre-interpreted as {0}. Select a unit if different:"
+msgstr "In den bisherigen Einstellungen fehlt die Einheit. Die Werte werden vorläufig als {0} interpretiert. Wähle eine andere Einheit, falls nötig:"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_CELSIUS
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_CELSIUS"
+msgid "Interpret as °C"
+msgstr "Als °C interpretieren"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_FAHRENHEIT
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_FAHRENHEIT"
+msgid "Interpret as °F"
+msgstr "Als °F interpretieren"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_KELVIN
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_KELVIN"
+msgid "Interpret as K"
+msgstr "Als K interpretieren"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_EXPAND_HELP
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_EXPAND_HELP"
+msgid "Show help and diagnostics"
+msgstr "Hilfe und Diagnose anzeigen"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_COLLAPSE_HELP
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_COLLAPSE_HELP"
+msgid "Hide help and diagnostics"
+msgstr "Hilfe und Diagnose ausblenden"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_INSTALLED_VERSION
+#. TRANSLATORS: {0} is the installed assembly FILE version, not the assembly identity version.
+#, csharp-format
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_INSTALLED_VERSION"
+msgid "Installed assembly file version: {0}"
+msgstr "Dateiversion der installierten Assembly: {0}"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_HOMEPAGE
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_HOMEPAGE"
+msgid "Open mod page"
+msgstr "Mod-Seite öffnen"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_CONFIG_FOLDER
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_CONFIG_FOLDER"
+msgid "Open configuration folder"
+msgstr "Konfigurationsordner öffnen"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_CONFIG_FOLDER
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_CONFIG_FOLDER"
+msgid "This action does not save your draft. Close and reopen Options after editing the file externally."
+msgstr "Diese Aktion speichert deine ungespeicherten Änderungen nicht. Schließe die Optionen nach einer externen Dateibearbeitung und öffne sie erneut."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_SUPPORT_REPORT
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_SUPPORT_REPORT"
+msgid "Create a diagnostic file on this computer. You choose whether to share it."
+msgstr "Erstelle eine Diagnosedatei auf diesem Computer. Du entscheidest, ob du sie teilst."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.CHECKBOX_INCLUDE_PLAYER_LOG
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.CHECKBOX_INCLUDE_PLAYER_LOG"
+msgid "Include Player.log in the next report"
+msgstr "Player.log in den nächsten Bericht aufnehmen"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_INCLUDE_PLAYER_LOG
+#. SOURCE REPAIR: English text recovered verbatim from TRANSLATION_HANDOFF_GUIDE.md.
+#. Verify the corresponding source declaration and extractor before the next regeneration.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_INCLUDE_PLAYER_LOG"
+msgid "May contain personal information. Known paths are redacted where possible; review the report before sharing."
+msgstr "Kann personenbezogene Daten enthalten. Bekannte Pfade werden nach Möglichkeit unkenntlich gemacht. Prüfe den Bericht, bevor du ihn teilst."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CREATE_REPORT
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CREATE_REPORT"
+msgid "Create local report"
+msgstr "Lokalen Bericht erstellen"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_CREATING_REPORT
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_CREATING_REPORT"
+msgid "Creating a local report…"
+msgstr "Lokaler Bericht wird erstellt…"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_CREATED
+#. TRANSLATORS: Preserve both guarantees: nothing uploaded AND nothing copied to the clipboard.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_CREATED"
+msgid "Local report created. Nothing was uploaded or copied to the clipboard. Review before sharing:"
+msgstr "Lokaler Bericht erstellt. Nichts wurde hochgeladen oder in die Zwischenablage kopiert. Vor dem Teilen prüfen:"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_FAILED
+#. TRANSLATORS: Failure does not upload a report or remove an earlier successfully created report.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_FAILED"
+msgid "The report could not be created. No report was uploaded. Any previous successful report remains available. Failure details are in Player.log."
+msgstr "Der Bericht konnte nicht erstellt werden. Kein Bericht wurde hochgeladen. Ein zuvor erfolgreich erstellter Bericht bleibt verfügbar. Fehlerdetails stehen in Player.log."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_LAST_REPORT_FOLDER
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_LAST_REPORT_FOLDER"
+msgid "Open last report folder"
+msgstr "Ordner des letzten Berichts öffnen"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_COPY_REPORT_SUMMARY
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_COPY_REPORT_SUMMARY"
+msgid "Copy last report summary"
+msgstr "Zusammenfassung des letzten Berichts kopieren"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_SUMMARY_COPIED
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_SUMMARY_COPIED"
+msgid "The clipboard now contains the report summary. Review it before sharing."
+msgstr "Die Zwischenablage enthält jetzt die Berichtszusammenfassung. Prüfe sie, bevor du sie teilst."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_ISSUE_FORM
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_ISSUE_FORM"
+msgid "Open GitHub issue form"
+msgstr "GitHub-Issue-Formular öffnen"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_ISSUE_FORM
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_ISSUE_FORM"
+msgid "Opens the issue template without diagnostic data in the URL. You choose what to paste or attach."
+msgstr "Öffnet die Issue-Vorlage ohne Diagnosedaten in der URL. Du entscheidest, was du einfügst oder anhängst."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_NO_REPORT
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_NO_REPORT"
+msgid "Create a local report first. Reports from earlier sessions are not automatically selected."
+msgstr "Erstelle zuerst einen lokalen Bericht. Berichte aus früheren Sitzungen werden nicht automatisch ausgewählt."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_ACTION_FAILED
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_ACTION_FAILED"
+msgid "The action could not be completed. Details are in Player.log."
+msgstr "Die Aktion konnte nicht abgeschlossen werden. Details stehen in Player.log."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTORE_DEFAULTS
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTORE_DEFAULTS"
+msgid "Restore defaults"
+msgstr "Standardwerte wiederherstellen"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_RESTORE_DEFAULTS
+#. TRANSLATORS: Only the editable draft changes. Cancel leaves the saved configuration file unchanged.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_RESTORE_DEFAULTS"
+msgid "Replaces the draft only. Cancel still leaves the saved file unchanged."
+msgstr "Ändert nur die noch nicht gespeicherten Einstellungen. „Abbrechen“ lässt die gespeicherte Datei weiterhin unverändert."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CANCEL
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CANCEL"
+msgid "Cancel"
+msgstr "Abbrechen"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_SAVE
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_SAVE"
+msgid "Save changes"
+msgstr "Änderungen speichern"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_CHANGES_SAVED
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_CHANGES_SAVED"
+msgid "Changes saved. The running session has not been changed."
+msgstr "Änderungen gespeichert. Die laufende Sitzung bleibt unverändert."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_DONE
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_DONE"
+msgid "Done"
+msgstr "Fertig"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTART_NOW
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTART_NOW"
+msgid "Restart now"
+msgstr "Jetzt neu starten"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTART_LATER
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTART_LATER"
+msgid "Later"
+msgstr "Später"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.WARNING_RUNNING_COLONY
+#. TRANSLATORS: Saving mod options does not save colony/gameplay progress. Preserve the warning.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.WARNING_RUNNING_COLONY"
+msgid "Save your colony and return to the main menu before restarting. Saving options does not save colony progress."
+msgstr "Speichere deine Kolonie und kehre vor dem Neustart zum Hauptmenü zurück. Das Speichern der Optionen speichert nicht den Fortschritt deiner Kolonie."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_DISCARD_TITLE
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_DISCARD_TITLE"
+msgid "Discard unsaved changes?"
+msgstr "Ungespeicherte Änderungen verwerfen?"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CONFIRM_DISCARD
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CONFIRM_DISCARD"
+msgid "Discard changes"
+msgstr "Änderungen verwerfen"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CANCEL_DISCARD
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CANCEL_DISCARD"
+msgid "Keep editing"
+msgstr "Weiter bearbeiten"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_SAVE_FAILED
+#. SOURCE REPAIR: English text recovered verbatim from TRANSLATION_HANDOFF_GUIDE.md.
+#. Verify the corresponding source declaration and extractor before the next regeneration.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_SAVE_FAILED"
+msgid "Options were not saved. Your draft is still here. Check file access and disk space; after an external edit, close and reopen Options. Details are in Player.log."
+msgstr "Die Optionen wurden nicht gespeichert. Deine ungespeicherten Änderungen sind noch vorhanden. Prüfe den Dateizugriff und den freien Speicherplatz. Schließe die Optionen nach einer externen Dateibearbeitung und öffne sie erneut. Details stehen in Player.log."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_LOAD_FAILED
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_LOAD_FAILED"
+msgid "Options could not be read safely. The configuration has not been changed. Check the file, then reopen Options. Details are in Player.log."
+msgstr "Die Optionen konnten nicht sicher gelesen werden. Die Konfiguration wurde nicht geändert. Prüfe die Datei und öffne dann die Optionen erneut. Details stehen in Player.log."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_UI_FAILED
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_UI_FAILED"
+msgid "The options screen could not be opened safely. No settings were changed. See Player.log for details."
+msgstr "Die Optionen konnten nicht sicher geöffnet werden. Es wurden keine Einstellungen geändert. Details stehen in Player.log."

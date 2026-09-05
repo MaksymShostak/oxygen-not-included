@@ -9,7 +9,7 @@ using System.Reflection.Emit;
 namespace DeliveryTemperatureLimit
 {
     /// <summary>
-    /// Replaces Klei's status-only fetchable amount when—and only when—the
+    /// Replaces Klei's status-only fetchable amount when - and only when - the
     /// session catalog proves complete temperature-eligible inventory evidence.
     /// </summary>
     /// <remarks>

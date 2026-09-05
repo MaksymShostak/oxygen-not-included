@@ -120,7 +120,7 @@ namespace DeliveryTemperatureLimit
                 return TemperatureAmountSeries.Empty;
             }
 
-            // Sorting the compact prefix—not the entire canonical range—keeps
+            // Sorting the compact prefix - not the entire canonical range - keeps
             // work proportional to the temperatures actually observed.
             Array.Sort(touchedBucketOrdinals, 0, occupiedBucketCount);
 

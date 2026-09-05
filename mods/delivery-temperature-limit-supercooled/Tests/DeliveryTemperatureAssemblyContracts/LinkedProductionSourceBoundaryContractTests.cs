@@ -24,7 +24,8 @@ public sealed class LinkedProductionSourceBoundaryContractTests
         @"..\Source\FastTrackCompatibility\PickupGroupingAdapters\FastTrackPickupGroupingKeyAllocator.cs",
         @"..\Source\HarmonyTranspilerInfrastructure\HarmonyPatchContract*.cs",
         @"..\Source\RuntimePatchInstallation\DeliveryTemperatureRuntimePatchGroup.cs",
-        @"..\Source\RuntimePatchInstallation\DeliveryTemperatureRuntimePatchPlan.cs"
+        @"..\Source\RuntimePatchInstallation\DeliveryTemperatureRuntimePatchPlan.cs",
+        @"..\Source\Options\ConstructionTemperatureDraft.cs"
     ];
 
     private static readonly HashSet<string> ConditionallyLinkedFutureSourceIncludes =

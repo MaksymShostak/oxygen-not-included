@@ -5,6 +5,7 @@ using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using SideScreenStrings = STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN;
 
 namespace DeliveryTemperatureLimit
 {
@@ -72,7 +73,7 @@ namespace DeliveryTemperatureLimit
             var headerLabel = new PLabel("HeaderLabel")
             {
                 TextStyle = PUITuning.Fonts.TextDarkStyle,
-                Text = STRINGS.TEMPERATURELIMIT.TEMPERATURE_RANGE
+                Text = SideScreenStrings.SECTION_RANGE
             };
             var headerSpacer = new PSpacer
             {
@@ -80,8 +81,8 @@ namespace DeliveryTemperatureLimit
             };
             var clearBtn = new PButton("ClearButton")
             {
-                Text = STRINGS.TEMPERATURELIMIT.CLEAR,
-                ToolTip = STRINGS.TEMPERATURELIMIT.TOOLTIP_CLEAR,
+                Text = SideScreenStrings.BUTTON_CLEAR,
+                ToolTip = SideScreenStrings.TOOLTIPS.CLEAR,
                 TextStyle = PUITuning.Fonts.TextDarkStyle,
                 Color = PUITuning.Colors.ButtonBlueStyle,
                 Margin = new RectOffset(6, 6, 2, 2),
@@ -109,7 +110,7 @@ namespace DeliveryTemperatureLimit
             var lowLabel = new PLabel("LowLabel")
             {
                 TextStyle = PUITuning.Fonts.TextDarkStyle,
-                Text = STRINGS.TEMPERATURELIMIT.LOW_BOUND_LABEL
+                Text = SideScreenStrings.LOWER_BOUND
             };
             boundsGrid.AddChild(
                 lowLabel,
@@ -172,7 +173,7 @@ namespace DeliveryTemperatureLimit
             var highLabel = new PLabel("HighLabel")
             {
                 TextStyle = PUITuning.Fonts.TextDarkStyle,
-                Text = STRINGS.TEMPERATURELIMIT.HIGH_BOUND_LABEL
+                Text = SideScreenStrings.UPPER_BOUND
             };
             boundsGrid.AddChild(
                 highLabel,
@@ -235,8 +236,8 @@ namespace DeliveryTemperatureLimit
             var status = new PLabel("StatusLabel")
             {
                 TextStyle = PUITuning.Fonts.TextDarkStyle,
-                Text = STRINGS.TEMPERATURELIMIT.STATUS_DISABLED,
-                ToolTip = STRINGS.TEMPERATURELIMIT.TOOLTIP_STATUS
+                Text = SideScreenStrings.STATUS.DISABLED,
+                ToolTip = SideScreenStrings.TOOLTIPS.STATUS
             };
             status.AddOnRealize(realizedStatus =>
             {
@@ -336,7 +337,7 @@ namespace DeliveryTemperatureLimit
             if (statusLabel != null)
             {
                 string statusText = bounds.IsEqualBounds
-                    ? STRINGS.TEMPERATURELIMIT.WARNING_EMPTY.ToString()
+                    ? SideScreenStrings.VALIDATION.EMPTY_INTERVAL.ToString()
                     : TemperatureLimitPresenter.GetRangeDescription(bounds);
                 PUIElements.SetText(statusLabel, statusText);
             }
@@ -517,13 +518,13 @@ namespace DeliveryTemperatureLimit
         {
             PUIElements.SetToolTip(
                 lowInput,
-                STRINGS.TEMPERATURELIMIT.TOOLTIP_LOW.ToString());
+                SideScreenStrings.TOOLTIPS.LOWER_BOUND.ToString());
             PUIElements.SetToolTip(
                 highInput,
-                STRINGS.TEMPERATURELIMIT.TOOLTIP_HIGH.ToString());
+                SideScreenStrings.TOOLTIPS.UPPER_BOUND.ToString());
             PUIElements.SetToolTip(
                 statusLabel,
-                STRINGS.TEMPERATURELIMIT.TOOLTIP_STATUS.ToString());
+                SideScreenStrings.TOOLTIPS.STATUS.ToString());
         }
 
         private void ConfigureNavigation()

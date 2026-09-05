@@ -15,7 +15,12 @@ public sealed class IntentionalRuntimeContractTests
         "DeliveryTemperatureLimit.DeliveryTemperatureLimitMod",
         "DeliveryTemperatureLimit.DeliveryTemperatureLimitOptions",
         "DeliveryTemperatureLimit.TemperatureLimit",
-        "STRINGS.TEMPERATURELIMIT"
+        "STRINGS.DELIVERY_TEMPERATURE_LIMIT",
+        "STRINGS.DELIVERY_TEMPERATURE_LIMIT+SIDESCREEN",
+        "STRINGS.DELIVERY_TEMPERATURE_LIMIT+SIDESCREEN+STATUS",
+        "STRINGS.DELIVERY_TEMPERATURE_LIMIT+SIDESCREEN+VALIDATION",
+        "STRINGS.DELIVERY_TEMPERATURE_LIMIT+SIDESCREEN+TOOLTIPS",
+        "STRINGS.DELIVERY_TEMPERATURE_LIMIT+OPTIONS"
     ];
 
     private static readonly string[] IntentionalTemperatureLimitMemberNames =
@@ -44,58 +49,117 @@ public sealed class IntentionalRuntimeContractTests
 
     private static readonly string[] IntentionalPersistedOptionPropertyNames =
     [
+        "SchemaVersion",
+        "TemperatureUnit",
         "CheckTemperatureForStatusItems",
         "UnderConstructionLimit",
         "MaxConstructionTemperature",
         "MinConstructionTemperature"
     ];
 
-    private static readonly string[] IntentionalSupportActionPropertyNames =
-    [
-        "CreateSupportReport",
-        "CreateExtendedSupportReport"
-    ];
-
     private static readonly string[] IntentionalOptionPropertyNames =
     [
-        .. IntentionalPersistedOptionPropertyNames,
-        .. IntentionalSupportActionPropertyNames
+        .. IntentionalPersistedOptionPropertyNames
     ];
 
     private static readonly string[] IntentionalOptionMemberNames =
     [
-        "CheckTemperatureForStatusItems",
-        "UnderConstructionLimit",
-        "MaxConstructionTemperature",
-        "MinConstructionTemperature",
-        "CreateSupportReport",
-        "CreateExtendedSupportReport",
+        .. IntentionalPersistedOptionPropertyNames,
         "ToString"
     ];
 
-    private static readonly string[] IntentionalLocalizationFieldNames =
+    private static readonly string[] IntentionalSideScreenFieldNames =
     [
-        "LABEL",
-        "RANGE_SEPARATOR",
-        "TOOLTIP_RANGE",
-        "TOOLTIP_NOTSET",
-        "SIDESCREEN_TITLE",
-        "TEMPERATURE_RANGE",
-        "LOW_BOUND_LABEL",
-        "HIGH_BOUND_LABEL",
+        "TITLE",
+        "SECTION_RANGE",
+        "LOWER_BOUND",
+        "UPPER_BOUND",
+        "BUTTON_CLEAR"
+    ];
+
+    private static readonly string[] IntentionalStatusFieldNames =
+    [
+        "DISABLED",
+        "LOWER_BOUND_ONLY",
+        "UPPER_BOUND_ONLY",
+        "INTERVAL"
+    ];
+
+    private static readonly string[] IntentionalValidationFieldNames =
+    [
+        "EMPTY_INTERVAL",
+        "BOUNDS_REVERSED",
+        "INVALID_NUMBER",
+        "OUT_OF_RANGE"
+    ];
+
+    private static readonly string[] IntentionalTooltipsFieldNames =
+    [
+        "LOWER_BOUND",
+        "UPPER_BOUND",
         "CLEAR",
-        "STATUS_DISABLED",
-        "STATUS_LOW_ONLY",
-        "STATUS_HIGH_ONLY",
-        "STATUS_RANGE",
-        "WARNING_EMPTY",
-        "ERROR_REVERSED",
-        "ERROR_NUMBER",
-        "ERROR_RANGE",
-        "TOOLTIP_LOW",
-        "TOOLTIP_HIGH",
-        "TOOLTIP_CLEAR",
-        "TOOLTIP_STATUS"
+        "STATUS"
+    ];
+
+    private static readonly string[] IntentionalOptionsFieldNames =
+    [
+        "DIALOG_TITLE",
+        "DIALOG_INTRO",
+        "RESTART_NOTICE",
+        "PENDING_RESTART_NOTICE",
+        "SECTION_CONSTRUCTION",
+        "CHECKBOX_LIMIT_CONSTRUCTION",
+        "LABEL_DEFAULT_CONSTRUCTION_RANGE",
+        "TOOLTIP_DEFAULT_CONSTRUCTION_RANGE",
+        "HINT_CONSTRUCTION_DISABLED",
+        "SECTION_RESOURCE_WARNINGS",
+        "CHECKBOX_WARN_ON_BLOCKED",
+        "TOOLTIP_WARN_ON_BLOCKED",
+        "NOTICE_RESOURCE_WARNINGS_UNAVAILABLE",
+        "VALIDATION_INTEGER_REQUIRED",
+        "VALIDATION_SUPPORTED_RANGE",
+        "VALIDATION_EMPTY_INTERVAL",
+        "VALIDATION_INVALID_PENDING",
+        "BUTTON_REVERT_RANGE",
+        "BANNER_LEGACY_UNIT",
+        "BUTTON_INTERPRET_CELSIUS",
+        "BUTTON_INTERPRET_FAHRENHEIT",
+        "BUTTON_INTERPRET_KELVIN",
+        "BUTTON_EXPAND_HELP",
+        "BUTTON_COLLAPSE_HELP",
+        "LABEL_INSTALLED_VERSION",
+        "BUTTON_OPEN_HOMEPAGE",
+        "BUTTON_OPEN_CONFIG_FOLDER",
+        "TOOLTIP_CONFIG_FOLDER",
+        "TOOLTIP_SUPPORT_REPORT",
+        "CHECKBOX_INCLUDE_PLAYER_LOG",
+        "TOOLTIP_INCLUDE_PLAYER_LOG",
+        "BUTTON_CREATE_REPORT",
+        "STATUS_CREATING_REPORT",
+        "STATUS_REPORT_CREATED",
+        "STATUS_REPORT_FAILED",
+        "BUTTON_OPEN_LAST_REPORT_FOLDER",
+        "BUTTON_COPY_REPORT_SUMMARY",
+        "STATUS_SUMMARY_COPIED",
+        "BUTTON_OPEN_ISSUE_FORM",
+        "TOOLTIP_ISSUE_FORM",
+        "STATUS_NO_REPORT",
+        "STATUS_ACTION_FAILED",
+        "BUTTON_RESTORE_DEFAULTS",
+        "TOOLTIP_RESTORE_DEFAULTS",
+        "BUTTON_CANCEL",
+        "BUTTON_SAVE",
+        "STATUS_CHANGES_SAVED",
+        "BUTTON_DONE",
+        "BUTTON_RESTART_NOW",
+        "BUTTON_RESTART_LATER",
+        "WARNING_RUNNING_COLONY",
+        "DIALOG_DISCARD_TITLE",
+        "BUTTON_CONFIRM_DISCARD",
+        "BUTTON_CANCEL_DISCARD",
+        "ERROR_SAVE_FAILED",
+        "ERROR_LOAD_FAILED",
+        "ERROR_UI_FAILED"
     ];
 
     [TestMethod]
@@ -124,7 +188,7 @@ public sealed class IntentionalRuntimeContractTests
             "public sealed class DeliveryTemperatureLimitMod : KMod.UserMod2");
         StringAssert.Contains(
             modSource,
-            "typeof(DeliveryTemperatureLimitOptions)");
+            "typeof(STRINGS.DELIVERY_TEMPERATURE_LIMIT)");
         Assert.IsFalse(
             modSource.Contains("typeof(Options)", StringComparison.Ordinal),
             "The PLib registration must not retain a renamed-options shim.");
@@ -133,7 +197,7 @@ public sealed class IntentionalRuntimeContractTests
             "public sealed class DeliveryTemperatureLimitOptions");
         StringAssert.Contains(
             stringsSource,
-            "public class TEMPERATURELIMIT");
+            "public static class DELIVERY_TEMPERATURE_LIMIT");
         Assert.IsFalse(
             componentSource.Contains("TemperatureIndexData", StringComparison.Ordinal));
         Assert.IsFalse(
@@ -172,8 +236,8 @@ public sealed class IntentionalRuntimeContractTests
 
         StringAssert.Contains(
             stringsSource,
-            "public static LocString STATUS_RANGE = \"Allows deliveries at or above {0} and below {1}\";",
-            "Range status string must use clear natural language matching STATUS_LOW_ONLY and STATUS_HIGH_ONLY.");
+            "public static LocString INTERVAL = \"Allows deliveries at or above {0} and below {1}\";",
+            "Range status string must use clear natural language matching LOWER_BOUND_ONLY and UPPER_BOUND_ONLY.");
     }
 
     [TestMethod]
@@ -307,10 +371,9 @@ public sealed class IntentionalRuntimeContractTests
 
         StringAssert.Contains(source, "[JsonObject(MemberSerialization.OptIn)]");
         StringAssert.Contains(source, "[ConfigFile(SharedConfigLocation: true)]");
-        StringAssert.Contains(source, "[RestartRequired]");
         StringAssert.Contains(
             source,
-            "internal static DeliveryTemperatureLimitOptions Instance");
+            "internal static DeliveryTemperatureLimitOptions Instance => LoadedOptions.Value;");
         Assert.IsFalse(
             source.Contains("SingletonOptions<", StringComparison.Ordinal) ||
             Regex.IsMatch(
@@ -319,15 +382,22 @@ public sealed class IntentionalRuntimeContractTests
                 RegexOptions.CultureInvariant),
             "A public PLib base or interface would force merged PLib " +
             "implementation types back into the assembly's public contract.");
-        StringAssert.Contains(source, "CheckTemperatureForStatusItems = true;");
-        StringAssert.Contains(source, "UnderConstructionLimit = false;");
+        Assert.IsFalse(
+            source.Contains("[RestartRequired]", StringComparison.Ordinal),
+            "Restart detection is owned by the custom options session, not a static class attribute.");
+        StringAssert.Contains(source, "CheckTemperatureForStatusItems { get; set; } = true;");
+        StringAssert.Contains(source, "UnderConstructionLimit { get; set; }");
+        StringAssert.Contains(source, "MaxConstructionTemperature { get; set; } = 318;");
+        StringAssert.Contains(source, "MinConstructionTemperature { get; set; } = 223;");
+        StringAssert.Contains(source, "SchemaVersion { get; set; } = 1;");
+        StringAssert.Contains(source, "TemperatureUnit { get; set; } = \"kelvin\";");
         foreach (string propertyName in IntentionalPersistedOptionPropertyNames)
         {
             Assert.AreEqual(
                 1,
                 Regex.Matches(
                     source,
-                    @"\[JsonProperty\]\s+public\s+(?:bool|int)\s+" +
+                    @"\[JsonProperty\]\s+public\s+(?:bool|int|string)\s+" +
                     Regex.Escape(propertyName) +
                     @"\s*\{\s*get;\s*set;\s*\}",
                     RegexOptions.CultureInvariant).Count,
@@ -336,7 +406,7 @@ public sealed class IntentionalRuntimeContractTests
 
         string[] declaredOptionPropertyNames = Regex.Matches(
                 source,
-                @"public\s+(?:bool|int|System\.Action<object>)\s+([A-Za-z]\w*)\s*(?:\{\s*get;\s*set;\s*\}|=>)",
+                @"public\s+(?:bool|int|string)\s+([A-Za-z]\w*)\s*\{\s*get;\s*set;\s*\}",
                 RegexOptions.CultureInvariant)
             .Select(match => match.Groups[1].Value)
             .OrderBy(name => name, StringComparer.Ordinal)
@@ -346,32 +416,7 @@ public sealed class IntentionalRuntimeContractTests
                 .OrderBy(name => name, StringComparer.Ordinal)
                 .ToArray(),
             declaredOptionPropertyNames,
-            "The options type must expose exactly the four persisted values and " +
-            "the two approved non-persisted support actions.");
-
-        foreach (string propertyName in IntentionalSupportActionPropertyNames)
-        {
-            Assert.AreEqual(
-                1,
-                Regex.Matches(
-                    source,
-                    @"\[Option\(\s*""[^""]+"",\s*""[^""]+"",\s*""Support""\)\]\s*" +
-                    @"\[JsonIgnore\]\s*public\s+System\.Action<object>\s+" +
-                    Regex.Escape(propertyName) +
-                    @"\s*=>",
-                    RegexOptions.CultureInvariant).Count,
-                $"Support action {propertyName} must be one read-only " +
-                "System.Action<object>, which PLib maps to a button, " +
-                "with [Option] and [JsonIgnore].");
-            Assert.AreEqual(
-                0,
-                Regex.Matches(
-                    source,
-                    @"\[JsonProperty\][\s\S]{0,200}public\s+System\.Action<object>\s+" +
-                    Regex.Escape(propertyName),
-                    RegexOptions.CultureInvariant).Count,
-                $"Support action {propertyName} must not be persisted.");
-        }
+            "The options type must expose exactly the approved persistent options properties.");
     }
 
     [TestMethod]
@@ -381,18 +426,98 @@ public sealed class IntentionalRuntimeContractTests
             ResolveSourceRoot(),
             "DeliveryTemperatureLimitStrings.cs");
 
-        foreach (string fieldName in IntentionalLocalizationFieldNames)
+        StringAssert.Contains(source, "public static class DELIVERY_TEMPERATURE_LIMIT");
+        StringAssert.Contains(source, "public static class SIDESCREEN");
+        StringAssert.Contains(source, "public static class STATUS");
+        StringAssert.Contains(source, "public static class VALIDATION");
+        StringAssert.Contains(source, "public static class TOOLTIPS");
+        StringAssert.Contains(source, "public static class OPTIONS");
+
+        int totalLocStrings = Regex.Matches(
+            source,
+            @"public\s+static\s+LocString\s+[A-Za-z0-9_]+\s*=",
+            RegexOptions.CultureInvariant).Count;
+        Assert.AreEqual(74, totalLocStrings, "Total LocString declarations in source must equal exactly 74.");
+
+        AssertClassContainsLocStrings(source, "SIDESCREEN", IntentionalSideScreenFieldNames);
+        AssertClassContainsLocStrings(source, "STATUS", IntentionalStatusFieldNames);
+        AssertClassContainsLocStrings(source, "VALIDATION", IntentionalValidationFieldNames);
+        AssertClassContainsLocStrings(source, "TOOLTIPS", IntentionalTooltipsFieldNames);
+        AssertClassContainsLocStrings(source, "OPTIONS", IntentionalOptionsFieldNames);
+
+        Assert.IsFalse(
+            Regex.IsMatch(source, @"\b(LABEL|RANGE_SEPARATOR|TOOLTIP_RANGE|TOOLTIP_NOTSET)\b"),
+            "Dead legacy localization keys must not be retained.");
+    }
+
+    private static void AssertClassContainsLocStrings(string source, string className, string[] expectedFields)
+    {
+        int classIndex = source.IndexOf($"class {className}", StringComparison.Ordinal);
+        Assert.IsTrue(classIndex >= 0, $"Class {className} must be declared.");
+        int openBrace = source.IndexOf('{', classIndex);
+        Assert.IsTrue(openBrace >= 0);
+        int depth = 0;
+        int closeBrace = -1;
+        for (int i = openBrace; i < source.Length; i++)
         {
-            Assert.AreEqual(
-                1,
-                Regex.Matches(
-                    source,
-                    @"public\s+static\s+LocString\s+" +
-                    Regex.Escape(fieldName) +
-                    @"\s*=",
-                    RegexOptions.CultureInvariant).Count,
-                $"Localization field STRINGS.TEMPERATURELIMIT.{fieldName} changed.");
+            if (source[i] == '{') depth++;
+            else if (source[i] == '}')
+            {
+                depth--;
+                if (depth == 0)
+                {
+                    closeBrace = i;
+                    break;
+                }
+            }
         }
+        Assert.IsTrue(closeBrace > openBrace);
+        string classBody = source.Substring(openBrace, closeBrace - openBrace + 1);
+        foreach (string field in expectedFields)
+        {
+            Assert.IsTrue(
+                Regex.IsMatch(classBody, @"public\s+static\s+LocString\s+" + Regex.Escape(field) + @"\s*="),
+                $"Class {className} must declare LocString {field}.");
+        }
+    }
+
+    [TestMethod]
+    public void LocalizationPotCatalog_WhenComparedWithSource_MatchesAllDeclaredLocStringsExactly()
+    {
+        string sourceRoot = ResolveSourceRoot();
+        string potPath = Path.GetFullPath(
+            Path.Combine(sourceRoot, "..", "translations", "delivery_temperature_limit.pot"));
+        Assert.IsTrue(File.Exists(potPath), $"The POT catalog must exist at {potPath}.");
+
+        string potContent = File.ReadAllText(potPath);
+        string[] potContextKeys = Regex.Matches(
+                potContent,
+                @"^msgctxt\s+""([^""]+)""",
+                RegexOptions.Multiline)
+            .Select(match => match.Groups[1].Value)
+            .OrderBy(key => key, StringComparer.Ordinal)
+            .ToArray();
+
+        List<string> expectedKeys = [];
+        foreach (string field in IntentionalSideScreenFieldNames)
+            expectedKeys.Add($"STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.{field}");
+        foreach (string field in IntentionalStatusFieldNames)
+            expectedKeys.Add($"STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.{field}");
+        foreach (string field in IntentionalValidationFieldNames)
+            expectedKeys.Add($"STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.{field}");
+        foreach (string field in IntentionalTooltipsFieldNames)
+            expectedKeys.Add($"STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.{field}");
+        foreach (string field in IntentionalOptionsFieldNames)
+            expectedKeys.Add($"STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.{field}");
+
+        string[] sortedExpected = expectedKeys
+            .OrderBy(key => key, StringComparer.Ordinal)
+            .ToArray();
+
+        CollectionAssert.AreEquivalent(
+            sortedExpected,
+            potContextKeys,
+            "Every C# LocString must have an exact matching msgctxt in the POT template, with no orphaned keys.");
     }
 
     internal static void AssertMergedAssembly(string assemblyPath)
@@ -435,8 +560,28 @@ public sealed class IntentionalRuntimeContractTests
             IntentionalOptionMemberNames);
         AssertPublicMemberNamesAreIntentional(
             publicSurface,
-            "STRINGS.TEMPERATURELIMIT",
-            IntentionalLocalizationFieldNames);
+            "STRINGS.DELIVERY_TEMPERATURE_LIMIT",
+            []);
+        AssertPublicMemberNamesAreIntentional(
+            publicSurface,
+            "STRINGS.DELIVERY_TEMPERATURE_LIMIT+SIDESCREEN",
+            IntentionalSideScreenFieldNames);
+        AssertPublicMemberNamesAreIntentional(
+            publicSurface,
+            "STRINGS.DELIVERY_TEMPERATURE_LIMIT+SIDESCREEN+STATUS",
+            IntentionalStatusFieldNames);
+        AssertPublicMemberNamesAreIntentional(
+            publicSurface,
+            "STRINGS.DELIVERY_TEMPERATURE_LIMIT+SIDESCREEN+VALIDATION",
+            IntentionalValidationFieldNames);
+        AssertPublicMemberNamesAreIntentional(
+            publicSurface,
+            "STRINGS.DELIVERY_TEMPERATURE_LIMIT+SIDESCREEN+TOOLTIPS",
+            IntentionalTooltipsFieldNames);
+        AssertPublicMemberNamesAreIntentional(
+            publicSurface,
+            "STRINGS.DELIVERY_TEMPERATURE_LIMIT+OPTIONS",
+            IntentionalOptionsFieldNames);
 
         Assert.AreEqual(
             0,

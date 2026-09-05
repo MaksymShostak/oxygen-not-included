@@ -11,7 +11,7 @@ namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
 /// <summary>
 /// Pins the structural reasons the rewrite scales with observed colony work
 /// rather than the complete configured temperature range. These are call-edge,
-/// control-flow, immutable-reference, and semantic-count contracts—not timing or
+/// control-flow, immutable-reference, and semantic-count contracts - not timing or
 /// allocation benchmarks.
 /// </summary>
 [TestClass]

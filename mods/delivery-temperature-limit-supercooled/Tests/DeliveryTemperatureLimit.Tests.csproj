@@ -13,6 +13,7 @@
     <Compile Include="..\Source\SupportReporting\Core\**\*.cs" Link="Production\SupportReporting\Core\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\Source\TemperatureLimitedDeliveryTargets\TemperatureLimitedDeliveryTargetPrefabConfigurator.cs" Link="Production\TemperatureLimitedDeliveryTargets\TemperatureLimitedDeliveryTargetPrefabConfigurator.cs" />
     <Compile Include="..\Source\TemperatureConstraints\**\*.cs" Link="Production\TemperatureConstraints\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\Source\Options\ConstructionTemperatureDraft.cs" Link="Production\Options\ConstructionTemperatureDraft.cs" />
     <Compile Include="..\Source\WorldParentTopology\**\*.cs" Link="Production\WorldParentTopology\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\Source\WorldResourceTemperatureAmounts\**\*.cs" Link="Production\WorldResourceTemperatureAmounts\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\Source\FetchTemperatureEligibility\**\*.cs" Link="Production\FetchTemperatureEligibility\%(RecursiveDir)%(Filename)%(Extension)" />

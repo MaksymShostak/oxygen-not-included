@@ -139,22 +139,18 @@ public sealed class SupportReportingSourceBoundaryTests
     }
 
     [TestMethod]
-    public void Presenter_WhenPlayerFlowIsInspected_UsesClipboardFixedBrowserAndVisibleDialog()
+    public void Presenter_WhenPlayerFlowIsInspected_UsesClipboardFixedBrowserAndExplicitActions()
     {
         string source = ReadIntegrationFile(
             "SupportReportPlayerPresenter.cs");
-        string successFlow = ExtractMethod(source, "PresentSuccess(");
 
         Assert.Contains("GUIUtility.systemCopyBuffer", source);
         Assert.Contains("Application.OpenURL", source);
-        Assert.Contains("KMod.Manager.Dialog", source);
         Assert.Contains("SupportReportLimits.BugIssueOrigin", source);
-        Assert.AreEqual(
-            4,
-            CountOccurrences(successFlow, "TryPresentationStep("),
-            "Clipboard, folder, browser, and success dialog presentation " +
-            "must each have an independent failure boundary.");
-        Assert.Contains("DTL-SUPPORT-DIALOG-FAILED", successFlow);
+        Assert.Contains("OpenLastReportFolder", source);
+        Assert.Contains("CopyLastReportSummary", source);
+        Assert.Contains("OpenIssueForm", source);
+        Assert.Contains("Run(", source);
     }
 
     [TestMethod]

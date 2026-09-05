@@ -38,7 +38,7 @@ namespace DeliveryTemperatureLimit
         }
 
         public override string GetTitle() =>
-            STRINGS.TEMPERATURELIMIT.SIDESCREEN_TITLE;
+            STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE;
 
         protected override void OnPrefabInit()
         {

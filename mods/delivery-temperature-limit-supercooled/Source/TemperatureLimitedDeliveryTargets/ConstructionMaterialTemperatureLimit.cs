@@ -153,13 +153,9 @@ namespace DeliveryTemperatureLimit
             }
 
             candidateTemperatureLimit.SetLowLimit(
-                ConvertDisplayedTemperatureToKelvin(
-                    DeliveryTemperatureLimitOptions.Instance
-                        .MinConstructionTemperature));
+                DeliveryTemperatureLimitOptions.Instance.MinConstructionTemperature);
             candidateTemperatureLimit.SetHighLimit(
-                ConvertDisplayedTemperatureToKelvin(
-                    DeliveryTemperatureLimitOptions.Instance
-                        .MaxConstructionTemperature));
+                DeliveryTemperatureLimitOptions.Instance.MaxConstructionTemperature);
         }
 
         private static bool IsSupportedBlueprintMaterialSelectionPanel(
@@ -195,11 +191,5 @@ namespace DeliveryTemperatureLimit
                     .GetValue(materialPanel);
             return !ReferenceEquals(candidatePanel, changeMaterialPanel);
         }
-
-        private static int ConvertDisplayedTemperatureToKelvin(
-            int displayedTemperature) =>
-            (int)Math.Round(GameUtil.GetTemperatureConvertedToKelvin(
-                displayedTemperature,
-                GameUtil.temperatureUnit));
     }
 }

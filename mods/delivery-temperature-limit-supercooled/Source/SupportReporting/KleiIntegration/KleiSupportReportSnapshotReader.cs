@@ -254,9 +254,27 @@ namespace DeliveryTemperatureLimit
                     currentMod.AssemblyVersion,
                     options.CheckTemperatureForStatusItems,
                     options.UnderConstructionLimit,
-                    GameUtil.temperatureUnit.ToString(),
+                    options.TemperatureUnit,
                     options.MaxConstructionTemperature,
                     options.MinConstructionTemperature);
+            warnings.Add("The temperatureLimit option values are the active process-startup snapshot, in Kelvin; unsaved drafts are not included.");
+            try
+            {
+                var optionsStore = new DeliveryTemperatureOptionsStore();
+                var savedOptions = optionsStore.Read();
+                if (savedOptions.IsLegacy)
+                    warnings.Add("Saved construction temperature units are legacy and unconfirmed.");
+                else
+                {
+                    var nextOptions = optionsStore.Values(savedOptions, OptionsTemperatureUnits.Current);
+                    if (!nextOptions.HasSameValues(options))
+                        warnings.Add("Saved options differ from the active snapshot and await restart: " + nextOptions);
+                }
+            }
+            catch (Exception)
+            {
+                warnings.Add("Saved options could not be read; their restart status is unknown.");
+            }
             SupportGenerationSnapshot generation = CreateGenerationSnapshot(
                 game,
                 runtime,

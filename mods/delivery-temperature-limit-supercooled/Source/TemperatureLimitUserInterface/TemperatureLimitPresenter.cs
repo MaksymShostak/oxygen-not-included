@@ -2,6 +2,7 @@
 
 using System;
 using System.Globalization;
+using SideScreenStrings = STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN;
 
 namespace DeliveryTemperatureLimit
 {
@@ -93,18 +94,18 @@ namespace DeliveryTemperatureLimit
         {
             if (bounds.IsUnbounded)
             {
-                return STRINGS.TEMPERATURELIMIT.STATUS_DISABLED.ToString();
+                return SideScreenStrings.STATUS.DISABLED.ToString();
             }
 
             if (bounds.LowerKelvin.HasValue && bounds.UpperKelvin.HasValue)
             {
                 if (bounds.IsEqualBounds)
                 {
-                    return STRINGS.TEMPERATURELIMIT.WARNING_EMPTY.ToString();
+                    return SideScreenStrings.VALIDATION.EMPTY_INTERVAL.ToString();
                 }
 
                 return string.Format(
-                    STRINGS.TEMPERATURELIMIT.STATUS_RANGE.ToString(),
+                    SideScreenStrings.STATUS.INTERVAL.ToString(),
                     FormatTemperatureWithUnit(bounds.LowerKelvin.Value),
                     FormatTemperatureWithUnit(bounds.UpperKelvin.Value));
             }
@@ -112,18 +113,18 @@ namespace DeliveryTemperatureLimit
             if (bounds.LowerKelvin.HasValue)
             {
                 return string.Format(
-                    STRINGS.TEMPERATURELIMIT.STATUS_LOW_ONLY.ToString(),
+                    SideScreenStrings.STATUS.LOWER_BOUND_ONLY.ToString(),
                     FormatTemperatureWithUnit(bounds.LowerKelvin.Value));
             }
 
             if (bounds.UpperKelvin.HasValue)
             {
                 return string.Format(
-                    STRINGS.TEMPERATURELIMIT.STATUS_HIGH_ONLY.ToString(),
+                    SideScreenStrings.STATUS.UPPER_BOUND_ONLY.ToString(),
                     FormatTemperatureWithUnit(bounds.UpperKelvin.Value));
             }
 
-            return STRINGS.TEMPERATURELIMIT.STATUS_DISABLED.ToString();
+            return SideScreenStrings.STATUS.DISABLED.ToString();
         }
 
         public static TemperatureValidationResult ValidateAndParse(
@@ -145,7 +146,7 @@ namespace DeliveryTemperatureLimit
                 if (lowKelvin.Value > highKelvin.Value)
                 {
                     return TemperatureValidationResult.Invalid(
-                        STRINGS.TEMPERATURELIMIT.ERROR_REVERSED.ToString());
+                        SideScreenStrings.VALIDATION.BOUNDS_REVERSED.ToString());
                 }
 
                 if (lowKelvin.Value == highKelvin.Value)
@@ -153,7 +154,7 @@ namespace DeliveryTemperatureLimit
                     TemperatureBounds equalBounds = new TemperatureBounds(lowKelvin, highKelvin);
                     return TemperatureValidationResult.Valid(
                         equalBounds,
-                        STRINGS.TEMPERATURELIMIT.WARNING_EMPTY.ToString(),
+                        SideScreenStrings.VALIDATION.EMPTY_INTERVAL.ToString(),
                         TemperatureValidationSeverity.Warning);
                 }
 
@@ -184,7 +185,7 @@ namespace DeliveryTemperatureLimit
 
             return TemperatureValidationResult.Valid(
                 TemperatureBounds.Unbounded,
-                STRINGS.TEMPERATURELIMIT.STATUS_DISABLED.ToString(),
+                SideScreenStrings.STATUS.DISABLED.ToString(),
                 TemperatureValidationSeverity.Normal);
         }
 
@@ -228,7 +229,7 @@ namespace DeliveryTemperatureLimit
                 normalized == "-" ||
                 normalized == "+")
             {
-                errorMessage = STRINGS.TEMPERATURELIMIT.ERROR_NUMBER.ToString();
+                errorMessage = SideScreenStrings.VALIDATION.INVALID_NUMBER.ToString();
                 return false;
             }
 
@@ -243,7 +244,7 @@ namespace DeliveryTemperatureLimit
                     CultureInfo.CurrentCulture,
                     out displayedTemperature))
             {
-                errorMessage = STRINGS.TEMPERATURELIMIT.ERROR_NUMBER.ToString();
+                errorMessage = SideScreenStrings.VALIDATION.INVALID_NUMBER.ToString();
                 return false;
             }
 
@@ -255,7 +256,7 @@ namespace DeliveryTemperatureLimit
                 roundedKelvin > OniStorableTemperatureBounds.MaximumTemperatureKelvin)
             {
                 errorMessage = string.Format(
-                    STRINGS.TEMPERATURELIMIT.ERROR_RANGE.ToString(),
+                    SideScreenStrings.VALIDATION.OUT_OF_RANGE.ToString(),
                     FormatTemperatureWithUnit(OniStorableTemperatureBounds.MinimumTemperatureKelvin),
                     FormatTemperatureWithUnit(OniStorableTemperatureBounds.MaximumTemperatureKelvin));
                 return false;

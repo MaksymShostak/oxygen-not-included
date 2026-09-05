@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading;
 using UnityEngine;
 
 namespace DeliveryTemperatureLimit
@@ -12,6 +13,8 @@ namespace DeliveryTemperatureLimit
         private static readonly object SnapshotSynchronization = new object();
         private static readonly SupportDiagnosticBuffer DiagnosticBuffer =
             new SupportDiagnosticBuffer();
+
+        private static int reportCreationInProgress;
 
         private static KleiCurrentModSupportSnapshot? currentModSnapshot;
         private static KleiLoadedModsSupportSnapshot loadedModsSnapshot =
@@ -120,60 +123,60 @@ namespace DeliveryTemperatureLimit
 
         private static void CreateReport(SupportReportKind reportKind)
         {
+            if (Interlocked.CompareExchange(ref reportCreationInProgress, 1, 0) != 0)
+                return;
             try
             {
-                KleiCurrentModSupportSnapshot currentMod;
-                KleiLoadedModsSupportSnapshot loadedMods;
-                lock (SnapshotSynchronization)
+                string finalPath;
+                string summary;
+                try { finalPath = WriteLocalReport(reportKind, out summary); }
+                catch (Exception exception)
                 {
-                    currentMod = currentModSnapshot ??
-                        throw new InvalidOperationException(
-                            "The support reporter did not capture the current mod identity during startup.");
-                    loadedMods = loadedModsSnapshot;
+                    SupportReportPlayerPresenter.PresentFailure(
+                        STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_FAILED, exception);
+                    return;
                 }
+                // A presentation failure is not a report-creation failure.
+                SupportReportPlayerPresenter.PresentSuccess(finalPath, summary);
+            }
+            finally { Volatile.Write(ref reportCreationInProgress, 0); }
+        }
 
-                Guid reportId = Guid.NewGuid();
-                DateTimeOffset generatedAtUtc = DateTimeOffset.UtcNow;
-                string reportFileName = SupportReportFileName.Create(
+        private static string WriteLocalReport(SupportReportKind reportKind, out string compactSummary)
+        {
+            KleiCurrentModSupportSnapshot currentMod;
+            KleiLoadedModsSupportSnapshot loadedMods;
+            lock (SnapshotSynchronization)
+            {
+                currentMod = currentModSnapshot ??
+                    throw new InvalidOperationException(
+                        "The support reporter did not capture the current mod identity during startup.");
+                loadedMods = loadedModsSnapshot;
+            }
+
+            Guid reportId = Guid.NewGuid();
+            DateTimeOffset generatedAtUtc = DateTimeOffset.UtcNow;
+            string reportFileName = SupportReportFileName.Create(
+                generatedAtUtc,
+                reportId);
+            SupportReportDocument document =
+                KleiSupportReportSnapshotReader.CreateDocument(
+                    reportKind,
+                    reportId,
                     generatedAtUtc,
-                    reportId);
-                SupportReportDocument document =
-                    KleiSupportReportSnapshotReader.CreateDocument(
-                        reportKind,
-                        reportId,
-                        generatedAtUtc,
-                        currentMod,
-                        loadedMods,
-                        DeliveryTemperatureRuntimePatchInstaller
-                            .CaptureSupportReportSnapshot(),
-                        DiagnosticBuffer.CaptureSnapshot(),
-                        DiagnosticBuffer.OmittedDistinctDiagnosticCount);
-                string compactSummary =
-                    SupportReportSummaryRenderer.Render(
-                        document,
-                        reportFileName);
-                SupportIssueUrl issueUrl = SupportIssueUrlBuilder.Create(
-                    compactSummary);
-                if (issueUrl.SummaryWasShortened)
-                {
-                    document = document.WithIssueSummaryWasShortened();
-                }
-
-                string finalPath = SupportReportJsonFileWriter.Write(
+                    currentMod,
+                    loadedMods,
+                    DeliveryTemperatureRuntimePatchInstaller
+                        .CaptureSupportReportSnapshot(),
+                    DiagnosticBuffer.CaptureSnapshot(),
+                    DiagnosticBuffer.OmittedDistinctDiagnosticCount);
+            compactSummary =
+                SupportReportSummaryRenderer.Render(
                     document,
                     reportFileName);
-                SupportReportPlayerPresenter.PresentSuccess(
-                    finalPath,
-                    compactSummary,
-                    issueUrl);
-            }
-            catch (Exception exception)
-            {
-                SupportReportPlayerPresenter.PresentFailure(
-                    "The report could not be created. No data was uploaded. " +
-                    "Player.log contains the full failure for manual reporting.",
-                    exception);
-            }
+            return SupportReportJsonFileWriter.Write(
+                document,
+                reportFileName);
         }
 
         private static void MirrorToPlayerLog(

@@ -1,0 +1,413 @@
+msgid ""
+msgstr ""
+"Application: Oxygen Not Included\n"
+"POT Version: 2.0\n"
+"Project-Id-Version: DeliveryTemperatureLimit\n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: 2026-09-05 23:17+0300\n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: ChatGPT localization workflow\n"
+"Language: zh_TW\n"
+"Last-Translator: OpenAI ChatGPT (AI-generated; human review pending)\n"
+"X-Review-Status: Native-speaker and in-game review pending\n"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE"
+msgid "Delivery Limit"
+msgstr "運送限制"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.SECTION_RANGE
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.SECTION_RANGE"
+msgid "Temperature range"
+msgstr "溫度範圍"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.LOWER_BOUND
+#. TRANSLATORS: Inclusive lower temperature bound: T >= minimum. Keep brief.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.LOWER_BOUND"
+msgid "At least"
+msgstr "不低於"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.UPPER_BOUND
+#. TRANSLATORS: Exclusive upper temperature bound: T < maximum. Do not translate as "at most".
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.UPPER_BOUND"
+msgid "Below"
+msgstr "低於"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.BUTTON_CLEAR
+#. TRANSLATORS: Clears both fields; this removes both temperature limits, not factory defaults.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.BUTTON_CLEAR"
+msgid "Clear"
+msgstr "清除"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.DISABLED
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.DISABLED"
+msgid "No temperature limit"
+msgstr "無溫度限制"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.LOWER_BOUND_ONLY
+#, csharp-format
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.LOWER_BOUND_ONLY"
+msgid "Allows deliveries at or above {0}"
+msgstr "允許運送溫度不低於 {0} 的材料"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.UPPER_BOUND_ONLY
+#, csharp-format
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.UPPER_BOUND_ONLY"
+msgid "Allows deliveries below {0}"
+msgstr "允許運送溫度低於 {0} 的材料"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.INTERVAL
+#. TRANSLATORS: {0} is the inclusive minimum; {1} is the exclusive maximum. Both include units.
+#, csharp-format
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.INTERVAL"
+msgid "Allows deliveries at or above {0} and below {1}"
+msgstr "允許運送溫度不低於 {0} 且低於 {1} 的材料"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.EMPTY_INTERVAL
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.EMPTY_INTERVAL"
+msgid "<color=#F0B310>▲</color> No deliveries can match this range."
+msgstr "<color=#F0B310>▲</color> 沒有任何可運送的材料能符合此範圍。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.BOUNDS_REVERSED
+#. TRANSLATORS: Reference the exact translated LOWER_BOUND and UPPER_BOUND labels. Equality is handled by a separate warning.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.BOUNDS_REVERSED"
+msgid "<color=#F44A47>▲</color> \"At least\" must not be above \"Below\"."
+msgstr "<color=#F44A47>▲</color> 「不低於」的值不能大於「低於」的值。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.INVALID_NUMBER
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.INVALID_NUMBER"
+msgid "<color=#F44A47>▲</color> Enter a whole-number temperature."
+msgstr "<color=#F44A47>▲</color> 請輸入整數溫度。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.OUT_OF_RANGE
+#, csharp-format
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.OUT_OF_RANGE"
+msgid "<color=#F44A47>▲</color> Temperature must be between {0} and {1}."
+msgstr "<color=#F44A47>▲</color> 溫度必須介於 {0} 和 {1} 之間。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.LOWER_BOUND
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.LOWER_BOUND"
+msgid "Minimum temperature for delivered materials. This value is included. Leave blank for no minimum."
+msgstr "運送材料的最低溫度。溫度等於此值的材料也可運送。留空則不設最低溫度。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.UPPER_BOUND
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.UPPER_BOUND"
+msgid "Upper temperature boundary for delivered materials. Materials at exactly this boundary are excluded. Leave blank for no upper limit."
+msgstr "運送材料的溫度上限。溫度恰好等於此值的材料不可運送。留空則不設溫度上限。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.CLEAR
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.CLEAR"
+msgid "Remove both temperature limits."
+msgstr "移除兩個溫度限制。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.STATUS
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.STATUS"
+msgid "Delivery Temperature Limit checks a material's temperature when choosing resources for delivery."
+msgstr "Delivery Temperature Limit 會在選取運送資源時檢查材料的溫度。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_TITLE
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_TITLE"
+msgid "Delivery Temperature Limit - Options"
+msgstr "Delivery Temperature Limit - 選項"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_INTRO
+#. TRANSLATORS: Building-specific ranges are set in building panels. Settings in this Options dialog are shared across colonies.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_INTRO"
+msgid "Set individual buildings' delivery ranges in their details panels. These settings are shared across your colonies."
+msgstr "請在各建築的詳細資訊面板中設定其運送溫度範圍。此處的設定適用於你的所有殖民地。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.RESTART_NOTICE
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.RESTART_NOTICE"
+msgid "Changes take effect after restarting Oxygen Not Included."
+msgstr "變更將在重新啟動 Oxygen Not Included 後生效。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.PENDING_RESTART_NOTICE
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.PENDING_RESTART_NOTICE"
+msgid "Saved changes are waiting for a restart. This session still uses its startup settings."
+msgstr "已儲存的變更將在重新啟動後生效。本次遊戲仍使用啟動時的設定。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_CONSTRUCTION
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_CONSTRUCTION"
+msgid "Construction"
+msgstr "建造"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.CHECKBOX_LIMIT_CONSTRUCTION
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.CHECKBOX_LIMIT_CONSTRUCTION"
+msgid "Limit construction material temperatures"
+msgstr "限制建築材料的溫度"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_DEFAULT_CONSTRUCTION_RANGE
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_DEFAULT_CONSTRUCTION_RANGE"
+msgid "Default range for new construction"
+msgstr "新建造工作的預設範圍"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_DEFAULT_CONSTRUCTION_RANGE
+#. SOURCE REPAIR: English text recovered verbatim from TRANSLATION_HANDOFF_GUIDE.md.
+#. Verify the corresponding source declaration and extractor before the next regeneration.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_DEFAULT_CONSTRUCTION_RANGE"
+msgid "Existing construction sites are not updated. Limits are rounded to whole Kelvin values; the lower bound is included and the upper bound is excluded."
+msgstr "不會更新現有工地的限制。限制值會換算為克耳文並捨入為整數；包含下限值，不包含上限值。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.HINT_CONSTRUCTION_DISABLED
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.HINT_CONSTRUCTION_DISABLED"
+msgid "Enable construction limits to edit this default range."
+msgstr "啟用建造溫度限制後，才能編輯此預設範圍。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_RESOURCE_WARNINGS
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_RESOURCE_WARNINGS"
+msgid "Resource warnings"
+msgstr "資源警告"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.CHECKBOX_WARN_ON_BLOCKED
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.CHECKBOX_WARN_ON_BLOCKED"
+msgid "Warn when temperature limits block delivery"
+msgstr "溫度限制阻止運送時發出警告"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_WARN_ON_BLOCKED
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_WARN_ON_BLOCKED"
+msgid "Includes temperature in the Lacks Resources check. Does not change delivery filtering."
+msgstr "檢查「缺少資源」狀態時考慮溫度。不會變更運送篩選規則。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.NOTICE_RESOURCE_WARNINGS_UNAVAILABLE
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.NOTICE_RESOURCE_WARNINGS_UNAVAILABLE"
+msgid "Temperature-aware resource warnings are unavailable in this session. Your preference is retained."
+msgstr "本次遊戲無法使用考慮溫度的資源警告。你的偏好設定會保留。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_INTEGER_REQUIRED
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_INTEGER_REQUIRED"
+msgid "Enter a whole-number temperature in the unit shown."
+msgstr "請依顯示的單位輸入整數溫度。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_SUPPORTED_RANGE
+#. TRANSLATORS: {0} and {1} are the endpoints; {2} is the displayed unit. Preserve all three placeholders.
+#, csharp-format
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_SUPPORTED_RANGE"
+msgid "The rounded temperature must be within the supported range: {0} to {1} {2}."
+msgstr "捨入後的溫度必須在支援的範圍內：{0} 至 {1} {2}。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_EMPTY_INTERVAL
+#. TRANSLATORS: Reference the exact translated bound labels. After rounding to integer kelvin values, minimum must be strictly less than maximum.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_EMPTY_INTERVAL"
+msgid "The 'At least' value must be lower than 'Below' after rounding to whole Kelvin values. Choose a nonempty construction range."
+msgstr "換算為克耳文並捨入為整數後，「不低於」的值必須小於「低於」的值。請選擇非空的建造溫度範圍。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_INVALID_PENDING
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_INVALID_PENDING"
+msgid "Correct or revert the range before disabling construction limits. Invalid values will not be saved."
+msgstr "停用建造溫度限制前，請修正範圍或還原變更。無效值不會儲存。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_REVERT_RANGE
+#. TRANSLATORS: Undo unsaved range edits and restore the last-saved values; do not confuse with Restore defaults.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_REVERT_RANGE"
+msgid "Revert temperature edits"
+msgstr "還原溫度變更"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BANNER_LEGACY_UNIT
+#. TRANSLATORS: Interpret existing numbers in the chosen unit; this is not a request to convert their numeric values. {0} is a unit symbol.
+#, csharp-format
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BANNER_LEGACY_UNIT"
+msgid "Unspecified unit in previous settings: pre-interpreted as {0}. Select a unit if different:"
+msgstr "舊設定未指定單位，目前暫以 {0} 解讀。若原單位不同，請選擇："
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_CELSIUS
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_CELSIUS"
+msgid "Interpret as °C"
+msgstr "以 °C 解讀"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_FAHRENHEIT
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_FAHRENHEIT"
+msgid "Interpret as °F"
+msgstr "以 °F 解讀"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_KELVIN
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_KELVIN"
+msgid "Interpret as K"
+msgstr "以 K 解讀"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_EXPAND_HELP
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_EXPAND_HELP"
+msgid "Show help and diagnostics"
+msgstr "顯示說明與診斷"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_COLLAPSE_HELP
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_COLLAPSE_HELP"
+msgid "Hide help and diagnostics"
+msgstr "隱藏說明與診斷"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_INSTALLED_VERSION
+#. TRANSLATORS: {0} is the installed assembly FILE version, not the assembly identity version.
+#, csharp-format
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_INSTALLED_VERSION"
+msgid "Installed assembly file version: {0}"
+msgstr "已安裝的組件檔案版本：{0}"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_HOMEPAGE
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_HOMEPAGE"
+msgid "Open mod page"
+msgstr "開啟模組頁面"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_CONFIG_FOLDER
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_CONFIG_FOLDER"
+msgid "Open configuration folder"
+msgstr "開啟設定資料夾"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_CONFIG_FOLDER
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_CONFIG_FOLDER"
+msgid "This action does not save your draft. Close and reopen Options after editing the file externally."
+msgstr "此操作不會儲存正在編輯的設定。在外部編輯檔案後，請關閉並重新開啟選項。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_SUPPORT_REPORT
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_SUPPORT_REPORT"
+msgid "Create a diagnostic file on this computer. You choose whether to share it."
+msgstr "在本機建立診斷檔案。是否分享由你決定。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.CHECKBOX_INCLUDE_PLAYER_LOG
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.CHECKBOX_INCLUDE_PLAYER_LOG"
+msgid "Include Player.log in the next report"
+msgstr "在下一份報告中包含 Player.log"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_INCLUDE_PLAYER_LOG
+#. SOURCE REPAIR: English text recovered verbatim from TRANSLATION_HANDOFF_GUIDE.md.
+#. Verify the corresponding source declaration and extractor before the next regeneration.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_INCLUDE_PLAYER_LOG"
+msgid "May contain personal information. Known paths are redacted where possible; review the report before sharing."
+msgstr "可能包含個人資訊。已知路徑會盡可能隱去；分享前請檢查報告。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CREATE_REPORT
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CREATE_REPORT"
+msgid "Create local report"
+msgstr "建立本機報告"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_CREATING_REPORT
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_CREATING_REPORT"
+msgid "Creating a local report…"
+msgstr "正在建立本機報告…"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_CREATED
+#. TRANSLATORS: Preserve both guarantees: nothing uploaded AND nothing copied to the clipboard.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_CREATED"
+msgid "Local report created. Nothing was uploaded or copied to the clipboard. Review before sharing:"
+msgstr "本機報告已建立。未上傳任何內容，也未將任何內容複製到剪貼簿。分享前請檢查："
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_FAILED
+#. TRANSLATORS: Failure does not upload a report or remove an earlier successfully created report.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_FAILED"
+msgid "The report could not be created. No report was uploaded. Any previous successful report remains available. Failure details are in Player.log."
+msgstr "無法建立報告。未上傳任何報告。先前成功建立的報告仍可使用。失敗詳情請見 Player.log。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_LAST_REPORT_FOLDER
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_LAST_REPORT_FOLDER"
+msgid "Open last report folder"
+msgstr "開啟上次報告所在資料夾"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_COPY_REPORT_SUMMARY
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_COPY_REPORT_SUMMARY"
+msgid "Copy last report summary"
+msgstr "複製上次報告摘要"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_SUMMARY_COPIED
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_SUMMARY_COPIED"
+msgid "The clipboard now contains the report summary. Review it before sharing."
+msgstr "報告摘要已複製到剪貼簿。分享前請檢查。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_ISSUE_FORM
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_ISSUE_FORM"
+msgid "Open GitHub issue form"
+msgstr "開啟 GitHub 問題回報表單"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_ISSUE_FORM
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_ISSUE_FORM"
+msgid "Opens the issue template without diagnostic data in the URL. You choose what to paste or attach."
+msgstr "開啟問題範本，不在 URL 中包含診斷資料。貼上或附加哪些內容由你決定。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_NO_REPORT
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_NO_REPORT"
+msgid "Create a local report first. Reports from earlier sessions are not automatically selected."
+msgstr "請先建立本機報告。不會自動選取先前遊戲工作階段中的報告。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_ACTION_FAILED
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_ACTION_FAILED"
+msgid "The action could not be completed. Details are in Player.log."
+msgstr "無法完成操作。詳細資訊請見 Player.log。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTORE_DEFAULTS
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTORE_DEFAULTS"
+msgid "Restore defaults"
+msgstr "還原預設值"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_RESTORE_DEFAULTS
+#. TRANSLATORS: Only the editable draft changes. Cancel leaves the saved configuration file unchanged.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_RESTORE_DEFAULTS"
+msgid "Replaces the draft only. Cancel still leaves the saved file unchanged."
+msgstr "僅取代正在編輯的設定。選擇「取消」後，已儲存的檔案仍保持不變。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CANCEL
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CANCEL"
+msgid "Cancel"
+msgstr "取消"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_SAVE
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_SAVE"
+msgid "Save changes"
+msgstr "儲存變更"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_CHANGES_SAVED
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_CHANGES_SAVED"
+msgid "Changes saved. The running session has not been changed."
+msgstr "變更已儲存。目前遊戲工作階段未受影響。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_DONE
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_DONE"
+msgid "Done"
+msgstr "完成"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTART_NOW
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTART_NOW"
+msgid "Restart now"
+msgstr "立即重新啟動"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTART_LATER
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTART_LATER"
+msgid "Later"
+msgstr "稍後"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.WARNING_RUNNING_COLONY
+#. TRANSLATORS: Saving mod options does not save colony/gameplay progress. Preserve the warning.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.WARNING_RUNNING_COLONY"
+msgid "Save your colony and return to the main menu before restarting. Saving options does not save colony progress."
+msgstr "重新啟動前，請儲存殖民地並返回主選單。儲存選項不會儲存殖民地進度。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_DISCARD_TITLE
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_DISCARD_TITLE"
+msgid "Discard unsaved changes?"
+msgstr "捨棄未儲存的變更？"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CONFIRM_DISCARD
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CONFIRM_DISCARD"
+msgid "Discard changes"
+msgstr "捨棄變更"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CANCEL_DISCARD
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CANCEL_DISCARD"
+msgid "Keep editing"
+msgstr "繼續編輯"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_SAVE_FAILED
+#. SOURCE REPAIR: English text recovered verbatim from TRANSLATION_HANDOFF_GUIDE.md.
+#. Verify the corresponding source declaration and extractor before the next regeneration.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_SAVE_FAILED"
+msgid "Options were not saved. Your draft is still here. Check file access and disk space; after an external edit, close and reopen Options. Details are in Player.log."
+msgstr "未能儲存選項。正在編輯的設定仍然保留。請檢查檔案存取權限與磁碟空間；在外部編輯檔案後，請關閉並重新開啟選項。詳細資訊請見 Player.log。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_LOAD_FAILED
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_LOAD_FAILED"
+msgid "Options could not be read safely. The configuration has not been changed. Check the file, then reopen Options. Details are in Player.log."
+msgstr "無法安全讀取選項。設定未變更。請檢查檔案，然後重新開啟選項。詳細資訊請見 Player.log。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_UI_FAILED
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_UI_FAILED"
+msgid "The options screen could not be opened safely. No settings were changed. See Player.log for details."
+msgstr "無法安全開啟選項畫面。未變更任何設定。詳細資訊請見 Player.log。"
