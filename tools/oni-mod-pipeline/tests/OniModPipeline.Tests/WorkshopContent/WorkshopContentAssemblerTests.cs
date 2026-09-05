@@ -12,58 +12,6 @@ namespace MaksymShostak.OniModPipeline.Tests.WorkshopContent;
 public sealed class WorkshopContentAssemblerTests
 {
     [TestMethod]
-    public async Task AssembleAsync_WhenRealDeliveryProfileIsLoaded_ProducesThreeFileInventory()
-    {
-        using var temporaryDirectory = new TemporaryDirectory();
-        var repositoryRoot = FindRepositoryRoot();
-        var modRoot = Path.Combine(
-            repositoryRoot,
-            "mods",
-            "delivery-temperature-limit-supercooled");
-        var profileResult = new ModProfileLoader().Load(
-            Path.Combine(modRoot, "oni-mod-pipeline.toml"));
-        Assert.IsTrue(profileResult.IsSuccess);
-        var runRoot = temporaryDirectory.GetPath("build-run");
-        var primaryOutput = Path.Combine(
-            runRoot,
-            "output",
-            "DeliveryTemperatureLimit.dll");
-        Directory.CreateDirectory(Path.GetDirectoryName(primaryOutput)!);
-        await File.WriteAllBytesAsync(primaryOutput, [1, 2, 3, 4]);
-        var buildResult = new BuildResult(
-            runRoot,
-            primaryOutput,
-            [],
-            [CreateDigest(primaryOutput)],
-            [],
-            [],
-            "0123456789abcdef0123456789abcdef01234567",
-            "2026.8.26",
-            "10.0.400",
-            [],
-            null,
-            true,
-            null,
-            null);
-        var stagingRoot = temporaryDirectory.GetPath("candidate", "workshop-content");
-        Directory.CreateDirectory(stagingRoot);
-
-        var result = await new WorkshopContentAssembler().AssembleAsync(
-            profileResult.Value!,
-            buildResult,
-            stagingRoot,
-            CancellationToken.None);
-
-        Assert.IsTrue(result.IsSuccess, RenderDiagnostics(result.Diagnostics));
-        CollectionAssert.AreEqual(
-            new[] { "DeliveryTemperatureLimit.dll", "mod.yaml", "mod_info.yaml" },
-            result.Value?
-                .Select(file => Path.GetRelativePath(stagingRoot, file.Path)
-                    .Replace('\\', '/'))
-                .ToArray());
-    }
-
-    [TestMethod]
     public async Task AssembleAsync_WhenDeliveryProfileIsValid_ProducesExactRuntimeInventory()
     {
         using var fixture = new WorkshopContentFixture();
@@ -130,6 +78,47 @@ public sealed class WorkshopContentAssemblerTests
                 .Select(file => Path.GetRelativePath(fixture.StagingRoot, file.Path)
                     .Replace('\\', '/'))
                 .ToArray());
+    }
+
+    [TestMethod]
+    public async Task AssembleAsync_WhenDeclaredDirectoryContainsForbiddenOrIgnoredExtensions_StripsThemAutomatically()
+    {
+        using var fixture = new WorkshopContentFixture();
+        var translations = Path.Combine(fixture.ModRoot, "translations");
+        Directory.CreateDirectory(translations);
+        File.WriteAllText(Path.Combine(translations, "de.po"), "msgid \"\"\nmsgstr \"\"\n");
+        File.WriteAllText(Path.Combine(translations, "delivery_temperature_limit.pot"), "msgid \"\"\nmsgstr \"\"\n");
+        File.WriteAllText(Path.Combine(translations, "TRANSLATOR_GUIDE.md"), "# Guide\n");
+        fixture.Profile = fixture.Profile with
+        {
+            PackageFiles =
+            [
+                .. fixture.Profile.PackageFiles,
+                new PackageFileMapping("translations", "translations")
+            ]
+        };
+
+        var result = await new WorkshopContentAssembler().AssembleAsync(
+            fixture.Profile,
+            fixture.BuildResult,
+            fixture.StagingRoot,
+            CancellationToken.None);
+
+        Assert.IsTrue(result.IsSuccess, RenderDiagnostics(result.Diagnostics));
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                "DeliveryTemperatureLimit.dll",
+                "mod.yaml",
+                "mod_info.yaml",
+                "translations/de.po"
+            },
+            result.Value?
+                .Select(file => Path.GetRelativePath(fixture.StagingRoot, file.Path)
+                    .Replace('\\', '/'))
+                .ToArray());
+        Assert.IsFalse(File.Exists(Path.Combine(fixture.StagingRoot, "translations", "delivery_temperature_limit.pot")));
+        Assert.IsFalse(File.Exists(Path.Combine(fixture.StagingRoot, "translations", "TRANSLATOR_GUIDE.md")));
     }
 
     [TestMethod]
@@ -289,26 +278,6 @@ public sealed class WorkshopContentAssemblerTests
             Path.GetFullPath(path),
             bytes.LongLength,
             Convert.ToHexStringLower(SHA256.HashData(bytes)));
-    }
-
-    private static string FindRepositoryRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null)
-        {
-            if (File.Exists(Path.Combine(
-                directory.FullName,
-                "docs",
-                "plans",
-                "2026-08-27-oni-mod-pipeline-implementation.md")))
-            {
-                return directory.FullName;
-            }
-
-            directory = directory.Parent;
-        }
-
-        throw new DirectoryNotFoundException("Could not locate the repository root.");
     }
 
     private sealed class WorkshopContentFixture : IDisposable

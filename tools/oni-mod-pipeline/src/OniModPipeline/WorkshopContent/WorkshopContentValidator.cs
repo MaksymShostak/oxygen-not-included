@@ -27,7 +27,9 @@ internal sealed class WorkshopContentValidator
             ".bat",
             ".sh",
             ".pdb",
-            ".log"
+            ".log",
+            ".pot",
+            ".md"
         ],
         StringComparer.OrdinalIgnoreCase);
 
@@ -118,6 +120,9 @@ internal sealed class WorkshopContentValidator
             PipelineExitCode.Success);
     }
 
+    internal static bool IsForbiddenExtension(string? extension) =>
+        !string.IsNullOrEmpty(extension) && ForbiddenExtensions.Contains(extension);
+
     internal static string NormalizeRelativePath(string path)
     {
         if (string.IsNullOrWhiteSpace(path) ||
@@ -180,7 +185,7 @@ internal sealed class WorkshopContentValidator
         var extension = Path.GetExtension(fileName);
         if (ForbiddenExtensions.Contains(extension))
         {
-            return "source, project, script, symbol, and log files are excluded in schema v1.";
+            return "source, project, script, symbol, template, documentation, and log files are excluded in schema v1.";
         }
 
         if (fileName.EndsWith(".lock", StringComparison.OrdinalIgnoreCase) ||

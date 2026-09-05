@@ -8,6 +8,7 @@ Please keep discussion respectful, specific, and focused on improving the mod fo
 
 - For a player-visible bug, use the [Temperature Limit bug form](https://github.com/MaksymShostak/oxygen-not-included/issues/new?template=temperature-limit-bug.yml) and the automated report flow in [SUPPORT.md](SUPPORT.md).
 - For a feature idea, use the [feature form](https://github.com/MaksymShostak/oxygen-not-included/issues/new?template=temperature-limit-feature.yml) and describe the player problem and desired experience.
+- For translations, follow the [Translation Guide](docs/guides/translating-delivery-temperature-limit-supercooled.md) and use the template at [`mods/delivery-temperature-limit-supercooled/translations/delivery_temperature_limit.pot`](mods/delivery-temperature-limit-supercooled/translations/delivery_temperature_limit.pot).
 - For a code or documentation change, open or link an issue before substantial work so scope and compatibility expectations are visible.
 
 ## Set up and validate a checkout

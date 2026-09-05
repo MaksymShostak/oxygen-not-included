@@ -520,6 +520,69 @@ public sealed class IntentionalRuntimeContractTests
             "Every C# LocString must have an exact matching msgctxt in the POT template, with no orphaned keys.");
     }
 
+    [TestMethod]
+    public void LocalizationPoCatalogs_WhenComparedWithPot_MatchAllDeclaredKeysExactly()
+    {
+        string sourceRoot = ResolveSourceRoot();
+        string translationsDir = Path.GetFullPath(
+            Path.Combine(sourceRoot, "..", "translations"));
+        Assert.IsTrue(Directory.Exists(translationsDir), $"Translations directory must exist at {translationsDir}.");
+
+        string potPath = Path.Combine(translationsDir, "delivery_temperature_limit.pot");
+        Assert.IsTrue(File.Exists(potPath), $"The POT catalog must exist at {potPath}.");
+
+        string potContent = File.ReadAllText(potPath);
+        string[] potContextKeys = Regex.Matches(
+                potContent,
+                @"^msgctxt\s+""([^""]+)""",
+                RegexOptions.Multiline)
+            .Select(match => match.Groups[1].Value)
+            .OrderBy(key => key, StringComparer.Ordinal)
+            .ToArray();
+
+        string[] poFiles = Directory.GetFiles(translationsDir, "*.po");
+        Assert.IsTrue(poFiles.Length >= 9, $"Expected at least 9 language catalogs (.po), found {poFiles.Length}.");
+
+        string[] expectedLanguageCodes =
+        [
+            "de", "es", "fr", "ko", "pt", "pt_BR", "uk", "zh", "zh_tw"
+        ];
+        string[] actualLanguageCodes = poFiles
+            .Select(f => Path.GetFileNameWithoutExtension(f))
+            .OrderBy(c => c, StringComparer.Ordinal)
+            .ToArray();
+
+        foreach (string expectedCode in expectedLanguageCodes)
+        {
+            CollectionAssert.Contains(
+                actualLanguageCodes,
+                expectedCode,
+                $"Expected language catalog for '{expectedCode}' was not found.");
+        }
+
+        foreach (string poFile in poFiles)
+        {
+            string fileName = Path.GetFileName(poFile);
+            string poContent = File.ReadAllText(poFile);
+            string[] poContextKeys = Regex.Matches(
+                    poContent,
+                    @"^msgctxt\s+""([^""]+)""",
+                    RegexOptions.Multiline)
+                .Select(match => match.Groups[1].Value)
+                .OrderBy(key => key, StringComparer.Ordinal)
+                .ToArray();
+
+            CollectionAssert.AreEquivalent(
+                potContextKeys,
+                poContextKeys,
+                $"PO catalog '{fileName}' does not match the 74 declared keys of the POT template.");
+
+            Assert.IsFalse(
+                poContent.Contains("—"),
+                $"PO catalog '{fileName}' must not contain em-dashes ('—'); use standard hyphens (' - ').");
+        }
+    }
+
     internal static void AssertMergedAssembly(string assemblyPath)
     {
         IReadOnlyList<string> publicSurface =

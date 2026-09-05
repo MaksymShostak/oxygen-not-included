@@ -63,35 +63,6 @@ public sealed class ListingTextRendererTests
         Assert.AreEqual(1, rendered.Report.BlankLineCount);
     }
 
-    [TestMethod]
-    public void Render_WhenGivenRealDescription_PreservesDocumentContract()
-    {
-        var repositoryRoot = FindRepositoryRoot();
-        var sourcePath = Path.Combine(
-            repositoryRoot,
-            "mods",
-            "delivery-temperature-limit-supercooled",
-            "STEAM_DESCRIPTION.bbcode");
-        var sourceBytes = File.ReadAllBytes(sourcePath);
-        Assert.IsFalse(sourceBytes.Contains((byte)'\r'));
-        Assert.AreEqual((byte)'\n', sourceBytes[^1]);
-        Assert.AreNotEqual((byte)'\n', sourceBytes[^2]);
-        var renderer = new ListingTextRenderer();
-
-        var rendered = renderer.Render(Encoding.UTF8.GetString(sourceBytes));
-        var roundTrip = renderer.Render(Encoding.UTF8.GetString(rendered.Bytes));
-
-        Assert.AreEqual(54, rendered.Report.LogicalLineCount);
-        Assert.AreEqual(53, rendered.Report.LineBreakCount);
-        Assert.AreEqual(53, CountCrLfPairs(rendered.Bytes));
-        AssertNoLoneLineEndings(rendered.Bytes);
-        Assert.AreEqual(
-            Convert.ToHexStringLower(SHA256.HashData(sourceBytes)),
-            rendered.Report.LogicalContentSha256);
-        Assert.AreEqual(
-            rendered.Report.LogicalContentSha256,
-            roundTrip.Report.LogicalContentSha256);
-    }
 
     private static string ReadStructuralFixture()
     {

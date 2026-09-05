@@ -7,17 +7,6 @@ namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
 [TestClass]
 public sealed class WorkshopListingAsciiContractTests
 {
-    private static readonly HashSet<int> AllowedIconCodePoints = new()
-    {
-        0x1F3AE, // 🎮 Game controller
-        0x1F680, // 🚀 Rocket
-        0x26A1,  // ⚡ High voltage
-        0x1F393, // 🎓 Graduation cap
-        0x1F6E0, // 🛠 Hammer and wrench
-        0xFE0F,  // Variation Selector-16
-        0x1F41B  // 🐛 Bug
-    };
-
     [TestMethod]
     public void ChangeNotes_WhenInspected_IsStrictlyAscii()
     {
@@ -50,6 +39,49 @@ public sealed class WorkshopListingAsciiContractTests
             $"STEAM_DESCRIPTION.bbcode contains non-ASCII text characters:\n{string.Join("\n", violations)}");
     }
 
+    [TestMethod]
+    public void IsAllowedSymbolOrEmoji_WhenTested_AcceptsStandardIconsAndRejectsTypography()
+    {
+        // Standard icons and emojis should be permitted
+        Assert.IsTrue(IsAllowedSymbolOrEmoji(0x1F3AE)); // 🎮
+        Assert.IsTrue(IsAllowedSymbolOrEmoji(0x1F680)); // 🚀
+        Assert.IsTrue(IsAllowedSymbolOrEmoji(0x26A1));  // ⚡
+        Assert.IsTrue(IsAllowedSymbolOrEmoji(0x1F310)); // 🌐
+        Assert.IsTrue(IsAllowedSymbolOrEmoji(0x1F41B)); // 🐛
+        Assert.IsTrue(IsAllowedSymbolOrEmoji(0x2744));  // ❄
+        Assert.IsTrue(IsAllowedSymbolOrEmoji(0xFE0F));  // Variation Selector-16
+
+        // Non-ASCII typographic punctuation and letters must be rejected
+        Assert.IsFalse(IsAllowedSymbolOrEmoji(0x2014)); // — (em dash)
+        Assert.IsFalse(IsAllowedSymbolOrEmoji(0x2013)); // – (en dash)
+        Assert.IsFalse(IsAllowedSymbolOrEmoji(0x201C)); // “ (left double quote)
+        Assert.IsFalse(IsAllowedSymbolOrEmoji(0x201D)); // ” (right double quote)
+        Assert.IsFalse(IsAllowedSymbolOrEmoji(0x2018)); // ‘ (left single quote)
+        Assert.IsFalse(IsAllowedSymbolOrEmoji(0x2019)); // ’ (right single quote)
+        Assert.IsFalse(IsAllowedSymbolOrEmoji(0x00A0)); // non-breaking space
+        Assert.IsFalse(IsAllowedSymbolOrEmoji(0x00E9)); // é
+    }
+
+    private static bool IsAllowedSymbolOrEmoji(int codePoint)
+    {
+        // Variation Selectors
+        if (codePoint is >= 0xFE00 and <= 0xFE0F)
+        {
+            return true;
+        }
+
+        // Standard Unicode Emoji & Symbol Blocks
+        if (codePoint is >= 0x2600 and <= 0x27BF ||   // Misc Symbols & Dingbats (e.g. ⚡, ❄)
+            codePoint is >= 0x2B00 and <= 0x2BFF ||   // Misc Symbols and Arrows
+            codePoint is >= 0x1F300 and <= 0x1FAFF)   // Pictographs, Emojis, Transport, etc.
+        {
+            return true;
+        }
+
+        var category = CharUnicodeInfo.GetUnicodeCategory(codePoint);
+        return category is UnicodeCategory.OtherSymbol or UnicodeCategory.ModifierSymbol;
+    }
+
     private static List<string> FindNonAsciiTextViolations(string text, bool allowIcons)
     {
         var violations = new List<string>();
@@ -71,7 +103,7 @@ public sealed class WorkshopListingAsciiContractTests
                     continue;
                 }
 
-                if (allowIcons && AllowedIconCodePoints.Contains(codePoint))
+                if (allowIcons && IsAllowedSymbolOrEmoji(codePoint))
                 {
                     continue;
                 }

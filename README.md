@@ -70,6 +70,16 @@ Use the in-game mod options to create a local support report without manually fi
 
 ---
 
+## 🌐 Community Translations
+
+Translations for community languages are warmly welcomed!
+
+*   **Translation Guide:** Check out the [Translation Guide](docs/guides/translating-delivery-temperature-limit-supercooled.md) for UI context, formatting tags, placeholders, and workflow guidance.
+*   **Template (`.pot`):** The master Gettext template catalog containing all current strings is located at [`mods/delivery-temperature-limit-supercooled/translations/delivery_temperature_limit.pot`](mods/delivery-temperature-limit-supercooled/translations/delivery_temperature_limit.pot).
+*   **Language Catalogs (`.po`):** Active translations (`de`, `es`, `fr`, `ko`, `pt`, `pt_BR`, `uk`, `zh`, `zh_tw`) live in the [`translations/`](mods/delivery-temperature-limit-supercooled/translations) directory. Submit new languages or updates via pull request!
+
+---
+
 ## Development and release workflow
 
 [ONI Mod Pipeline](docs/guides/oni-mod-development-workflow.md) is the repository's single supported path for validating, building, testing, installing, and preparing this mod for a manual Workshop upload. The user-facing command is `oni-mod-pipeline`.

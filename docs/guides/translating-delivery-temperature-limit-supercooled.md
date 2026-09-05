@@ -152,10 +152,23 @@ This document is the authoritative localization reference and translation brief 
 
 ## 3. Recommended Translator Workflow
 
+### Active Language Catalogs
+The repository currently maintains 9 community translation catalogs in [`mods/delivery-temperature-limit-supercooled/translations/`](file:///c:/Users/maksy/GitHub/oxygen-not-included/mods/delivery-temperature-limit-supercooled/translations):
+- German (`de.po`)
+- Spanish (`es.po`)
+- French (`fr.po`)
+- Korean (`ko.po`)
+- Portuguese (`pt.po`)
+- Brazilian Portuguese (`pt_BR.po`)
+- Ukrainian (`uk.po`)
+- Simplified Chinese (`zh.po`)
+- Traditional Chinese (`zh_tw.po`)
+
+### Contributing Workflow
 1. **Working with CAT Tools (Poedit, Crowdin, Weblate)**:
-   - Load `translations/delivery_temperature_limit.pot` directly into your translation tool.
+   - Load `mods/delivery-temperature-limit-supercooled/translations/delivery_temperature_limit.pot` directly into your translation tool.
    - The `msgctxt` field contains the unique key; the `msgid` field contains the English source string.
    - Reference the tables above for precise context, UI location, and mechanical intent.
 2. **Testing Translations In-Game**:
-   - Save the translated `.po` file into `translations/<language_code>.po` (e.g., `de.po`, `zh.po`).
-   - Run `oni-mod-pipeline build` and `oni-mod-pipeline install --dev` to test layout and text expansion in the live game.
+   - Save the translated `.po` file into `mods/delivery-temperature-limit-supercooled/translations/<language_code>.po` (e.g., `de.po`, `zh.po`, `uk.po`).
+   - Run `oni-mod-pipeline build` and `oni-mod-pipeline install --target dev` to test layout and text expansion in the live game.

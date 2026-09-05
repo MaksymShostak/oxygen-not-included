@@ -35,7 +35,9 @@ public sealed class WorkshopContentValidatorTests
             "bin/Example.dll",
             "obj/generated.cs",
             "Tests/Example.Tests.dll",
-            "release-evidence/report.json"
+            "release-evidence/report.json",
+            "translations/delivery_temperature_limit.pot",
+            "docs/guide.md"
         ];
         var validator = new WorkshopContentValidator();
 

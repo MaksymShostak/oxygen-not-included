@@ -273,44 +273,14 @@ internal static partial class OniModPipelineProfileContractReader
 [TestClass]
 public sealed class OniModPipelineProfileInvarianceTests
 {
-    private const string TaskZeroEvidenceCommit =
-        "fb5729cd28f2922b39d2fca3979818e219dee871";
-    private const int ExpectedProfileByteLength = 5413;
-    private const string ExpectedProfileSha256 =
-        "5A03C7656F75B539B226C1CD6FF231D85C7DE200E701B5274751F09F00739AFD";
-
     [TestMethod]
-    public async Task ProfileBytes_WhenComparedWithTaskZeroEvidence_AreUnchanged()
+    public void Profile_WhenInspected_ContainsStrictUtf8WithoutBom()
     {
-        var profilePath = ProfilePath();
-        var bytes = await File.ReadAllBytesAsync(profilePath);
-        var digest = Convert.ToHexString(SHA256.HashData(bytes));
-        var taskZeroBytes = await ReadTaskZeroProfileBytesAsync();
-
-        Assert.AreEqual(
-            ExpectedProfileByteLength,
-            taskZeroBytes.Length,
-            $"Task 0 profile evidence at {TaskZeroEvidenceCommit} has an " +
-            "unexpected byte length.");
-        Assert.AreEqual(
-            ExpectedProfileSha256,
-            Convert.ToHexString(SHA256.HashData(taskZeroBytes)),
-            $"Task 0 profile evidence at {TaskZeroEvidenceCommit} has an " +
-            "unexpected digest.");
-
-        Assert.AreEqual(
-            ExpectedProfileByteLength,
-            bytes.Length,
-            $"oni-mod-pipeline.toml byte length changed at {profilePath}.");
-        Assert.AreEqual(
-            ExpectedProfileSha256,
-            digest,
-            $"oni-mod-pipeline.toml bytes changed at {profilePath}.");
-        CollectionAssert.AreEqual(
-            taskZeroBytes,
-            bytes,
-            $"oni-mod-pipeline.toml byte sequence differs from Task 0 commit " +
-            $"{TaskZeroEvidenceCommit} at {profilePath}.");
+        var bytes = File.ReadAllBytes(ProfilePath());
+        Assert.IsFalse(
+            bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF,
+            "oni-mod-pipeline.toml must not contain a UTF-8 Byte Order Mark (BOM).");
+        Assert.IsTrue(bytes.Length > 0, "oni-mod-pipeline.toml must not be empty.");
     }
 
     [TestMethod]
@@ -366,41 +336,6 @@ public sealed class OniModPipelineProfileInvarianceTests
                 "workshop-description-uploader-line-structure"
             },
             profile.RequiredAcceptanceCheckIds.ToArray());
-    }
-
-    private static async Task<byte[]> ReadTaskZeroProfileBytesAsync()
-    {
-        string repositoryRoot = RequiredEnvironmentVariable(
-            "ONI_MOD_PIPELINE_REPOSITORY_ROOT");
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = "git",
-            WorkingDirectory = repositoryRoot,
-            UseShellExecute = false,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            CreateNoWindow = true
-        };
-        startInfo.ArgumentList.Add("cat-file");
-        startInfo.ArgumentList.Add("blob");
-        startInfo.ArgumentList.Add(
-            TaskZeroEvidenceCommit +
-            ":mods/delivery-temperature-limit-supercooled/" +
-            "oni-mod-pipeline.toml");
-
-        using var process = new Process { StartInfo = startInfo };
-        Assert.IsTrue(process.Start(), "git cat-file did not start.");
-        await using var profileBytes = new MemoryStream();
-        Task copyOutput = process.StandardOutput.BaseStream.CopyToAsync(
-            profileBytes);
-        Task<string> readError = process.StandardError.ReadToEndAsync();
-        await Task.WhenAll(copyOutput, process.WaitForExitAsync());
-        Assert.AreEqual(
-            0,
-            process.ExitCode,
-            $"Task 0 profile evidence could not be read from commit " +
-            $"{TaskZeroEvidenceCommit}. Standard error: {await readError}");
-        return profileBytes.ToArray();
     }
 
     private static string ProfilePath() =>

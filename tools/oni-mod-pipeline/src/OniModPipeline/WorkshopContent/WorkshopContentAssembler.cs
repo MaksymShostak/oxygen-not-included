@@ -339,6 +339,11 @@ internal sealed class WorkshopContentAssembler
                     continue;
                 }
 
+                if (WorkshopContentValidator.IsForbiddenExtension(Path.GetExtension(entry)))
+                {
+                    continue;
+                }
+
                 var relativePath = Path.GetRelativePath(sourceRoot, entry).Replace('\\', '/');
                 files.Add(new PlannedContentFile(
                     Path.GetFullPath(entry),
