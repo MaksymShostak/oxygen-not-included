@@ -113,16 +113,6 @@ namespace DeliveryTemperatureLimit
                 e.Consumed = true;
             }
         }
-
-        private void Update()
-        {
-            bool isAnyTemperatureFieldFocused =
-                widget != null && widget.IsAnyFieldFocused();
-            if (isEditing != isAnyTemperatureFieldFocused)
-            {
-                isEditing = isAnyTemperatureFieldFocused;
-            }
-        }
     }
 
     /// <summary>

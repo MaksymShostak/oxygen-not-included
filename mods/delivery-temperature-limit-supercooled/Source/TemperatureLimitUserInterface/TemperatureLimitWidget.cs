@@ -128,9 +128,19 @@ namespace DeliveryTemperatureLimit
             lowInputField.AddOnRealize(realizedInput =>
             {
                 lowInput = realizedInput;
+                var rogueScreen = realizedInput.GetComponent<KScreen>();
+                if (rogueScreen != null)
+                {
+                    UnityEngine.Object.DestroyImmediate(rogueScreen);
+                }
+
+                var dummyField = realizedInput.AddComponent<InputField>();
+                dummyField.enabled = false;
+
                 lowField = realizedInput.GetComponent<TMP_InputField>();
                 if (lowField != null)
                 {
+                    lowField.onValueChanged.AddListener(text => OnLowInputChanged(realizedInput, text));
                     lowField.onEndEdit.AddListener(OnLowInputEndEdit);
                 }
             });
@@ -181,9 +191,19 @@ namespace DeliveryTemperatureLimit
             highInputField.AddOnRealize(realizedInput =>
             {
                 highInput = realizedInput;
+                var rogueScreen = realizedInput.GetComponent<KScreen>();
+                if (rogueScreen != null)
+                {
+                    UnityEngine.Object.DestroyImmediate(rogueScreen);
+                }
+
+                var dummyField = realizedInput.AddComponent<InputField>();
+                dummyField.enabled = false;
+
                 highField = realizedInput.GetComponent<TMP_InputField>();
                 if (highField != null)
                 {
+                    highField.onValueChanged.AddListener(text => OnHighInputChanged(realizedInput, text));
                     highField.onEndEdit.AddListener(OnHighInputEndEdit);
                 }
             });
@@ -236,6 +256,23 @@ namespace DeliveryTemperatureLimit
         {
             lowDraft = null;
             highDraft = null;
+            if (lowField != null && lowField.isFocused)
+            {
+                lowField.DeactivateInputField();
+            }
+
+            if (highField != null && highField.isFocused)
+            {
+                highField.DeactivateInputField();
+            }
+
+            if (UnityEngine.EventSystems.EventSystem.current != null &&
+                (UnityEngine.EventSystems.EventSystem.current.currentSelectedGameObject == lowInput ||
+                 UnityEngine.EventSystems.EventSystem.current.currentSelectedGameObject == highInput))
+            {
+                UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);
+            }
+
             ConstructionMaterialTemperatureLimit
                 .ResetConstructionMaterialTemperatureLimitToDefaultsIfOwned(
                     target);
