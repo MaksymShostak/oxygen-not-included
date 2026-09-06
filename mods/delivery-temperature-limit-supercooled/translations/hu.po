@@ -2,416 +2,414 @@ msgid ""
 msgstr ""
 "Application: Oxygen Not Included\n"
 "Project-Id-Version: DeliveryTemperatureLimit\n"
-"PO-Revision-Date: 2026-09-06 07:40+0000\n"
-"Language-Team: \n"
+"PO-Revision-Date: 2026-09-06 06:54+0000\n"
+"Last-Translator: OpenAI ChatGPT (AI-generated; human review pending)\n"
+"Language-Team: Hungarian\n"
+"Language: hu_HU\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: ChatGPT localization workflow\n"
-"Language: zh_CN\n"
-"Last-Translator: OpenAI ChatGPT (AI-generated; human review pending)\n"
 "X-Review-Status: Native-speaker and in-game review pending\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
 "POT Version: 2.0\n"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE"
 msgid "Delivery Limit"
-msgstr "运送限制"
+msgstr "Szállítási korlát"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.SECTION_RANGE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.SECTION_RANGE"
 msgid "Temperature range"
-msgstr "温度范围"
+msgstr "Hőmérséklet-tartomány"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.LOWER_BOUND
 #. TRANSLATORS: Inclusive lower temperature bound: T >= minimum. Keep brief.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.LOWER_BOUND"
 msgid "At least"
-msgstr "不低于"
+msgstr "Legalább"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.UPPER_BOUND
 #. TRANSLATORS: Exclusive upper temperature bound: T < maximum. Do not translate as "at most".
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.UPPER_BOUND"
 msgid "Below"
-msgstr "低于"
+msgstr "Kevesebb mint"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.BUTTON_CLEAR
 #. TRANSLATORS: Clears both fields; this removes both temperature limits, not factory defaults.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.BUTTON_CLEAR"
 msgid "Clear"
-msgstr "清除"
+msgstr "Törlés"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.DISABLED
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.DISABLED"
 msgid "No temperature limit"
-msgstr "无温度限制"
+msgstr "Nincs hőmérsékleti korlát"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.LOWER_BOUND_ONLY
 #, csharp-format
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.LOWER_BOUND_ONLY"
 msgid "Allows deliveries at or above {0}"
-msgstr "允许运送温度不低于 {0} 的材料"
+msgstr "Legalább {0} hőmérsékletű anyagok szállíthatók"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.UPPER_BOUND_ONLY
 #, csharp-format
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.UPPER_BOUND_ONLY"
 msgid "Allows deliveries below {0}"
-msgstr "允许运送温度低于 {0} 的材料"
+msgstr "{0} alatti hőmérsékletű anyagok szállíthatók"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.INTERVAL
 #. TRANSLATORS: {0} is the inclusive minimum; {1} is the exclusive maximum. Both include units.
 #, csharp-format
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.INTERVAL"
 msgid "Allows deliveries at or above {0} and below {1}"
-msgstr "允许运送温度不低于 {0} 且低于 {1} 的材料"
+msgstr "Legalább {0}, de {1} alatti hőmérsékletű anyagok szállíthatók"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.EMPTY_INTERVAL
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.EMPTY_INTERVAL"
 msgid "<color=#F0B310>▲</color> No deliveries can match this range."
-msgstr "<color=#F0B310>▲</color> 此温度范围不允许运送任何材料。"
+msgstr "<color=#F0B310>▲</color> Ebben a tartományban semmilyen szállítás nem lehetséges."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.BOUNDS_REVERSED
 #. TRANSLATORS: Reference the exact translated LOWER_BOUND and UPPER_BOUND labels. Equality is handled by a separate warning.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.BOUNDS_REVERSED"
 msgid "<color=#F44A47>▲</color> \"At least\" must not be above \"Below\"."
-msgstr "<color=#F44A47>▲</color> “不低于”的值不能大于“低于”的值。"
+msgstr "<color=#F44A47>▲</color> A „Legalább” értéke nem lehet nagyobb a „Kevesebb mint” értékénél."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.INVALID_NUMBER
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.INVALID_NUMBER"
 msgid "<color=#F44A47>▲</color> Enter a whole-number temperature."
-msgstr "<color=#F44A47>▲</color> 请输入整数温度。"
+msgstr "<color=#F44A47>▲</color> Egész számként add meg a hőmérsékletet."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.OUT_OF_RANGE
 #, csharp-format
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.OUT_OF_RANGE"
 msgid "<color=#F44A47>▲</color> Temperature must be between {0} and {1}."
-msgstr "<color=#F44A47>▲</color> 温度必须介于 {0} 和 {1} 之间。"
+msgstr "<color=#F44A47>▲</color> A hőmérsékletnek {0} és {1} között kell lennie."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.LOWER_BOUND
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.LOWER_BOUND"
 msgid "Minimum temperature for delivered materials. This value is included. Leave blank for no minimum."
-msgstr "运送材料的最低温度。温度等于此值的材料也可运送。留空则不设最低温度。"
+msgstr "A szállítható anyagok legalacsonyabb hőmérséklete. Az ezzel megegyező hőmérséklet is megengedett. Hagyd üresen, ha nem szeretnél alsó korlátot."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.UPPER_BOUND
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.UPPER_BOUND"
 msgid "Upper temperature boundary for delivered materials. Materials at exactly this boundary are excluded. Leave blank for no upper limit."
-msgstr "运送材料的温度上限。温度恰好等于此值的材料不可运送。留空则不设温度上限。"
+msgstr "A szállítható anyagok hőmérsékletének felső határa. Az ezzel pontosan megegyező hőmérsékletű anyagok nem szállíthatók. Hagyd üresen, ha nem szeretnél felső korlátot."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.CLEAR
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.CLEAR"
 msgid "Remove both temperature limits."
-msgstr "移除两个温度限制。"
+msgstr "Mindkét hőmérsékleti korlát eltávolítása."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.STATUS
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.STATUS"
 msgid "Delivery Temperature Limit checks a material's temperature when choosing resources for delivery."
-msgstr "Delivery Temperature Limit 会在选择运送资源时检查材料的温度。"
+msgstr "A Delivery Temperature Limit a szállítandó erőforrások kiválasztásakor ellenőrzi az anyag hőmérsékletét."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_TITLE
+#. TRANSLATORS: Use exactly space-hyphen-space in msgstr. Keep the original msgid unchanged.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_TITLE"
 msgid "Delivery Temperature Limit - Options"
-msgstr "Delivery Temperature Limit - 选项"
+msgstr "Delivery Temperature Limit - Beállítások"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_INTRO
 #. TRANSLATORS: Building-specific ranges are set in building panels. Settings in this Options dialog are shared across colonies.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_INTRO"
 msgid "Set individual buildings' delivery ranges in their details panels. These settings are shared across your colonies."
-msgstr "请在各建筑的详情面板中设置其运送温度范围。此处的设置适用于你的所有殖民地。"
+msgstr "Az egyes épületek szállítási hőmérséklet-tartományát a részleteket mutató paneljükön állíthatod be. Az itt megadott beállítások minden kolóniádra érvényesek."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.RESTART_NOTICE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.RESTART_NOTICE"
 msgid "Changes take effect after restarting Oxygen Not Included."
-msgstr "更改将在重启 Oxygen Not Included 后生效。"
+msgstr "A módosítások az Oxygen Not Included újraindítása után lépnek életbe."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.PENDING_RESTART_NOTICE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.PENDING_RESTART_NOTICE"
 msgid "Saved changes are waiting for a restart. This session still uses its startup settings."
-msgstr "已保存的更改将在重启游戏后生效。本次游戏仍使用启动时的设置。"
+msgstr "A mentett módosítások újraindításra várnak. A játék még az induláskori beállításokat használja."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_CONSTRUCTION
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_CONSTRUCTION"
 msgid "Construction"
-msgstr "建造"
+msgstr "Építkezés"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.CHECKBOX_LIMIT_CONSTRUCTION
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.CHECKBOX_LIMIT_CONSTRUCTION"
 msgid "Limit construction material temperatures"
-msgstr "限制建筑材料的温度"
+msgstr "Építőanyagok hőmérsékletének korlátozása"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_DEFAULT_CONSTRUCTION_RANGE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_DEFAULT_CONSTRUCTION_RANGE"
 msgid "Default range for new construction"
-msgstr "新建造任务的默认范围"
+msgstr "Alapértelmezett tartomány új építkezésekhez"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_DEFAULT_CONSTRUCTION_RANGE
 #. SOURCE REPAIR: English text recovered verbatim from TRANSLATION_HANDOFF_GUIDE.md.
 #. Verify the corresponding source declaration and extractor before the next regeneration.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_DEFAULT_CONSTRUCTION_RANGE"
 msgid "Existing construction sites are not updated. Limits are rounded to whole Kelvin values; the lower bound is included and the upper bound is excluded."
-msgstr "现有工地的温度限制保持不变。限制值会换算为开尔文并舍入为整数；包含下限值，不包含上限值。"
+msgstr "A már meglévő építkezések beállításai nem változnak. A korlátok egész számú kelvinre lesznek kerekítve. Az alsó határ része a tartománynak, a felső határ nem."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.HINT_CONSTRUCTION_DISABLED
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.HINT_CONSTRUCTION_DISABLED"
 msgid "Enable construction limits to edit this default range."
-msgstr "启用建筑材料的温度限制后，才能编辑此默认范围。"
+msgstr "Az alapértelmezett tartomány szerkesztéséhez engedélyezd az építkezési korlátokat."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_RESOURCE_WARNINGS
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_RESOURCE_WARNINGS"
 msgid "Resource warnings"
-msgstr "资源警告"
+msgstr "Erőforrás-figyelmeztetések"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.CHECKBOX_WARN_ON_BLOCKED
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.CHECKBOX_WARN_ON_BLOCKED"
 msgid "Warn when temperature limits block delivery"
-msgstr "温度限制阻止运送时发出警告"
+msgstr "Figyelmeztetés, ha a hőmérsékleti korlátok megakadályozzák a szállítást"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_WARN_ON_BLOCKED
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_WARN_ON_BLOCKED"
 msgid "Includes temperature in the Lacks Resources check. Does not change delivery filtering."
-msgstr "检查“缺少资源”状态时考虑温度。不会改变运送筛选规则。"
+msgstr "Az „Erőforráshiány” ellenőrzésekor a hőmérsékletet is figyelembe veszi. A szállítás szűrését nem módosítja."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.NOTICE_RESOURCE_WARNINGS_UNAVAILABLE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.NOTICE_RESOURCE_WARNINGS_UNAVAILABLE"
 msgid "Temperature-aware resource warnings are unavailable in this session. Your preference is retained."
-msgstr "本次游戏无法使用考虑温度的资源警告。你的偏好设置会保留。"
+msgstr "Ebben a munkamenetben nem érhetők el a hőmérsékletet figyelembe vevő erőforrás-figyelmeztetések. A választott beállítás megmarad."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_INTEGER_REQUIRED
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_INTEGER_REQUIRED"
 msgid "Enter a whole-number temperature in the unit shown."
-msgstr "请按显示的单位输入整数温度。"
+msgstr "Egész számként add meg a hőmérsékletet a kijelzett mértékegységben."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_SUPPORTED_RANGE
 #. TRANSLATORS: {0} and {1} are the endpoints; {2} is the displayed unit. Preserve all three placeholders.
 #, csharp-format
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_SUPPORTED_RANGE"
 msgid "The rounded temperature must be within the supported range: {0} to {1} {2}."
-msgstr "舍入后的温度必须在支持的范围内：{0} 至 {1} {2}。"
+msgstr "A kerekített hőmérsékletnek a támogatott tartományba kell esnie: {0} és {1} {2} között."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_EMPTY_INTERVAL
 #. TRANSLATORS: Reference the exact translated bound labels. After rounding to integer kelvin values, minimum must be strictly less than maximum.
-#. TRANSLATORS: Nonempty means at least one permitted temperature value, not that matching material currently exists.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_EMPTY_INTERVAL"
 msgid "The 'At least' value must be lower than 'Below' after rounding to whole Kelvin values. Choose a nonempty construction range."
-msgstr "换算为开尔文并舍入为整数后，“不低于”的值必须小于“低于”的值。请为建筑材料选择至少包含一个温度值的范围。"
+msgstr "Egész számú kelvinre kerekítés után a „Legalább” értékének kisebbnek kell lennie a „Kevesebb mint” értékénél. Válassz legalább egy hőmérsékletet tartalmazó építkezési tartományt."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_INVALID_PENDING
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_INVALID_PENDING"
 msgid "Correct or revert the range before disabling construction limits. Invalid values will not be saved."
-msgstr "停用建筑材料的温度限制前，请修正范围或撤销温度修改。无效值不会保存。"
+msgstr "Az építkezési korlátok kikapcsolása előtt javítsd a tartományt, vagy vond vissza a módosításait. Az érvénytelen értékek nem lesznek mentve."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_REVERT_RANGE
 #. TRANSLATORS: Undo unsaved range edits and restore the last-saved values; do not confuse with Restore defaults.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_REVERT_RANGE"
 msgid "Revert temperature edits"
-msgstr "撤销温度修改"
+msgstr "Hőmérséklet-módosítások visszavonása"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BANNER_LEGACY_UNIT
 #. TRANSLATORS: Interpret existing numbers in the chosen unit; this is not a request to convert their numeric values. {0} is a unit symbol.
 #, csharp-format
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BANNER_LEGACY_UNIT"
 msgid "Unspecified unit in previous settings: pre-interpreted as {0}. Select a unit if different:"
-msgstr "旧设置未指定单位，目前暂按 {0} 解释。如果原单位不同，请选择："
+msgstr "A korábbi beállításokban nincs megadva mértékegység. Egyelőre ezt használjuk: {0}. Ha nem megfelelő, válassz másikat:"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_CELSIUS
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_CELSIUS"
 msgid "Interpret as °C"
-msgstr "按 °C 解释"
+msgstr "Értelmezés: °C"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_FAHRENHEIT
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_FAHRENHEIT"
 msgid "Interpret as °F"
-msgstr "按 °F 解释"
+msgstr "Értelmezés: °F"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_KELVIN
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_KELVIN"
 msgid "Interpret as K"
-msgstr "按 K 解释"
+msgstr "Értelmezés: K"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_EXPAND_HELP
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_EXPAND_HELP"
 msgid "Show help and diagnostics"
-msgstr "显示帮助与诊断"
+msgstr "Súgó és diagnosztika megjelenítése"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_COLLAPSE_HELP
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_COLLAPSE_HELP"
 msgid "Hide help and diagnostics"
-msgstr "隐藏帮助与诊断"
+msgstr "Súgó és diagnosztika elrejtése"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_INSTALLED_VERSION
 #. TRANSLATORS: {0} is the installed assembly FILE version, not the assembly identity version.
 #, csharp-format
-#. TRANSLATORS: Installed mod binary file version, not a generic release version; use player-facing mod-file terminology.
+#. TRANSLATORS: Assembly means the installed mod binary. Retain the file-version distinction.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_INSTALLED_VERSION"
 msgid "Installed assembly file version: {0}"
-msgstr "已安装的模组文件版本：{0}"
+msgstr "Telepített mod fájlverziója: {0}"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_HOMEPAGE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_HOMEPAGE"
 msgid "Open mod page"
-msgstr "打开模组页面"
+msgstr "Mod oldalának megnyitása"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_CONFIG_FOLDER
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_CONFIG_FOLDER"
 msgid "Open configuration folder"
-msgstr "打开配置文件夹"
+msgstr "Konfigurációs mappa megnyitása"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_CONFIG_FOLDER
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_CONFIG_FOLDER"
 msgid "This action does not save your draft. Close and reopen Options after editing the file externally."
-msgstr "此操作不会保存正在编辑的设置。使用其他程序编辑配置文件后，请关闭并重新打开选项。"
+msgstr "Ez a művelet nem menti a szerkesztett beállításokat. A fájl külső szerkesztése után zárd be, majd nyisd meg újra a Beállítások ablakot."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_SUPPORT_REPORT
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_SUPPORT_REPORT"
 msgid "Create a diagnostic file on this computer. You choose whether to share it."
-msgstr "在本机创建诊断文件。是否分享由你决定。"
+msgstr "Diagnosztikai fájlt hoz létre ezen a számítógépen. Te döntöd el, hogy megosztod-e."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.CHECKBOX_INCLUDE_PLAYER_LOG
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.CHECKBOX_INCLUDE_PLAYER_LOG"
 msgid "Include Player.log in the next report"
-msgstr "在下一份报告中包含 Player.log"
+msgstr "Player.log csatolása a következő jelentéshez"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_INCLUDE_PLAYER_LOG
 #. SOURCE REPAIR: English text recovered verbatim from TRANSLATION_HANDOFF_GUIDE.md.
 #. Verify the corresponding source declaration and extractor before the next regeneration.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_INCLUDE_PLAYER_LOG"
 msgid "May contain personal information. Known paths are redacted where possible; review the report before sharing."
-msgstr "可能包含个人信息。已知路径会尽可能隐去；分享前请检查报告。"
+msgstr "Személyes adatokat tartalmazhat. A felismert elérési utak lehetőség szerint ki lesznek takarva. Megosztás előtt nézd át a jelentést."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CREATE_REPORT
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CREATE_REPORT"
 msgid "Create local report"
-msgstr "创建本地报告"
+msgstr "Helyi jelentés készítése"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_CREATING_REPORT
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_CREATING_REPORT"
 msgid "Creating a local report…"
-msgstr "正在创建本地报告…"
+msgstr "Helyi jelentés készítése…"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_CREATED
 #. TRANSLATORS: Preserve both guarantees: nothing uploaded AND nothing copied to the clipboard.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_CREATED"
 msgid "Local report created. Nothing was uploaded or copied to the clipboard. Review before sharing:"
-msgstr "本地报告已创建。未上传任何内容，也未将任何内容复制到剪贴板。分享前请检查报告："
+msgstr "A helyi jelentés elkészült. Semmi sem lett feltöltve vagy a vágólapra másolva. Megosztás előtt nézd át:"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_FAILED
 #. TRANSLATORS: Failure does not upload a report or remove an earlier successfully created report.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_FAILED"
 msgid "The report could not be created. No report was uploaded. Any previous successful report remains available. Failure details are in Player.log."
-msgstr "无法创建报告。未上传任何报告。此前成功创建的报告仍可使用。失败详情见 Player.log。"
+msgstr "Nem sikerült létrehozni a jelentést. Nem történt jelentésfeltöltés. A korábban sikeresen létrehozott jelentések továbbra is elérhetők. A hiba részletei a Player.log fájlban találhatók."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_LAST_REPORT_FOLDER
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_LAST_REPORT_FOLDER"
 msgid "Open last report folder"
-msgstr "打开上次报告所在文件夹"
+msgstr "Legutóbbi jelentés mappájának megnyitása"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_COPY_REPORT_SUMMARY
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_COPY_REPORT_SUMMARY"
 msgid "Copy last report summary"
-msgstr "复制上次报告摘要"
+msgstr "Legutóbbi jelentés összefoglalójának másolása"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_SUMMARY_COPIED
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_SUMMARY_COPIED"
 msgid "The clipboard now contains the report summary. Review it before sharing."
-msgstr "报告摘要已复制到剪贴板。分享前请检查。"
+msgstr "A jelentés összefoglalója a vágólapra került. Megosztás előtt nézd át."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_ISSUE_FORM
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_ISSUE_FORM"
 msgid "Open GitHub issue form"
-msgstr "打开 GitHub 问题反馈表单"
+msgstr "GitHub hibabejelentő űrlap megnyitása"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_ISSUE_FORM
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_ISSUE_FORM"
 msgid "Opens the issue template without diagnostic data in the URL. You choose what to paste or attach."
-msgstr "打开问题模板，不在 URL 中包含诊断数据。粘贴或附加哪些内容由你决定。"
+msgstr "Úgy nyitja meg a hibabejelentő sablont, hogy az URL nem tartalmaz diagnosztikai adatokat. Te választod ki, mit illesztesz be vagy csatolsz."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_NO_REPORT
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_NO_REPORT"
 msgid "Create a local report first. Reports from earlier sessions are not automatically selected."
-msgstr "请先创建本地报告。不会自动选择以往游戏会话中的报告。"
+msgstr "Előbb készíts helyi jelentést. A korábbi munkamenetek jelentései nem lesznek automatikusan kiválasztva."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_ACTION_FAILED
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_ACTION_FAILED"
 msgid "The action could not be completed. Details are in Player.log."
-msgstr "无法完成操作。详情见 Player.log。"
+msgstr "Nem sikerült végrehajtani a műveletet. A részletek a Player.log fájlban találhatók."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTORE_DEFAULTS
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTORE_DEFAULTS"
 msgid "Restore defaults"
-msgstr "恢复默认设置"
+msgstr "Alapértékek visszaállítása"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_RESTORE_DEFAULTS
 #. TRANSLATORS: Only the editable draft changes. Cancel leaves the saved configuration file unchanged.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_RESTORE_DEFAULTS"
 msgid "Replaces the draft only. Cancel still leaves the saved file unchanged."
-msgstr "仅替换正在编辑的设置。选择“取消”后，已保存的文件仍保持不变。"
+msgstr "Csak a szerkesztett beállításokat cseréli le. A „Mégse” választásával a mentett fájl továbbra is változatlan marad."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CANCEL
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CANCEL"
 msgid "Cancel"
-msgstr "取消"
+msgstr "Mégse"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_SAVE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_SAVE"
 msgid "Save changes"
-msgstr "保存更改"
+msgstr "Módosítások mentése"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_CHANGES_SAVED
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_CHANGES_SAVED"
 msgid "Changes saved. The running session has not been changed."
-msgstr "更改已保存。本次游戏正在使用的设置未改变。"
+msgstr "A módosítások mentve. A futó játék beállításai nem változtak."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_DONE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_DONE"
 msgid "Done"
-msgstr "完成"
+msgstr "Kész"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTART_NOW
-#. TRANSLATORS: Restart the game application, not the colony or the computer.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTART_NOW"
 msgid "Restart now"
-msgstr "立即重启游戏"
+msgstr "Újraindítás most"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTART_LATER
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTART_LATER"
 msgid "Later"
-msgstr "稍后"
+msgstr "Később"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.WARNING_RUNNING_COLONY
 #. TRANSLATORS: Saving mod options does not save colony/gameplay progress. Preserve the warning.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.WARNING_RUNNING_COLONY"
 msgid "Save your colony and return to the main menu before restarting. Saving options does not save colony progress."
-msgstr "重启游戏前请保存殖民地并返回主菜单。保存选项不会保存殖民地进度。"
+msgstr "Újraindítás előtt mentsd a kolóniát, és térj vissza a főmenübe. A beállítások mentése nem menti a kolónia előrehaladását."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_DISCARD_TITLE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_DISCARD_TITLE"
 msgid "Discard unsaved changes?"
-msgstr "放弃未保存的更改？"
+msgstr "Elveted a nem mentett módosításokat?"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CONFIRM_DISCARD
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CONFIRM_DISCARD"
 msgid "Discard changes"
-msgstr "放弃更改"
+msgstr "Módosítások elvetése"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CANCEL_DISCARD
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CANCEL_DISCARD"
 msgid "Keep editing"
-msgstr "继续编辑"
+msgstr "Szerkesztés folytatása"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_SAVE_FAILED
 #. SOURCE REPAIR: English text recovered verbatim from TRANSLATION_HANDOFF_GUIDE.md.
 #. Verify the corresponding source declaration and extractor before the next regeneration.
-#. TRANSLATORS: The unsaved draft remains in this window; do not imply that it was saved to disk.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_SAVE_FAILED"
 msgid "Options were not saved. Your draft is still here. Check file access and disk space; after an external edit, close and reopen Options. Details are in Player.log."
-msgstr "未能保存选项。正在编辑的设置仍保留在此窗口中。请检查文件访问权限和磁盘空间；使用其他程序编辑配置文件后，请关闭并重新打开选项。详情见 Player.log。"
+msgstr "A beállítások nem lettek mentve. A szerkesztett értékek még megvannak. Ellenőrizd a fájlhoz való hozzáférést és a szabad lemezterületet. Külső szerkesztés után zárd be, majd nyisd meg újra a Beállítások ablakot. A részletek a Player.log fájlban találhatók."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_LOAD_FAILED
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_LOAD_FAILED"
 msgid "Options could not be read safely. The configuration has not been changed. Check the file, then reopen Options. Details are in Player.log."
-msgstr "无法安全读取选项。配置未更改。请检查文件，然后重新打开选项。详情见 Player.log。"
+msgstr "A beállításokat nem sikerült biztonságosan beolvasni. A konfiguráció nem változott. Ellenőrizd a fájlt, majd nyisd meg újra a Beállítások ablakot. A részletek a Player.log fájlban találhatók."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_UI_FAILED
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_UI_FAILED"
 msgid "The options screen could not be opened safely. No settings were changed. See Player.log for details."
-msgstr "无法安全打开选项界面。未更改任何设置。详情见 Player.log。"
+msgstr "A beállítások képernyőjét nem sikerült biztonságosan megnyitni. Egyetlen beállítás sem változott. A részletekért nézd meg a Player.log fájlt."

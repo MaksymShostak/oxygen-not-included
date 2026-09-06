@@ -541,11 +541,11 @@ public sealed class IntentionalRuntimeContractTests
             .ToArray();
 
         string[] poFiles = Directory.GetFiles(translationsDir, "*.po");
-        Assert.IsTrue(poFiles.Length >= 9, $"Expected at least 9 language catalogs (.po), found {poFiles.Length}.");
+        Assert.IsTrue(poFiles.Length >= 18, $"Expected at least 18 language catalogs (.po), found {poFiles.Length}.");
 
         string[] expectedLanguageCodes =
         [
-            "de", "es", "fr", "ko", "pt", "pt_BR", "uk", "zh", "zh_tw"
+            "cs", "de", "el", "es", "fr", "hu", "it", "ja", "ko", "pl", "pt", "pt_BR", "th", "tr", "uk", "vi", "zh", "zh_tw"
         ];
         string[] actualLanguageCodes = poFiles
             .Select(f => Path.GetFileNameWithoutExtension(f))

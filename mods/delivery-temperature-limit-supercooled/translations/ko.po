@@ -1,10 +1,8 @@
 msgid ""
 msgstr ""
 "Application: Oxygen Not Included\n"
-"POT Version: 2.0\n"
 "Project-Id-Version: DeliveryTemperatureLimit\n"
-"POT-Creation-Date: \n"
-"PO-Revision-Date: 2026-09-05 23:17+0300\n"
+"PO-Revision-Date: 2026-09-06 07:40+0000\n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -13,6 +11,8 @@ msgstr ""
 "Language: ko_KR\n"
 "Last-Translator: OpenAI ChatGPT (AI-generated; human review pending)\n"
 "X-Review-Status: Native-speaker and in-game review pending\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"POT Version: 2.0\n"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE"
@@ -122,12 +122,12 @@ msgstr "각 건조물의 운반 온도 범위는 해당 건조물의 상세 패�
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.RESTART_NOTICE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.RESTART_NOTICE"
 msgid "Changes take effect after restarting Oxygen Not Included."
-msgstr "변경 사항은 Oxygen Not Included를 다시 시작하면 적용됩니다."
+msgstr "변경 사항은 Oxygen Not Included를 재시작하면 적용됩니다."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.PENDING_RESTART_NOTICE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.PENDING_RESTART_NOTICE"
 msgid "Saved changes are waiting for a restart. This session still uses its startup settings."
-msgstr "저장한 변경 사항은 다시 시작한 뒤 적용됩니다. 현재 세션에서는 시작할 때의 설정을 계속 사용합니다."
+msgstr "저장한 변경 사항은 게임을 재시작한 뒤 적용됩니다. 현재 게임에서는 시작할 때 불러온 설정을 계속 사용합니다."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_CONSTRUCTION
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_CONSTRUCTION"
@@ -149,7 +149,7 @@ msgstr "새 건설 작업의 기본 온도 범위"
 #. Verify the corresponding source declaration and extractor before the next regeneration.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_DEFAULT_CONSTRUCTION_RANGE"
 msgid "Existing construction sites are not updated. Limits are rounded to whole Kelvin values; the lower bound is included and the upper bound is excluded."
-msgstr "기존 건설 현장에는 적용되지 않습니다. 제한값은 켈빈 단위의 정수로 반올림되며, 하한은 포함하고 상한은 제외합니다."
+msgstr "기존 건설 현장의 온도 제한은 바뀌지 않습니다. 제한값은 켈빈 단위의 정수로 반올림되며, 하한은 포함하고 상한은 제외합니다."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.HINT_CONSTRUCTION_DISABLED
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.HINT_CONSTRUCTION_DISABLED"
@@ -190,42 +190,43 @@ msgstr "반올림한 온도는 지원 범위인 {0}~{1} {2} 안에 있어야 합
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_EMPTY_INTERVAL
 #. TRANSLATORS: Reference the exact translated bound labels. After rounding to integer kelvin values, minimum must be strictly less than maximum.
+#. TRANSLATORS: Nonempty means at least one permitted temperature value, not that matching material currently exists.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_EMPTY_INTERVAL"
 msgid "The 'At least' value must be lower than 'Below' after rounding to whole Kelvin values. Choose a nonempty construction range."
-msgstr "켈빈 단위의 정수로 반올림한 후 “이상” 값이 “미만” 값보다 작아야 합니다. 비어 있지 않은 건설 온도 범위를 선택하세요."
+msgstr "켈빈 단위의 정수로 반올림한 후 “이상” 값이 “미만” 값보다 작아야 합니다. 건설 재료의 온도 범위에 값이 하나 이상 포함되도록 설정하세요."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_INVALID_PENDING
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_INVALID_PENDING"
 msgid "Correct or revert the range before disabling construction limits. Invalid values will not be saved."
-msgstr "건설 온도 제한을 끄기 전에 범위를 수정하거나 변경 사항을 되돌리세요. 유효하지 않은 값은 저장되지 않습니다."
+msgstr "건설 온도 제한을 끄기 전에 범위를 수정하거나 온도 변경 사항을 되돌리세요. 유효하지 않은 값은 저장되지 않습니다."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_REVERT_RANGE
 #. TRANSLATORS: Undo unsaved range edits and restore the last-saved values; do not confuse with Restore defaults.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_REVERT_RANGE"
 msgid "Revert temperature edits"
-msgstr "온도 편집 되돌리기"
+msgstr "온도 변경 사항 되돌리기"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BANNER_LEGACY_UNIT
 #. TRANSLATORS: Interpret existing numbers in the chosen unit; this is not a request to convert their numeric values. {0} is a unit symbol.
 #, csharp-format
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BANNER_LEGACY_UNIT"
 msgid "Unspecified unit in previous settings: pre-interpreted as {0}. Select a unit if different:"
-msgstr "이전 설정에 단위가 지정되지 않았습니다. 우선 해석에 사용한 단위: {0}. 다른 단위였다면 선택하세요:"
+msgstr "이전 설정에는 단위가 없습니다. 현재 가정한 단위: {0}. 다른 단위를 사용했다면 선택하세요:"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_CELSIUS
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_CELSIUS"
 msgid "Interpret as °C"
-msgstr "°C로 해석"
+msgstr "°C 단위로 해석"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_FAHRENHEIT
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_FAHRENHEIT"
 msgid "Interpret as °F"
-msgstr "°F로 해석"
+msgstr "°F 단위로 해석"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_KELVIN
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_KELVIN"
 msgid "Interpret as K"
-msgstr "K로 해석"
+msgstr "K 단위로 해석"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_EXPAND_HELP
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_EXPAND_HELP"
@@ -240,9 +241,10 @@ msgstr "도움말 및 진단 숨기기"
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_INSTALLED_VERSION
 #. TRANSLATORS: {0} is the installed assembly FILE version, not the assembly identity version.
 #, csharp-format
+#. TRANSLATORS: Installed mod binary file version, not a generic release version; use player-facing mod-file terminology.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_INSTALLED_VERSION"
 msgid "Installed assembly file version: {0}"
-msgstr "설치된 어셈블리 파일 버전: {0}"
+msgstr "설치된 모드의 파일 버전: {0}"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_HOMEPAGE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_HOMEPAGE"
@@ -257,7 +259,7 @@ msgstr "설정 폴더 열기"
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_CONFIG_FOLDER
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_CONFIG_FOLDER"
 msgid "This action does not save your draft. Close and reopen Options after editing the file externally."
-msgstr "이 작업은 편집 중인 내용을 저장하지 않습니다. 외부에서 파일을 편집한 후에는 옵션을 닫았다가 다시 여세요."
+msgstr "이 작업은 편집 중인 내용을 저장하지 않습니다. 다른 프로그램에서 파일을 편집한 후에는 옵션을 닫았다가 다시 여세요."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_SUPPORT_REPORT
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_SUPPORT_REPORT"
@@ -290,13 +292,13 @@ msgstr "로컬 보고서 만드는 중…"
 #. TRANSLATORS: Preserve both guarantees: nothing uploaded AND nothing copied to the clipboard.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_CREATED"
 msgid "Local report created. Nothing was uploaded or copied to the clipboard. Review before sharing:"
-msgstr "로컬 보고서를 만들었습니다. 업로드하거나 클립보드에 복사한 내용은 없습니다. 공유하기 전에 검토하세요:"
+msgstr "로컬 보고서를 만들었습니다. 업로드하거나 클립보드에 복사한 내용은 없습니다. 공유하기 전에 보고서를 검토하세요:"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_FAILED
 #. TRANSLATORS: Failure does not upload a report or remove an earlier successfully created report.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_FAILED"
 msgid "The report could not be created. No report was uploaded. Any previous successful report remains available. Failure details are in Player.log."
-msgstr "보고서를 만들 수 없습니다. 업로드된 보고서는 없습니다. 이전에 정상적으로 만든 보고서는 계속 사용할 수 있습니다. 오류 세부 정보는 Player.log에 있습니다."
+msgstr "보고서를 만들지 못했습니다. 업로드된 보고서는 없습니다. 이전에 정상적으로 만든 보고서는 계속 사용할 수 있습니다. 오류 세부 정보는 Player.log에 있습니다."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_LAST_REPORT_FOLDER
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_LAST_REPORT_FOLDER"
@@ -316,12 +318,12 @@ msgstr "보고서 요약을 클립보드에 복사했습니다. 공유하기 전
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_ISSUE_FORM
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_ISSUE_FORM"
 msgid "Open GitHub issue form"
-msgstr "GitHub 이슈 양식 열기"
+msgstr "GitHub 문제 보고 양식 열기"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_ISSUE_FORM
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_ISSUE_FORM"
 msgid "Opens the issue template without diagnostic data in the URL. You choose what to paste or attach."
-msgstr "URL에 진단 데이터를 포함하지 않고 이슈 양식을 엽니다. 붙여넣거나 첨부할 내용은 직접 선택할 수 있습니다."
+msgstr "URL에 진단 데이터를 포함하지 않고 문제 보고 양식을 엽니다. 붙여넣거나 첨부할 내용은 직접 선택할 수 있습니다."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_NO_REPORT
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_NO_REPORT"
@@ -331,7 +333,7 @@ msgstr "먼저 로컬 보고서를 만드세요. 이전 세션의 보고서는 �
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_ACTION_FAILED
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_ACTION_FAILED"
 msgid "The action could not be completed. Details are in Player.log."
-msgstr "작업을 완료할 수 없습니다. 세부 정보는 Player.log에 있습니다."
+msgstr "작업을 완료하지 못했습니다. 세부 정보는 Player.log에 있습니다."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTORE_DEFAULTS
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTORE_DEFAULTS"
@@ -357,7 +359,7 @@ msgstr "변경 사항 저장"
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_CHANGES_SAVED
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_CHANGES_SAVED"
 msgid "Changes saved. The running session has not been changed."
-msgstr "변경 사항을 저장했습니다. 현재 실행 중인 세션은 변경되지 않았습니다."
+msgstr "변경 사항을 저장했습니다. 현재 게임에서 사용 중인 설정은 바뀌지 않았습니다."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_DONE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_DONE"
@@ -365,9 +367,10 @@ msgid "Done"
 msgstr "완료"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTART_NOW
+#. TRANSLATORS: Restart the game application, not the colony or the computer.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTART_NOW"
 msgid "Restart now"
-msgstr "지금 다시 시작"
+msgstr "지금 게임 재시작"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTART_LATER
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTART_LATER"
@@ -378,7 +381,7 @@ msgstr "나중에"
 #. TRANSLATORS: Saving mod options does not save colony/gameplay progress. Preserve the warning.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.WARNING_RUNNING_COLONY"
 msgid "Save your colony and return to the main menu before restarting. Saving options does not save colony progress."
-msgstr "다시 시작하기 전에 식민지를 저장하고 주 메뉴로 돌아가세요. 옵션을 저장해도 식민지 진행 상황은 저장되지 않습니다."
+msgstr "게임을 재시작하기 전에 식민지를 저장하고 주 메뉴로 돌아가세요. 옵션을 저장해도 식민지 진행 상황은 저장되지 않습니다."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_DISCARD_TITLE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_DISCARD_TITLE"
@@ -398,9 +401,10 @@ msgstr "계속 편집"
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_SAVE_FAILED
 #. SOURCE REPAIR: English text recovered verbatim from TRANSLATION_HANDOFF_GUIDE.md.
 #. Verify the corresponding source declaration and extractor before the next regeneration.
+#. TRANSLATORS: The unsaved draft remains in this window; do not imply that it was saved to disk.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_SAVE_FAILED"
 msgid "Options were not saved. Your draft is still here. Check file access and disk space; after an external edit, close and reopen Options. Details are in Player.log."
-msgstr "옵션을 저장하지 못했습니다. 편집 중인 내용은 그대로 남아 있습니다. 파일 접근 권한과 디스크 여유 공간을 확인하세요. 외부에서 파일을 편집했다면 옵션을 닫았다가 다시 여세요. 세부 정보는 Player.log에 있습니다."
+msgstr "옵션을 저장하지 못했습니다. 편집 중인 내용은 이 창에 그대로 남아 있습니다. 파일 접근 권한과 디스크 여유 공간을 확인하세요. 다른 프로그램에서 파일을 편집했다면 옵션을 닫았다가 다시 여세요. 세부 정보는 Player.log에 있습니다."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_LOAD_FAILED
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_LOAD_FAILED"

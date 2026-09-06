@@ -1,10 +1,8 @@
 msgid ""
 msgstr ""
 "Application: Oxygen Not Included\n"
-"POT Version: 2.0\n"
 "Project-Id-Version: DeliveryTemperatureLimit\n"
-"POT-Creation-Date: \n"
-"PO-Revision-Date: 2026-09-05 23:17+0300\n"
+"PO-Revision-Date: 2026-09-06 07:40+0000\n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -13,6 +11,8 @@ msgstr ""
 "Language: pt_BR\n"
 "Last-Translator: OpenAI ChatGPT (AI-generated; human review pending)\n"
 "X-Review-Status: Native-speaker and in-game review pending\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"POT Version: 2.0\n"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE"
@@ -127,7 +127,7 @@ msgstr "As alterações entram em vigor após reiniciar Oxygen Not Included."
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.PENDING_RESTART_NOTICE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.PENDING_RESTART_NOTICE"
 msgid "Saved changes are waiting for a restart. This session still uses its startup settings."
-msgstr "As alterações salvas aguardam uma reinicialização. Esta sessão ainda usa as configurações com que foi iniciada."
+msgstr "As alterações salvas entram em vigor após reiniciar o jogo. Esta sessão ainda usa as configurações carregadas ao iniciar o jogo."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_CONSTRUCTION
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_CONSTRUCTION"
@@ -149,12 +149,12 @@ msgstr "Faixa padrão para novas construções"
 #. Verify the corresponding source declaration and extractor before the next regeneration.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_DEFAULT_CONSTRUCTION_RANGE"
 msgid "Existing construction sites are not updated. Limits are rounded to whole Kelvin values; the lower bound is included and the upper bound is excluded."
-msgstr "Os canteiros de obras existentes não são atualizados. Os limites são arredondados para valores inteiros em kelvin; o limite inferior está incluído e o superior está excluído."
+msgstr "Os limites de temperatura dos canteiros de obras existentes não mudam. Os limites são arredondados para valores inteiros em kelvin; o limite inferior está incluído e o superior está excluído."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.HINT_CONSTRUCTION_DISABLED
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.HINT_CONSTRUCTION_DISABLED"
 msgid "Enable construction limits to edit this default range."
-msgstr "Ative os limites de construção para editar esta faixa padrão."
+msgstr "Ative os limites de temperatura dos materiais de construção para editar esta faixa padrão."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_RESOURCE_WARNINGS
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_RESOURCE_WARNINGS"
@@ -190,20 +190,21 @@ msgstr "A temperatura arredondada deve estar dentro da faixa permitida: de {0} a
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_EMPTY_INTERVAL
 #. TRANSLATORS: Reference the exact translated bound labels. After rounding to integer kelvin values, minimum must be strictly less than maximum.
+#. TRANSLATORS: Nonempty means at least one permitted temperature value, not that matching material currently exists.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_EMPTY_INTERVAL"
 msgid "The 'At least' value must be lower than 'Below' after rounding to whole Kelvin values. Choose a nonempty construction range."
-msgstr "O valor de “No mínimo” deve ser menor que o de “Abaixo de” após o arredondamento para valores inteiros em kelvin. Escolha uma faixa de construção que não esteja vazia."
+msgstr "O valor de “No mínimo” deve ser menor que o de “Abaixo de” após o arredondamento para valores inteiros em kelvin. Escolha uma faixa para os materiais de construção que inclua pelo menos uma temperatura."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_INVALID_PENDING
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_INVALID_PENDING"
 msgid "Correct or revert the range before disabling construction limits. Invalid values will not be saved."
-msgstr "Corrija a faixa ou reverta as alterações antes de desativar os limites de construção. Valores inválidos não serão salvos."
+msgstr "Corrija a faixa ou desfaça as alterações de temperatura antes de desativar os limites de temperatura dos materiais de construção. Valores inválidos não serão salvos."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_REVERT_RANGE
 #. TRANSLATORS: Undo unsaved range edits and restore the last-saved values; do not confuse with Restore defaults.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_REVERT_RANGE"
 msgid "Revert temperature edits"
-msgstr "Reverter alterações de temperatura"
+msgstr "Desfazer alterações de temperatura"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BANNER_LEGACY_UNIT
 #. TRANSLATORS: Interpret existing numbers in the chosen unit; this is not a request to convert their numeric values. {0} is a unit symbol.
@@ -240,9 +241,10 @@ msgstr "Ocultar ajuda e diagnóstico"
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_INSTALLED_VERSION
 #. TRANSLATORS: {0} is the installed assembly FILE version, not the assembly identity version.
 #, csharp-format
+#. TRANSLATORS: Installed mod binary file version, not a generic release version; use player-facing mod-file terminology.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_INSTALLED_VERSION"
 msgid "Installed assembly file version: {0}"
-msgstr "Versão do arquivo de assembly instalado: {0}"
+msgstr "Versão do arquivo do mod instalado: {0}"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_HOMEPAGE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_HOMEPAGE"
@@ -257,7 +259,7 @@ msgstr "Abrir pasta de configuração"
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_CONFIG_FOLDER
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_CONFIG_FOLDER"
 msgid "This action does not save your draft. Close and reopen Options after editing the file externally."
-msgstr "Esta ação não salva as alterações que você está editando. Após editar o arquivo externamente, feche e reabra as Opções."
+msgstr "Esta ação não salva as alterações que você está editando. Após editar o arquivo em outro programa, feche e reabra as Opções."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_SUPPORT_REPORT
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_SUPPORT_REPORT"
@@ -290,13 +292,13 @@ msgstr "Criando um relatório local…"
 #. TRANSLATORS: Preserve both guarantees: nothing uploaded AND nothing copied to the clipboard.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_CREATED"
 msgid "Local report created. Nothing was uploaded or copied to the clipboard. Review before sharing:"
-msgstr "Relatório local criado. Nada foi enviado nem copiado para a área de transferência. Revise antes de compartilhar:"
+msgstr "Relatório local criado. Nada foi enviado à internet nem copiado para a área de transferência. Revise o relatório antes de compartilhá-lo:"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_FAILED
 #. TRANSLATORS: Failure does not upload a report or remove an earlier successfully created report.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_FAILED"
 msgid "The report could not be created. No report was uploaded. Any previous successful report remains available. Failure details are in Player.log."
-msgstr "Não foi possível criar o relatório. Nenhum relatório foi enviado. Relatórios anteriores criados com sucesso continuam disponíveis. Os detalhes da falha estão em Player.log."
+msgstr "Não foi possível criar o relatório. Nenhum relatório foi enviado à internet. Relatórios anteriores criados com sucesso continuam disponíveis. Os detalhes da falha estão em Player.log."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_LAST_REPORT_FOLDER
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_LAST_REPORT_FOLDER"
@@ -321,7 +323,7 @@ msgstr "Abrir formulário de problemas no GitHub"
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_ISSUE_FORM
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_ISSUE_FORM"
 msgid "Opens the issue template without diagnostic data in the URL. You choose what to paste or attach."
-msgstr "Abre o modelo de problema sem dados de diagnóstico na URL. Você decide o que colar ou anexar."
+msgstr "Abre o modelo de relato de problemas sem dados de diagnóstico na URL. Você decide o que colar ou anexar."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_NO_REPORT
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_NO_REPORT"
@@ -357,7 +359,7 @@ msgstr "Salvar alterações"
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_CHANGES_SAVED
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_CHANGES_SAVED"
 msgid "Changes saved. The running session has not been changed."
-msgstr "Alterações salvas. A sessão em execução não foi alterada."
+msgstr "Alterações salvas. As configurações da sessão atual não foram alteradas."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_DONE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_DONE"
@@ -365,9 +367,10 @@ msgid "Done"
 msgstr "Concluído"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTART_NOW
+#. TRANSLATORS: Restart the game application, not the colony or the computer.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTART_NOW"
 msgid "Restart now"
-msgstr "Reiniciar agora"
+msgstr "Reiniciar o jogo agora"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTART_LATER
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTART_LATER"
@@ -378,7 +381,7 @@ msgstr "Mais tarde"
 #. TRANSLATORS: Saving mod options does not save colony/gameplay progress. Preserve the warning.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.WARNING_RUNNING_COLONY"
 msgid "Save your colony and return to the main menu before restarting. Saving options does not save colony progress."
-msgstr "Salve sua colônia e volte ao menu principal antes de reiniciar. Salvar as opções não salva o progresso da colônia."
+msgstr "Salve sua colônia e volte ao menu principal antes de reiniciar o jogo. Salvar as opções não salva o progresso da colônia."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_DISCARD_TITLE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_DISCARD_TITLE"
@@ -398,9 +401,10 @@ msgstr "Continuar editando"
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_SAVE_FAILED
 #. SOURCE REPAIR: English text recovered verbatim from TRANSLATION_HANDOFF_GUIDE.md.
 #. Verify the corresponding source declaration and extractor before the next regeneration.
+#. TRANSLATORS: The unsaved draft remains in this window; do not imply that it was saved to disk.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_SAVE_FAILED"
 msgid "Options were not saved. Your draft is still here. Check file access and disk space; after an external edit, close and reopen Options. Details are in Player.log."
-msgstr "As opções não foram salvas. As alterações que você estava editando continuam aqui. Verifique o acesso ao arquivo e o espaço em disco; após editar o arquivo externamente, feche e reabra as Opções. Os detalhes estão em Player.log."
+msgstr "As opções não foram salvas. Suas alterações continuam nesta janela. Verifique o acesso ao arquivo e o espaço em disco; após editar o arquivo em outro programa, feche e reabra as Opções. Os detalhes estão em Player.log."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_LOAD_FAILED
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_LOAD_FAILED"
