@@ -135,9 +135,8 @@ namespace DeliveryTemperatureLimit
                     UnityEngine.Object.DestroyImmediate(rogueScreen);
                 }
 
-                var dummyField = realizedInput.AddComponent<InputField>();
-                dummyField.enabled = false;
-
+                // PLib already supplies the input's Selectable. Adding a legacy
+                // InputField here is rejected by Unity and returns null.
                 lowField = realizedInput.GetComponent<TMP_InputField>();
                 if (lowField != null)
                 {
@@ -198,9 +197,7 @@ namespace DeliveryTemperatureLimit
                     UnityEngine.Object.DestroyImmediate(rogueScreen);
                 }
 
-                var dummyField = realizedInput.AddComponent<InputField>();
-                dummyField.enabled = false;
-
+                // Keep the PLib TMP input as this object's only Selectable.
                 highField = realizedInput.GetComponent<TMP_InputField>();
                 if (highField != null)
                 {
