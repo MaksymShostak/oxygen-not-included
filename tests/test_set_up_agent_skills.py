@@ -110,7 +110,7 @@ class PinnedSkillSourceTests(unittest.TestCase):
 class SkillActivationPreservationTests(unittest.TestCase):
     def test_local_only_activation_accepts_no_external_skills_and_preserves_user_skill(self):
         with tempfile.TemporaryDirectory() as directory:
-            repo = Path(directory)
+            repo = Path(directory).resolve()
             subprocess.run(["git", "init", "--quiet", directory], check=True, capture_output=True)
             (repo / ".gitignore").write_text(".agents/\n", encoding="utf-8")
             lock = repo / "skills-lock.json"
