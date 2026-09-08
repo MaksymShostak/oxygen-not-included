@@ -1,0 +1,37 @@
+name: Steam Community BBCode checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  converter:
+    name: BBCode / ${{ matrix.os }} / Node ${{ matrix.node }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [22.23.2, 24.20.0, 26.8.1]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Select affected converter checks
+        id: scope
+        run: node scripts/selectPullRequestChecks.js --scope converter
+      - name: Install locked converter development dependencies
+        if: steps.scope.outputs.converter == 'true'
+        run: npm exec --yes --package=npm@12.0.2 -- npm --prefix tools/steam-community-bbcode ci --ignore-scripts
+      - name: Install the approved isolated type-coverage tool
+        if: steps.scope.outputs.converter == 'true'
+        run: npm exec --yes --package=npm@12.0.2 -- npm --prefix tools/steam-community-bbcode/tooling/type-coverage ci --ignore-scripts
+      - name: Check the converter and real packed consumer
+        if: steps.scope.outputs.converter == 'true'
+        run: npm exec --yes --package=npm@12.0.2 -- npm run check:converter

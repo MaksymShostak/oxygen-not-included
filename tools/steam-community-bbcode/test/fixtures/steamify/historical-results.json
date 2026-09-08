@@ -1,0 +1,239 @@
+{
+  "steamify": "2.0.1",
+  "source_sha256": "d2d80f2e374a2eb7360d480cd139c458c1404f6ae4592e4131c009e452eb8a3c",
+  "checks": [
+    {
+      "name": "actual: deterministic",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "actual: CRLF and LF equivalent",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "actual: h1 count",
+      "pass": true,
+      "detail": "6 source / 6 rendered"
+    },
+    {
+      "name": "actual: b count",
+      "pass": true,
+      "detail": "29 source / 29 rendered"
+    },
+    {
+      "name": "actual: i count",
+      "pass": true,
+      "detail": "5 source / 5 rendered"
+    },
+    {
+      "name": "actual: list count",
+      "pass": true,
+      "detail": "4 source / 4 rendered"
+    },
+    {
+      "name": "actual: list items",
+      "pass": true,
+      "detail": "18 source / 18 rendered"
+    },
+    {
+      "name": "actual: link SHYLION_LINK",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "actual: link FAST_TRACK_LINK",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "actual: nested italic link",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "actual: literal [sd]",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "actual: literal [Fixed]",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "actual: literal [keep existing Base Game + DLC compatibility badge row]",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "actual: literal °C",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "actual: literal —",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "actual: all prose in order",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "probe: nested unordered list",
+      "pass": true,
+      "detail": {
+        "input": "[list]\n[*] Parent\n[list]\n[*] Child\n[/list]\n[/list]",
+        "markdown": "- Parent\n  - Child",
+        "html": "<ul>\n<li>Parent\n<ul>\n<li>Child</li>\n</ul>\n</li>\n</ul>\n"
+      }
+    },
+    {
+      "name": "probe: nested ordered list",
+      "pass": false,
+      "detail": {
+        "input": "[olist]\n[*] Parent\n[olist]\n[*] Child\n[/olist]\n[/olist]",
+        "markdown": "1. Parent\n  1. Child",
+        "html": "<ol>\n<li>Parent</li>\n<li>Child</li>\n</ol>\n"
+      }
+    },
+    {
+      "name": "probe: image",
+      "pass": true,
+      "detail": {
+        "input": "[img]https://example.com/badge.png[/img]",
+        "markdown": "![](https://example.com/badge.png)",
+        "html": "<p><img src=\"https://example.com/badge.png\" alt=\"\" /></p>\n"
+      }
+    },
+    {
+      "name": "probe: linked image",
+      "pass": true,
+      "detail": {
+        "input": "[url=https://example.com][img]https://example.com/badge.png[/img][/url]",
+        "markdown": "[![](https://example.com/badge.png)](https://example.com)",
+        "html": "<p><a href=\"https://example.com\"><img src=\"https://example.com/badge.png\" alt=\"\" /></a></p>\n"
+      }
+    },
+    {
+      "name": "probe: bare URL tag",
+      "pass": false,
+      "detail": {
+        "input": "[url]https://example.com[/url]",
+        "markdown": "[url]https://example.com[/url]",
+        "html": "<p>[url]https://example.com[/url]</p>\n"
+      }
+    },
+    {
+      "name": "probe: inline list",
+      "pass": false,
+      "detail": {
+        "input": "[list][*] One[*] Two[/list]",
+        "markdown": "[list][*] One[*] Two[/list]",
+        "html": "<p>[list][<em>] One[</em>] Two[/list]</p>\n"
+      }
+    },
+    {
+      "name": "probe: multiline bold",
+      "pass": false,
+      "detail": {
+        "input": "[b]First\nsecond[/b]",
+        "markdown": "[b]First\nsecond[/b]",
+        "html": "<p>[b]First\nsecond[/b]</p>\n"
+      }
+    },
+    {
+      "name": "probe: underline",
+      "pass": false,
+      "detail": {
+        "input": "[u]Underlined[/u]",
+        "markdown": "[u]Underlined[/u]",
+        "html": "<p>[u]Underlined[/u]</p>\n"
+      }
+    },
+    {
+      "name": "probe: spoiler",
+      "pass": false,
+      "detail": {
+        "input": "[spoiler]Secret[/spoiler]",
+        "markdown": "[spoiler]Secret[/spoiler]",
+        "html": "<p>[spoiler]Secret[/spoiler]</p>\n"
+      }
+    },
+    {
+      "name": "probe: noparse",
+      "pass": false,
+      "detail": {
+        "input": "[noparse][b]Literal[/b][/noparse]",
+        "markdown": "[noparse]**Literal**[/noparse]",
+        "html": "<p>[noparse]<strong>Literal</strong>[/noparse]</p>\n"
+      }
+    },
+    {
+      "name": "probe: table",
+      "pass": false,
+      "detail": {
+        "input": "[table]\n[tr][th]Header[/th][/tr]\n[tr][td]Cell[/td][/tr]\n[/table]",
+        "markdown": "[table]\n[tr][th]Header[/th][/tr]\n[tr][td]Cell[/td][/tr]\n[/table]",
+        "html": "<p>[table]\n[tr][th]Header[/th][/tr]\n[tr][td]Cell[/td][/tr]\n[/table]</p>\n"
+      }
+    },
+    {
+      "name": "probe: literal Markdown emphasis",
+      "pass": false,
+      "detail": {
+        "input": "Use *literal* asterisks.",
+        "markdown": "Use *literal* asterisks.",
+        "html": "<p>Use <em>literal</em> asterisks.</p>\n"
+      }
+    },
+    {
+      "name": "probe: inline code containing backticks",
+      "pass": false,
+      "detail": {
+        "input": "[code]a`b[/code]",
+        "markdown": "`a`b`",
+        "html": "<p><code>a</code>b`</p>\n"
+      }
+    },
+    {
+      "name": "probe: block code containing fences",
+      "pass": false,
+      "detail": {
+        "input": "[code]\n```\ntext\n[/code]",
+        "markdown": "```\n```\ntext\n```",
+        "html": "<pre><code></code></pre>\n<p>text</p>\n<pre><code></code></pre>\n"
+      }
+    },
+    {
+      "name": "probe: nested blockquotes",
+      "pass": true,
+      "detail": {
+        "input": "[quote]\nOuter\n[quote]\nInner\n[/quote]\n[/quote]",
+        "markdown": "> Outer\n> > Inner",
+        "html": "<blockquote>\n<p>Outer</p>\n<blockquote>\n<p>Inner</p>\n</blockquote>\n</blockquote>\n"
+      }
+    },
+    {
+      "name": "probe: horizontal rule",
+      "pass": true,
+      "detail": {
+        "input": "[hr][/hr]",
+        "markdown": "---",
+        "html": "<hr />\n"
+      }
+    },
+    {
+      "name": "probe: strikethrough",
+      "pass": true,
+      "detail": {
+        "input": "[strike]Old[/strike]",
+        "markdown": "~~Old~~",
+        "html": "<p><s>Old</s></p>\n"
+      }
+    }
+  ]
+}

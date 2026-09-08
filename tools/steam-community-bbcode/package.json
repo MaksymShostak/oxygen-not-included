@@ -1,0 +1,70 @@
+{
+  "name": "steam-community-bbcode",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Steam Community BBCode package under qualification; no released converter API yet",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "npm@12.0.2",
+  "main": "./src/index.js",
+  "types": "./types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "files": [
+    "src/",
+    "types/",
+    "spec/",
+    "coverage.json",
+    "docs/steam-support-matrix.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "conformance:generate": "node scripts/generate-conformance-report.js",
+    "conformance:check": "node scripts/generate-conformance-report.js --check",
+    "qualify:github": "node scripts/qualify-github-rendering.js --live",
+    "test": "node --test test/*.test.js",
+    "typecheck": "tsc --project tsconfig.json",
+    "build:types": "tsc --project tsconfig.declarations.json",
+    "clean:types": "node scripts/clean-generated-types.js",
+    "build": "npm run spec:generate && npm run clean:types && npm run build:types",
+    "types:check": "node scripts/verify-generated-types.js",
+    "test:package": "node scripts/test-package-consumers.js",
+    "type-coverage": "npm --prefix tooling/type-coverage run check",
+    "check": "npm run spec:check && npm test && npm run conformance:check && npm run qualify:parser && npm run typecheck && npm run type-coverage && npm run types:check && npm run test:types && npm run test:package",
+    "test:types": "tsc --project test/type-contracts/tsconfig.json",
+    "qualify:parser": "node --test test/parser-qualification/*.test.js",
+    "validate:spec": "node scripts/validate-specification.js",
+    "spec:generate": "node scripts/generate-registry-modules.js",
+    "spec:check": "node scripts/generate-registry-modules.js --check"
+  },
+  "dependencies": {
+    "@types/mdast": "4.0.4",
+    "@types/unist": "3.0.3",
+    "chevrotain": "13.2.0",
+    "linkify-it": "6.1.0",
+    "mdast-util-from-markdown": "2.0.3",
+    "mdast-util-gfm": "3.1.0",
+    "mdast-util-to-markdown": "2.1.2",
+    "micromark-extension-gfm": "3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "fast-check": "4.9.0",
+    "typescript": "7.0.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MaksymShostak/oxygen-not-included.git",
+    "directory": "tools/steam-community-bbcode"
+  }
+}

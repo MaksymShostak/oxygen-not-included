@@ -26,7 +26,7 @@ export const CHECK_INPUTS = {
     ".node-version", ".python-version", "package.json", "package-lock.json",
     "requirements-sdlc.txt", "skills-lock.json", "jest.config.js",
     ".gitignore", ".github",
-    "scripts/_commands.py", "scripts/_repository.py", "scripts/_sdlc_state.py",
+    "scripts/_commands.py", "scripts/_repository.py", "scripts/_sdlc_state.py", "scripts/_sdlc_baseline.py",
     "scripts/bootstrap_github_sdlc.py", "scripts/probe_dcg_hook_protocol.py",
     "scripts/runRepositoryPython.js", "scripts/sdlc.py", "scripts/sdlc_stop_gate.py",
     "scripts/validate_sdlc_pr.py", "scripts/set_up_sdlc.py",
@@ -38,6 +38,7 @@ export const CHECK_INPUTS = {
   ],
   pipeline: [...DOTNET_INPUTS, "tools/oni-mod-pipeline", ".github/workflows/oni-pipeline-tests.yml"],
   mods: [...DOTNET_INPUTS, "tools/oni-mod-pipeline", "mods"],
+  converter: ["tools/steam-community-bbcode", "scripts/runSteamCommunityBbcodeChecks.js", ".github/workflows/steam-community-bbcode.yml"],
 };
 function git(root, args) {
   const result = spawnSync("git", args, {

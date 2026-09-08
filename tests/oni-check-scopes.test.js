@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { selectPullRequestChecks } from "../scripts/selectPullRequestChecks.js";
 import * as selector from "../scripts/selectPullRequestChecks.js";
+import { affectedCheckCommands } from "../scripts/runAffectedChecks.js";
 
 let root;
 let base;
@@ -34,14 +35,14 @@ beforeEach(() => {
 test("local selection includes untracked and staged input but excludes ignored run evidence", () => {
   write("scripts/validate_sdlc_pr.py");
   expect(typeof selector.selectWorkingTreeChecks).toBe("function");
-  expect(selector.selectWorkingTreeChecks({ root, base })).toEqual({ sdlc: true, pipeline: false, mods: false });
+  expect(selector.selectWorkingTreeChecks({ root, base })).toEqual({ sdlc: true, pipeline: false, mods: false, converter: false });
   git(["add", "--", "scripts/validate_sdlc_pr.py"]);
   expect(selector.selectWorkingTreeChecks({ root, base }).sdlc).toBe(true);
   base = commit("scripts/validate_sdlc_pr.py");
   writeFileSync(join(root, ".gitignore"), ".sdlc/runtime/\n");
   base = commit(".gitignore");
   write(".sdlc/runtime/verification/full.json");
-  expect(selector.selectWorkingTreeChecks({ root, base })).toEqual({ sdlc: false, pipeline: false, mods: false });
+  expect(selector.selectWorkingTreeChecks({ root, base })).toEqual({ sdlc: false, pipeline: false, mods: false, converter: false });
 });
 afterEach(() => {
   const target = resolve(root);
@@ -56,9 +57,20 @@ test.each([
   ["global.json", ["pipeline", "mods"]],
   ["docs/plans/converter.md", []],
   ["package-lock.json", ["sdlc"]],
+  ["tools/steam-community-bbcode/src/index.js", ["converter"]],
+  ["tools/steam-community-bbcode/package-lock.json", ["converter"]],
+  ["scripts/runSteamCommunityBbcodeChecks.js", ["converter"]],
+  [".github/workflows/steam-community-bbcode.yml", ["sdlc", "converter"]],
 ])("ONI routes %s to the actual affected components", (path, expected) => {
   write(path);
   const head = commit(path);
   const selected = selectPullRequestChecks({ root, base, head });
   expect(Object.entries(selected).filter(([, needed]) => needed).map(([name]) => name)).toEqual(expected);
+});
+
+test("untracked converter input selects its actual verification without .NET checks", () => {
+  write("tools/steam-community-bbcode/test/contract.test.js");
+  const selected = selector.selectWorkingTreeChecks({ root, base });
+  expect(selected).toEqual({sdlc: false, pipeline: false, mods: false, converter: true});
+  expect(affectedCheckCommands(selected)).toEqual([["node", "scripts/runSteamCommunityBbcodeChecks.js"]]);
 });

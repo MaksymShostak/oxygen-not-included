@@ -1,0 +1,5156 @@
+{
+  "license": "AGPL-3.0-only",
+  "schemaVersion": 1,
+  "registryVersion": "2026-09-08",
+  "evidenceScope": "Executed conversion policies; Steam rendering and release readiness are separate qualifications.",
+  "targetContract": "GFM syntax; additional GitHub autolinking is checked separately and diagnosed per input.",
+  "canonicalLfInputsSha256": "6543bbd29784a13e471738cee7adfdf265d55c906e7048bde353c6412b1429d8",
+  "registryConstructCount": 39,
+  "sourceConstructCount": 37,
+  "contextOnlyConstructCount": 2,
+  "executedCaseProfiles": 198,
+  "profileCount": 6,
+  "rows": [
+    {
+      "constructId": "steam.bbcode.h1",
+      "syntaxKind": "pairedTag",
+      "profiles": {
+        "workshop-item": "documented",
+        "ugc-description": "communityObserved",
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "documented",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "valve.workshop-item-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "valve.recommendation-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "exact",
+        "strategy": "mdast-heading"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "h1",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "h1",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "h1",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "h1",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "h1",
+          "profile": "review"
+        },
+        {
+          "caseId": "h1",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "exact"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.h2",
+      "syntaxKind": "pairedTag",
+      "profiles": {
+        "workshop-item": "documented",
+        "ugc-description": "communityObserved",
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "documented",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "valve.workshop-item-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "valve.recommendation-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "exact",
+        "strategy": "mdast-heading"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "h2",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "h2",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "h2",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "h2",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "h2",
+          "profile": "review"
+        },
+        {
+          "caseId": "h2",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "exact"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.h3",
+      "syntaxKind": "pairedTag",
+      "profiles": {
+        "workshop-item": "documented",
+        "ugc-description": "communityObserved",
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "documented",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "valve.workshop-item-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "valve.recommendation-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "exact",
+        "strategy": "mdast-heading"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "h3",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "h3",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "h3",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "h3",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "h3",
+          "profile": "review"
+        },
+        {
+          "caseId": "h3",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "exact"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.b",
+      "syntaxKind": "pairedTag",
+      "profiles": {
+        "workshop-item": "documented",
+        "ugc-description": "communityObserved",
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "documented",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "valve.workshop-item-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "valve.recommendation-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "exact",
+        "strategy": "mdast-strong"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "b",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "b",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "b",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "b",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "b",
+          "profile": "review"
+        },
+        {
+          "caseId": "b",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "exact"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.u",
+      "syntaxKind": "pairedTag",
+      "profiles": {
+        "workshop-item": "documented",
+        "ugc-description": "communityObserved",
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "documented",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "valve.workshop-item-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "valve.recommendation-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "lossy",
+        "strategy": "diagnosed-underline-fallback"
+      },
+      "notes": "HTML underline requires independent target rendering qualification.",
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "u",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "u",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "u",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "u",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "u",
+          "profile": "review"
+        },
+        {
+          "caseId": "u",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "lossy"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.i",
+      "syntaxKind": "pairedTag",
+      "profiles": {
+        "workshop-item": "documented",
+        "ugc-description": "communityObserved",
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "documented",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "valve.workshop-item-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "valve.recommendation-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "exact",
+        "strategy": "mdast-emphasis"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "i",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "i",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "i",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "i",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "i",
+          "profile": "review"
+        },
+        {
+          "caseId": "i",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "exact"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.strike",
+      "syntaxKind": "pairedTag",
+      "profiles": {
+        "workshop-item": "documented",
+        "ugc-description": "communityObserved",
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "documented",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "valve.workshop-item-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "valve.recommendation-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "exact",
+        "strategy": "mdast-delete"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "strike",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "strike",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "strike",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "strike",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "strike",
+          "profile": "review"
+        },
+        {
+          "caseId": "strike",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "exact"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.spoiler",
+      "syntaxKind": "pairedTag",
+      "profiles": {
+        "workshop-item": "documented",
+        "ugc-description": "communityObserved",
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "documented",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "valve.workshop-item-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "valve.recommendation-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "approximate",
+        "strategy": "github-details-or-diagnosed-fallback"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "spoiler",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "spoiler",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "spoiler",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "spoiler",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "spoiler",
+          "profile": "review"
+        },
+        {
+          "caseId": "spoiler",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "approximate"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.noparse",
+      "syntaxKind": "opaqueTag",
+      "profiles": {
+        "workshop-item": "documented",
+        "ugc-description": "communityObserved",
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "documented",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "valve.workshop-item-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "valve.recommendation-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "exact",
+        "strategy": "mdast-literal-text"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "noparse",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "noparse",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "noparse",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "noparse",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "noparse",
+          "profile": "review"
+        },
+        {
+          "caseId": "noparse",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "exact"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.hr",
+      "syntaxKind": "pairedTag",
+      "profiles": {
+        "workshop-item": "documented",
+        "ugc-description": "communityObserved",
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "documented",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "valve.workshop-item-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "valve.recommendation-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "exact",
+        "strategy": "mdast-thematic-break"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "hr",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "hr",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "hr",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "hr",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "hr",
+          "profile": "review"
+        },
+        {
+          "caseId": "hr",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "exact"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.url",
+      "syntaxKind": "pairedTag",
+      "profiles": {
+        "workshop-item": "documented",
+        "ugc-description": "communityObserved",
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "documented",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "valve.workshop-item-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "valve.recommendation-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "exact",
+        "strategy": "mdast-link"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "url",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "url",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "url",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "url",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "url",
+          "profile": "review"
+        },
+        {
+          "caseId": "url",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "exact"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.list",
+      "syntaxKind": "pairedTag",
+      "profiles": {
+        "workshop-item": "documented",
+        "ugc-description": "communityObserved",
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "documented",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "valve.workshop-item-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "valve.recommendation-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "exact",
+        "strategy": "mdast-unordered-list"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "list",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "list",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "list",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "list",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "list",
+          "profile": "review"
+        },
+        {
+          "caseId": "list",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "exact"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.olist",
+      "syntaxKind": "pairedTag",
+      "profiles": {
+        "workshop-item": "documented",
+        "ugc-description": "communityObserved",
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "documented",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "valve.workshop-item-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "valve.recommendation-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "exact",
+        "strategy": "mdast-ordered-list"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "olist",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "olist",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "olist",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "olist",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "olist",
+          "profile": "review"
+        },
+        {
+          "caseId": "olist",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "exact"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.list-item",
+      "syntaxKind": "boundaryTag",
+      "profiles": {
+        "workshop-item": "documented",
+        "ugc-description": "communityObserved",
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "documented",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "valve.workshop-item-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "valve.recommendation-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "exact",
+        "strategy": "mdast-list-item"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "list",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "olist",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "list",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "olist",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "list",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "olist",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "list",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "olist",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "list",
+          "profile": "review"
+        },
+        {
+          "caseId": "olist",
+          "profile": "review"
+        },
+        {
+          "caseId": "list",
+          "profile": "announcement"
+        },
+        {
+          "caseId": "olist",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "exact"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.quote",
+      "syntaxKind": "pairedTag",
+      "profiles": {
+        "workshop-item": "documented",
+        "ugc-description": "communityObserved",
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "documented",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "valve.workshop-item-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "valve.recommendation-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "equivalent",
+        "strategy": "mdast-blockquote-with-attribution"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "quote",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "quote",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "quote",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "quote",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "quote",
+          "profile": "review"
+        },
+        {
+          "caseId": "quote",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "exact"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.code",
+      "syntaxKind": "opaqueTag",
+      "profiles": {
+        "workshop-item": "documented",
+        "ugc-description": "communityObserved",
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "documented",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "valve.workshop-item-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "valve.recommendation-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "exact",
+        "strategy": "mdast-protected-code"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "code",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "code",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "code",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "code",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "code",
+          "profile": "review"
+        },
+        {
+          "caseId": "code",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "exact"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.table",
+      "syntaxKind": "pairedTag",
+      "profiles": {
+        "ugc-description": "communityObserved",
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "documented",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "valve.recommendation-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "approximate",
+        "strategy": "gfm-table-or-diagnosed-fallback"
+      },
+      "notes": "Border and width parameters are documented but community availability is disputed; diagnose omitted layout.",
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "table",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "table",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "table",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "table",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "table",
+          "profile": "review"
+        },
+        {
+          "caseId": "table",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "exact"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.tr",
+      "syntaxKind": "pairedTag",
+      "profiles": {
+        "ugc-description": "communityObserved",
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "documented",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "valve.recommendation-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "equivalent",
+        "strategy": "gfm-table-row"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "table",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "table",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "table",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "table",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "table",
+          "profile": "review"
+        },
+        {
+          "caseId": "table",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "exact"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.th",
+      "syntaxKind": "pairedTag",
+      "profiles": {
+        "ugc-description": "communityObserved",
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "documented",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "valve.recommendation-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "equivalent",
+        "strategy": "gfm-header-cell"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "table",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "table",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "table",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "table",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "table",
+          "profile": "review"
+        },
+        {
+          "caseId": "table",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "exact"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.td",
+      "syntaxKind": "pairedTag",
+      "profiles": {
+        "ugc-description": "communityObserved",
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "documented",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "valve.recommendation-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "equivalent",
+        "strategy": "gfm-table-cell"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "table",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "table",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "table",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "table",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "table",
+          "profile": "review"
+        },
+        {
+          "caseId": "table",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "exact"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.p",
+      "syntaxKind": "pairedTag",
+      "profiles": {},
+      "provenance": [
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "exact",
+        "strategy": "mdast-paragraph"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "p",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "p",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "p",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "p",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "p",
+          "profile": "review"
+        },
+        {
+          "caseId": "p",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "exact"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.pullquote",
+      "syntaxKind": "pairedTag",
+      "profiles": {},
+      "provenance": [
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "approximate",
+        "strategy": "mdast-blockquote-with-style-diagnostic"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "pullquote",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "pullquote",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "pullquote",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "pullquote",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "pullquote",
+          "profile": "review"
+        },
+        {
+          "caseId": "pullquote",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "approximate"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.img",
+      "syntaxKind": "pairedTag",
+      "profiles": {
+        "ugc-description": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "equivalent",
+        "strategy": "mdast-image"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "img",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "img",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "img",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "img",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "img",
+          "profile": "review"
+        },
+        {
+          "caseId": "img",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "equivalent"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.previewyoutube",
+      "syntaxKind": "pairedTag",
+      "profiles": {
+        "ugc-description": "communityObserved",
+        "guide-section": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "approximate",
+        "strategy": "youtube-link-with-widget-diagnostic"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "previewyoutube",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "previewyoutube",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "previewyoutube",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "previewyoutube",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "previewyoutube",
+          "profile": "review"
+        },
+        {
+          "caseId": "previewyoutube",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "approximate"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.video",
+      "syntaxKind": "pairedTag",
+      "profiles": {
+        "ugc-description": "disputed",
+        "guide-section": "disputed"
+      },
+      "provenance": [
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        },
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "disputed"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "lossy",
+        "strategy": "media-link-with-presentation-diagnostic"
+      },
+      "notes": "Recognition does not assert current Steam playback.",
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "video",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "video",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "video",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "video",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "video",
+          "profile": "review"
+        },
+        {
+          "caseId": "video",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "lossy"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.previewimg",
+      "syntaxKind": "pairedTag",
+      "profiles": {
+        "guide-section": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "approximate",
+        "strategy": "resolved-image-or-diagnosed-reference"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "previewimg",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "previewimg",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "previewimg",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "previewimg",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "previewimg",
+          "profile": "review"
+        },
+        {
+          "caseId": "previewimg",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "unsupported"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.previewicon",
+      "syntaxKind": "pairedTag",
+      "profiles": {
+        "guide-section": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "approximate",
+        "strategy": "resolved-image-or-diagnosed-reference"
+      },
+      "notes": "Parameter handling needs independent qualification; the guide explicitly describes its distinct presentation.",
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "previewicon",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "previewicon",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "previewicon",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "previewicon",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "previewicon",
+          "profile": "review"
+        },
+        {
+          "caseId": "previewicon",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "unsupported"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.screenshot",
+      "syntaxKind": "pairedTag",
+      "profiles": {
+        "guide-section": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "approximate",
+        "strategy": "image-with-layout-diagnostic"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "screenshot",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "screenshot",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "screenshot",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "screenshot",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "screenshot",
+          "profile": "review"
+        },
+        {
+          "caseId": "screenshot",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "approximate"
+      ]
+    },
+    {
+      "constructId": "steam.bbcode.color",
+      "syntaxKind": "pairedTag",
+      "profiles": {},
+      "provenance": [
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "historical"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "lossy",
+        "strategy": "text-with-obsolete-color-diagnostic"
+      },
+      "notes": "Historical syntax; no current profile support inferred.",
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "color",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "color",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "color",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "color",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "color",
+          "profile": "review"
+        },
+        {
+          "caseId": "color",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "lossy"
+      ]
+    },
+    {
+      "constructId": "steam.renderer.youtube-widget",
+      "syntaxKind": "rendererTransformation",
+      "profiles": {
+        "workshop-item": "documented",
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "documented",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "valve.workshop-item-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "valve.recommendation-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "approximate",
+        "strategy": "link-with-widget-diagnostic"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "youtube-widget",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "youtube-widget",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "youtube-widget",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "youtube-widget",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "youtube-widget",
+          "profile": "review"
+        },
+        {
+          "caseId": "youtube-widget",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "approximate"
+      ]
+    },
+    {
+      "constructId": "steam.renderer.store-widget",
+      "syntaxKind": "rendererTransformation",
+      "profiles": {
+        "workshop-item": "documented",
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "documented",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "valve.workshop-item-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "valve.recommendation-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "approximate",
+        "strategy": "link-with-widget-diagnostic"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "store-widget",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "store-widget",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "store-widget",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "store-widget",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "store-widget",
+          "profile": "review"
+        },
+        {
+          "caseId": "store-widget",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "approximate"
+      ]
+    },
+    {
+      "constructId": "steam.renderer.ugc-widget",
+      "syntaxKind": "rendererTransformation",
+      "profiles": {
+        "workshop-item": "documented",
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "documented",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "valve.workshop-item-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "valve.recommendation-formatting-help",
+          "status": "documented"
+        },
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "approximate",
+        "strategy": "link-with-widget-diagnostic"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "ugc-widget",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "ugc-widget",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "ugc-widget",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "ugc-widget",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "ugc-widget",
+          "profile": "review"
+        },
+        {
+          "caseId": "ugc-widget",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "approximate"
+      ]
+    },
+    {
+      "constructId": "steam.renderer.inventory-widget",
+      "syntaxKind": "rendererTransformation",
+      "profiles": {
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "communityObserved",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "approximate",
+        "strategy": "link-with-widget-diagnostic"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "inventory-widget",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "inventory-widget",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "inventory-widget",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "inventory-widget",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "inventory-widget",
+          "profile": "review"
+        },
+        {
+          "caseId": "inventory-widget",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "approximate"
+      ]
+    },
+    {
+      "constructId": "steam.renderer.vimeo-widget",
+      "syntaxKind": "rendererTransformation",
+      "profiles": {},
+      "provenance": [
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "approximate",
+        "strategy": "link-with-widget-diagnostic"
+      },
+      "notes": "Surface applicability remains unclassified.",
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "vimeo-widget",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "vimeo-widget",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "vimeo-widget",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "vimeo-widget",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "vimeo-widget",
+          "profile": "review"
+        },
+        {
+          "caseId": "vimeo-widget",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "approximate"
+      ]
+    },
+    {
+      "constructId": "steam.renderer.sketchfab-widget",
+      "syntaxKind": "rendererTransformation",
+      "profiles": {},
+      "provenance": [
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "approximate",
+        "strategy": "link-with-widget-diagnostic"
+      },
+      "notes": "Surface applicability remains unclassified.",
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "sketchfab-widget",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "sketchfab-widget",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "sketchfab-widget",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "sketchfab-widget",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "sketchfab-widget",
+          "profile": "review"
+        },
+        {
+          "caseId": "sketchfab-widget",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "approximate"
+      ]
+    },
+    {
+      "constructId": "steam.renderer.emoticon-expansion",
+      "syntaxKind": "rendererTransformation",
+      "profiles": {
+        "discussion": "communityObserved",
+        "review": "communityObserved",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "approximate",
+        "strategy": "literal-token-with-renderer-diagnostic"
+      },
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "emoticon",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "emoticon",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "emoticon",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "emoticon",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "emoticon",
+          "profile": "review"
+        },
+        {
+          "caseId": "emoticon",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "approximate"
+      ]
+    },
+    {
+      "constructId": "steam.renderer.bracket-expansion",
+      "syntaxKind": "rendererTransformation",
+      "profiles": {
+        "ugc-description": "communityObserved",
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "communityObserved",
+        "announcement": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "unsupported",
+        "strategy": "preserve-source-with-renderer-diagnostic"
+      },
+      "notes": "The initial draft's [b]A[/b]B example conflated a separate spacing issue with bracket expansion. It was removed during qualification, before any release.",
+      "observation": "contextOnly",
+      "contextReason": "The source catalogue names bracket expansion separately from parsing-space inconsistencies but supplies no qualified source-to-rendering rule. Source is retained; no occurrence or expansion is inferred.",
+      "tests": {
+        "policy": "pass",
+        "sourceSyntax": "not-applicable",
+        "executedContexts": 18
+      },
+      "observedFidelities": [
+        "unsupported"
+      ]
+    },
+    {
+      "constructId": "steam.renderer.word-filter",
+      "syntaxKind": "rendererTransformation",
+      "profiles": {
+        "ugc-description": "communityObserved",
+        "guide-section": "communityObserved",
+        "discussion": "communityObserved",
+        "review": "communityObserved"
+      },
+      "provenance": [
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "unsupported",
+        "strategy": "preserve-source-with-renderer-diagnostic"
+      },
+      "notes": "User-dependent remote filtering cannot be inferred from input text.",
+      "observation": "contextOnly",
+      "contextReason": "Remote word filtering depends on viewer preferences and context not supplied to this converter. Source text is preserved without inferring that any word was filtered.",
+      "tests": {
+        "policy": "pass",
+        "sourceSyntax": "not-applicable",
+        "executedContexts": 18
+      },
+      "observedFidelities": [
+        "unsupported"
+      ]
+    },
+    {
+      "constructId": "steam.renderer.clan-image-placeholder",
+      "syntaxKind": "rendererTransformation",
+      "profiles": {},
+      "provenance": [
+        {
+          "sourceId": "community.comprehensive-formatting-help",
+          "status": "communityObserved"
+        }
+      ],
+      "declaredMapping": {
+        "fidelity": "approximate",
+        "strategy": "resolve-explicit-base-or-diagnose"
+      },
+      "notes": "Expansion requires explicit local context; never fetch it.",
+      "observation": "sourceOccurrence",
+      "tests": {
+        "canonical": "pass",
+        "nested": "pass",
+        "escaping": "pass",
+        "malformed": "pass"
+      },
+      "cases": [
+        {
+          "caseId": "clan-image",
+          "profile": "workshop-item"
+        },
+        {
+          "caseId": "clan-image",
+          "profile": "ugc-description"
+        },
+        {
+          "caseId": "clan-image",
+          "profile": "guide-section"
+        },
+        {
+          "caseId": "clan-image",
+          "profile": "discussion"
+        },
+        {
+          "caseId": "clan-image",
+          "profile": "review"
+        },
+        {
+          "caseId": "clan-image",
+          "profile": "announcement"
+        }
+      ],
+      "observedFidelities": [
+        "unsupported"
+      ]
+    }
+  ],
+  "executions": [
+    {
+      "caseId": "b",
+      "constructIds": [
+        "steam.bbcode.b"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "i",
+      "constructIds": [
+        "steam.bbcode.i"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "strike",
+      "constructIds": [
+        "steam.bbcode.strike"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "h1",
+      "constructIds": [
+        "steam.bbcode.h1"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "h2",
+      "constructIds": [
+        "steam.bbcode.h2"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "h3",
+      "constructIds": [
+        "steam.bbcode.h3"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "list",
+      "constructIds": [
+        "steam.bbcode.list",
+        "steam.bbcode.list-item"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "olist",
+      "constructIds": [
+        "steam.bbcode.olist",
+        "steam.bbcode.list-item"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "u",
+      "constructIds": [
+        "steam.bbcode.u"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "lossy",
+      "diagnostics": [
+        "STEAM_UNDERLINE_LOWERED_TO_TEXT"
+      ]
+    },
+    {
+      "caseId": "spoiler",
+      "constructIds": [
+        "steam.bbcode.spoiler"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_SPOILER_LOWERED_TO_DETAILS"
+      ]
+    },
+    {
+      "caseId": "noparse",
+      "constructIds": [
+        "steam.bbcode.noparse"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "code",
+      "constructIds": [
+        "steam.bbcode.code"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "hr",
+      "constructIds": [
+        "steam.bbcode.hr"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "url",
+      "constructIds": [
+        "steam.bbcode.url"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "quote",
+      "constructIds": [
+        "steam.bbcode.quote"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "p",
+      "constructIds": [
+        "steam.bbcode.p"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "pullquote",
+      "constructIds": [
+        "steam.bbcode.pullquote"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_PULLQUOTE_LOWERED_TO_BLOCKQUOTE"
+      ]
+    },
+    {
+      "caseId": "color",
+      "constructIds": [
+        "steam.bbcode.color"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "lossy",
+      "diagnostics": [
+        "STEAM_COLOR_LOWERED_TO_TEXT"
+      ]
+    },
+    {
+      "caseId": "table",
+      "constructIds": [
+        "steam.bbcode.table",
+        "steam.bbcode.tr",
+        "steam.bbcode.th",
+        "steam.bbcode.td"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "img",
+      "constructIds": [
+        "steam.bbcode.img"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "equivalent",
+      "diagnostics": []
+    },
+    {
+      "caseId": "previewyoutube",
+      "constructIds": [
+        "steam.bbcode.previewyoutube"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_MEDIA_EMBED_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "video",
+      "constructIds": [
+        "steam.bbcode.video"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "lossy",
+      "diagnostics": [
+        "STEAM_MEDIA_EMBED_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "previewimg",
+      "constructIds": [
+        "steam.bbcode.previewimg"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "unsupported",
+      "diagnostics": [
+        "STEAM_GUIDE_IMAGE_UNRESOLVED"
+      ]
+    },
+    {
+      "caseId": "previewicon",
+      "constructIds": [
+        "steam.bbcode.previewicon"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "unsupported",
+      "diagnostics": [
+        "STEAM_CONSTRUCT_PRESERVED"
+      ]
+    },
+    {
+      "caseId": "screenshot",
+      "constructIds": [
+        "steam.bbcode.screenshot"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_PREVIEW_IMAGE_PRESENTATION_OMITTED"
+      ]
+    },
+    {
+      "caseId": "youtube-widget",
+      "constructIds": [
+        "steam.renderer.youtube-widget"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "store-widget",
+      "constructIds": [
+        "steam.renderer.store-widget"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "ugc-widget",
+      "constructIds": [
+        "steam.renderer.ugc-widget"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "inventory-widget",
+      "constructIds": [
+        "steam.renderer.inventory-widget"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "vimeo-widget",
+      "constructIds": [
+        "steam.renderer.vimeo-widget"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "sketchfab-widget",
+      "constructIds": [
+        "steam.renderer.sketchfab-widget"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "emoticon",
+      "constructIds": [
+        "steam.renderer.emoticon-expansion"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_EMOTICON_PRESERVED_AS_TEXT"
+      ]
+    },
+    {
+      "caseId": "clan-image",
+      "constructIds": [
+        "steam.renderer.clan-image-placeholder"
+      ],
+      "profile": "workshop-item",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "unsupported",
+      "diagnostics": [
+        "STEAM_CLAN_IMAGE_UNRESOLVED"
+      ]
+    },
+    {
+      "caseId": "b",
+      "constructIds": [
+        "steam.bbcode.b"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "i",
+      "constructIds": [
+        "steam.bbcode.i"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "strike",
+      "constructIds": [
+        "steam.bbcode.strike"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "h1",
+      "constructIds": [
+        "steam.bbcode.h1"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "h2",
+      "constructIds": [
+        "steam.bbcode.h2"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "h3",
+      "constructIds": [
+        "steam.bbcode.h3"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "list",
+      "constructIds": [
+        "steam.bbcode.list",
+        "steam.bbcode.list-item"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "olist",
+      "constructIds": [
+        "steam.bbcode.olist",
+        "steam.bbcode.list-item"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "u",
+      "constructIds": [
+        "steam.bbcode.u"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "lossy",
+      "diagnostics": [
+        "STEAM_UNDERLINE_LOWERED_TO_TEXT"
+      ]
+    },
+    {
+      "caseId": "spoiler",
+      "constructIds": [
+        "steam.bbcode.spoiler"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_SPOILER_LOWERED_TO_DETAILS"
+      ]
+    },
+    {
+      "caseId": "noparse",
+      "constructIds": [
+        "steam.bbcode.noparse"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "code",
+      "constructIds": [
+        "steam.bbcode.code"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "hr",
+      "constructIds": [
+        "steam.bbcode.hr"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "url",
+      "constructIds": [
+        "steam.bbcode.url"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "quote",
+      "constructIds": [
+        "steam.bbcode.quote"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "p",
+      "constructIds": [
+        "steam.bbcode.p"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "pullquote",
+      "constructIds": [
+        "steam.bbcode.pullquote"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_PULLQUOTE_LOWERED_TO_BLOCKQUOTE"
+      ]
+    },
+    {
+      "caseId": "color",
+      "constructIds": [
+        "steam.bbcode.color"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "lossy",
+      "diagnostics": [
+        "STEAM_COLOR_LOWERED_TO_TEXT"
+      ]
+    },
+    {
+      "caseId": "table",
+      "constructIds": [
+        "steam.bbcode.table",
+        "steam.bbcode.tr",
+        "steam.bbcode.th",
+        "steam.bbcode.td"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "img",
+      "constructIds": [
+        "steam.bbcode.img"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "equivalent",
+      "diagnostics": []
+    },
+    {
+      "caseId": "previewyoutube",
+      "constructIds": [
+        "steam.bbcode.previewyoutube"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_MEDIA_EMBED_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "video",
+      "constructIds": [
+        "steam.bbcode.video"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "lossy",
+      "diagnostics": [
+        "STEAM_MEDIA_EMBED_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "previewimg",
+      "constructIds": [
+        "steam.bbcode.previewimg"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "unsupported",
+      "diagnostics": [
+        "STEAM_GUIDE_IMAGE_UNRESOLVED"
+      ]
+    },
+    {
+      "caseId": "previewicon",
+      "constructIds": [
+        "steam.bbcode.previewicon"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "unsupported",
+      "diagnostics": [
+        "STEAM_CONSTRUCT_PRESERVED"
+      ]
+    },
+    {
+      "caseId": "screenshot",
+      "constructIds": [
+        "steam.bbcode.screenshot"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_PREVIEW_IMAGE_PRESENTATION_OMITTED"
+      ]
+    },
+    {
+      "caseId": "youtube-widget",
+      "constructIds": [
+        "steam.renderer.youtube-widget"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "store-widget",
+      "constructIds": [
+        "steam.renderer.store-widget"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "ugc-widget",
+      "constructIds": [
+        "steam.renderer.ugc-widget"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "inventory-widget",
+      "constructIds": [
+        "steam.renderer.inventory-widget"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "vimeo-widget",
+      "constructIds": [
+        "steam.renderer.vimeo-widget"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "sketchfab-widget",
+      "constructIds": [
+        "steam.renderer.sketchfab-widget"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "emoticon",
+      "constructIds": [
+        "steam.renderer.emoticon-expansion"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_EMOTICON_PRESERVED_AS_TEXT"
+      ]
+    },
+    {
+      "caseId": "clan-image",
+      "constructIds": [
+        "steam.renderer.clan-image-placeholder"
+      ],
+      "profile": "ugc-description",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "unsupported",
+      "diagnostics": [
+        "STEAM_CLAN_IMAGE_UNRESOLVED"
+      ]
+    },
+    {
+      "caseId": "b",
+      "constructIds": [
+        "steam.bbcode.b"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "i",
+      "constructIds": [
+        "steam.bbcode.i"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "strike",
+      "constructIds": [
+        "steam.bbcode.strike"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "h1",
+      "constructIds": [
+        "steam.bbcode.h1"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "h2",
+      "constructIds": [
+        "steam.bbcode.h2"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "h3",
+      "constructIds": [
+        "steam.bbcode.h3"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "list",
+      "constructIds": [
+        "steam.bbcode.list",
+        "steam.bbcode.list-item"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "olist",
+      "constructIds": [
+        "steam.bbcode.olist",
+        "steam.bbcode.list-item"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "u",
+      "constructIds": [
+        "steam.bbcode.u"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "lossy",
+      "diagnostics": [
+        "STEAM_UNDERLINE_LOWERED_TO_TEXT"
+      ]
+    },
+    {
+      "caseId": "spoiler",
+      "constructIds": [
+        "steam.bbcode.spoiler"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_SPOILER_LOWERED_TO_DETAILS"
+      ]
+    },
+    {
+      "caseId": "noparse",
+      "constructIds": [
+        "steam.bbcode.noparse"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "code",
+      "constructIds": [
+        "steam.bbcode.code"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "hr",
+      "constructIds": [
+        "steam.bbcode.hr"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "url",
+      "constructIds": [
+        "steam.bbcode.url"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "quote",
+      "constructIds": [
+        "steam.bbcode.quote"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "p",
+      "constructIds": [
+        "steam.bbcode.p"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "pullquote",
+      "constructIds": [
+        "steam.bbcode.pullquote"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_PULLQUOTE_LOWERED_TO_BLOCKQUOTE"
+      ]
+    },
+    {
+      "caseId": "color",
+      "constructIds": [
+        "steam.bbcode.color"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "lossy",
+      "diagnostics": [
+        "STEAM_COLOR_LOWERED_TO_TEXT"
+      ]
+    },
+    {
+      "caseId": "table",
+      "constructIds": [
+        "steam.bbcode.table",
+        "steam.bbcode.tr",
+        "steam.bbcode.th",
+        "steam.bbcode.td"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "img",
+      "constructIds": [
+        "steam.bbcode.img"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "equivalent",
+      "diagnostics": []
+    },
+    {
+      "caseId": "previewyoutube",
+      "constructIds": [
+        "steam.bbcode.previewyoutube"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_MEDIA_EMBED_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "video",
+      "constructIds": [
+        "steam.bbcode.video"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "lossy",
+      "diagnostics": [
+        "STEAM_MEDIA_EMBED_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "previewimg",
+      "constructIds": [
+        "steam.bbcode.previewimg"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "unsupported",
+      "diagnostics": [
+        "STEAM_GUIDE_IMAGE_UNRESOLVED"
+      ]
+    },
+    {
+      "caseId": "previewicon",
+      "constructIds": [
+        "steam.bbcode.previewicon"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "unsupported",
+      "diagnostics": [
+        "STEAM_CONSTRUCT_PRESERVED"
+      ]
+    },
+    {
+      "caseId": "screenshot",
+      "constructIds": [
+        "steam.bbcode.screenshot"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_PREVIEW_IMAGE_PRESENTATION_OMITTED"
+      ]
+    },
+    {
+      "caseId": "youtube-widget",
+      "constructIds": [
+        "steam.renderer.youtube-widget"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "store-widget",
+      "constructIds": [
+        "steam.renderer.store-widget"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "ugc-widget",
+      "constructIds": [
+        "steam.renderer.ugc-widget"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "inventory-widget",
+      "constructIds": [
+        "steam.renderer.inventory-widget"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "vimeo-widget",
+      "constructIds": [
+        "steam.renderer.vimeo-widget"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "sketchfab-widget",
+      "constructIds": [
+        "steam.renderer.sketchfab-widget"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "emoticon",
+      "constructIds": [
+        "steam.renderer.emoticon-expansion"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_EMOTICON_PRESERVED_AS_TEXT"
+      ]
+    },
+    {
+      "caseId": "clan-image",
+      "constructIds": [
+        "steam.renderer.clan-image-placeholder"
+      ],
+      "profile": "guide-section",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "unsupported",
+      "diagnostics": [
+        "STEAM_CLAN_IMAGE_UNRESOLVED"
+      ]
+    },
+    {
+      "caseId": "b",
+      "constructIds": [
+        "steam.bbcode.b"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "i",
+      "constructIds": [
+        "steam.bbcode.i"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "strike",
+      "constructIds": [
+        "steam.bbcode.strike"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "h1",
+      "constructIds": [
+        "steam.bbcode.h1"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "h2",
+      "constructIds": [
+        "steam.bbcode.h2"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "h3",
+      "constructIds": [
+        "steam.bbcode.h3"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "list",
+      "constructIds": [
+        "steam.bbcode.list",
+        "steam.bbcode.list-item"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "olist",
+      "constructIds": [
+        "steam.bbcode.olist",
+        "steam.bbcode.list-item"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "u",
+      "constructIds": [
+        "steam.bbcode.u"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "lossy",
+      "diagnostics": [
+        "STEAM_UNDERLINE_LOWERED_TO_TEXT"
+      ]
+    },
+    {
+      "caseId": "spoiler",
+      "constructIds": [
+        "steam.bbcode.spoiler"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_SPOILER_LOWERED_TO_DETAILS"
+      ]
+    },
+    {
+      "caseId": "noparse",
+      "constructIds": [
+        "steam.bbcode.noparse"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "code",
+      "constructIds": [
+        "steam.bbcode.code"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "hr",
+      "constructIds": [
+        "steam.bbcode.hr"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "url",
+      "constructIds": [
+        "steam.bbcode.url"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "quote",
+      "constructIds": [
+        "steam.bbcode.quote"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "p",
+      "constructIds": [
+        "steam.bbcode.p"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "pullquote",
+      "constructIds": [
+        "steam.bbcode.pullquote"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_PULLQUOTE_LOWERED_TO_BLOCKQUOTE"
+      ]
+    },
+    {
+      "caseId": "color",
+      "constructIds": [
+        "steam.bbcode.color"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "lossy",
+      "diagnostics": [
+        "STEAM_COLOR_LOWERED_TO_TEXT"
+      ]
+    },
+    {
+      "caseId": "table",
+      "constructIds": [
+        "steam.bbcode.table",
+        "steam.bbcode.tr",
+        "steam.bbcode.th",
+        "steam.bbcode.td"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "img",
+      "constructIds": [
+        "steam.bbcode.img"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "equivalent",
+      "diagnostics": []
+    },
+    {
+      "caseId": "previewyoutube",
+      "constructIds": [
+        "steam.bbcode.previewyoutube"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_MEDIA_EMBED_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "video",
+      "constructIds": [
+        "steam.bbcode.video"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "lossy",
+      "diagnostics": [
+        "STEAM_MEDIA_EMBED_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "previewimg",
+      "constructIds": [
+        "steam.bbcode.previewimg"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "unsupported",
+      "diagnostics": [
+        "STEAM_GUIDE_IMAGE_UNRESOLVED"
+      ]
+    },
+    {
+      "caseId": "previewicon",
+      "constructIds": [
+        "steam.bbcode.previewicon"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "unsupported",
+      "diagnostics": [
+        "STEAM_CONSTRUCT_PRESERVED"
+      ]
+    },
+    {
+      "caseId": "screenshot",
+      "constructIds": [
+        "steam.bbcode.screenshot"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_PREVIEW_IMAGE_PRESENTATION_OMITTED"
+      ]
+    },
+    {
+      "caseId": "youtube-widget",
+      "constructIds": [
+        "steam.renderer.youtube-widget"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "store-widget",
+      "constructIds": [
+        "steam.renderer.store-widget"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "ugc-widget",
+      "constructIds": [
+        "steam.renderer.ugc-widget"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "inventory-widget",
+      "constructIds": [
+        "steam.renderer.inventory-widget"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "vimeo-widget",
+      "constructIds": [
+        "steam.renderer.vimeo-widget"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "sketchfab-widget",
+      "constructIds": [
+        "steam.renderer.sketchfab-widget"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "emoticon",
+      "constructIds": [
+        "steam.renderer.emoticon-expansion"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_EMOTICON_PRESERVED_AS_TEXT"
+      ]
+    },
+    {
+      "caseId": "clan-image",
+      "constructIds": [
+        "steam.renderer.clan-image-placeholder"
+      ],
+      "profile": "discussion",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "unsupported",
+      "diagnostics": [
+        "STEAM_CLAN_IMAGE_UNRESOLVED"
+      ]
+    },
+    {
+      "caseId": "b",
+      "constructIds": [
+        "steam.bbcode.b"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "i",
+      "constructIds": [
+        "steam.bbcode.i"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "strike",
+      "constructIds": [
+        "steam.bbcode.strike"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "h1",
+      "constructIds": [
+        "steam.bbcode.h1"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "h2",
+      "constructIds": [
+        "steam.bbcode.h2"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "h3",
+      "constructIds": [
+        "steam.bbcode.h3"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "list",
+      "constructIds": [
+        "steam.bbcode.list",
+        "steam.bbcode.list-item"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "olist",
+      "constructIds": [
+        "steam.bbcode.olist",
+        "steam.bbcode.list-item"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "u",
+      "constructIds": [
+        "steam.bbcode.u"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "lossy",
+      "diagnostics": [
+        "STEAM_UNDERLINE_LOWERED_TO_TEXT"
+      ]
+    },
+    {
+      "caseId": "spoiler",
+      "constructIds": [
+        "steam.bbcode.spoiler"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_SPOILER_LOWERED_TO_DETAILS"
+      ]
+    },
+    {
+      "caseId": "noparse",
+      "constructIds": [
+        "steam.bbcode.noparse"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "code",
+      "constructIds": [
+        "steam.bbcode.code"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "hr",
+      "constructIds": [
+        "steam.bbcode.hr"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "url",
+      "constructIds": [
+        "steam.bbcode.url"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "quote",
+      "constructIds": [
+        "steam.bbcode.quote"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "p",
+      "constructIds": [
+        "steam.bbcode.p"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "pullquote",
+      "constructIds": [
+        "steam.bbcode.pullquote"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_PULLQUOTE_LOWERED_TO_BLOCKQUOTE"
+      ]
+    },
+    {
+      "caseId": "color",
+      "constructIds": [
+        "steam.bbcode.color"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "lossy",
+      "diagnostics": [
+        "STEAM_COLOR_LOWERED_TO_TEXT"
+      ]
+    },
+    {
+      "caseId": "table",
+      "constructIds": [
+        "steam.bbcode.table",
+        "steam.bbcode.tr",
+        "steam.bbcode.th",
+        "steam.bbcode.td"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "img",
+      "constructIds": [
+        "steam.bbcode.img"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "equivalent",
+      "diagnostics": []
+    },
+    {
+      "caseId": "previewyoutube",
+      "constructIds": [
+        "steam.bbcode.previewyoutube"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_MEDIA_EMBED_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "video",
+      "constructIds": [
+        "steam.bbcode.video"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "lossy",
+      "diagnostics": [
+        "STEAM_MEDIA_EMBED_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "previewimg",
+      "constructIds": [
+        "steam.bbcode.previewimg"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "unsupported",
+      "diagnostics": [
+        "STEAM_GUIDE_IMAGE_UNRESOLVED"
+      ]
+    },
+    {
+      "caseId": "previewicon",
+      "constructIds": [
+        "steam.bbcode.previewicon"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "unsupported",
+      "diagnostics": [
+        "STEAM_CONSTRUCT_PRESERVED"
+      ]
+    },
+    {
+      "caseId": "screenshot",
+      "constructIds": [
+        "steam.bbcode.screenshot"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_PREVIEW_IMAGE_PRESENTATION_OMITTED"
+      ]
+    },
+    {
+      "caseId": "youtube-widget",
+      "constructIds": [
+        "steam.renderer.youtube-widget"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "store-widget",
+      "constructIds": [
+        "steam.renderer.store-widget"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "ugc-widget",
+      "constructIds": [
+        "steam.renderer.ugc-widget"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "inventory-widget",
+      "constructIds": [
+        "steam.renderer.inventory-widget"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "vimeo-widget",
+      "constructIds": [
+        "steam.renderer.vimeo-widget"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "sketchfab-widget",
+      "constructIds": [
+        "steam.renderer.sketchfab-widget"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "emoticon",
+      "constructIds": [
+        "steam.renderer.emoticon-expansion"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_EMOTICON_PRESERVED_AS_TEXT"
+      ]
+    },
+    {
+      "caseId": "clan-image",
+      "constructIds": [
+        "steam.renderer.clan-image-placeholder"
+      ],
+      "profile": "review",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "unsupported",
+      "diagnostics": [
+        "STEAM_CLAN_IMAGE_UNRESOLVED"
+      ]
+    },
+    {
+      "caseId": "b",
+      "constructIds": [
+        "steam.bbcode.b"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "i",
+      "constructIds": [
+        "steam.bbcode.i"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "strike",
+      "constructIds": [
+        "steam.bbcode.strike"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "h1",
+      "constructIds": [
+        "steam.bbcode.h1"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "h2",
+      "constructIds": [
+        "steam.bbcode.h2"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "h3",
+      "constructIds": [
+        "steam.bbcode.h3"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "list",
+      "constructIds": [
+        "steam.bbcode.list",
+        "steam.bbcode.list-item"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "olist",
+      "constructIds": [
+        "steam.bbcode.olist",
+        "steam.bbcode.list-item"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "u",
+      "constructIds": [
+        "steam.bbcode.u"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "lossy",
+      "diagnostics": [
+        "STEAM_UNDERLINE_LOWERED_TO_TEXT"
+      ]
+    },
+    {
+      "caseId": "spoiler",
+      "constructIds": [
+        "steam.bbcode.spoiler"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_SPOILER_LOWERED_TO_DETAILS"
+      ]
+    },
+    {
+      "caseId": "noparse",
+      "constructIds": [
+        "steam.bbcode.noparse"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "code",
+      "constructIds": [
+        "steam.bbcode.code"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "hr",
+      "constructIds": [
+        "steam.bbcode.hr"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "url",
+      "constructIds": [
+        "steam.bbcode.url"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "quote",
+      "constructIds": [
+        "steam.bbcode.quote"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "p",
+      "constructIds": [
+        "steam.bbcode.p"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "pullquote",
+      "constructIds": [
+        "steam.bbcode.pullquote"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_PULLQUOTE_LOWERED_TO_BLOCKQUOTE"
+      ]
+    },
+    {
+      "caseId": "color",
+      "constructIds": [
+        "steam.bbcode.color"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "lossy",
+      "diagnostics": [
+        "STEAM_COLOR_LOWERED_TO_TEXT"
+      ]
+    },
+    {
+      "caseId": "table",
+      "constructIds": [
+        "steam.bbcode.table",
+        "steam.bbcode.tr",
+        "steam.bbcode.th",
+        "steam.bbcode.td"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "exact",
+      "diagnostics": []
+    },
+    {
+      "caseId": "img",
+      "constructIds": [
+        "steam.bbcode.img"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "equivalent",
+      "diagnostics": []
+    },
+    {
+      "caseId": "previewyoutube",
+      "constructIds": [
+        "steam.bbcode.previewyoutube"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_MEDIA_EMBED_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "video",
+      "constructIds": [
+        "steam.bbcode.video"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "lossy",
+      "diagnostics": [
+        "STEAM_MEDIA_EMBED_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "previewimg",
+      "constructIds": [
+        "steam.bbcode.previewimg"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "unsupported",
+      "diagnostics": [
+        "STEAM_GUIDE_IMAGE_UNRESOLVED"
+      ]
+    },
+    {
+      "caseId": "previewicon",
+      "constructIds": [
+        "steam.bbcode.previewicon"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "unsupported",
+      "diagnostics": [
+        "STEAM_CONSTRUCT_PRESERVED"
+      ]
+    },
+    {
+      "caseId": "screenshot",
+      "constructIds": [
+        "steam.bbcode.screenshot"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_PREVIEW_IMAGE_PRESENTATION_OMITTED"
+      ]
+    },
+    {
+      "caseId": "youtube-widget",
+      "constructIds": [
+        "steam.renderer.youtube-widget"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "store-widget",
+      "constructIds": [
+        "steam.renderer.store-widget"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "ugc-widget",
+      "constructIds": [
+        "steam.renderer.ugc-widget"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "inventory-widget",
+      "constructIds": [
+        "steam.renderer.inventory-widget"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "vimeo-widget",
+      "constructIds": [
+        "steam.renderer.vimeo-widget"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "sketchfab-widget",
+      "constructIds": [
+        "steam.renderer.sketchfab-widget"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_URL_WIDGET_LOWERED_TO_LINK"
+      ]
+    },
+    {
+      "caseId": "emoticon",
+      "constructIds": [
+        "steam.renderer.emoticon-expansion"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "approximate",
+      "diagnostics": [
+        "STEAM_EMOTICON_PRESERVED_AS_TEXT"
+      ]
+    },
+    {
+      "caseId": "clan-image",
+      "constructIds": [
+        "steam.renderer.clan-image-placeholder"
+      ],
+      "profile": "announcement",
+      "canonical": "pass",
+      "nested": "pass",
+      "escaping": "pass",
+      "malformed": "pass",
+      "fidelity": "unsupported",
+      "diagnostics": [
+        "STEAM_CLAN_IMAGE_UNRESOLVED"
+      ]
+    }
+  ]
+}

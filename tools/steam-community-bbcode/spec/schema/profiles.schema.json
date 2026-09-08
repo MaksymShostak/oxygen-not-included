@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://steam-community-bbcode.invalid/schema/profiles.schema.json",
+  "$comment": "SPDX-License-Identifier: AGPL-3.0-only",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "registryVersion",
+    "profiles",
+    "defaultProfile"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "registryVersion": {
+      "$ref": "common.schema.json#/definitions/registryVersion"
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "description"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/definitions/identifier"
+          },
+          "description": {
+            "$ref": "common.schema.json#/definitions/nonEmptyText"
+          }
+        }
+      }
+    },
+    "defaultProfile": {
+      "$ref": "common.schema.json#/definitions/identifier"
+    }
+  }
+}
+

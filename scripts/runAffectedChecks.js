@@ -26,6 +26,7 @@ export function affectedCheckCommands(selected) {
       commands.push(["dotnet", "run", "--project", PIPELINE_PROJECT, "--no-restore", "--", command, "--mod", MOD]);
     }
   }
+  if (selected.converter) commands.push(["node", "scripts/runSteamCommunityBbcodeChecks.js"]);
   return commands;
 }
 

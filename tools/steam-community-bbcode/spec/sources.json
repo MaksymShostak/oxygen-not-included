@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "registryVersion": "2026-09-08",
+  "sources": [
+    {
+      "id": "valve.workshop-item-formatting-help",
+      "title": "Workshop Item Text Formatting",
+      "url": "https://steamcommunity.com/comment/WorkshopItem/formattinghelp",
+      "authority": "Valve",
+      "checkedAt": "2026-09-08"
+    },
+    {
+      "id": "valve.recommendation-formatting-help",
+      "title": "Recommendation Text Formatting",
+      "url": "https://steamcommunity.com/comment/Recommendation/formattinghelp",
+      "authority": "Valve",
+      "checkedAt": "2026-09-08"
+    },
+    {
+      "id": "community.comprehensive-formatting-help",
+      "title": "Comprehensive Formatting Help",
+      "url": "https://steamcommunity.com/sharedfiles/filedetails/?id=2807121939",
+      "authority": "Community observation by lightwo",
+      "checkedAt": "2026-09-08"
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+Tired of Nisbet hauling a 95 °C chunk of Igneous Rock into the Storage Bin beside your carefully chilled Sleet Wheat? Have your Duplicants discovered that "Raw Minerals" and "portable space heater" are apparently the same storage category?
+
+[b]Delivery Temperature Limit (Supercooled)[/b] lets you set a safe temperature range for materials delivered to storage, buildings, and — optionally — construction.
+
+Hot rock stays with the hot rock. Cold supplies stay cold. Duplicants remain free to make entirely different mistakes.
+
+[h1]Compatibility & Localisation[/h1]
+
+[keep existing Base Game + DLC compatibility badge row]
+
+[b]Localisation:[/b] English + 18 translated locales, selected automatically from ONI's language setting.
+Simplified & Traditional Chinese, Czech, French, German, Greek, Hungarian, Italian, Japanese, Korean, Polish, Portuguese & Brazilian Portuguese, Spanish, Thai, Turkish, Ukrainian and Vietnamese.
+
+[b]Tested with ONI build 744825.[/b]
+
+[h1]What It Does[/h1]
+[list]
+[*] [b]Temperature-Limited Storage:[/b] Give supported delivery targets a minimum temperature, a maximum temperature, or both. Storage Bins, Storage Tiles, Refrigerators, and compatible storage buildings can all check the thermometer before accepting a delivery.
+
+[*] [b]Temperature-Aware Errands:[/b] Materials outside a target's allowed range are excluded from its delivery errands. "It's the nearest rock" is no longer a valid defence when the nearest rock is trying to cook the Sleet Wheat.
+
+[*] [b]Optional Construction Limits:[/b] Apply the same rules to construction materials so Duplicants do not carry furnace-hot building material into the cold room you have spent forty cycles cooling.
+
+[*] [b]Thermo Sensor-Style Controls:[/b] Set independent [b]At least[/b] and [b]Below[/b] thresholds directly from the building side-screen, with °C / °F / K labels, copy-settings support, a one-click [b]Clear[/b] button, and a live plain-language summary of the active range.
+
+[*] [b]Keyboard-Friendly UI:[/b] Tab between fields, Enter to commit and Escape to cancel without sacrificing WASD panning or Space to pause. The camera controls have been formally released from temperature-box custody.
+[/list]
+
+[h1]What Supercooled Changes[/h1]
+
+[b]Supercooled[/b] is a maintained and substantially refactored continuation of the original Delivery Temperature Limit mod. The basic idea is unchanged; quite a lot underneath it is not.
+
+[list]
+[*] [b]Direct Temperature Checks:[/b] The old colony-wide inventory scanning path has been removed. Eligible targets keep their configured temperature range available for errand checks directly, reducing work in large late-game colonies. The mod no longer conducts an asteroid census every time Nisbet picks up a rock.
+
+[*] [b]Storage Tile Support:[/b] Storage Tiles support the same temperature limits, including inside rockets. "Under the floor" is not a thermal exemption. Thanks to [url=SHYLION_LINK]ShyLion[/url] for helping prevent the next unexpected orbital sauna.
+
+[*] [b]Clean Colony State Between Loads:[/b] Transient runtime tracking is cleared between colony sessions while saved temperature limits and mod settings remain intact. No haunted Storage Bins; no accidental exorcism of your actual settings.
+
+[*] [b]Rebuilt Temperature UI:[/b] The side-screen now uses independent [b]At least[/b] and [b]Below[/b] values, external unit labels, live range summaries, warning feedback for inverted limits, dedicated clearing, and reliable keyboard handling.
+
+[*] [b]Safer Startup & Storage Discovery:[/b] Defensive checks protect the mod's game hooks during startup and colony refreshes, while compatible storage targets introduced by other mods can be discovered dynamically.
+
+[*] [b]Fast Track Compatibility:[/b] Integrates with Peter Han's [url=FAST_TRACK_LINK][i]Fast Track[/i][/url] when it is present and uses the normal game path when it is not.
+
+[*] [b]Built-In Localisation:[/b] English plus 18 translated locales are bundled with the mod and follow ONI's selected language automatically. Meep's interpretive-dance translation programme has been retired.
+[/list]
+
+[h1]Mod Options[/h1]
+
+The in-game Mod Options dialog provides:
+[list]
+[*] [b]Temperature-Aware "Lacks Resources":[/b] Choose whether the warning also considers your temperature limits. Disable it if you prefer the lightest possible late-game warning checks.
+
+[*] [b]Construction Material Limits:[/b] Choose whether temperature restrictions also apply to materials delivered to blueprints.
+
+[*] [b]Temperature Previews:[/b] Preview values in Celsius, Fahrenheit, or Kelvin with automatic conversion, and reset the mod's options to their defaults in one click.
+[/list]
+
+[h1]Support & Diagnostics[/h1]
+
+If something goes thermally sideways, open Mod Options and choose [b]Create Support Report[/b].
+
+Reports are generated locally and nothing is uploaded automatically. The standard report does not read [i]Player.log[/i]; the clearly labelled [b]Extended Support Report[/b] can include a bounded, best-effort-redacted log excerpt for harder failures.
+
+Review the report on your computer, then attach it to the GitHub bug-report form.
+
+Duplicants cannot currently be included in the diagnostic bundle, despite repeated requests from colony management.
+
+[h1]Credits & Lineage[/h1]
+
+This mod continues work begun by the ONI modding community:
+
+[list]
+[*] [b]Original Concept & Code:[/b] llunak — [i]Delivery Temperature Limit[/i].
+[*] [b]Intermediate Maintenance:[/b] [sd] QooLiO — [i]Delivery Temperature Limit [Fixed][/i].
+[*] [b]Supercooled Edition:[/b] Maintained, refactored, and optimised by Maksym Shostak.
+[/list]
+
+[i]Delivery Temperature Limit (Supercooled) is a community mod and is not affiliated with, sponsored by, or endorsed by Klei Entertainment.[/i]

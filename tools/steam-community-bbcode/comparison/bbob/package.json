@@ -1,0 +1,13 @@
+{
+  "name": "steam-community-bbcode-bbob-qualification",
+  "version": "1.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "test": "node --test bbob.test.js",
+    "typecheck": "tsc --project tsconfig.json",
+    "qualify": "npm test && npm run typecheck"
+  },
+  "devDependencies": { "@bbob/parser": "4.4.1", "typescript": "7.0.2", "@types/node": "22.20.1" }
+}

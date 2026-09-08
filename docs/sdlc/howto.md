@@ -40,6 +40,15 @@ Never substitute a source repository's hook acceptance for this worktree's evide
 R0/R1 can use an accepted task/PR brief. Ordinary R2/R3 work needs a previously
 accepted baseline. A public converter API therefore requires its accepted baseline
 before implementation. Reuse the committed converter plan rather than duplicate it.
+An accepted `docs/plans/*.md` can be passed directly as `--baseline`, with the
+actual owner decision in `--intent-reference`. R2/R3 still compare its exact bytes
+with HEAD. The PR uses the same path, a `Baseline acceptance:` decision reference,
+and a JSON array of exact, unique source lines in `Acceptance IDs implemented:`.
+For example, a section heading including its `##` prefix can identify the relevant
+plan obligation without inserting artificial AC numbers into the accepted text.
+Trusted-base PR validation requires the plan unchanged in the PR's base revision.
+Actual Issue snapshots retain their JSON schema, label, and AC-ID checks. Neither
+representation makes a supplied decision reference authenticated human approval.
 
 ```text
 npm run sdlc -- --help

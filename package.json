@@ -14,6 +14,7 @@
     "sdlc": "node scripts/runRepositoryPython.js scripts/sdlc.py",
     "check:sdlc": "node scripts/runRepositoryPython.js scripts/set_up_sdlc.py --check",
     "check:affected": "node scripts/runAffectedChecks.js",
+    "check:converter": "node scripts/runSteamCommunityBbcodeChecks.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
     "test:sdlc": "node scripts/runRepositoryPython.js -m unittest discover -s tests/sdlc -v",
     "test:setup": "node scripts/runRepositoryPython.js -m unittest discover -s tests -p test_set_up_*.py",

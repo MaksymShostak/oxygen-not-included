@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "registryVersion": "2026-09-08",
+  "defaultProfile": "workshop-item",
+  "profiles": [
+    {"id": "workshop-item", "description": "Steam Workshop item description"},
+    {"id": "ugc-description", "description": "User-generated-content description or summary"},
+    {"id": "guide-section", "description": "Guide section body"},
+    {"id": "discussion", "description": "Community discussion body"},
+    {"id": "review", "description": "Game recommendation or review"},
+    {"id": "announcement", "description": "Community announcement body"}
+  ]
+}
