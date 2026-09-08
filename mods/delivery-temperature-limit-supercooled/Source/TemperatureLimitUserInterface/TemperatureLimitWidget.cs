@@ -2,6 +2,7 @@
 
 using PeterHan.PLib.UI;
 using System;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -12,7 +13,7 @@ namespace DeliveryTemperatureLimit
     /// <summary>
     /// Displays and edits temperature limits using the player's active ONI
     /// display unit while keeping Kelvin as the canonical simulation storage.
-    /// Provides explicit bounds naming, unit labels, persistent status feedback,
+    /// Provides explicit bounds naming, unit labels, contextual help and validation,
     /// draft-based editing, and an explicit Clear action.
     /// </summary>
     internal sealed class TemperatureLimitWidget : KMonoBehaviour
@@ -25,6 +26,11 @@ namespace DeliveryTemperatureLimit
         private GameObject? highUnitLabel;
         private GameObject? clearButton;
         private GameObject? statusLabel;
+        private TMP_Text? statusText;
+        private TemperatureRangeTextLayout? statusLayout;
+        private TemperatureRangeHelpScreen? helpScreen;
+        private Selectable? clearSelectable;
+        private Outline? clearFocusOutline;
 
         private TemperatureLimit? target;
         private string? lowDraft;
@@ -33,6 +39,7 @@ namespace DeliveryTemperatureLimit
 
         internal void SetTarget(TemperatureLimit? newTarget)
         {
+            helpScreen?.ResetHelp();
             target = newTarget;
             lowDraft = null;
             highDraft = null;
@@ -79,6 +86,17 @@ namespace DeliveryTemperatureLimit
             {
                 FlexSize = Vector2.right
             };
+            var helpButton = new PButton("TemperatureRangeHelp")
+            {
+                Text = "?",
+                TextStyle = PUITuning.Fonts.TextDarkStyle,
+                OnClick = _ => helpScreen?.ToggleHelp()
+            };
+            helpButton.AddOnRealize(realizedHelp =>
+            {
+                helpScreen = realizedHelp.AddComponent<TemperatureRangeHelpScreen>();
+                helpScreen.Initialize(this);
+            });
             var clearBtn = new PButton("ClearButton")
             {
                 Text = SideScreenStrings.BUTTON_CLEAR,
@@ -91,8 +109,16 @@ namespace DeliveryTemperatureLimit
             clearBtn.AddOnRealize(realizedButton =>
             {
                 clearButton = realizedButton;
+                clearSelectable = realizedButton.AddComponent<Selectable>();
+                clearSelectable.transition = Selectable.Transition.None;
+                clearSelectable.targetGraphic = realizedButton.GetComponent<Graphic>();
+                clearFocusOutline = realizedButton.AddComponent<Outline>();
+                clearFocusOutline.effectColor = Color.white;
+                clearFocusOutline.effectDistance = new Vector2(2, -2);
+                clearFocusOutline.enabled = false;
             });
             headerPanel.AddChild(headerLabel);
+            headerPanel.AddChild(helpButton);
             headerPanel.AddChild(headerSpacer);
             headerPanel.AddChild(clearBtn);
 
@@ -233,18 +259,24 @@ namespace DeliveryTemperatureLimit
             var status = new PLabel("StatusLabel")
             {
                 TextStyle = PUITuning.Fonts.TextDarkStyle,
-                Text = SideScreenStrings.STATUS.DISABLED,
-                ToolTip = SideScreenStrings.TOOLTIPS.STATUS
+                // Build the text child even though normal feedback is empty.
+                Text = " ",
+                DynamicSize = true,
+                TextAlignment = TextAnchor.UpperLeft,
+                FlexSize = Vector2.right
             };
             status.AddOnRealize(realizedStatus =>
             {
                 statusLabel = realizedStatus;
+                statusText = realizedStatus.GetComponentInChildren<TMP_Text>(true);
+                statusLayout = TemperatureRangeTextLayout.Attach(realizedStatus);
             });
 
             panel.AddChild(headerPanel);
             panel.AddChild(boundsGrid);
             panel.AddChild(status);
             panel.AddTo(gameObject);
+            ShowFeedback(null);
 
             base.OnPrefabInit();
             UpdateInputs();
@@ -252,6 +284,7 @@ namespace DeliveryTemperatureLimit
 
         protected override void OnDisable()
         {
+            helpScreen?.ResetHelp();
             lowDraft = null;
             highDraft = null;
             if (lowField != null && lowField.isFocused)
@@ -279,7 +312,9 @@ namespace DeliveryTemperatureLimit
 
         private void Update()
         {
-            if (IsAnyFieldFocused() && Input.GetKeyDown(KeyCode.Escape))
+            if (clearFocusOutline != null) clearFocusOutline.enabled = IsActionButtonFocused();
+            if (IsAnyFieldFocused() && Input.GetKeyDown(KeyCode.Escape) &&
+                !(helpScreen?.IsHelpVisible ?? false) && !(helpScreen?.HandledEscapeThisFrame ?? false))
             {
                 RevertDrafts();
             }
@@ -329,15 +364,11 @@ namespace DeliveryTemperatureLimit
             if (clearButton != null)
             {
                 PButton.SetButtonEnabled(clearButton, !bounds.IsUnbounded);
+                if (clearSelectable != null) clearSelectable.interactable = !bounds.IsUnbounded;
             }
 
-            if (statusLabel != null)
-            {
-                string statusText = bounds.IsEqualBounds
-                    ? SideScreenStrings.VALIDATION.EMPTY_INTERVAL.ToString()
-                    : TemperatureLimitPresenter.GetRangeDescription(bounds);
-                PUIElements.SetText(statusLabel, statusText);
-            }
+            ShowFeedback(bounds.IsEqualBounds ? SideScreenStrings.VALIDATION.EMPTY_INTERVAL.ToString() : null);
+            UpdateHelp(bounds);
 
             UpdateTooltips();
             ConfigureNavigation();
@@ -394,7 +425,9 @@ namespace DeliveryTemperatureLimit
 
         private void CommitDrafts()
         {
-            if (isUpdatingInputs || target == null)
+            if (isUpdatingInputs || target == null ||
+                (helpScreen?.HandledEscapeThisFrame ?? false) ||
+                ((helpScreen?.IsHelpVisible ?? false) && Input.GetKeyDown(KeyCode.Escape)))
             {
                 return;
             }
@@ -412,11 +445,7 @@ namespace DeliveryTemperatureLimit
 
             if (!validation.IsValid)
             {
-                if (statusLabel != null)
-                {
-                    PUIElements.SetText(statusLabel, validation.Message);
-                }
-
+                ShowFeedback(validation.Message);
                 return;
             }
 
@@ -430,11 +459,70 @@ namespace DeliveryTemperatureLimit
             highDraft = null;
             UpdateInputs();
 
-            if (validation.Severity == TemperatureValidationSeverity.Warning &&
-                statusLabel != null)
+            if (validation.Severity == TemperatureValidationSeverity.Warning)
             {
-                PUIElements.SetText(statusLabel, validation.Message);
+                ShowFeedback(validation.Message);
             }
+        }
+
+        private void ShowFeedback(string? message)
+        {
+            if (statusLabel == null || statusText == null) return;
+            // PLib.SetText only searches active children, losing the first error
+            // when this optional feedback row is inactive.
+            statusText.text = message ?? string.Empty;
+            statusLabel.SetActive(!string.IsNullOrEmpty(message));
+            statusLayout?.SetLayoutHorizontal();
+            LayoutRebuilder.MarkLayoutForRebuild((RectTransform)transform);
+        }
+
+        private void UpdateHelp(TemperatureBounds bounds)
+        {
+            // These are complete, existing localized messages, not English
+            // fragments. The effective range is available on request as well.
+            helpScreen?.SetDescription(string.Join("\n\n", new[]
+            {
+                TemperatureLimitPresenter.GetRangeDescription(bounds),
+                SideScreenStrings.TOOLTIPS.STATUS.ToString(),
+                SideScreenStrings.TOOLTIPS.LOWER_BOUND.ToString(),
+                SideScreenStrings.TOOLTIPS.UPPER_BOUND.ToString(),
+                SideScreenStrings.TOOLTIPS.CLEAR.ToString()
+            }));
+        }
+
+        internal bool IsActionButtonFocused() => clearSelectable != null && clearSelectable.interactable &&
+            UnityEngine.EventSystems.EventSystem.current != null &&
+            UnityEngine.EventSystems.EventSystem.current.currentSelectedGameObject == clearButton;
+
+        internal void ActivateFocusedButton()
+        {
+            if (IsActionButtonFocused()) OnClearClicked(clearButton!);
+        }
+
+        internal bool CanNavigateFromCurrentSelection()
+        {
+            var events = UnityEngine.EventSystems.EventSystem.current;
+            if (events == null) return false;
+            GameObject? selected = events.currentSelectedGameObject;
+            return selected == null || selected == helpScreen?.gameObject ||
+                selected == clearButton || selected == lowInput || selected == highInput;
+        }
+
+        internal void MoveKeyboardFocus(bool backwards)
+        {
+            var events = UnityEngine.EventSystems.EventSystem.current;
+            if (events == null || helpScreen == null || lowField == null || highField == null) return;
+            var controls = new List<GameObject> { helpScreen.gameObject };
+            if (clearSelectable != null && clearSelectable.interactable) controls.Add(clearButton!);
+            controls.Add(lowField.gameObject);
+            controls.Add(highField.gameObject);
+            int index = controls.IndexOf(events.currentSelectedGameObject);
+            int next = index < 0 ? (backwards ? controls.Count - 1 : 0) :
+                (index + (backwards ? controls.Count - 1 : 1)) % controls.Count;
+            GameObject selected = controls[next];
+            events.SetSelectedGameObject(selected);
+            TMP_InputField? input = selected.GetComponent<TMP_InputField>();
+            if (input != null) input.ActivateInputField();
         }
 
         private void RevertDrafts()
@@ -519,9 +607,6 @@ namespace DeliveryTemperatureLimit
             PUIElements.SetToolTip(
                 highInput,
                 SideScreenStrings.TOOLTIPS.UPPER_BOUND.ToString());
-            PUIElements.SetToolTip(
-                statusLabel,
-                SideScreenStrings.TOOLTIPS.STATUS.ToString());
         }
 
         private void ConfigureNavigation()
@@ -530,10 +615,6 @@ namespace DeliveryTemperatureLimit
             {
                 return;
             }
-
-            Selectable? clearSelectable = clearButton != null
-                ? clearButton.GetComponent<Selectable>()
-                : null;
 
             Navigation navLow = new Navigation
             {

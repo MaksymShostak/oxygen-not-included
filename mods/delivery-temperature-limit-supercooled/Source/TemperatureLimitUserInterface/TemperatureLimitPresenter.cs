@@ -80,12 +80,7 @@ namespace DeliveryTemperatureLimit
         }
 
         public static string FormatTemperatureWithUnit(int kelvin) =>
-            GameUtil.GetFormattedTemperature(
-                kelvin,
-                GameUtil.TimeSlice.None,
-                GameUtil.TemperatureInterpretation.Absolute,
-                true,
-                true);
+            TemperatureDisplayText.WithUnit(FormatInputText(kelvin), GetCurrentUnitSuffix());
 
         public static string GetCurrentUnitSuffix() =>
             GameUtil.GetTemperatureUnitSuffix().Trim();

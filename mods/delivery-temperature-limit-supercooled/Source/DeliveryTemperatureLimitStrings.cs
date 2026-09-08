@@ -27,10 +27,10 @@ namespace STRINGS
 
             public static class VALIDATION
             {
-                public static LocString EMPTY_INTERVAL = "<color=#F0B310>\u25B2</color> No deliveries can match this range.";
-                public static LocString BOUNDS_REVERSED = "<color=#F44A47>\u25B2</color> \"At least\" must not be above \"Below\".";
-                public static LocString INVALID_NUMBER = "<color=#F44A47>\u25B2</color> Enter a whole-number temperature.";
-                public static LocString OUT_OF_RANGE = "<color=#F44A47>\u25B2</color> Temperature must be between {0} and {1}.";
+                public static LocString EMPTY_INTERVAL = "<color=#F0B310>\u25B2</color> No deliveries can match this range";
+                public static LocString BOUNDS_REVERSED = "<color=#F44A47>\u25B2</color> \"At least\" must not be above \"Below\"";
+                public static LocString INVALID_NUMBER = "<color=#F44A47>\u25B2</color> Enter a whole-number temperature";
+                public static LocString OUT_OF_RANGE = "<color=#F44A47>\u25B2</color> Temperature must be between {0} and {1}";
             }
 
             public static class TOOLTIPS
