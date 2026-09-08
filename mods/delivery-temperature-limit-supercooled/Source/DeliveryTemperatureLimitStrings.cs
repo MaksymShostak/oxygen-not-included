@@ -11,7 +11,7 @@ namespace STRINGS
     {
         public static class SIDESCREEN
         {
-            public static LocString TITLE = "Delivery Limit";
+            public static LocString TITLE = "Delivery Temperature Limit";
             public static LocString SECTION_RANGE = "Temperature range";
             public static LocString LOWER_BOUND = "At least";
             public static LocString UPPER_BOUND = "Below";

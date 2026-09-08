@@ -33,7 +33,7 @@ namespace DeliveryTemperatureLimit
                 return;
             }
 
-            widget ??= gameObject.AddOrGet<TemperatureLimitWidget>();
+            widget ??= ContentContainer.AddOrGet<TemperatureLimitWidget>();
             widget.SetTarget(temperatureLimit);
         }
 
@@ -42,8 +42,32 @@ namespace DeliveryTemperatureLimit
 
         protected override void OnPrefabInit()
         {
-            widget = gameObject.AddOrGet<TemperatureLimitWidget>();
-            ContentContainer = gameObject;
+            // GetTitle supplies only the tab's top title. This section owns a
+            // native header even when other side screens appear above it.
+            GameObject tabBody = DetailsScreen.Instance.GetTabOfType(
+                DetailsScreen.SidescreenTabTypes.Config).bodyInstance;
+            GameObject headerTemplate = tabBody.GetComponent<HierarchyReferences>()
+                .GetReference("Title").gameObject;
+            GameObject header = Util.KInstantiateUI(headerTemplate, gameObject);
+            header.name = "DeliveryTemperatureLimitHeader";
+            LocText headerLabel = header.GetComponentInChildren<LocText>(true);
+            headerLabel.key = "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE";
+            headerLabel.SetText(GetTitle());
+
+            // The tab title normally sits outside its layout. Our copy is a
+            // regular row, retaining the native title's height and styling.
+            LayoutElement headerLayout = header.AddOrGet<LayoutElement>();
+            headerLayout.ignoreLayout = false;
+            headerLayout.minHeight = headerLayout.preferredHeight =
+                headerTemplate.GetComponent<RectTransform>().rect.height;
+            headerLayout.flexibleWidth = 1f;
+            header.transform.SetAsFirstSibling();
+            header.SetActive(true);
+            CheckShouldShowTopTitle = () => false;
+
+            ContentContainer = PUIElements.CreateUI(gameObject, "TemperatureLimitContent");
+            ContentContainer.AddComponent<BoxLayoutGroup>();
+            widget = ContentContainer.AddOrGet<TemperatureLimitWidget>();
             base.OnPrefabInit();
         }
 

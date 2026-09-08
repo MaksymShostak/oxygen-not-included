@@ -12,6 +12,45 @@ namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
 public sealed class DeliveryTemperatureUserInterfaceContractTests
 {
     [TestMethod]
+    public void TemperatureSection_InstantiatesItsOwnNativeHeaderBeforeSettingItsTitle()
+    {
+        var instructions = ReadSideScreenInitialization();
+        int clone = instructions.FindIndex(instruction =>
+            instruction.ResolvedOperand == "Util.KInstantiateUI");
+        Assert.IsTrue(clone >= 0,
+            "GetTitle only supplies the tab's top title. The temperature section needs its own native header instance.");
+        int title = instructions.FindIndex(instruction =>
+            instruction.ResolvedOperand == "TMPro.TMP_Text.SetText");
+        Assert.IsTrue(title > clone,
+            "Set the section title on the cloned header, preserving the shared tab title.");
+        Assert.IsTrue(instructions.Take(clone).Any(instruction =>
+            instruction.ResolvedOperand == "DetailsScreen.GetTabOfType"),
+            "The header must come from the game's side-screen tab, so its styling follows ONI.");
+    }
+
+    [TestMethod]
+    public void TemperatureSection_KeepsThePaddedEditorInASeparateContentContainer()
+    {
+        var instructions = ReadSideScreenInitialization();
+        int container = instructions.FindIndex(instruction =>
+            instruction.Operation == "stfld"
+            && instruction.ResolvedOperand == "SideScreenContent.ContentContainer");
+        Assert.IsTrue(container > 0);
+        Assert.AreEqual("PeterHan.PLib.UI.PUIElements.CreateUI",
+            instructions[container - 1].ResolvedOperand,
+            "Editor padding must apply to a child container, leaving the native section header at full width.");
+    }
+
+    private static List<AssemblyInstructionContract> ReadSideScreenInitialization()
+    {
+        string path = PipelineProvenanceBoundAssemblyLocator
+            .CreateForCurrentPipelineEnvironment().ResolveRequiredPipelineBuild().AssemblyPath;
+        return DeliveryTemperatureAssemblyMetadataReader.ReadMethodBodies(
+                path, "DeliveryTemperatureLimit.TemperatureLimitSideScreen", "OnPrefabInit")
+            .Single().Instructions.ToList();
+    }
+
+    [TestMethod]
     public void TemperatureLimitWidget_WhenCompiled_DoesNotAddLegacyInputFieldToTmpInputs()
     {
         var builds = PipelineProvenanceBoundAssemblyLocator

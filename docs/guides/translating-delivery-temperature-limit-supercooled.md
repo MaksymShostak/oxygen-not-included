@@ -40,7 +40,7 @@ This document is the authoritative localization reference and translation brief 
 
 | Key (`msgctxt`) | English Source (`msgid`) | UI Type & Constraints | Placeholders & Markup | Precise Definition & Translator Guidance |
 |---|---|---|---|---|
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE` | `Delivery Limit` | Side screen panel header | None | Main header title for the mod's side-screen widget in the building details panel. Keep short (1-3 words). |
+| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE` | `Delivery Temperature Limit` | Native side screen section header | None | Identifies the temperature restriction on delivered materials and separates these controls from adjacent sections. Preserve both delivery and temperature in a concise title. |
 | `STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.SECTION_RANGE` | `Temperature range` | Section header | None | Group title directly above the minimum and maximum input fields. |
 | `STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.LOWER_BOUND` | `At least` | Text input label | None | Label for the minimum allowed temperature. Denotes an **inclusive** lower limit ($T \ge x$). |
 | `STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.UPPER_BOUND` | `Below` | Text input label | None | Label for the maximum allowed temperature. Denotes an **exclusive** upper boundary ($T < x$). |
