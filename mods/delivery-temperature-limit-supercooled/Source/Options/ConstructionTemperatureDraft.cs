@@ -72,6 +72,17 @@ namespace DeliveryTemperatureLimit
                 ConstructionRangeError.EmptyRange;
         }
 
+        internal ConstructionRangeError ResolveForSave(bool enabled, out int lower, out int upper)
+        {
+            ConstructionRangeError error = Validate(out lower, out upper);
+            if (enabled || error == ConstructionRangeError.None) return error;
+            // Incomplete typing remains available when the section is reopened.
+            // Saving with the feature off retains the original canonical values.
+            lower = originalLowerKelvin;
+            upper = originalUpperKelvin;
+            return ConstructionRangeError.None;
+        }
+
         private ConstructionRangeError Parse(
             string text, string originalText, int originalKelvin,
             bool lower, out int kelvin)

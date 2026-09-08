@@ -1,6 +1,6 @@
 # Translator Handoff Guide: Delivery Temperature Limit (Supercooled)
 
-This document is the authoritative localization reference and translation brief for the Oxygen Not Included mod **Delivery Temperature Limit (Supercooled)**. It provides context, UI locations, format placeholder rules, and semantic definitions for all **74 active strings**.
+This document is the authoritative localization reference and translation brief for the Oxygen Not Included mod **Delivery Temperature Limit (Supercooled)**. It provides context, UI locations, format placeholder rules, and semantic definitions for all **80 active strings**.
 
 ---
 
@@ -60,107 +60,73 @@ This document is the authoritative localization reference and translation brief 
 
 ---
 
-### Domain 2: Mod Options & Global Settings Dialog (`OPTIONS`)
-*UI Location: Main Menu / In-Game Pause Menu $	o$ Options $	o$ Mods $	o$ Delivery Temperature Limit $	o$ Options.*
+### Domain 2: Mod Options and bug reports (`OPTIONS`)
 
-#### A. Dialog Header & Shell
-| Key (`msgctxt`) | English Source (`msgid`) | UI Type & Constraints | Placeholders & Markup | Precise Definition & Translator Guidance |
-|---|---|---|---|---|
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_TITLE` | `Delivery Temperature Limit - Options` | Modal window title | None | Title banner of the main mod configuration dialog. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_INTRO` | `Set individual buildings' delivery ranges in their details panels. These settings are shared across your colonies.` | Introductory paragraph | None | Informs players that day-to-day filtering is configured per-building in the colony, while options here are global preferences. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.RESTART_NOTICE` | `Changes take effect after restarting Oxygen Not Included.` | Static footer note | None | Reminds the player that changed configuration parameters require an application restart to be initialized. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.PENDING_RESTART_NOTICE` | `Saved changes are waiting for a restart. This session still uses its startup settings.` | Status banner | None | Informational banner alerting the player that newly saved settings have not taken effect in the active session yet. |
+The main screen shows colony-wide settings and a restart notice. Construction range fields appear only while construction limits are enabled. Toggling the feature off and back on preserves typed values. Saving while disabled keeps valid edits; incomplete or invalid typing leaves the previously stored bounds unchanged.
 
-#### B. Construction Settings Section
-| Key (`msgctxt`) | English Source (`msgid`) | UI Type & Constraints | Placeholders & Markup | Precise Definition & Translator Guidance |
-|---|---|---|---|---|
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_CONSTRUCTION` | `Construction` | Section header | None | Section grouping default temperature limits applied to new construction blueprints. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.CHECKBOX_LIMIT_CONSTRUCTION` | `Limit construction material temperatures` | Checkbox toggle label | None | Toggles whether newly placed building blueprints automatically receive delivery temperature constraints. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_DEFAULT_CONSTRUCTION_RANGE` | `Default range for new construction` | Field label | None | Label for default temperature limits assigned to newly placed construction blueprints. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_DEFAULT_CONSTRUCTION_RANGE` | `Existing construction sites are not updated. Limits are rounded to whole Kelvin values; the lower bound is included and the upper bound is excluded.` | Hover tooltip | None | Detailed tooltip explaining that changing this default does not retroactively alter existing construction sites. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.HINT_CONSTRUCTION_DISABLED` | `Enable construction limits to edit this default range.` | Inline hint label | None | Explanatory note displayed when construction limits are disabled, explaining why range inputs are greyed out. |
+Labels, inputs, buttons, and expanded explanations use the same body text size. Headings use one larger size. Text wraps instead of shrinking. Keep labels brief, especially checkbox captions and action buttons. Single-line buttons share a common height; wrapped translations may grow. The layout reserves room for a scrollbar and keyboard focus outlines. Related controls are grouped with smaller gaps than the spacing between sections.
 
-#### C. Resource Warnings Section
-| Key (`msgctxt`) | English Source (`msgid`) | UI Type & Constraints | Placeholders & Markup | Precise Definition & Translator Guidance |
-|---|---|---|---|---|
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_RESOURCE_WARNINGS` | `Resource warnings` | Section header | None | Section grouping alerts and notifications regarding filtered materials. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.CHECKBOX_WARN_ON_BLOCKED` | `Warn when temperature limits block delivery` | Checkbox toggle label | None | Toggles whether buildings whose deliveries are blocked solely by temperature limits raise a "Lacks Resources" notification. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_WARN_ON_BLOCKED` | `Includes temperature in the Lacks Resources check. Does not change delivery filtering.` | Hover tooltip | None | Tooltip clarifying that this toggle only affects notification logic, not actual duplicant errand choices. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.NOTICE_RESOURCE_WARNINGS_UNAVAILABLE` | `Temperature-aware resource warnings are unavailable in this session. Your preference is retained.` | Inline notice | None | Informational note shown if compatibility patches could not be safely initialized during game startup. |
+Supplementary explanations live behind adjacent `?` buttons. Hover shows the native tooltip; clicking or activating the button with the keyboard expands persistent text. Clicking again collapses it. Restart notices, validation errors, and the short GitHub disclosure remain visible when relevant.
 
-#### D. Validation & Range Editing
-| Key (`msgctxt`) | English Source (`msgid`) | UI Type & Constraints | Placeholders & Markup | Precise Definition & Translator Guidance |
-|---|---|---|---|---|
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_INTEGER_REQUIRED` | `Enter a whole-number temperature in the unit shown.` | Inline error text | None | Displayed when draft input contains non-integer characters or unsupported symbols. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_SUPPORTED_RANGE` | `The rounded temperature must be within the supported range: {0} to {1} {2}.` | Inline error text | `{0}` = Min formatted temp; `{1}` = Max formatted temp; `{2}` = Active unit symbol ($^\circ	ext{C}, ^\circ	ext{F}, 	ext{K}$) | Displayed when entered values exceed valid simulation limits. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_EMPTY_INTERVAL` | `The 'At least' value must be lower than 'Below' after rounding to whole Kelvin values. Choose a nonempty construction range.` | Inline error text | Single quotes around labels | Displayed when minimum $\ge$ maximum after conversion to Kelvin. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_INVALID_PENDING` | `Correct or revert the range before disabling construction limits. Invalid values will not be saved.` | Inline error text | None | Warns the player that an unparseable input field cannot be saved even if unchecking the feature. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_REVERT_RANGE` | `Revert temperature edits` | Action button | None | Discards unsaved typing in the default construction range boxes and restores last-saved numbers. |
+#### Settings and range terminology
 
-#### E. Legacy Unit Disambiguation
-| Key (`msgctxt`) | English Source (`msgid`) | UI Type & Constraints | Placeholders & Markup | Precise Definition & Translator Guidance |
-|---|---|---|---|---|
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BANNER_LEGACY_UNIT` | `Unspecified unit in previous settings: pre-interpreted as {0}. Select a unit if different:` | Migration banner | `{0}` = Formatted active unit symbol ($^\circ	ext{C}, ^\circ	ext{F}, 	ext{K}$) | Appears once when upgrading from a pre-v2.0 version where numbers had no recorded unit. Informs player of default assumption. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_CELSIUS` | `Interpret as °C` | Action button | `°` = Degree sign (`°`) | Button to confirm that legacy un-annotated numbers were entered in Celsius. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_FAHRENHEIT` | `Interpret as °F` | Action button | `°` = Degree sign (`°`) | Button to confirm that legacy un-annotated numbers were entered in Fahrenheit. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_KELVIN` | `Interpret as K` | Action button | None | Button to confirm that legacy un-annotated numbers were entered in Kelvin. |
+- `LABEL_SETTINGS_SCOPE`: settings shared by all colonies.
+- `DIALOG_INTRO`: on-demand help explaining that individual building ranges belong in building details.
+- `LABEL_DEFAULT_CONSTRUCTION_RANGE`: defaults for new construction, not existing sites.
+- `TOOLTIP_DEFAULT_CONSTRUCTION_RANGE`: existing sites are unchanged; stored bounds use whole kelvin; the lower bound is inclusive and the upper bound exclusive.
+- `TOOLTIP_WARN_ON_BLOCKED`: changes the resource warning check, not delivery filtering.
+- `VALIDATION_SUPPORTED_RANGE`: preserve `{0}`, `{1}`, and `{2}` for minimum, maximum, and temperature unit.
+- `VALIDATION_EMPTY_INTERVAL`: use the exact translated lower/upper input labels; minimum must be strictly less than maximum after rounding.
+- `BUTTON_REVERT_RANGE`: revert temperature edits, distinct from restoring all defaults.
+- `BANNER_LEGACY_UNIT`: preserve `{0}`, the assumed unit. The interpretation buttons choose what old numbers mean.
 
-#### F. Help & Local Diagnostic Reporting
-| Key (`msgctxt`) | English Source (`msgid`) | UI Type & Constraints | Placeholders & Markup | Precise Definition & Translator Guidance |
-|---|---|---|---|---|
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_EXPAND_HELP` | `Show help and diagnostics` | Accordion expand button | None | Expands the collapsible troubleshooting and diagnostic tools section. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_COLLAPSE_HELP` | `Hide help and diagnostics` | Accordion collapse button | None | Collapses the troubleshooting and diagnostic tools section. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_INSTALLED_VERSION` | `Installed assembly file version: {0}` | Informational label | `{0}` = Mod version number string (e.g. `2026.9.5.0`) | Displays the loaded mod binary version to assist in bug reports. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_HOMEPAGE` | `Open mod page` | Link button | None | Opens the mod's Steam Workshop / GitHub repository page in the player's web browser. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_CONFIG_FOLDER` | `Open configuration folder` | Action button | None | Opens the local operating system directory where `config.json` is stored. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_CONFIG_FOLDER` | `This action does not save your draft. Close and reopen Options after editing the file externally.` | Hover tooltip | None | Cautions the player that modifying the config file externally requires reopening the UI to reload. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_SUPPORT_REPORT` | `Create a diagnostic file on this computer. You choose whether to share it.` | Hover tooltip | None | Privacy notice explaining that diagnostic generation is 100% offline and local. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.CHECKBOX_INCLUDE_PLAYER_LOG` | `Include Player.log in the next report` | Checkbox toggle label | Monospace/code reference `Player.log` | Opt-in toggle to bundle Unity game engine log into diagnostic package. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_INCLUDE_PLAYER_LOG` | `May contain personal information. Known paths are redacted where possible; review the report before sharing.` | Hover tooltip | None | Privacy guidance clarifying that logs may contain usernames, which the mod attempts to sanitize. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CREATE_REPORT` | `Create local report` | Action button | None | Initiates generation of a local JSON support report on the computer. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_CREATING_REPORT` | `Creating a local report…` | Activity status | `…` = Ellipsis (`…`) | Shown temporarily while the report file is being gathered and written. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_CREATED` | `Local report created. Nothing was uploaded or copied to the clipboard. Review before sharing:` | Success message | Precedes file path | Explicit privacy confirmation that report was created purely on disk without network activity. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_FAILED` | `The report could not be created. No report was uploaded. Any previous successful report remains available. Failure details are in Player.log.` | Failure message | Monospace/code reference `Player.log` | Displayed if filesystem error prevents writing the diagnostic file. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_LAST_REPORT_FOLDER` | `Open last report folder` | Action button | None | Opens the OS file explorer focused on the directory containing generated reports. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_COPY_REPORT_SUMMARY` | `Copy last report summary` | Action button | None | Copies a brief, sanitized markdown diagnostic summary to the player's clipboard. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_SUMMARY_COPIED` | `The clipboard now contains the report summary. Review it before sharing.` | Feedback label | None | Confirms summary was copied and encourages player to review for sensitive data. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_ISSUE_FORM` | `Open GitHub issue form` | Link button | None | Opens the GitHub bug tracker in browser. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_ISSUE_FORM` | `Opens the issue template without diagnostic data in the URL. You choose what to paste or attach.` | Hover tooltip | None | Privacy note stating no logs or identifiers are transmitted via URL parameters. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_NO_REPORT` | `Create a local report first. Reports from earlier sessions are not automatically selected.` | Feedback label | None | Explains that "Open folder" / "Copy summary" require generating a report in the current session. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_ACTION_FAILED` | `The action could not be completed. Details are in Player.log.` | Feedback label | Monospace/code reference `Player.log` | Generic message when an OS clipboard, URL open, or folder open operation throws an exception. |
+The obsolete disabled-range hint, disabled-range validation warning, and installed assembly version label have been removed. The loaded version remains in diagnostic reports.
 
-#### G. Modal Footer Actions & Colony Safety
-| Key (`msgctxt`) | English Source (`msgid`) | UI Type & Constraints | Placeholders & Markup | Precise Definition & Translator Guidance |
-|---|---|---|---|---|
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTORE_DEFAULTS` | `Restore defaults` | Action button | None | Resets all settings in the editor to original factory defaults. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_RESTORE_DEFAULTS` | `Replaces the draft only. Cancel still leaves the saved file unchanged.` | Hover tooltip | None | Clarifies that clicking "Restore defaults" affects the active draft only until explicitly saved. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CANCEL` | `Cancel` | Footer action button | None | Closes the options window and abandons all uncommitted changes. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_SAVE` | `Save changes` | Footer action button | None | Writes validated options to disk. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_CHANGES_SAVED` | `Changes saved. The running session has not been changed.` | Footer status label | None | Confirms successful disk write and reminds player running session needs a restart. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_DONE` | `Done` | Footer action button | None | Closes the options dialog when no restart is pending. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTART_NOW` | `Restart now` | Footer action button | None | Immediately restarts the game to reload options. Only visible from Main Menu. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_RESTART_LATER` | `Later` | Footer action button | None | Closes options without restarting immediately. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.WARNING_RUNNING_COLONY` | `Save your colony and return to the main menu before restarting. Saving options does not save colony progress.` | Safety alert | None | Displayed when options are opened mid-game to prevent players from losing unsaved colony progress. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_DISCARD_TITLE` | `Discard unsaved changes?` | Modal prompt title | None | Confirmation prompt when clicking Cancel, Close, or pressing Escape with unsaved edits. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CONFIRM_DISCARD` | `Discard changes` | Dialog action button | None | Confirms discarding unsaved draft edits and closes options. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CANCEL_DISCARD` | `Keep editing` | Dialog action button | None | Cancels the discard prompt and returns focus to editing the draft. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_SAVE_FAILED` | `Options were not saved. Your draft is still here. Check file access and disk space; after an external edit, close and reopen Options. Details are in Player.log.` | Error dialog message | Monospace `Player.log` | Displayed if saving the options JSON fails due to filesystem permissions or disk full. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_LOAD_FAILED` | `Options could not be read safely. The configuration has not been changed. Check the file, then reopen Options. Details are in Player.log.` | Error dialog message | Monospace `Player.log` | Displayed if reading the config JSON fails due to syntax error or corruption. |
-| `STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_UI_FAILED` | `The options screen could not be opened safely. No settings were changed. See Player.log for details.` | Fallback error message | Monospace `Player.log` | Emergency fallback dialog message if the custom options screen fails to initialize. |
+#### Reporting flow
+
+1. `BUTTON_REPORT_BUG` opens a dedicated report view, titled `DIALOG_REPORT_TITLE`. `BUTTON_BACK_TO_OPTIONS` returns to settings without saving or discarding the draft. Escape and the title close control also return to Options first. The existing dialog stays in place, and longer content scrolls inside it.
+2. `CHECKBOX_INCLUDE_PLAYER_LOG` means **Include game log (optional)**. This choice lasts for the open dialog, including repeat attempts and failures. A newly opened dialog starts unchecked.
+3. `NOTICE_ISSUE_FORM` explains that continuing sends a diagnostic summary to GitHub to prefill the form. The player reviews and submits it in the browser. The report file itself stays local.
+4. `BUTTON_OPEN_ISSUE_FORM` means **Continue to GitHub**. It creates a fresh local report and opens the existing bug form with that report's summary. If creation fails, it does not open a form using an older report.
+5. `STATUS_LOG_INCLUDED`, `STATUS_LOG_NOT_INCLUDED`, and `STATUS_LOG_UNAVAILABLE` describe what was actually collected, behind the `SECTION_REPORT_DETAILS` disclosure alongside the local filename. Including the log in the local file does not attach it to GitHub. The generated summary explicitly explains manual attachment and never claims that an attachment already exists.
+6. `STATUS_ISSUE_FORM_OPENED` gives the next step: finish the bug form in the browser; review and attach the saved file to share the full report. Preserve the newline between these instructions. The report-folder action is available below this feedback.
+
+Translate “game log” as a player-facing term for the game's diagnostic log, not a saved colony or gameplay history. `TOOLTIP_INCLUDE_PLAYER_LOG` explains the local log excerpt, possible personal information, best-effort removal of known paths, and review before attaching.
+
+`SECTION_ADVANCED_TROUBLESHOOTING` is a stable disclosure heading with a chevron, not an action label that changes between “show” and “hide”. Its whole row toggles the advanced tools: configuration folder, local-only report generation, opening the last report folder, and copying its summary. Enter and Space also toggle focused disclosure headers. Creating a local report does not open a browser; copying is a separate action. Keep those actions distinct in translation. `SECTION_SUPPORT` groups the report and mod-page actions in Options.
+
+#### Saving and closing
+
+- `BUTTON_SAVE` means **Save settings**. It saves Options, not colony progress. The settings footer is absent from the report view, where continuing to GitHub is the primary action.
+- `BUTTON_RESTORE_DEFAULTS` changes the draft; Cancel still preserves the saved file.
+- `BUTTON_CANCEL_DISCARD` means **Keep editing**; `BUTTON_CONFIRM_DISCARD` discards the draft.
+- Restart and running-colony notices must keep their distinction between saved settings and the current running session.
+- Load/save error messages must not imply that an unsuccessful operation changed the saved configuration.
+
+The POT is the complete source catalog. Keep every catalog context synchronized with its declared `LocString` and preserve placeholders.
 
 ---
 
 ## 3. Recommended Translator Workflow
 
 ### Active Language Catalogs
-The repository currently maintains 9 community translation catalogs in [`mods/delivery-temperature-limit-supercooled/translations/`](file:///c:/Users/maksy/GitHub/oxygen-not-included/mods/delivery-temperature-limit-supercooled/translations):
+The repository currently maintains 18 translation catalogs in `mods/delivery-temperature-limit-supercooled/translations/`:
+- Czech (`cs.po`)
 - German (`de.po`)
+- Greek (`el.po`)
 - Spanish (`es.po`)
 - French (`fr.po`)
+- Hungarian (`hu.po`)
+- Italian (`it.po`)
+- Japanese (`ja.po`)
 - Korean (`ko.po`)
+- Polish (`pl.po`)
 - Portuguese (`pt.po`)
 - Brazilian Portuguese (`pt_BR.po`)
+- Thai (`th.po`)
+- Turkish (`tr.po`)
 - Ukrainian (`uk.po`)
+- Vietnamese (`vi.po`)
 - Simplified Chinese (`zh.po`)
 - Traditional Chinese (`zh_tw.po`)
 

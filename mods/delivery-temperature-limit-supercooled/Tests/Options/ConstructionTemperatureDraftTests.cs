@@ -112,6 +112,43 @@ public sealed class ConstructionTemperatureDraftTests
     private static ConstructionTemperatureDraft CreateDraft(int low, int high) =>
         new ConstructionTemperatureDraft(low, high, value => value, Format);
 
+    [TestMethod]
+    public void Save_WhenDisabledWithIncompleteInput_PreservesSavedBoundsAndRetainsTyping()
+    {
+        var draft = CreateDraft(223, 318);
+        draft.LowerText = "-";
+        Assert.AreEqual(ConstructionRangeError.None,
+            draft.ResolveForSave(false, out int low, out int high));
+        Assert.AreEqual(223, low);
+        Assert.AreEqual(318, high);
+        Assert.AreEqual("-", draft.LowerText);
+        Assert.AreEqual(ConstructionRangeError.LowerNumber,
+            draft.ResolveForSave(true, out _, out _), "Re-enabling must still validate the retained input.");
+    }
+
+    [TestMethod]
+    public void Save_WhenDisabledWithValidEdits_KeepsTheNewDefaultRange()
+    {
+        var draft = CreateDraft(223, 318);
+        draft.LowerText = "250";
+        Assert.AreEqual(ConstructionRangeError.None,
+            draft.ResolveForSave(false, out int low, out int high));
+        Assert.AreEqual(250, low);
+        Assert.AreEqual(318, high);
+    }
+
+    [TestMethod]
+    public void Save_WhenDisabledWithAnInvalidExistingRange_DoesNotRequireHiddenRepairs()
+    {
+        var draft = CreateDraft(318, 223);
+        Assert.AreEqual(ConstructionRangeError.None,
+            draft.ResolveForSave(false, out int low, out int high));
+        Assert.AreEqual(318, low);
+        Assert.AreEqual(223, high);
+        Assert.AreEqual(ConstructionRangeError.EmptyRange,
+            draft.ResolveForSave(true, out _, out _));
+    }
+
     private static string Format(int value) => value.ToString(CultureInfo.InvariantCulture);
 
     private static float ToKelvin(int value, string unit) =>

@@ -48,6 +48,7 @@ namespace STRINGS
         public static class OPTIONS
         {
             public static LocString DIALOG_TITLE = "Delivery Temperature Limit - Options";
+            public static LocString LABEL_SETTINGS_SCOPE = "Settings for all colonies";
             public static LocString DIALOG_INTRO = "Set individual buildings' delivery ranges in their details panels. These settings are shared across your colonies.";
             public static LocString RESTART_NOTICE = "Changes take effect after restarting Oxygen Not Included.";
             public static LocString PENDING_RESTART_NOTICE = "Saved changes are waiting for a restart. This session still uses its startup settings.";
@@ -56,7 +57,6 @@ namespace STRINGS
             public static LocString CHECKBOX_LIMIT_CONSTRUCTION = "Limit construction material temperatures";
             public static LocString LABEL_DEFAULT_CONSTRUCTION_RANGE = "Default range for new construction";
             public static LocString TOOLTIP_DEFAULT_CONSTRUCTION_RANGE = "Existing construction sites are not updated. Limits are rounded to whole Kelvin values; the lower bound is included and the upper bound is excluded.";
-            public static LocString HINT_CONSTRUCTION_DISABLED = "Enable construction limits to edit this default range.";
 
             public static LocString SECTION_RESOURCE_WARNINGS = "Resource warnings";
             public static LocString CHECKBOX_WARN_ON_BLOCKED = "Warn when temperature limits block delivery";
@@ -66,7 +66,6 @@ namespace STRINGS
             public static LocString VALIDATION_INTEGER_REQUIRED = "Enter a whole-number temperature in the unit shown.";
             public static LocString VALIDATION_SUPPORTED_RANGE = "The rounded temperature must be within the supported range: {0} to {1} {2}.";
             public static LocString VALIDATION_EMPTY_INTERVAL = "The 'At least' value must be lower than 'Below' after rounding to whole Kelvin values. Choose a nonempty construction range.";
-            public static LocString VALIDATION_INVALID_PENDING = "Correct or revert the range before disabling construction limits. Invalid values will not be saved.";
             public static LocString BUTTON_REVERT_RANGE = "Revert temperature edits";
 
             public static LocString BANNER_LEGACY_UNIT = "Unspecified unit in previous settings: pre-interpreted as {0}. Select a unit if different:";
@@ -74,31 +73,38 @@ namespace STRINGS
             public static LocString BUTTON_INTERPRET_FAHRENHEIT = "Interpret as \u00B0F";
             public static LocString BUTTON_INTERPRET_KELVIN = "Interpret as K";
 
-            public static LocString BUTTON_EXPAND_HELP = "Show help and diagnostics";
-            public static LocString BUTTON_COLLAPSE_HELP = "Hide help and diagnostics";
-            public static LocString LABEL_INSTALLED_VERSION = "Installed assembly file version: {0}";
+            public static LocString BUTTON_REPORT_BUG = "Report a bug\u2026";
+            public static LocString DIALOG_REPORT_TITLE = "Delivery Temperature Limit - Report a bug";
+            public static LocString BUTTON_BACK_TO_OPTIONS = "Back to Options";
+            public static LocString SECTION_SUPPORT = "Help and support";
+            public static LocString SECTION_REPORT_DETAILS = "Report details";
+            public static LocString SECTION_ADVANCED_TROUBLESHOOTING = "Advanced troubleshooting";
             public static LocString BUTTON_OPEN_HOMEPAGE = "Open mod page";
             public static LocString BUTTON_OPEN_CONFIG_FOLDER = "Open configuration folder";
             public static LocString TOOLTIP_CONFIG_FOLDER = "This action does not save your draft. Close and reopen Options after editing the file externally.";
             public static LocString TOOLTIP_SUPPORT_REPORT = "Create a diagnostic file on this computer. You choose whether to share it.";
-            public static LocString CHECKBOX_INCLUDE_PLAYER_LOG = "Include Player.log in the next report";
-            public static LocString TOOLTIP_INCLUDE_PLAYER_LOG = "May contain personal information. Known paths are redacted where possible; review the report before sharing.";
+            public static LocString CHECKBOX_INCLUDE_PLAYER_LOG = "Include game log (optional)";
+            public static LocString TOOLTIP_INCLUDE_PLAYER_LOG = "Adds recent game log entries to the local report. Logs may contain personal information; known paths are removed where possible. Review the file before attaching it on GitHub.";
             public static LocString BUTTON_CREATE_REPORT = "Create local report";
             public static LocString STATUS_CREATING_REPORT = "Creating a local report\u2026";
-            public static LocString STATUS_REPORT_CREATED = "Local report created. Nothing was uploaded or copied to the clipboard. Review before sharing:";
-            public static LocString STATUS_REPORT_FAILED = "The report could not be created. No report was uploaded. Any previous successful report remains available. Failure details are in Player.log.";
-            public static LocString BUTTON_OPEN_LAST_REPORT_FOLDER = "Open last report folder";
+            public static LocString STATUS_REPORT_CREATED = "Report saved on this computer.";
+            public static LocString STATUS_REPORT_FAILED = "Could not create the report. Try again. Details are in the game log.";
+            public static LocString STATUS_LOG_INCLUDED = "Game log excerpt saved in this local report.";
+            public static LocString STATUS_LOG_NOT_INCLUDED = "Game log not included.";
+            public static LocString STATUS_LOG_UNAVAILABLE = "The game log could not be read. The report contains game and mod details only.";
+            public static LocString BUTTON_OPEN_LAST_REPORT_FOLDER = "Open report folder";
             public static LocString BUTTON_COPY_REPORT_SUMMARY = "Copy last report summary";
-            public static LocString STATUS_SUMMARY_COPIED = "The clipboard now contains the report summary. Review it before sharing.";
-            public static LocString BUTTON_OPEN_ISSUE_FORM = "Open GitHub issue form";
-            public static LocString TOOLTIP_ISSUE_FORM = "Opens the issue template without diagnostic data in the URL. You choose what to paste or attach.";
+            public static LocString STATUS_SUMMARY_COPIED = "Report summary copied.";
+            public static LocString BUTTON_OPEN_ISSUE_FORM = "Continue to GitHub";
+            public static LocString NOTICE_ISSUE_FORM = "Send game and mod details to GitHub to fill in the bug form. You can review them before posting. The report file stays on this computer.";
+            public static LocString STATUS_ISSUE_FORM_OPENED = "Finish your bug report in your browser.\nTo share the full report, review the saved file and attach it to the form.";
             public static LocString STATUS_NO_REPORT = "Create a local report first. Reports from earlier sessions are not automatically selected.";
             public static LocString STATUS_ACTION_FAILED = "The action could not be completed. Details are in Player.log.";
 
             public static LocString BUTTON_RESTORE_DEFAULTS = "Restore defaults";
             public static LocString TOOLTIP_RESTORE_DEFAULTS = "Replaces the draft only. Cancel still leaves the saved file unchanged.";
             public static LocString BUTTON_CANCEL = "Cancel";
-            public static LocString BUTTON_SAVE = "Save changes";
+            public static LocString BUTTON_SAVE = "Save settings";
             public static LocString STATUS_CHANGES_SAVED = "Changes saved. The running session has not been changed.";
             public static LocString BUTTON_DONE = "Done";
             public static LocString BUTTON_RESTART_NOW = "Restart now";

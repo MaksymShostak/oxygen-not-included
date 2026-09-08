@@ -146,7 +146,8 @@ public sealed class SupportReportingSourceBoundaryTests
 
         Assert.Contains("GUIUtility.systemCopyBuffer", source);
         Assert.Contains("Application.OpenURL", source);
-        Assert.Contains("SupportReportLimits.BugIssueOrigin", source);
+        // Only SupportReportSession builds the fixed-origin, bounded, prefilled URL.
+        Assert.Contains("OpenIssueForm(string preparedUrl)", source);
         Assert.Contains("OpenLastReportFolder", source);
         Assert.Contains("CopyLastReportSummary", source);
         Assert.Contains("OpenIssueForm", source);

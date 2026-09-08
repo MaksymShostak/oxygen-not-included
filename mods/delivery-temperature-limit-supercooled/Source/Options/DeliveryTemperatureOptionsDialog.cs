@@ -6,7 +6,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -21,6 +20,9 @@ namespace DeliveryTemperatureLimit
     /// </summary>
     internal sealed class DeliveryTemperatureOptionsDialog
     {
+        private const float BodyFontSize = 18;
+        private const float HeadingFontSize = 20;
+        private readonly SupportReportSession reportSession = new SupportReportSession();
         private readonly DeliveryTemperatureOptionsStore store = new DeliveryTemperatureOptionsStore();
         private readonly List<System.Action<object>> closeCallbacks = new List<System.Action<object>>();
         private readonly GameObject? previousSelection = UnityEngine.EventSystems.EventSystem.current?.currentSelectedGameObject;
@@ -29,14 +31,17 @@ namespace DeliveryTemperatureLimit
         private KScreen? screen;
         private OptionsDialogLifetime? lifetime;
         private OptionsFocusNavigation focus = new OptionsFocusNavigation();
-        private GameObject? lowInput, highInput, messageLabel, supportLabel;
-        private GameObject? settingsPanel, helpPanel, discardPanel, footerPanel, legacyPanel, savedPanel;
-        private GameObject? keepEditingButton;
-        private bool helpOpen, discardOpen, includeLog, reporting, saved, repairRange, updatingInputs;
+        private GameObject? lowInput, highInput, messageLabel, supportLabel, reportDetailsLabel;
+        private GameObject? contentsPanel, settingsPanel, reportPanel, rangePanel, discardPanel, footerPanel, legacyPanel, savedPanel, reportFooter;
+        private GameObject? keepEditingButton, cancelButton, reportButton, includeLogControl;
+        private ScrollRect? contentScroll;
+        private float settingsScrollPosition = 1;
+        private bool reportOpen, reportPrepared, discardOpen, reporting, saved, updatingInputs, refreshing;
         private bool handlingKeyboard, closeAfterKeyRelease, closeScheduled, ended;
         private int lastKeyFrame = -1;
         private float contentWidth;
         private string message = "";
+        private string reportMessage = "";
 
         internal void AddCloseCallback(System.Action<object>? callback)
         {
@@ -50,7 +55,6 @@ namespace DeliveryTemperatureLimit
                 try
                 {
                     session = new OptionsEditSession(store);
-                    repairRange = !RangeIsValid;
                 }
                 catch (Exception ex)
                 {
@@ -66,36 +70,44 @@ namespace DeliveryTemperatureLimit
             refreshControls.Clear();
             focus = new OptionsFocusNavigation();
             Vector2 maximum = GetAvailableSize();
-            contentWidth = maximum.x - 56;
+            // Reserve both the native dialog/body margins and a scrollbar gutter.
+            // Only the scrollable body yields space; footer controls keep their measured size.
+            contentWidth = maximum.x - 64;
             var dialog = new PDialog("DeliveryTemperatureOptions")
             {
                 Title = Text.DIALOG_TITLE,
-                Size = new Vector2(Math.Min(520, maximum.x), Math.Min(360, maximum.y)),
+                Size = new Vector2(maximum.x, 0),
                 MaxSize = maximum, SortKey = 150,
                 DialogBackColor = PUITuning.Colors.OptionsBackground,
                 RoundToNearestEven = true
             };
             PPanel body = dialog.Body;
             body.Direction = PanelDirection.Vertical;
+            body.Alignment = TextAnchor.UpperLeft;
             body.Margin = new RectOffset(12, 12, 12, 12);
             body.Spacing = 10;
-            var contents = Column("SettingsContents");
-            contents.AddChild(Label(Text.DIALOG_INTRO));
-            contents.AddChild(Label(Text.RESTART_NOTICE, obj => refreshControls.Add(() =>
+            var contents = Column("Contents");
+            contents.Margin = new RectOffset(3, 17, 3, 8);
+            contents.AddOnRealize(obj => contentsPanel = obj);
+            var settings = Column("SettingsView");
+            settings.Spacing = 24;
+            settings.AddOnRealize(obj => settingsPanel = obj);
+            var introduction = Column("SettingsIntroduction");
+            introduction.AddChild(HelpLabel("ScopeHelp", Text.LABEL_SETTINGS_SCOPE, Text.DIALOG_INTRO));
+            introduction.AddChild(Description(Text.RESTART_NOTICE, obj => refreshControls.Add(() =>
                 SetLabel(obj, session?.RestartPending == true ? Text.PENDING_RESTART_NOTICE : Text.RESTART_NOTICE))));
-            if (session != null) AddSettings(contents, session);
-            contents.AddChild(Button("HelpToggle", helpOpen ? Text.BUTTON_COLLAPSE_HELP : Text.BUTTON_EXPAND_HELP,
-                () => { helpOpen = !helpOpen; Refresh(); }, enabled: () => !discardOpen));
-            var help = Column("HelpAndDiagnostics");
-            help.AddOnRealize(obj => { helpPanel = obj; SetVisible(obj, helpOpen); });
-            AddHelp(help);
-            contents.AddChild(help);
+            settings.AddChild(introduction);
+            if (session != null) AddSettings(settings, session);
+            AddSupport(settings);
+            contents.AddChild(settings);
+            AddReportView(contents);
             var scroll = new PScrollPane
             {
                 Child = contents, ScrollHorizontal = false, ScrollVertical = true,
                 AlwaysShowHorizontal = false, AlwaysShowVertical = false,
                 FlexSize = Vector2.one, TrackSize = 12
             };
+            scroll.AddOnRealize(obj => contentScroll = obj.GetComponent<ScrollRect>());
             body.AddChild(scroll);
             body.AddChild(Label(message, obj => messageLabel = obj));
             AddFooter(body);
@@ -116,7 +128,7 @@ namespace DeliveryTemperatureLimit
                 };
                 Refresh();
                 screen.Activate();
-                if (session != null && repairRange) Validate(false);
+                if (session?.LimitConstruction == true && !RangeIsValid) Validate(false);
                 focus.Move(false);
             }
             catch
@@ -128,11 +140,10 @@ namespace DeliveryTemperatureLimit
             }
         }
 
-                private void AddSettings(PPanel parent, OptionsEditSession edit)
+        private void AddSettings(PPanel parent, OptionsEditSession edit)
         {
             var legacy = Column("LegacyUnitConfirmation");
-            legacy.AddOnRealize(obj => { legacyPanel = obj; SetVisible(obj, edit.NeedsDisambiguation); });
-            refreshControls.Add(() => { if (legacyPanel != null && session != null) SetVisible(legacyPanel, session.NeedsDisambiguation); });
+            legacy.AddOnRealize(obj => { legacyPanel = obj; SetVisible(obj, edit.NeedsDisambiguation && edit.LimitConstruction); });
             legacy.AddChild(Label(string.Format(Text.BANNER_LEGACY_UNIT, OptionsTemperatureUnits.Symbol(edit.DisplayUnit))));
             var legacyRow = new PPanel("LegacyButtons") { Direction = PanelDirection.Horizontal, Spacing = 8, FlexSize = Vector2.right };
             foreach (string unit in new[] { "celsius", "fahrenheit", "kelvin" })
@@ -150,32 +161,29 @@ namespace DeliveryTemperatureLimit
                         focus.Move(false);
                     }
                     catch (Exception ex) { Fail(Text.ERROR_LOAD_FAILED, ex); }
-                }));
+                }, maximumWidth: (contentWidth - 16) / 3));
             }
             legacy.AddChild(legacyRow);
             parent.AddChild(legacy);
-            var settings = Column("GameplaySettings");
-            settings.AddOnRealize(obj => settingsPanel = obj);
-            settings.AddChild(Heading(Text.SECTION_CONSTRUCTION));
-            settings.AddChild(Check("Construction", Text.CHECKBOX_LIMIT_CONSTRUCTION, () => edit.LimitConstruction, () =>
+            var construction = Column("ConstructionSettings");
+            construction.AddChild(Heading(Text.SECTION_CONSTRUCTION));
+            construction.AddChild(Check("Construction", Text.CHECKBOX_LIMIT_CONSTRUCTION, () => edit.LimitConstruction, () =>
             {
-                if (edit.LimitConstruction && Validate(false) != ConstructionRangeError.None)
-                {
-                    message = Text.VALIDATION_INVALID_PENDING;
-                    Refresh();
-                    return;
-                }
                 edit.LimitConstruction = !edit.LimitConstruction;
-                Refresh();
+                Validate(false);
             }, () => CanEdit));
             var range = Column("ConstructionDefaults");
-            range.Margin = new RectOffset(16, 0, 0, 8);
-            range.AddChild(Label(Text.LABEL_DEFAULT_CONSTRUCTION_RANGE));
-            AddInput(range, "Lower", STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.LOWER_BOUND,
+            range.AddOnRealize(obj => { rangePanel = obj; SetVisible(obj, edit.LimitConstruction); });
+            range.Margin = new RectOffset(0, 0, 8, 0);
+            range.AddChild(HelpLabel("RangeHelp", Text.LABEL_DEFAULT_CONSTRUCTION_RANGE,
+                Text.TOOLTIP_DEFAULT_CONSTRUCTION_RANGE));
+            var temperatures = new PPanel("TemperatureRange") { Direction = PanelDirection.Horizontal,
+                Alignment = TextAnchor.UpperLeft, Spacing = 16, FlexSize = Vector2.right };
+            AddInput(temperatures, "Lower", STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.LOWER_BOUND,
                 true, obj => lowInput = obj);
-            AddInput(range, "Upper", STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.UPPER_BOUND,
+            AddInput(temperatures, "Upper", STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.UPPER_BOUND,
                 false, obj => highInput = obj);
-            range.AddChild(Label(Text.TOOLTIP_DEFAULT_CONSTRUCTION_RANGE));
+            range.AddChild(temperatures);
             var revert = Button("RevertRange", Text.BUTTON_REVERT_RANGE, () =>
             {
                 edit.Range.Revert(); ResetInputText(); Validate(false);
@@ -186,27 +194,29 @@ namespace DeliveryTemperatureLimit
                 refreshControls.Add(() => SetVisible(obj, edit.Range.IsDirty));
             });
             range.AddChild(revert);
-            range.AddChild(Label(Text.HINT_CONSTRUCTION_DISABLED, obj => refreshControls.Add(() =>
-                SetVisible(obj, !edit.LimitConstruction && !repairRange))));
-            settings.AddChild(range);
-            settings.AddChild(Heading(Text.SECTION_RESOURCE_WARNINGS));
-            settings.AddChild(Check("Warnings", Text.CHECKBOX_WARN_ON_BLOCKED, () => edit.CheckWarnings,
-                () => { edit.CheckWarnings = !edit.CheckWarnings; Refresh(); }, () => CanEdit));
-            settings.AddChild(Label(Text.TOOLTIP_WARN_ON_BLOCKED));
+            construction.AddChild(range);
+            parent.AddChild(construction);
+            var warnings = Column("ResourceWarnings");
+            warnings.AddChild(Heading(Text.SECTION_RESOURCE_WARNINGS));
+            warnings.AddChild(Check("Warnings", Text.CHECKBOX_WARN_ON_BLOCKED, () => edit.CheckWarnings,
+                () => { edit.CheckWarnings = !edit.CheckWarnings; Refresh(); }, () => CanEdit,
+                Text.TOOLTIP_WARN_ON_BLOCKED));
             SupportRuntimeSnapshot runtime = DeliveryTemperatureRuntimePatchInstaller.CaptureSupportReportSnapshot();
             if (runtime.StatusCompatibilityDiagnostic != null)
-                settings.AddChild(Label(Text.NOTICE_RESOURCE_WARNINGS_UNAVAILABLE));
-            parent.AddChild(settings);
+                warnings.AddChild(Label(Text.NOTICE_RESOURCE_WARNINGS_UNAVAILABLE));
+            parent.AddChild(warnings);
         }
 
         private void AddInput(PPanel parent, string name, string label, bool lower,
             System.Action<GameObject> realized)
         {
+            float width = (contentWidth - 16) / 2;
+            var fieldGroup = Column(name + "Field");
+            fieldGroup.AddChild(Label(label, null, width));
             var row = new PPanel(name + "Row") { Direction = PanelDirection.Horizontal,
-                Spacing = 8, FlexSize = Vector2.right };
-            row.AddChild(Label(label, null, contentWidth - 160));
+                Alignment = TextAnchor.MiddleLeft, Spacing = 8, FlexSize = Vector2.right };
             var input = new PTextField(name) { Type = PTextField.FieldType.Integer,
-                MinWidth = 96, OnTextChanged = (_, text) =>
+                MinWidth = (int)Math.Min(80, width - 40), FlexSize = Vector2.right, OnTextChanged = (_, text) =>
                 {
                     if (session == null || updatingInputs) return;
                     if (lower) session.Range.LowerText = text; else session.Range.UpperText = text;
@@ -219,72 +229,169 @@ namespace DeliveryTemperatureLimit
                 TMP_InputField field = obj.GetComponent<TMP_InputField>() ??
                     throw new InvalidOperationException("PLib did not create a text field.");
                 field.characterLimit = 12;
+                field.pointSize = BodyFontSize;
+                field.textComponent.enableAutoSizing = false;
                 updatingInputs = true;
                 try { field.text = lower ? session!.Range.LowerText : session!.Range.UpperText; }
                 finally { updatingInputs = false; }
                 field.onEndEdit.AddListener(_ => { if (!updatingInputs) Validate(false); });
-                refreshControls.Add(() => field.interactable = CanEditRange);
+                var layout = obj.GetComponent<LayoutElement>() ?? obj.AddComponent<LayoutElement>();
+                layout.layoutPriority = 10;
+                layout.minHeight = layout.preferredHeight = 36;
+                layout.preferredWidth = width - 40;
+                refreshControls.Add(() => SetInputEnabled(field, CanEditRange));
                 focus.Add(obj, () => field.ActivateInputField(), () => CanEditRange);
             });
             row.AddChild(input);
-            row.AddChild(Label(OptionsTemperatureUnits.Symbol(session!.DisplayUnit), null, 32));
-            parent.AddChild(row);
+            row.AddChild(Label(OptionsTemperatureUnits.Symbol(session!.DisplayUnit), null, 32, false));
+            fieldGroup.AddChild(row);
+            parent.AddChild(fieldGroup);
         }
 
-        private void AddHelp(PPanel parent)
+        private static void SetInputEnabled(TMP_InputField field, bool enabled)
         {
-            string version = typeof(DeliveryTemperatureLimitMod).Assembly
-                .GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version ?? "?";
-            parent.AddChild(Label(string.Format(Text.LABEL_INSTALLED_VERSION, version)));
-            parent.AddChild(Button("Homepage", Text.BUTTON_OPEN_HOMEPAGE, () => External(() => Application.OpenURL(
-                "https://steamcommunity.com/sharedfiles/filedetails/?id=3759075866"))));
-            parent.AddChild(Button("ConfigurationFolder", Text.BUTTON_OPEN_CONFIG_FOLDER, () => External(() =>
+            field.interactable = enabled;
+            CanvasGroup group = field.GetComponent<CanvasGroup>() ?? field.gameObject.AddComponent<CanvasGroup>();
+            group.alpha = enabled ? 1 : 0.45f;
+            group.interactable = enabled;
+            group.blocksRaycasts = enabled;
+        }
+
+        private void AddSupport(PPanel parent)
+        {
+            float actionWidth = (contentWidth - 12) / 2;
+            var support = Column("Support");
+            support.AddChild(Heading(Text.SECTION_SUPPORT));
+            var links = ActionRow("SupportLinks");
+            links.Alignment = TextAnchor.MiddleLeft;
+            var report = Button("ReportBug", Text.BUTTON_REPORT_BUG, ShowReport, maximumWidth: actionWidth);
+            report.AddOnRealize(obj => reportButton = obj);
+            links.AddChild(report);
+            links.AddChild(Button("Homepage", Text.BUTTON_OPEN_HOMEPAGE, () => External(() => Application.OpenURL(
+                "https://steamcommunity.com/sharedfiles/filedetails/?id=3759075866")), maximumWidth: actionWidth));
+            support.AddChild(links);
+            parent.AddChild(support);
+        }
+
+        private void AddReportView(PPanel parent)
+        {
+            float actionWidth = (contentWidth - 12) / 2;
+            var reports = Column("ReportView");
+            reports.Spacing = 24;
+            reports.AddOnRealize(obj => { reportPanel = obj; SetVisible(obj, reportOpen); });
+            reports.AddChild(Description(Text.NOTICE_ISSUE_FORM));
+            var prepare = Column("PrepareReport");
+            prepare.Spacing = 12;
+            prepare.AddChild(Check("IncludeLog", Text.CHECKBOX_INCLUDE_PLAYER_LOG, () => reportSession.IncludeGameLog,
+                () => { reportSession.IncludeGameLog = !reportSession.IncludeGameLog; Refresh(); }, () => !reporting,
+                Text.TOOLTIP_INCLUDE_PLAYER_LOG));
+            prepare.AddChild(Button("ContinueToGitHub", Text.BUTTON_OPEN_ISSUE_FORM,
+                () => CreateReport(true), primary: true));
+            reports.AddChild(prepare);
+            var result = Column("ReportResult");
+            result.Spacing = 12;
+            result.AddOnRealize(obj => refreshControls.Add(() =>
+                SetVisible(obj, reportPrepared || !string.IsNullOrEmpty(reportMessage))));
+            result.AddChild(Description(reportMessage, obj => supportLabel = obj));
+            var attachment = Button("AttachReport", Text.BUTTON_OPEN_LAST_REPORT_FOLDER,
+                () => SupportAction(SupportReportPlayerPresenter.OpenLastReportFolder),
+                enabled: () => SupportReportPlayerPresenter.HasReport);
+            attachment.AddOnRealize(obj => refreshControls.Add(() => SetVisible(obj, reportPrepared)));
+            result.AddChild(attachment);
+            var details = Column("ReportDetails");
+            details.AddChild(Description(" ", obj => reportDetailsLabel = obj));
+            var detailDisclosure = Disclosure("ReportDetails", Text.SECTION_REPORT_DETAILS, details);
+            detailDisclosure.AddOnRealize(obj => refreshControls.Add(() => SetVisible(obj, reportPrepared)));
+            result.AddChild(detailDisclosure);
+            reports.AddChild(result);
+            var advanced = Column("AdvancedTroubleshooting");
+            advanced.Spacing = 12;
+            advanced.AddChild(Button("ConfigurationFolder", Text.BUTTON_OPEN_CONFIG_FOLDER, () => External(() =>
             {
                 string directory = Path.GetDirectoryName(store.Path) ??
                     throw new InvalidOperationException("Configuration directory is unavailable.");
                 Directory.CreateDirectory(directory);
                 Application.OpenURL(new Uri(directory).AbsoluteUri);
-            })));
-            parent.AddChild(Label(Text.TOOLTIP_CONFIG_FOLDER));
-            parent.AddChild(Label(Text.TOOLTIP_SUPPORT_REPORT));
-            parent.AddChild(Check("IncludeLog", Text.CHECKBOX_INCLUDE_PLAYER_LOG, () => includeLog,
-                () => { includeLog = !includeLog; Refresh(); }, () => !reporting));
-            parent.AddChild(Label(Text.TOOLTIP_INCLUDE_PLAYER_LOG));
-            parent.AddChild(Button("CreateReport", Text.BUTTON_CREATE_REPORT, CreateReport,
-                enabled: () => !reporting));
-            parent.AddChild(Label(SupportReportPlayerPresenter.Message, obj => supportLabel = obj));
-            parent.AddChild(Button("ReportFolder", Text.BUTTON_OPEN_LAST_REPORT_FOLDER,
+            }), Text.TOOLTIP_CONFIG_FOLDER, maximumWidth: actionWidth));
+            advanced.AddChild(Button("CreateReport", Text.BUTTON_CREATE_REPORT, () => CreateReport(false),
+                Text.TOOLTIP_SUPPORT_REPORT));
+            var reportActions = ActionRow("ReportActions");
+            reportActions.Alignment = TextAnchor.MiddleLeft;
+            reportActions.AddChild(Button("ReportFolder", Text.BUTTON_OPEN_LAST_REPORT_FOLDER,
                 () => SupportAction(SupportReportPlayerPresenter.OpenLastReportFolder),
-                enabled: () => SupportReportPlayerPresenter.HasReport && !reporting));
-            parent.AddChild(Button("CopySummary", Text.BUTTON_COPY_REPORT_SUMMARY,
+                enabled: () => SupportReportPlayerPresenter.HasReport && !reporting, maximumWidth: actionWidth));
+            reportActions.AddChild(Button("CopySummary", Text.BUTTON_COPY_REPORT_SUMMARY,
                 () => SupportAction(SupportReportPlayerPresenter.CopyLastReportSummary),
-                enabled: () => SupportReportPlayerPresenter.HasReport && !reporting));
-            parent.AddChild(Button("Issue", Text.BUTTON_OPEN_ISSUE_FORM,
-                () => SupportAction(SupportReportPlayerPresenter.OpenIssueForm), Text.TOOLTIP_ISSUE_FORM));
+                enabled: () => SupportReportPlayerPresenter.HasReport && !reporting, maximumWidth: actionWidth));
+            advanced.AddChild(reportActions);
+            reports.AddChild(Disclosure("AdvancedTroubleshooting", Text.SECTION_ADVANCED_TROUBLESHOOTING, advanced));
+            parent.AddChild(reports);
+        }
+
+        private void ShowReport()
+        {
+            if (reporting || reportOpen) return;
+            settingsScrollPosition = contentScroll?.verticalNormalizedPosition ?? 1;
+            reportOpen = true;
+            Refresh();
+            if (contentScroll != null)
+            {
+                contentScroll.StopMovement();
+                contentScroll.verticalNormalizedPosition = 1;
+            }
+            focus.Focus(includeLogControl);
+        }
+
+        private void BackToOptions()
+        {
+            if (reporting || !reportOpen) return;
+            reportOpen = false;
+            Refresh();
+            if (contentScroll != null)
+            {
+                contentScroll.StopMovement();
+                contentScroll.verticalNormalizedPosition = settingsScrollPosition;
+            }
+            focus.Focus(reportButton);
         }
 
         private void AddFooter(PPanel body)
         {
+            var back = ActionRow("ReportNavigation");
+            back.Alignment = TextAnchor.MiddleLeft;
+            back.Margin = new RectOffset(0, 0, 14, 0);
+            back.AddChild(Button("BackToOptions", Text.BUTTON_BACK_TO_OPTIONS, BackToOptions));
+            back.AddOnRealize(obj => { reportFooter = obj; SetVisible(obj, reportOpen); });
+            body.AddChild(back);
             var confirm = Column("DiscardConfirmation");
+            confirm.Margin = new RectOffset(12, 12, 12, 12);
+            confirm.BackColor = PUITuning.Colors.ButtonBlueStyle.inactiveColor;
             confirm.AddOnRealize(obj => { discardPanel = obj; SetVisible(obj, discardOpen); });
-            confirm.AddChild(Label(Text.DIALOG_DISCARD_TITLE));
+            confirm.AddChild(Label(Text.DIALOG_DISCARD_TITLE, null, contentWidth - 24));
+            var confirmActions = ActionRow("DiscardActions");
             var keep = Button("KeepEditing", Text.BUTTON_CANCEL_DISCARD,
-                () => { discardOpen = false; Refresh(); focus.Move(false); });
+                KeepEditing, maximumWidth: (contentWidth - 36) / 2);
             keep.AddOnRealize(obj => keepEditingButton = obj);
-            confirm.AddChild(keep);
-            confirm.AddChild(Button("Discard", Text.BUTTON_CONFIRM_DISCARD, Close));
+            confirmActions.AddChild(keep);
+            confirmActions.AddChild(Button("Discard", Text.BUTTON_CONFIRM_DISCARD, Close,
+                maximumWidth: (contentWidth - 36) / 2));
+            confirm.AddChild(confirmActions);
             body.AddChild(confirm);
             var footer = Column("Actions");
+            footer.Margin = new RectOffset(0, 0, 14, 0);
             footer.AddOnRealize(obj => { footerPanel = obj; SetVisible(obj, !saved); });
             if (session != null)
                 footer.AddChild(Button("Defaults", Text.BUTTON_RESTORE_DEFAULTS, () =>
                 {
                     session.RestoreDefaults(); ResetInputText(); message = ""; Refresh();
                 }, Text.TOOLTIP_RESTORE_DEFAULTS));
-            var actions = new PPanel("SaveAndCancel") { Direction = PanelDirection.Horizontal,
-                Spacing = 12, FlexSize = Vector2.right, Alignment = TextAnchor.MiddleRight };
-            actions.AddChild(Button("Cancel", Text.BUTTON_CANCEL, RequestClose));
-            if (session != null) actions.AddChild(Button("Save", Text.BUTTON_SAVE, Save, primary: true));
+            var actions = ActionRow("SaveAndCancel");
+            var cancel = Button("Cancel", Text.BUTTON_CANCEL, RequestClose,
+                maximumWidth: (contentWidth - 12) / 2);
+            cancel.AddOnRealize(obj => cancelButton = obj);
+            actions.AddChild(cancel);
+            if (session != null) actions.AddChild(Button("Save", Text.BUTTON_SAVE, Save, primary: true,
+                maximumWidth: (contentWidth - 12) / 2));
             footer.AddChild(actions);
             body.AddChild(footer);
             var result = Column("SavedActions");
@@ -305,11 +412,24 @@ namespace DeliveryTemperatureLimit
             body.AddChild(result);
         }
 
+        private static PPanel ActionRow(string name) => new PPanel(name)
+        {
+            Direction = PanelDirection.Horizontal, Spacing = 12,
+            FlexSize = Vector2.right, Alignment = TextAnchor.MiddleRight
+        };
+
+        private void KeepEditing()
+        {
+            discardOpen = false;
+            Refresh();
+            focus.Focus(cancelButton);
+        }
+
         private bool CanEdit => session != null &&
-            !saved && !discardOpen && !reporting && !closeAfterKeyRelease;
+            !saved && !discardOpen && !reportOpen && !reporting && !closeAfterKeyRelease;
         private bool RangeIsValid => session != null &&
             session.Range.Validate(out _, out _) == ConstructionRangeError.None;
-        private bool CanEditRange => CanEdit && (session!.LimitConstruction || repairRange);
+        private bool CanEditRange => CanEdit && session!.LimitConstruction;
 
         private void ResetInputText()
         {
@@ -321,7 +441,6 @@ namespace DeliveryTemperatureLimit
                 TMP_InputField? high = highInput?.GetComponent<TMP_InputField>();
                 if (low != null) low.text = session.Range.LowerText;
                 if (high != null) high.text = session.Range.UpperText;
-                repairRange = !RangeIsValid;
             }
             finally { updatingInputs = false; }
         }
@@ -329,7 +448,7 @@ namespace DeliveryTemperatureLimit
         private ConstructionRangeError Validate(bool focusError)
         {
             if (session == null) return ConstructionRangeError.None;
-            ConstructionRangeError error = session.Range.Validate(out _, out _);
+            ConstructionRangeError error = session.Range.ResolveForSave(session.LimitConstruction, out _, out _);
             message = error == ConstructionRangeError.None ? "" :
                 error == ConstructionRangeError.LowerNumber || error == ConstructionRangeError.UpperNumber ?
                 Text.VALIDATION_INTEGER_REQUIRED.ToString() : error == ConstructionRangeError.EmptyRange ? Text.VALIDATION_EMPTY_INTERVAL.ToString() :
@@ -368,6 +487,7 @@ namespace DeliveryTemperatureLimit
         internal void RequestClose()
         {
             if (ended || reporting) return;
+            if (reportOpen) { BackToOptions(); return; }
             if (session?.IsDirty != true) { Close(); return; }
             discardOpen = true;
             Refresh();
@@ -428,7 +548,7 @@ namespace DeliveryTemperatureLimit
             {
                 if (escape)
                 {
-                    if (discardOpen) { discardOpen = false; Refresh(); }
+                    if (discardOpen) KeepEditing();
                     else RequestClose();
                 }
                 else if (tab)
@@ -457,26 +577,33 @@ namespace DeliveryTemperatureLimit
             Close();
         }
 
-        private void CreateReport()
+        private void CreateReport(bool openIssueForm)
         {
             if (reporting || lifetime == null) return;
             reporting = true;
-            SetLabel(supportLabel, Text.STATUS_CREATING_REPORT);
+            reportMessage = Text.STATUS_CREATING_REPORT;
             Refresh();
-            lifetime.StartCoroutine(CreateReportAfterRepaint(includeLog));
+            lifetime.StartCoroutine(CreateReportAfterRepaint(openIssueForm));
         }
 
-        private IEnumerator CreateReportAfterRepaint(bool withLog)
+        private IEnumerator CreateReportAfterRepaint(bool openIssueForm)
         {
             // Keep Unity snapshot capture on the main thread, but paint feedback
             // before bounded file/log work. This is not an asynchronous upload.
             yield return null;
             try
             {
-                if (withLog) DeliveryTemperatureSupportReporter.CreateExtendedReport();
-                else DeliveryTemperatureSupportReporter.CreateStandardReport();
-                includeLog = false;
-                SetLabel(supportLabel, SupportReportPlayerPresenter.Message);
+                bool created = reportSession.Create(openIssueForm, kind => kind == SupportReportKind.ExtendedPlayerLog ?
+                    DeliveryTemperatureSupportReporter.CreateExtendedReport() :
+                    DeliveryTemperatureSupportReporter.CreateStandardReport(),
+                    SupportReportPlayerPresenter.OpenIssueForm);
+                reportPrepared |= created;
+                reportMessage = SupportReportPlayerPresenter.Message;
+            }
+            catch (Exception ex)
+            {
+                SupportReportPlayerPresenter.PresentFailure(Text.STATUS_REPORT_FAILED, ex);
+                reportMessage = SupportReportPlayerPresenter.Message;
             }
             finally { reporting = false; Refresh(); }
         }
@@ -484,7 +611,7 @@ namespace DeliveryTemperatureLimit
         private void SupportAction(System.Action action)
         {
             action();
-            SetLabel(supportLabel, SupportReportPlayerPresenter.Message);
+            reportMessage = SupportReportPlayerPresenter.Message;
             Refresh();
         }
 
@@ -497,22 +624,54 @@ namespace DeliveryTemperatureLimit
         private void Fail(string text, Exception exception)
         {
             DeliveryTemperatureOptionsStore.Log(text, exception);
-            message = text;
+            if (reportOpen) reportMessage = text;
+            else message = text;
             Refresh();
         }
 
         private void Refresh()
         {
-            SetVisible(helpPanel, helpOpen && !discardOpen);
-            SetVisible(legacyPanel, session?.NeedsDisambiguation == true && !discardOpen);
-            SetVisible(settingsPanel, !discardOpen);
-            SetVisible(footerPanel, !saved && !discardOpen);
-            SetVisible(savedPanel, saved && !discardOpen);
-            SetVisible(discardPanel, discardOpen);
-            SetLabel(messageLabel, message);
-            foreach (System.Action update in refreshControls) update();
-            if (screen != null && screen.transform is RectTransform rect)
-                LayoutRebuilder.MarkLayoutForRebuild(rect);
+            if (refreshing) return;
+            refreshing = true;
+            try
+            {
+                SetVisible(settingsPanel, !reportOpen);
+                SetVisible(reportPanel, reportOpen);
+                SetVisible(rangePanel, session?.LimitConstruction == true);
+                SetVisible(legacyPanel, session?.NeedsDisambiguation == true && session.LimitConstruction);
+                // Keep the form visible as context while the footer asks for confirmation.
+                if (contentsPanel != null)
+                {
+                    CanvasGroup group = contentsPanel.GetComponent<CanvasGroup>() ??
+                        contentsPanel.AddComponent<CanvasGroup>();
+                    group.alpha = discardOpen ? 0.45f : 1;
+                    group.interactable = !discardOpen;
+                    group.blocksRaycasts = !discardOpen;
+                }
+                SetVisible(footerPanel, !reportOpen && !saved && !discardOpen);
+                SetVisible(savedPanel, !reportOpen && saved && !discardOpen);
+                SetVisible(reportFooter, reportOpen);
+                SetVisible(discardPanel, discardOpen);
+                SetLabel(messageLabel, message);
+                SetVisible(messageLabel, !reportOpen && !string.IsNullOrEmpty(message) && !discardOpen);
+                SetLabel(supportLabel, reportMessage);
+                SetVisible(supportLabel, !string.IsNullOrEmpty(reportMessage));
+                SetLabel(reportDetailsLabel, SupportReportPlayerPresenter.ReportDetails);
+                Transform? title = screen?.transform.Find("Title");
+                if (title != null) PUIElements.SetText(title.gameObject,
+                    reportOpen ? Text.DIALOG_REPORT_TITLE : Text.DIALOG_TITLE);
+                foreach (System.Action update in refreshControls) update();
+                RefreshLayout();
+            }
+            finally { refreshing = false; }
+        }
+
+        private void RefreshLayout()
+        {
+            if (screen == null || !(screen.transform is RectTransform rect)) return;
+            // The shell keeps the size chosen when it opened. Disclosures and view
+            // navigation only change the content inside its scrolling viewport.
+            LayoutRebuilder.ForceRebuildLayoutImmediate(rect);
         }
 
         private static PPanel Column(string name) => new PPanel(name)
@@ -524,24 +683,46 @@ namespace DeliveryTemperatureLimit
         private PLabel Heading(string text) => Label(text, obj =>
         {
             TMP_Text? heading = obj.GetComponentInChildren<TMP_Text>();
-            if (heading != null) heading.fontStyle |= FontStyles.Bold;
+            if (heading != null)
+            {
+                heading.fontStyle |= FontStyles.Bold;
+                heading.fontSize = HeadingFontSize;
+            }
             SizeLabel(obj, contentWidth);
         });
 
-        private PLabel Label(string text, System.Action<GameObject>? realized = null, float? width = null)
+        private PLabel Description(string text, System.Action<GameObject>? realized = null) => Label(text, obj =>
+        {
+            TMP_Text? description = obj.GetComponentInChildren<TMP_Text>();
+            if (description != null)
+            {
+                description.color = new Color(0.88f, 0.89f, 0.92f);
+            }
+            SizeLabel(obj, contentWidth);
+            realized?.Invoke(obj);
+        });
+
+        private PLabel Label(string text, System.Action<GameObject>? realized = null, float? width = null,
+            bool flexible = true)
         {
             // PLib does not create a text component for an empty initial string.
             var label = new PLabel { Text = string.IsNullOrEmpty(text) ? " " : text,
                 TextStyle = PUITuning.Fonts.UILightStyle, DynamicSize = true,
-                TextAlignment = TextAnchor.UpperLeft, FlexSize = Vector2.right };
-            label.AddOnRealize(obj => { SizeLabel(obj, width ?? contentWidth); realized?.Invoke(obj); });
+                TextAlignment = TextAnchor.UpperLeft, FlexSize = flexible ? Vector2.right : Vector2.zero };
+            label.AddOnRealize(obj =>
+            {
+                SetBodyFont(obj);
+                SizeText(obj, width ?? contentWidth, 0, 0, flexible);
+                realized?.Invoke(obj);
+            });
             return label;
         }
 
         private PButton Button(string name, string label, System.Action action, string tooltip = "",
-            bool primary = false, Func<bool>? enabled = null)
+            bool primary = false, Func<bool>? enabled = null, float? maximumWidth = null)
         {
-            Func<bool> available = () => !reporting && !closeAfterKeyRelease && (enabled?.Invoke() ?? true);
+            Func<bool> available = () => !reporting && !closeAfterKeyRelease &&
+                (!discardOpen || name == "KeepEditing" || name == "Discard") && (enabled?.Invoke() ?? true);
             System.Action invoke = () => { if (available()) action(); };
             var button = new PButton(name) { Text = label, ToolTip = tooltip,
                 Color = primary ? PUITuning.Colors.ButtonPinkStyle : PUITuning.Colors.ButtonBlueStyle,
@@ -550,84 +731,192 @@ namespace DeliveryTemperatureLimit
                 OnClick = _ => invoke() };
             button.AddOnRealize(obj =>
             {
-                float width = name == "Save" || name == "Cancel" ? (contentWidth - 12) / 2 : contentWidth;
+                SetBodyFont(obj);
+                float width = maximumWidth ?? contentWidth;
                 SizeButton(obj, width);
                 refreshControls.Add(() => PButton.SetButtonEnabled(obj, available()));
                 focus.Add(obj, invoke, available);
-                if (name == "HelpToggle" || name == "Later") refreshControls.Add(() =>
+                if (name == "Later") refreshControls.Add(() =>
                 {
-                    PUIElements.SetText(obj, name == "HelpToggle" ?
-                        (helpOpen ? Text.BUTTON_COLLAPSE_HELP : Text.BUTTON_EXPAND_HELP) :
-                        (session?.RestartPending == true ? Text.BUTTON_RESTART_LATER : Text.BUTTON_DONE));
+                    TMP_Text? text = obj.GetComponentInChildren<TMP_Text>(true);
+                    if (text != null) text.text =
+                        (session?.RestartPending == true ? Text.BUTTON_RESTART_LATER : Text.BUTTON_DONE);
                     SizeButton(obj, width);
                 });
             });
             return button;
         }
 
-        private PPanel Check(string name, string label, Func<bool> value, System.Action toggle, Func<bool> enabled)
+        private PPanel HelpLabel(string name, string label, string help)
         {
             var row = new PPanel(name + "Row") { Direction = PanelDirection.Horizontal,
-                Spacing = 10, FlexSize = Vector2.right };
-            GameObject? checkObject = null;
-            System.Action invoke = () => { if (enabled()) { toggle(); Refresh(); } };
-            row.AddChild(Label(label, obj =>
+                Alignment = TextAnchor.MiddleLeft, Spacing = 10, FlexSize = Vector2.right };
+            row.AddChild(Label(label, obj => SizeCompactLabel(obj, contentWidth - 42),
+                contentWidth - 42, false));
+            return WithHelp(name, row, help);
+        }
+
+        private PPanel Disclosure(string name, string label, PPanel content)
+        {
+            bool expanded = false;
+            GameObject? region = null;
+            var section = Column(name + "Disclosure");
+            section.Spacing = 12;
+            var header = Button(name + "Header", label, () =>
             {
+                expanded = !expanded;
+                SetVisible(region, expanded);
+                Refresh();
+            });
+            header.Sprite = PUITuning.Images.Arrow;
+            header.SpriteSize = new Vector2(16, 16);
+            header.FlexSize = Vector2.right;
+            header.AddOnRealize(obj =>
+            {
+                // Own both children after replacing PLib's intrinsic text layout.
+                SizeText(obj, contentWidth - 28, 12, 6, true);
+                LayoutElement layout = obj.GetComponent<LayoutElement>();
+                layout.preferredWidth = contentWidth;
+                TMP_Text text = obj.GetComponentInChildren<TMP_Text>(true);
+                text.alignment = TextAlignmentOptions.MidlineLeft;
+                text.rectTransform.offsetMin = new Vector2(40, 6);
+                text.rectTransform.offsetMax = new Vector2(-12, -6);
+                foreach (Image icon in obj.GetComponentsInChildren<Image>(true))
+                {
+                    if (icon.sprite != PUITuning.Images.Arrow) continue;
+                    RectTransform rect = icon.rectTransform;
+                    rect.anchorMin = rect.anchorMax = new Vector2(0, 0.5f);
+                    rect.pivot = new Vector2(0.5f, 0.5f);
+                    rect.sizeDelta = new Vector2(16, 16);
+                    rect.anchoredPosition = new Vector2(18, 0);
+                    refreshControls.Add(() => rect.localRotation =
+                        Quaternion.Euler(0, 0, expanded ? -90 : 0));
+                }
+            });
+            section.AddChild(header);
+            content.AddOnRealize(obj => { region = obj; SetVisible(obj, false); });
+            section.AddChild(content);
+            return section;
+        }
+
+        private PPanel WithHelp(string name, PPanel row, string help)
+        {
+            bool expanded = false;
+            GameObject? detail = null;
+            var section = Column(name + "Help");
+            row.AddChild(Button(name + "HelpButton", "?", () =>
+            {
+                expanded = !expanded;
+                SetVisible(detail, expanded);
+                Refresh();
+            }, help, maximumWidth: 32));
+            section.AddChild(row);
+            section.AddChild(Description(help, obj => { detail = obj; SetVisible(obj, false); }));
+            return section;
+        }
+
+        private PPanel Check(string name, string label, Func<bool> value, System.Action toggle,
+            Func<bool> enabled, string help = "")
+        {
+            var row = new PPanel(name + "Row") { Direction = PanelDirection.Horizontal,
+                Alignment = TextAnchor.MiddleLeft, Spacing = 10, FlexSize = Vector2.right };
+            GameObject? checkObject = null;
+            Func<bool> available = () => !discardOpen && !reporting && !closeAfterKeyRelease && enabled();
+            System.Action invoke = () => { if (available()) { toggle(); Refresh(); } };
+            var caption = Label(label, obj =>
+            {
+                if (help.Length > 0) SizeCompactLabel(obj, contentWidth - 82);
                 TMP_Text? text = obj.GetComponentInChildren<TMP_Text>();
                 if (text != null) text.raycastTarget = true;
                 var trigger = obj.AddComponent<EventTrigger>();
                 var entry = new EventTrigger.Entry { eventID = EventTriggerType.PointerClick };
                 entry.callback.AddListener(_ => { focus.Focus(checkObject); invoke(); });
                 trigger.triggers.Add(entry);
-            }, contentWidth - 48));
-            var check = new PCheckBox { OnChecked = (_, state) => invoke() }.SetKleiBlueStyle();
+            }, contentWidth - 40 - (help.Length > 0 ? 42 : 0), help.Length == 0);
+            // Reserve space around the 24-unit box for the keyboard focus ring.
+            var check = new PCheckBox { CheckSize = new Vector2(20, 20),
+                Margin = new RectOffset(3, 3, 3, 3),
+                OnChecked = (_, state) => invoke() }.SetKleiBlueStyle();
             check.AddOnRealize(obj =>
             {
                 checkObject = obj;
+                if (name == "IncludeLog") includeLogControl = obj;
                 CanvasGroup group = obj.AddComponent<CanvasGroup>();
                 refreshControls.Add(() =>
                 {
-                    group.interactable = enabled();
-                    group.blocksRaycasts = enabled();
-                    group.alpha = enabled() ? 1 : 0.55f;
+                    group.interactable = available();
+                    group.blocksRaycasts = available();
+                    group.alpha = available() ? 1 : 0.55f;
                     PCheckBox.SetCheckState(obj, value() ? PCheckBox.STATE_CHECKED : PCheckBox.STATE_UNCHECKED);
                 });
-                focus.Add(obj, invoke, enabled);
+                focus.Add(obj, invoke, available);
             });
             row.AddChild(check);
-            return row;
+            row.AddChild(caption);
+            return help.Length > 0 ? WithHelp(name, row, help) : row;
+        }
+
+        private static void SetBodyFont(GameObject obj)
+        {
+            TMP_Text? text = obj.GetComponentInChildren<TMP_Text>(true);
+            if (text == null) return;
+            text.enableAutoSizing = false;
+            text.fontSize = BodyFontSize;
         }
 
         private void SetLabel(GameObject? obj, string text)
         {
             if (obj == null) return;
-            PUIElements.SetText(obj, text);
+            TMP_Text? label = obj.GetComponentInChildren<TMP_Text>(true);
+            if (label == null) return;
+            label.text = text;
             SizeLabel(obj, contentWidth);
         }
 
         private static void SizeLabel(GameObject obj, float width) => SizeText(obj, width, 0, 0, true);
 
+        private static void SizeCompactLabel(GameObject obj, float maximum)
+        {
+            TMP_Text? text = obj.GetComponentInChildren<TMP_Text>(true);
+            if (text == null) return;
+            float natural = (float)Math.Ceiling(text.GetPreferredValues(text.text,
+                float.PositiveInfinity, float.PositiveInfinity).x) + 2;
+            SizeText(obj, Math.Min(maximum, natural), 0, 0, false);
+        }
+
         private static void SizeButton(GameObject obj, float maximum)
         {
-            TMP_Text? text = obj.GetComponentInChildren<TMP_Text>();
-            if (text != null) SizeText(obj, Math.Min(maximum,
-                text.GetPreferredValues(text.text, float.PositiveInfinity, float.PositiveInfinity).x + 20),
-                10, 6, false);
+            TMP_Text? text = obj.GetComponentInChildren<TMP_Text>(true);
+            if (text == null) return;
+            // Round up and allow for TMP's fractional glyph advances so an exact
+            // preferred width cannot accidentally wrap a single-line caption.
+            float natural = (float)Math.Ceiling(text.GetPreferredValues(text.text,
+                float.PositiveInfinity, float.PositiveInfinity).x) + 22;
+            SizeText(obj, Math.Min(maximum, natural), 10, 6, false);
+            if (natural <= maximum)
+            {
+#pragma warning disable CS0618
+                text.enableWordWrapping = false;
+#pragma warning restore CS0618
+                LayoutElement layout = obj.GetComponent<LayoutElement>();
+                layout.minHeight = layout.preferredHeight = 36;
+            }
         }
 
         private static void SizeText(GameObject obj, float width, float horizontalPadding,
             float verticalPadding, bool flexible)
         {
-            TMP_Text? text = obj.GetComponentInChildren<TMP_Text>();
+            TMP_Text? text = obj.GetComponentInChildren<TMP_Text>(true);
             if (text == null) return;
-            // This wrapper owns text geometry. Disable PLib's intrinsic-width
-            // layout controller so a long translation cannot expand the dialog.
+            // PLib directly calls ILayoutController even on disabled Behaviours.
+            // Remove the intrinsic-width controller before owning this wrapper's geometry.
             foreach (Behaviour component in obj.GetComponents<Behaviour>())
-                if (component is ILayoutController) component.enabled = false;
-            #pragma warning disable CS0618
+                if (component is ILayoutController) UnityEngine.Object.DestroyImmediate(component);
+#pragma warning disable CS0618
             text.enableWordWrapping = true;
 #pragma warning restore CS0618
             text.richText = false;
+            text.alignment = horizontalPadding > 0 ? TextAlignmentOptions.Center : TextAlignmentOptions.TopLeft;
             text.overflowMode = TextOverflowModes.Overflow;
             RectTransform rect = text.rectTransform;
             rect.anchorMin = Vector2.zero;
@@ -636,21 +925,22 @@ namespace DeliveryTemperatureLimit
             rect.offsetMax = new Vector2(-horizontalPadding, -verticalPadding);
             LayoutElement layout = obj.GetComponent<LayoutElement>() ?? obj.AddComponent<LayoutElement>();
             layout.layoutPriority = 10;
-            layout.minWidth = 0;
+            layout.minWidth = flexible ? 0 : width;
             layout.preferredWidth = width;
             layout.flexibleWidth = flexible ? 1 : 0;
             layout.preferredHeight = text.GetPreferredValues(text.text,
                 Math.Max(1, width - 2 * horizontalPadding), float.PositiveInfinity).y + 2 * verticalPadding;
+            if (horizontalPadding > 0) layout.preferredHeight = Math.Max(36, layout.preferredHeight);
+            layout.minHeight = layout.preferredHeight;
+            layout.flexibleHeight = 0;
         }
 
         private static void SetVisible(GameObject? obj, bool visible)
         {
             if (obj == null) return;
-            obj.transform.localScale = visible ? Vector3.one : Vector3.zero;
-            CanvasGroup group = obj.GetComponent<CanvasGroup>() ?? obj.AddComponent<CanvasGroup>();
-            group.interactable = visible;
-            group.blocksRaycasts = visible;
-            if (obj.transform is RectTransform rect) LayoutRebuilder.MarkLayoutForRebuild(rect);
+            if (obj.activeSelf == visible) return;
+            obj.SetActive(visible);
+            if (obj.transform.parent is RectTransform rect) LayoutRebuilder.MarkLayoutForRebuild(rect);
         }
 
         private static Vector2 GetAvailableSize()

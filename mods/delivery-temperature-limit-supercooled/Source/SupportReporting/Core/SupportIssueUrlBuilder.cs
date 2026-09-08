@@ -22,7 +22,7 @@ namespace DeliveryTemperatureLimit
     internal static class SupportIssueUrlBuilder
     {
         private const string ShortenedMarker =
-            "… [summary shortened; see attached report]";
+            "… [summary shortened; full details are in the local report file]";
 
         private static readonly string QueryPrefix =
             SupportReportLimits.BugIssueOrigin +

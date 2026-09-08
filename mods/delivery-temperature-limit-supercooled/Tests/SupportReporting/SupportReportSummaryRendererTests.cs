@@ -18,7 +18,7 @@ public sealed class SupportReportSummaryRendererTests
         const string expected =
             "### Temperature Limit diagnostics\n\n" +
             "- Report ID: `00112233445566778899aabbccddeeff`\n" +
-            "- Report file: `temperature-limit-support-20260831T070809123Z-00112233.json`\n" +
+            "- Local report file: `temperature-limit-support-20260831T070809123Z-00112233.json` (not attached automatically)\n" +
             "- ONI build / branch: `744825` / `public`\n" +
             "- Temperature Limit version: `1.3.0`\n" +
             "- Platform: `WindowsPlayer`\n" +
@@ -26,7 +26,7 @@ public sealed class SupportReportSummaryRendererTests
             "- External mod integrations:\n" +
             "  - Fast Track: match `not-matched`; capabilities: " +
             "`world-inventory-temperature-publication=not-applicable`\n" +
-            "- Player.log: not included";
+            "- Player.log excerpt: not collected";
         Assert.AreEqual(expected, summary);
         Assert.DoesNotContain("SECRET ACTIVE MOD TITLE", summary);
         Assert.DoesNotContain("SECRET RAW DIAGNOSTIC", summary);
@@ -49,8 +49,22 @@ public sealed class SupportReportSummaryRendererTests
             "temperature-limit-support-20260831T070809123Z-00112233.json");
 
         Assert.EndsWith(
-            "- Player.log: requested but unavailable",
+            "- Player.log excerpt: requested but unavailable",
             summary);
+    }
+
+    [TestMethod]
+    public void Render_WhenLogWasCollected_ExplainsLocalInclusionWithoutClaimingAnAttachment()
+    {
+        var log = SupportPlayerLogSnapshot.Available("unity-console-log-path", 100, 100,
+            false, Array.Empty<string>(), "PRIVATE LOG CONTENT");
+        string summary = SupportReportSummaryRenderer.Render(
+            CreateDocument(log, "Example mod", "Example diagnostic"), "report.json");
+
+        Assert.Contains("Local report file: `report.json` (not attached automatically)", summary);
+        Assert.EndsWith("Player.log excerpt: included in the local JSON report. " +
+            "Attach that report to share the log; no files are attached automatically.", summary);
+        Assert.DoesNotContain("PRIVATE LOG CONTENT", summary);
     }
 
     [TestMethod]

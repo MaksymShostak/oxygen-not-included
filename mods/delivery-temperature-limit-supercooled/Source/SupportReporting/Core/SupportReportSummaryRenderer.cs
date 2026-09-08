@@ -26,9 +26,9 @@ namespace DeliveryTemperatureLimit
             summary.Append("- Report ID: `");
             summary.Append(document.ReportId);
             summary.Append("`\n");
-            summary.Append("- Report file: `");
+            summary.Append("- Local report file: `");
             summary.Append(validatedFileName);
-            summary.Append("`\n");
+            summary.Append("` (not attached automatically)\n");
             summary.Append("- ONI build / branch: `");
             summary.Append(GetFactValue(document.Game.Build));
             summary.Append("` / `");
@@ -46,7 +46,7 @@ namespace DeliveryTemperatureLimit
             AppendExternalModIntegrations(
                 summary,
                 document.Runtime.ExternalModIntegrations);
-            summary.Append("- Player.log: ");
+            summary.Append("- Player.log excerpt: ");
             summary.Append(GetPlayerLogState(document.PlayerLog));
             return summary.ToString();
         }
@@ -109,14 +109,14 @@ namespace DeliveryTemperatureLimit
         {
             if (playerLog == null)
             {
-                return "not included";
+                return "not collected";
             }
 
             return string.Equals(
                     playerLog.State,
                     SupportReportLimits.AvailableState,
                     StringComparison.Ordinal)
-                ? "included (bounded and best-effort redacted)"
+                ? "included in the local JSON report. Attach that report to share the log; no files are attached automatically."
                 : "requested but unavailable";
         }
 

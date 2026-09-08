@@ -16,8 +16,8 @@ msgstr ""
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE"
-msgid "Delivery Limit"
-msgstr "Όριο παραδόσεων"
+msgid "Delivery Temperature Limit"
+msgstr "Όριο θερμοκρασίας παραδόσεων"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.SECTION_RANGE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.SECTION_RANGE"
@@ -68,25 +68,25 @@ msgstr "Επιτρέπονται παραδόσεις με θερμοκρασί�
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.EMPTY_INTERVAL
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.EMPTY_INTERVAL"
-msgid "<color=#F0B310>▲</color> No deliveries can match this range."
-msgstr "<color=#F0B310>▲</color> Δεν είναι δυνατή καμία παράδοση με αυτό το εύρος."
+msgid "<color=#F0B310>▲</color> No deliveries can match this range"
+msgstr "<color=#F0B310>▲</color> Δεν είναι δυνατή καμία παράδοση με αυτό το εύρος"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.BOUNDS_REVERSED
 #. TRANSLATORS: Reference the exact translated LOWER_BOUND and UPPER_BOUND labels. Equality is handled by a separate warning.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.BOUNDS_REVERSED"
-msgid "<color=#F44A47>▲</color> \"At least\" must not be above \"Below\"."
-msgstr "<color=#F44A47>▲</color> Η τιμή «Τουλάχιστον» δεν πρέπει να υπερβαίνει την τιμή «Κάτω από»."
+msgid "<color=#F44A47>▲</color> \"At least\" must not be above \"Below\""
+msgstr "<color=#F44A47>▲</color> Η τιμή «Τουλάχιστον» δεν πρέπει να υπερβαίνει την τιμή «Κάτω από»"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.INVALID_NUMBER
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.INVALID_NUMBER"
-msgid "<color=#F44A47>▲</color> Enter a whole-number temperature."
-msgstr "<color=#F44A47>▲</color> Εισαγάγετε ακέραια τιμή θερμοκρασίας."
+msgid "<color=#F44A47>▲</color> Enter a whole-number temperature"
+msgstr "<color=#F44A47>▲</color> Εισαγάγετε ακέραια τιμή θερμοκρασίας"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.OUT_OF_RANGE
 #, csharp-format
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.OUT_OF_RANGE"
-msgid "<color=#F44A47>▲</color> Temperature must be between {0} and {1}."
-msgstr "<color=#F44A47>▲</color> Η θερμοκρασία πρέπει να είναι μεταξύ {0} και {1}."
+msgid "<color=#F44A47>▲</color> Temperature must be between {0} and {1}"
+msgstr "<color=#F44A47>▲</color> Η θερμοκρασία πρέπει να είναι μεταξύ {0} και {1}"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.LOWER_BOUND
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.LOWER_BOUND"
@@ -151,11 +151,6 @@ msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_DEFAULT_CONSTRUCTION
 msgid "Existing construction sites are not updated. Limits are rounded to whole Kelvin values; the lower bound is included and the upper bound is excluded."
 msgstr "Τα όρια στα υπάρχοντα εργοτάξια δεν αλλάζουν. Τα όρια στρογγυλοποιούνται σε ακέραιες τιμές κέλβιν. Το κάτω όριο συμπεριλαμβάνεται, ενώ το άνω όριο εξαιρείται."
 
-#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.HINT_CONSTRUCTION_DISABLED
-msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.HINT_CONSTRUCTION_DISABLED"
-msgid "Enable construction limits to edit this default range."
-msgstr "Ενεργοποιήστε τον περιορισμό θερμοκρασίας υλικών κατασκευής για να αλλάξετε αυτό το προεπιλεγμένο εύρος."
-
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_RESOURCE_WARNINGS
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_RESOURCE_WARNINGS"
 msgid "Resource warnings"
@@ -195,11 +190,6 @@ msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_EMPTY_INTERVAL"
 msgid "The 'At least' value must be lower than 'Below' after rounding to whole Kelvin values. Choose a nonempty construction range."
 msgstr "Μετά τη στρογγυλοποίηση σε ακέραιες τιμές κέλβιν, η τιμή «Τουλάχιστον» πρέπει να είναι μικρότερη από την τιμή «Κάτω από». Επιλέξτε εύρος για τα υλικά κατασκευής που να περιλαμβάνει τουλάχιστον μία θερμοκρασία."
 
-#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_INVALID_PENDING
-msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_INVALID_PENDING"
-msgid "Correct or revert the range before disabling construction limits. Invalid values will not be saved."
-msgstr "Διορθώστε το εύρος ή αναιρέστε τις αλλαγές του πριν απενεργοποιήσετε τα όρια θερμοκρασίας για τα υλικά κατασκευής. Οι μη έγκυρες τιμές δεν θα αποθηκευτούν."
-
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_REVERT_RANGE
 #. TRANSLATORS: Undo unsaved range edits and restore the last-saved values; do not confuse with Restore defaults.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_REVERT_RANGE"
@@ -228,24 +218,6 @@ msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_KELVIN"
 msgid "Interpret as K"
 msgstr "Ερμηνεία ως K"
 
-#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_EXPAND_HELP
-msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_EXPAND_HELP"
-msgid "Show help and diagnostics"
-msgstr "Εμφάνιση βοήθειας και διαγνωστικών"
-
-#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_COLLAPSE_HELP
-msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_COLLAPSE_HELP"
-msgid "Hide help and diagnostics"
-msgstr "Απόκρυψη βοήθειας και διαγνωστικών"
-
-#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_INSTALLED_VERSION
-#. TRANSLATORS: {0} is the installed assembly FILE version, not the assembly identity version.
-#, csharp-format
-#. TRANSLATORS: The assembly is the mod binary; use player-facing mod FILE version, not a generic release number.
-msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_INSTALLED_VERSION"
-msgid "Installed assembly file version: {0}"
-msgstr "Έκδοση αρχείου του εγκατεστημένου mod: {0}"
-
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_HOMEPAGE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_HOMEPAGE"
 msgid "Open mod page"
@@ -267,16 +239,16 @@ msgid "Create a diagnostic file on this computer. You choose whether to share it
 msgstr "Δημιουργήστε ένα αρχείο διαγνωστικών σε αυτόν τον υπολογιστή. Εσείς επιλέγετε αν θα το κοινοποιήσετε."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.CHECKBOX_INCLUDE_PLAYER_LOG
+#. TRANSLATORS: Revised Options flow; translate the current English text.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.CHECKBOX_INCLUDE_PLAYER_LOG"
-msgid "Include Player.log in the next report"
-msgstr "Συμπερίληψη του Player.log στην επόμενη αναφορά"
+msgid "Include game log (optional)"
+msgstr "Συμπερίληψη αρχείου καταγραφής παιχνιδιού (προαιρετικό)"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_INCLUDE_PLAYER_LOG
-#. SOURCE REPAIR: English text recovered verbatim from TRANSLATION_HANDOFF_GUIDE.md.
-#. Verify the corresponding source declaration and extractor before the next regeneration.
+#. TRANSLATORS: Revised Options flow; translate the current English text.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_INCLUDE_PLAYER_LOG"
-msgid "May contain personal information. Known paths are redacted where possible; review the report before sharing."
-msgstr "Ενδέχεται να περιέχει προσωπικές πληροφορίες. Οι γνωστές διαδρομές αρχείων αποκρύπτονται όπου είναι δυνατόν. Ελέγξτε την αναφορά πριν την κοινοποιήσετε."
+msgid "Adds recent game log entries to the local report. Logs may contain personal information; known paths are removed where possible. Review the file before attaching it on GitHub."
+msgstr "Προσθέτει πρόσφατες εγγραφές του παιχνιδιού στην τοπική αναφορά. Τα αρχεία καταγραφής μπορεί να περιέχουν προσωπικά στοιχεία· οι γνωστές διαδρομές αφαιρούνται όπου είναι δυνατό. Ελέγξτε το αρχείο πριν το επισυνάψετε στο GitHub."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CREATE_REPORT
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CREATE_REPORT"
@@ -289,21 +261,22 @@ msgid "Creating a local report…"
 msgstr "Δημιουργία τοπικής αναφοράς…"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_CREATED
-#. TRANSLATORS: Preserve both guarantees: nothing uploaded AND nothing copied to the clipboard.
+#. TRANSLATORS: Revised Options flow; translate the current English text.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_CREATED"
-msgid "Local report created. Nothing was uploaded or copied to the clipboard. Review before sharing:"
-msgstr "Δημιουργήθηκε τοπική αναφορά. Δεν ανέβηκε τίποτα στο διαδίκτυο ούτε αντιγράφηκε στο πρόχειρο. Ελέγξτε την αναφορά πριν την κοινοποιήσετε:"
+msgid "Report saved on this computer."
+msgstr "Η αναφορά αποθηκεύτηκε σε αυτόν τον υπολογιστή."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_FAILED
-#. TRANSLATORS: Failure does not upload a report or remove an earlier successfully created report.
+#. TRANSLATORS: Revised Options flow; translate the current English text.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_FAILED"
-msgid "The report could not be created. No report was uploaded. Any previous successful report remains available. Failure details are in Player.log."
-msgstr "Δεν ήταν δυνατή η δημιουργία της αναφοράς. Δεν ανέβηκε καμία αναφορά στο διαδίκτυο. Τυχόν προηγούμενη αναφορά που δημιουργήθηκε επιτυχώς παραμένει διαθέσιμη. Λεπτομέρειες για την αποτυχία υπάρχουν στο Player.log."
+msgid "Could not create the report. Try again. Details are in the game log."
+msgstr "Δεν ήταν δυνατή η δημιουργία της αναφοράς. Δοκιμάστε ξανά. Λεπτομέρειες υπάρχουν στο αρχείο καταγραφής του παιχνιδιού."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_LAST_REPORT_FOLDER
+#. TRANSLATORS: Revised Options flow; translate the current English text.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_LAST_REPORT_FOLDER"
-msgid "Open last report folder"
-msgstr "Άνοιγμα φακέλου τελευταίας αναφοράς"
+msgid "Open report folder"
+msgstr "Άνοιγμα φακέλου αναφοράς"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_COPY_REPORT_SUMMARY
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_COPY_REPORT_SUMMARY"
@@ -311,19 +284,16 @@ msgid "Copy last report summary"
 msgstr "Αντιγραφή σύνοψης τελευταίας αναφοράς"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_SUMMARY_COPIED
+#. TRANSLATORS: Revised Options flow; translate the current English text.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_SUMMARY_COPIED"
-msgid "The clipboard now contains the report summary. Review it before sharing."
-msgstr "Το πρόχειρο περιέχει πλέον τη σύνοψη της αναφοράς. Ελέγξτε τη σύνοψη πριν την κοινοποιήσετε."
+msgid "Report summary copied."
+msgstr "Η σύνοψη της αναφοράς αντιγράφηκε."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_ISSUE_FORM
+#. TRANSLATORS: Revised Options flow; translate the current English text.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_ISSUE_FORM"
-msgid "Open GitHub issue form"
-msgstr "Άνοιγμα φόρμας ζητήματος στο GitHub"
-
-#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_ISSUE_FORM
-msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_ISSUE_FORM"
-msgid "Opens the issue template without diagnostic data in the URL. You choose what to paste or attach."
-msgstr "Ανοίγει το πρότυπο ζητήματος χωρίς διαγνωστικά δεδομένα στο URL. Εσείς επιλέγετε τι θα επικολλήσετε ή θα επισυνάψετε."
+msgid "Continue to GitHub"
+msgstr "Συνέχεια στο GitHub"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_NO_REPORT
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_NO_REPORT"
@@ -353,8 +323,8 @@ msgstr "Ακύρωση"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_SAVE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_SAVE"
-msgid "Save changes"
-msgstr "Αποθήκευση αλλαγών"
+msgid "Save settings"
+msgstr "Αποθήκευση ρυθμίσεων"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_CHANGES_SAVED
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_CHANGES_SAVED"
@@ -415,3 +385,75 @@ msgstr "Δεν ήταν δυνατή η ασφαλής ανάγνωση των �
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_UI_FAILED"
 msgid "The options screen could not be opened safely. No settings were changed. See Player.log for details."
 msgstr "Δεν ήταν δυνατό το ασφαλές άνοιγμα της οθόνης επιλογών. Καμία ρύθμιση δεν άλλαξε. Δείτε το Player.log για λεπτομέρειες."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_SETTINGS_SCOPE
+#. TRANSLATORS: Options help or bug-report flow.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_SETTINGS_SCOPE"
+msgid "Settings for all colonies"
+msgstr "Ρυθμίσεις για όλες τις αποικίες"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_REPORT_BUG
+#. TRANSLATORS: Options help or bug-report flow.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_REPORT_BUG"
+msgid "Report a bug…"
+msgstr "Αναφορά σφάλματος…"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_BACK_TO_OPTIONS
+#. TRANSLATORS: Options help or bug-report flow.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_BACK_TO_OPTIONS"
+msgid "Back to Options"
+msgstr "Επιστροφή στις επιλογές"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_ADVANCED_TROUBLESHOOTING
+#. TRANSLATORS: Options help or bug-report flow.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_ADVANCED_TROUBLESHOOTING"
+msgid "Advanced troubleshooting"
+msgstr "Σύνθετη αντιμετώπιση προβλημάτων"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_LOG_INCLUDED
+#. TRANSLATORS: Options help or bug-report flow.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_LOG_INCLUDED"
+msgid "Game log excerpt saved in this local report."
+msgstr "Απόσπασμα του αρχείου καταγραφής αποθηκεύτηκε σε αυτήν την τοπική αναφορά."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_LOG_NOT_INCLUDED
+#. TRANSLATORS: Options help or bug-report flow.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_LOG_NOT_INCLUDED"
+msgid "Game log not included."
+msgstr "Το αρχείο καταγραφής παιχνιδιού δεν συμπεριλήφθηκε."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_LOG_UNAVAILABLE
+#. TRANSLATORS: Options help or bug-report flow.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_LOG_UNAVAILABLE"
+msgid "The game log could not be read. The report contains game and mod details only."
+msgstr "Δεν ήταν δυνατή η ανάγνωση του αρχείου καταγραφής. Η αναφορά περιέχει μόνο στοιχεία του παιχνιδιού και του mod."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.NOTICE_ISSUE_FORM
+#. TRANSLATORS: Options help or bug-report flow.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.NOTICE_ISSUE_FORM"
+msgid "Send game and mod details to GitHub to fill in the bug form. You can review them before posting. The report file stays on this computer."
+msgstr "Στείλτε στοιχεία του παιχνιδιού και του mod στο GitHub για να συμπληρωθεί η φόρμα σφάλματος. Μπορείτε να τα ελέγξετε πριν τη δημοσίευση. Το αρχείο αναφοράς παραμένει σε αυτόν τον υπολογιστή."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_ISSUE_FORM_OPENED
+#. TRANSLATORS: Options help or bug-report flow.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_ISSUE_FORM_OPENED"
+msgid "Finish your bug report in your browser.\nTo share the full report, review the saved file and attach it to the form."
+msgstr "Ολοκληρώστε την αναφορά σφάλματος στο πρόγραμμα περιήγησης.\nΓια να κοινοποιήσετε την πλήρη αναφορά, ελέγξτε το αποθηκευμένο αρχείο και επισυνάψτε το στη φόρμα."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_REPORT_TITLE
+#. TRANSLATORS: Separate report view or stable disclosure heading.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_REPORT_TITLE"
+msgid "Delivery Temperature Limit - Report a bug"
+msgstr "Delivery Temperature Limit - Αναφορά σφάλματος"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_SUPPORT
+#. TRANSLATORS: Separate report view or stable disclosure heading.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_SUPPORT"
+msgid "Help and support"
+msgstr "Βοήθεια και υποστήριξη"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_REPORT_DETAILS
+#. TRANSLATORS: Separate report view or stable disclosure heading.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_REPORT_DETAILS"
+msgid "Report details"
+msgstr "Λεπτομέρειες αναφοράς"

@@ -14,15 +14,21 @@ namespace DeliveryTemperatureLimit
         private static string? lastSummary;
         internal static bool HasReport => lastPath != null;
         internal static string Message { get; private set; } = "";
+        internal static string ReportDetails { get; private set; } = "";
 
-        internal static void PresentSuccess(string finalReportPath, string compactSummary)
+        internal static void PresentSuccess(string finalReportPath, string compactSummary,
+            SupportPlayerLogSnapshot? playerLog)
         {
             if (string.IsNullOrWhiteSpace(finalReportPath))
                 throw new ArgumentException("A report path is required.", nameof(finalReportPath));
             if (compactSummary == null) throw new ArgumentNullException(nameof(compactSummary));
             lastPath = finalReportPath;
             lastSummary = compactSummary;
-            Message = Text.STATUS_REPORT_CREATED + "\n" + finalReportPath;
+            Message = Text.STATUS_REPORT_CREATED;
+            ReportDetails = Path.GetFileName(finalReportPath) + "\n" +
+                (playerLog == null ? Text.STATUS_LOG_NOT_INCLUDED :
+                playerLog.State == SupportReportLimits.AvailableState ? Text.STATUS_LOG_INCLUDED :
+                Text.STATUS_LOG_UNAVAILABLE);
         }
 
         internal static void PresentFailure(string playerSafeMessage, Exception exception)
@@ -47,9 +53,11 @@ namespace DeliveryTemperatureLimit
             Message = Text.STATUS_SUMMARY_COPIED;
         });
 
-        internal static void OpenIssueForm() => Run(() => Application.OpenURL(
-            SupportReportLimits.BugIssueOrigin + "?template=" +
-            Uri.EscapeDataString(SupportReportLimits.BugIssueTemplate)));
+        internal static void OpenIssueForm(string preparedUrl) => Run(() =>
+        {
+            Application.OpenURL(preparedUrl);
+            Message = Text.STATUS_ISSUE_FORM_OPENED;
+        });
 
         private static void Run(System.Action action)
         {

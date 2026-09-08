@@ -16,8 +16,8 @@ msgstr ""
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE"
-msgid "Delivery Limit"
-msgstr "운반 제한"
+msgid "Delivery Temperature Limit"
+msgstr "운반 온도 제한"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.SECTION_RANGE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.SECTION_RANGE"
@@ -68,25 +68,25 @@ msgstr "온도가 {0} 이상, {1} 미만인 재료 운반 허용"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.EMPTY_INTERVAL
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.EMPTY_INTERVAL"
-msgid "<color=#F0B310>▲</color> No deliveries can match this range."
-msgstr "<color=#F0B310>▲</color> 이 범위로는 어떤 재료도 운반할 수 없습니다."
+msgid "<color=#F0B310>▲</color> No deliveries can match this range"
+msgstr "<color=#F0B310>▲</color> 이 범위로는 어떤 재료도 운반할 수 없습니다"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.BOUNDS_REVERSED
 #. TRANSLATORS: Reference the exact translated LOWER_BOUND and UPPER_BOUND labels. Equality is handled by a separate warning.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.BOUNDS_REVERSED"
-msgid "<color=#F44A47>▲</color> \"At least\" must not be above \"Below\"."
-msgstr "<color=#F44A47>▲</color> “이상” 값은 “미만” 값보다 클 수 없습니다."
+msgid "<color=#F44A47>▲</color> \"At least\" must not be above \"Below\""
+msgstr "<color=#F44A47>▲</color> “이상” 값은 “미만” 값보다 클 수 없습니다"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.INVALID_NUMBER
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.INVALID_NUMBER"
-msgid "<color=#F44A47>▲</color> Enter a whole-number temperature."
-msgstr "<color=#F44A47>▲</color> 온도를 정수로 입력하세요."
+msgid "<color=#F44A47>▲</color> Enter a whole-number temperature"
+msgstr "<color=#F44A47>▲</color> 온도를 정수로 입력하세요"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.OUT_OF_RANGE
 #, csharp-format
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.OUT_OF_RANGE"
-msgid "<color=#F44A47>▲</color> Temperature must be between {0} and {1}."
-msgstr "<color=#F44A47>▲</color> 온도는 {0}에서 {1} 사이여야 합니다."
+msgid "<color=#F44A47>▲</color> Temperature must be between {0} and {1}"
+msgstr "<color=#F44A47>▲</color> 온도는 {0}에서 {1} 사이여야 합니다"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.LOWER_BOUND
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.LOWER_BOUND"
@@ -151,11 +151,6 @@ msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_DEFAULT_CONSTRUCTION
 msgid "Existing construction sites are not updated. Limits are rounded to whole Kelvin values; the lower bound is included and the upper bound is excluded."
 msgstr "기존 건설 현장의 온도 제한은 바뀌지 않습니다. 제한값은 켈빈 단위의 정수로 반올림되며, 하한은 포함하고 상한은 제외합니다."
 
-#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.HINT_CONSTRUCTION_DISABLED
-msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.HINT_CONSTRUCTION_DISABLED"
-msgid "Enable construction limits to edit this default range."
-msgstr "이 기본 범위를 편집하려면 건설 온도 제한을 켜세요."
-
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_RESOURCE_WARNINGS
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_RESOURCE_WARNINGS"
 msgid "Resource warnings"
@@ -195,11 +190,6 @@ msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_EMPTY_INTERVAL"
 msgid "The 'At least' value must be lower than 'Below' after rounding to whole Kelvin values. Choose a nonempty construction range."
 msgstr "켈빈 단위의 정수로 반올림한 후 “이상” 값이 “미만” 값보다 작아야 합니다. 건설 재료의 온도 범위에 값이 하나 이상 포함되도록 설정하세요."
 
-#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_INVALID_PENDING
-msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.VALIDATION_INVALID_PENDING"
-msgid "Correct or revert the range before disabling construction limits. Invalid values will not be saved."
-msgstr "건설 온도 제한을 끄기 전에 범위를 수정하거나 온도 변경 사항을 되돌리세요. 유효하지 않은 값은 저장되지 않습니다."
-
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_REVERT_RANGE
 #. TRANSLATORS: Undo unsaved range edits and restore the last-saved values; do not confuse with Restore defaults.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_REVERT_RANGE"
@@ -228,24 +218,6 @@ msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_INTERPRET_KELVIN"
 msgid "Interpret as K"
 msgstr "K 단위로 해석"
 
-#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_EXPAND_HELP
-msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_EXPAND_HELP"
-msgid "Show help and diagnostics"
-msgstr "도움말 및 진단 표시"
-
-#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_COLLAPSE_HELP
-msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_COLLAPSE_HELP"
-msgid "Hide help and diagnostics"
-msgstr "도움말 및 진단 숨기기"
-
-#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_INSTALLED_VERSION
-#. TRANSLATORS: {0} is the installed assembly FILE version, not the assembly identity version.
-#, csharp-format
-#. TRANSLATORS: Installed mod binary file version, not a generic release version; use player-facing mod-file terminology.
-msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_INSTALLED_VERSION"
-msgid "Installed assembly file version: {0}"
-msgstr "설치된 모드의 파일 버전: {0}"
-
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_HOMEPAGE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_HOMEPAGE"
 msgid "Open mod page"
@@ -267,16 +239,16 @@ msgid "Create a diagnostic file on this computer. You choose whether to share it
 msgstr "이 컴퓨터에 진단 파일을 만듭니다. 공유 여부는 직접 결정할 수 있습니다."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.CHECKBOX_INCLUDE_PLAYER_LOG
+#. TRANSLATORS: Revised Options flow; translate the current English text.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.CHECKBOX_INCLUDE_PLAYER_LOG"
-msgid "Include Player.log in the next report"
-msgstr "다음 보고서에 Player.log 포함"
+msgid "Include game log (optional)"
+msgstr "게임 로그 포함 (선택 사항)"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_INCLUDE_PLAYER_LOG
-#. SOURCE REPAIR: English text recovered verbatim from TRANSLATION_HANDOFF_GUIDE.md.
-#. Verify the corresponding source declaration and extractor before the next regeneration.
+#. TRANSLATORS: Revised Options flow; translate the current English text.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_INCLUDE_PLAYER_LOG"
-msgid "May contain personal information. Known paths are redacted where possible; review the report before sharing."
-msgstr "개인정보가 포함될 수 있습니다. 알려진 경로는 가능한 경우 가려집니다. 공유하기 전에 보고서를 검토하세요."
+msgid "Adds recent game log entries to the local report. Logs may contain personal information; known paths are removed where possible. Review the file before attaching it on GitHub."
+msgstr "최근 게임 로그 항목을 로컬 보고서에 추가합니다. 로그에는 개인 정보가 포함될 수 있으며, 알려진 경로는 가능한 경우 제거됩니다. GitHub에 첨부하기 전에 파일을 검토하세요."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CREATE_REPORT
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CREATE_REPORT"
@@ -289,21 +261,22 @@ msgid "Creating a local report…"
 msgstr "로컬 보고서 만드는 중…"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_CREATED
-#. TRANSLATORS: Preserve both guarantees: nothing uploaded AND nothing copied to the clipboard.
+#. TRANSLATORS: Revised Options flow; translate the current English text.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_CREATED"
-msgid "Local report created. Nothing was uploaded or copied to the clipboard. Review before sharing:"
-msgstr "로컬 보고서를 만들었습니다. 업로드하거나 클립보드에 복사한 내용은 없습니다. 공유하기 전에 보고서를 검토하세요:"
+msgid "Report saved on this computer."
+msgstr "이 컴퓨터에 보고서를 저장했습니다."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_FAILED
-#. TRANSLATORS: Failure does not upload a report or remove an earlier successfully created report.
+#. TRANSLATORS: Revised Options flow; translate the current English text.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_FAILED"
-msgid "The report could not be created. No report was uploaded. Any previous successful report remains available. Failure details are in Player.log."
-msgstr "보고서를 만들지 못했습니다. 업로드된 보고서는 없습니다. 이전에 정상적으로 만든 보고서는 계속 사용할 수 있습니다. 오류 세부 정보는 Player.log에 있습니다."
+msgid "Could not create the report. Try again. Details are in the game log."
+msgstr "보고서를 만들지 못했습니다. 다시 시도하세요. 자세한 내용은 게임 로그에 있습니다."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_LAST_REPORT_FOLDER
+#. TRANSLATORS: Revised Options flow; translate the current English text.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_LAST_REPORT_FOLDER"
-msgid "Open last report folder"
-msgstr "마지막 보고서 폴더 열기"
+msgid "Open report folder"
+msgstr "보고서 폴더 열기"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_COPY_REPORT_SUMMARY
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_COPY_REPORT_SUMMARY"
@@ -311,19 +284,16 @@ msgid "Copy last report summary"
 msgstr "마지막 보고서 요약 복사"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_SUMMARY_COPIED
+#. TRANSLATORS: Revised Options flow; translate the current English text.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_SUMMARY_COPIED"
-msgid "The clipboard now contains the report summary. Review it before sharing."
-msgstr "보고서 요약을 클립보드에 복사했습니다. 공유하기 전에 검토하세요."
+msgid "Report summary copied."
+msgstr "보고서 요약을 복사했습니다."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_ISSUE_FORM
+#. TRANSLATORS: Revised Options flow; translate the current English text.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_ISSUE_FORM"
-msgid "Open GitHub issue form"
-msgstr "GitHub 문제 보고 양식 열기"
-
-#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_ISSUE_FORM
-msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_ISSUE_FORM"
-msgid "Opens the issue template without diagnostic data in the URL. You choose what to paste or attach."
-msgstr "URL에 진단 데이터를 포함하지 않고 문제 보고 양식을 엽니다. 붙여넣거나 첨부할 내용은 직접 선택할 수 있습니다."
+msgid "Continue to GitHub"
+msgstr "GitHub로 계속"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_NO_REPORT
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_NO_REPORT"
@@ -353,8 +323,8 @@ msgstr "취소"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_SAVE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_SAVE"
-msgid "Save changes"
-msgstr "변경 사항 저장"
+msgid "Save settings"
+msgstr "설정 저장"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_CHANGES_SAVED
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_CHANGES_SAVED"
@@ -415,3 +385,75 @@ msgstr "옵션을 안전하게 읽을 수 없습니다. 설정은 변경되지 �
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.ERROR_UI_FAILED"
 msgid "The options screen could not be opened safely. No settings were changed. See Player.log for details."
 msgstr "옵션 화면을 안전하게 열 수 없습니다. 설정은 변경되지 않았습니다. 자세한 내용은 Player.log를 확인하세요."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_SETTINGS_SCOPE
+#. TRANSLATORS: Options help or bug-report flow.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.LABEL_SETTINGS_SCOPE"
+msgid "Settings for all colonies"
+msgstr "모든 콜로니에 적용되는 설정"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_REPORT_BUG
+#. TRANSLATORS: Options help or bug-report flow.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_REPORT_BUG"
+msgid "Report a bug…"
+msgstr "버그 신고…"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_BACK_TO_OPTIONS
+#. TRANSLATORS: Options help or bug-report flow.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_BACK_TO_OPTIONS"
+msgid "Back to Options"
+msgstr "옵션으로 돌아가기"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_ADVANCED_TROUBLESHOOTING
+#. TRANSLATORS: Options help or bug-report flow.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_ADVANCED_TROUBLESHOOTING"
+msgid "Advanced troubleshooting"
+msgstr "고급 문제 해결"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_LOG_INCLUDED
+#. TRANSLATORS: Options help or bug-report flow.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_LOG_INCLUDED"
+msgid "Game log excerpt saved in this local report."
+msgstr "게임 로그 발췌가 이 로컬 보고서에 저장되었습니다."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_LOG_NOT_INCLUDED
+#. TRANSLATORS: Options help or bug-report flow.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_LOG_NOT_INCLUDED"
+msgid "Game log not included."
+msgstr "게임 로그가 포함되지 않았습니다."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_LOG_UNAVAILABLE
+#. TRANSLATORS: Options help or bug-report flow.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_LOG_UNAVAILABLE"
+msgid "The game log could not be read. The report contains game and mod details only."
+msgstr "게임 로그를 읽지 못했습니다. 보고서에는 게임과 모드 정보만 포함됩니다."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.NOTICE_ISSUE_FORM
+#. TRANSLATORS: Options help or bug-report flow.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.NOTICE_ISSUE_FORM"
+msgid "Send game and mod details to GitHub to fill in the bug form. You can review them before posting. The report file stays on this computer."
+msgstr "게임과 모드 정보를 GitHub로 보내 버그 신고 양식을 채웁니다. 게시하기 전에 내용을 검토할 수 있습니다. 보고서 파일은 이 컴퓨터에 남아 있습니다."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_ISSUE_FORM_OPENED
+#. TRANSLATORS: Options help or bug-report flow.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_ISSUE_FORM_OPENED"
+msgid "Finish your bug report in your browser.\nTo share the full report, review the saved file and attach it to the form."
+msgstr "브라우저에서 버그 신고를 마무리하세요.\n전체 보고서를 공유하려면 저장된 파일을 검토한 후 양식에 첨부하세요."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_REPORT_TITLE
+#. TRANSLATORS: Separate report view or stable disclosure heading.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.DIALOG_REPORT_TITLE"
+msgid "Delivery Temperature Limit - Report a bug"
+msgstr "Delivery Temperature Limit - 버그 신고"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_SUPPORT
+#. TRANSLATORS: Separate report view or stable disclosure heading.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_SUPPORT"
+msgid "Help and support"
+msgstr "도움말 및 지원"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_REPORT_DETAILS
+#. TRANSLATORS: Separate report view or stable disclosure heading.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.SECTION_REPORT_DETAILS"
+msgid "Report details"
+msgstr "보고서 세부 정보"

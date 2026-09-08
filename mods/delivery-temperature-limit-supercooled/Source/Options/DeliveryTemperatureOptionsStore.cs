@@ -93,9 +93,9 @@ namespace DeliveryTemperatureLimit
         {
             if (values.SchemaVersion != 1 || values.TemperatureUnit != "kelvin")
                 throw new InvalidDataException("Unsupported configuration schema or unit.");
-            if (values.MinConstructionTemperature < 0 ||
+            if (values.UnderConstructionLimit && (values.MinConstructionTemperature < 0 ||
                 values.MaxConstructionTemperature > OniStorableTemperatureBounds.MaximumTemperatureKelvin ||
-                values.MinConstructionTemperature >= values.MaxConstructionTemperature)
+                values.MinConstructionTemperature >= values.MaxConstructionTemperature))
                 throw new InvalidDataException("Construction defaults must be a nonempty supported range.");
             JObject doc = (JObject)expected.Document.DeepClone();
             // Preserve unknown keys; no type-name deserialization is used.

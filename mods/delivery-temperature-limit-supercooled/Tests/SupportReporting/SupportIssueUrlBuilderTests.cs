@@ -58,12 +58,12 @@ public sealed class SupportIssueUrlBuilderTests
             .Substring(queryPrefix.Length);
         string decodedSummary = Uri.UnescapeDataString(encodedSummary);
         Assert.EndsWith(
-            "… [summary shortened; see attached report]",
+            "… [summary shortened; full details are in the local report file]",
             decodedSummary);
         string retainedPrefix = decodedSummary.Substring(
             0,
             decodedSummary.Length -
-                "… [summary shortened; see attached report]".Length);
+                "… [summary shortened; full details are in the local report file]".Length);
         Assert.IsTrue(retainedPrefix.All(character => character == '&'));
     }
 

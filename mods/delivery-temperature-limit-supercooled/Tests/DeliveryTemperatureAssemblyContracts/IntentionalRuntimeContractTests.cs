@@ -104,6 +104,7 @@ public sealed class IntentionalRuntimeContractTests
     private static readonly string[] IntentionalOptionsFieldNames =
     [
         "DIALOG_TITLE",
+        "LABEL_SETTINGS_SCOPE",
         "DIALOG_INTRO",
         "RESTART_NOTICE",
         "PENDING_RESTART_NOTICE",
@@ -111,7 +112,6 @@ public sealed class IntentionalRuntimeContractTests
         "CHECKBOX_LIMIT_CONSTRUCTION",
         "LABEL_DEFAULT_CONSTRUCTION_RANGE",
         "TOOLTIP_DEFAULT_CONSTRUCTION_RANGE",
-        "HINT_CONSTRUCTION_DISABLED",
         "SECTION_RESOURCE_WARNINGS",
         "CHECKBOX_WARN_ON_BLOCKED",
         "TOOLTIP_WARN_ON_BLOCKED",
@@ -119,15 +119,17 @@ public sealed class IntentionalRuntimeContractTests
         "VALIDATION_INTEGER_REQUIRED",
         "VALIDATION_SUPPORTED_RANGE",
         "VALIDATION_EMPTY_INTERVAL",
-        "VALIDATION_INVALID_PENDING",
         "BUTTON_REVERT_RANGE",
         "BANNER_LEGACY_UNIT",
         "BUTTON_INTERPRET_CELSIUS",
         "BUTTON_INTERPRET_FAHRENHEIT",
         "BUTTON_INTERPRET_KELVIN",
-        "BUTTON_EXPAND_HELP",
-        "BUTTON_COLLAPSE_HELP",
-        "LABEL_INSTALLED_VERSION",
+        "BUTTON_REPORT_BUG",
+        "DIALOG_REPORT_TITLE",
+        "BUTTON_BACK_TO_OPTIONS",
+        "SECTION_SUPPORT",
+        "SECTION_REPORT_DETAILS",
+        "SECTION_ADVANCED_TROUBLESHOOTING",
         "BUTTON_OPEN_HOMEPAGE",
         "BUTTON_OPEN_CONFIG_FOLDER",
         "TOOLTIP_CONFIG_FOLDER",
@@ -138,11 +140,15 @@ public sealed class IntentionalRuntimeContractTests
         "STATUS_CREATING_REPORT",
         "STATUS_REPORT_CREATED",
         "STATUS_REPORT_FAILED",
+        "STATUS_LOG_INCLUDED",
+        "STATUS_LOG_NOT_INCLUDED",
+        "STATUS_LOG_UNAVAILABLE",
         "BUTTON_OPEN_LAST_REPORT_FOLDER",
         "BUTTON_COPY_REPORT_SUMMARY",
         "STATUS_SUMMARY_COPIED",
         "BUTTON_OPEN_ISSUE_FORM",
-        "TOOLTIP_ISSUE_FORM",
+        "NOTICE_ISSUE_FORM",
+        "STATUS_ISSUE_FORM_OPENED",
         "STATUS_NO_REPORT",
         "STATUS_ACTION_FAILED",
         "BUTTON_RESTORE_DEFAULTS",
@@ -408,7 +414,7 @@ public sealed class IntentionalRuntimeContractTests
             source,
             @"public\s+static\s+LocString\s+[A-Za-z0-9_]+\s*=",
             RegexOptions.CultureInvariant).Count;
-        Assert.AreEqual(74, totalLocStrings, "Total LocString declarations in source must equal exactly 74.");
+        Assert.AreEqual(80, totalLocStrings, "Total LocString declarations must match the intentional localization surface.");
 
         AssertClassContainsLocStrings(source, "SIDESCREEN", IntentionalSideScreenFieldNames);
         AssertClassContainsLocStrings(source, "STATUS", IntentionalStatusFieldNames);

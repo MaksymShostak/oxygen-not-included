@@ -115,34 +115,37 @@ namespace DeliveryTemperatureLimit
             MirrorToPlayerLog(code, severity, message, exception);
         }
 
-        internal static void CreateStandardReport() =>
+        internal static string? CreateStandardReport() =>
             CreateReport(SupportReportKind.Standard);
 
-        internal static void CreateExtendedReport() =>
+        internal static string? CreateExtendedReport() =>
             CreateReport(SupportReportKind.ExtendedPlayerLog);
 
-        private static void CreateReport(SupportReportKind reportKind)
+        private static string? CreateReport(SupportReportKind reportKind)
         {
             if (Interlocked.CompareExchange(ref reportCreationInProgress, 1, 0) != 0)
-                return;
+                return null;
             try
             {
                 string finalPath;
                 string summary;
-                try { finalPath = WriteLocalReport(reportKind, out summary); }
+                SupportPlayerLogSnapshot? playerLog;
+                try { finalPath = WriteLocalReport(reportKind, out summary, out playerLog); }
                 catch (Exception exception)
                 {
                     SupportReportPlayerPresenter.PresentFailure(
                         STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_FAILED, exception);
-                    return;
+                    return null;
                 }
                 // A presentation failure is not a report-creation failure.
-                SupportReportPlayerPresenter.PresentSuccess(finalPath, summary);
+                SupportReportPlayerPresenter.PresentSuccess(finalPath, summary, playerLog);
+                return summary;
             }
             finally { Volatile.Write(ref reportCreationInProgress, 0); }
         }
 
-        private static string WriteLocalReport(SupportReportKind reportKind, out string compactSummary)
+        private static string WriteLocalReport(SupportReportKind reportKind, out string compactSummary,
+            out SupportPlayerLogSnapshot? playerLog)
         {
             KleiCurrentModSupportSnapshot currentMod;
             KleiLoadedModsSupportSnapshot loadedMods;
@@ -170,6 +173,7 @@ namespace DeliveryTemperatureLimit
                         .CaptureSupportReportSnapshot(),
                     DiagnosticBuffer.CaptureSnapshot(),
                     DiagnosticBuffer.OmittedDistinctDiagnosticCount);
+            playerLog = document.PlayerLog;
             compactSummary =
                 SupportReportSummaryRenderer.Render(
                     document,

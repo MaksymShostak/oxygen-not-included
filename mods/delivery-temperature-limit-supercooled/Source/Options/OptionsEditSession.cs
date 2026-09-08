@@ -71,7 +71,7 @@ namespace DeliveryTemperatureLimit
         internal ConstructionRangeError Save(out bool written)
         {
             written = false;
-            ConstructionRangeError error = Range.Validate(out int low, out int high);
+            ConstructionRangeError error = Range.ResolveForSave(LimitConstruction, out int low, out int high);
             if (error != ConstructionRangeError.None) return error;
             var candidate = new DeliveryTemperatureLimitOptions
             {
