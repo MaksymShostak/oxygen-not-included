@@ -40,6 +40,14 @@ public sealed class WorkshopListingAsciiContractTests
     }
 
     [TestMethod]
+    public void ExplicitlyAllowedCharacters_WhenInspected_ContainsDegreeSign()
+    {
+        Assert.IsTrue(
+            ExplicitlyAllowedCharacters.Contains(0x00B0),
+            "Explicitly allowed characters must contain degree sign (U+00B0).");
+    }
+
+    [TestMethod]
     public void IsAllowedSymbolOrEmoji_WhenTested_AcceptsStandardIconsAndRejectsTypography()
     {
         // Standard icons and emojis should be permitted
@@ -50,6 +58,7 @@ public sealed class WorkshopListingAsciiContractTests
         Assert.IsTrue(IsAllowedSymbolOrEmoji(0x1F41B)); // 🐛
         Assert.IsTrue(IsAllowedSymbolOrEmoji(0x2744));  // ❄
         Assert.IsTrue(IsAllowedSymbolOrEmoji(0xFE0F));  // Variation Selector-16
+        Assert.IsTrue(IsAllowedSymbolOrEmoji(0x00B0));  // ° (degree sign)
 
         // Non-ASCII typographic punctuation and letters must be rejected
         Assert.IsFalse(IsAllowedSymbolOrEmoji(0x2014)); // — (em dash)
@@ -62,8 +71,18 @@ public sealed class WorkshopListingAsciiContractTests
         Assert.IsFalse(IsAllowedSymbolOrEmoji(0x00E9)); // é
     }
 
+    private static readonly HashSet<int> ExplicitlyAllowedCharacters =
+    [
+        0x00B0, // ° (degree sign)
+    ];
+
     private static bool IsAllowedSymbolOrEmoji(int codePoint)
     {
+        if (ExplicitlyAllowedCharacters.Contains(codePoint))
+        {
+            return true;
+        }
+
         // Variation Selectors
         if (codePoint is >= 0xFE00 and <= 0xFE0F)
         {
