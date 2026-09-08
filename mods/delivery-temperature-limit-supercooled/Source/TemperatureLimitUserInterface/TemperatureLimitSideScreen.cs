@@ -70,12 +70,6 @@ namespace DeliveryTemperatureLimit
                     GetComponent<RectTransform>().rect.size.x);
         }
 
-        protected override void OnDisable()
-        {
-            isEditing = false;
-            base.OnDisable();
-        }
-
         private GameObject? FindComplexFabricatorSideScreen()
         {
             GameObject? parent = PUIUtils.GetParent(gameObject);
@@ -84,35 +78,6 @@ namespace DeliveryTemperatureLimit
             return transform?.gameObject;
         }
 
-        public override void OnKeyDown(KButtonEvent e)
-        {
-            bool isAnyTemperatureFieldFocused =
-                widget != null && widget.IsAnyFieldFocused();
-            if (isEditing != isAnyTemperatureFieldFocused)
-            {
-                isEditing = isAnyTemperatureFieldFocused;
-            }
-
-            if (!e.Consumed && isEditing)
-            {
-                e.Consumed = true;
-            }
-        }
-
-        public override void OnKeyUp(KButtonEvent e)
-        {
-            bool isAnyTemperatureFieldFocused =
-                widget != null && widget.IsAnyFieldFocused();
-            if (isEditing != isAnyTemperatureFieldFocused)
-            {
-                isEditing = isAnyTemperatureFieldFocused;
-            }
-
-            if (!e.Consumed && isEditing)
-            {
-                e.Consumed = true;
-            }
-        }
     }
 
     /// <summary>

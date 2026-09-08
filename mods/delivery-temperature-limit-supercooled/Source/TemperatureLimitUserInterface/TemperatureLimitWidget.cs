@@ -123,20 +123,20 @@ namespace DeliveryTemperatureLimit
             var lowInputField = new PTextField("lowLimit")
             {
                 Type = PTextField.FieldType.Integer,
-                OnTextChanged = OnLowInputChanged,
                 MinWidth = 72
             };
             lowInputField.AddOnRealize(realizedInput =>
             {
                 lowInput = realizedInput;
-                var rogueScreen = realizedInput.GetComponent<KScreen>();
-                if (rogueScreen != null)
+                var plibInputScreen = realizedInput.GetComponent<KScreen>();
+                if (plibInputScreen != null)
                 {
-                    UnityEngine.Object.DestroyImmediate(rogueScreen);
+                    UnityEngine.Object.DestroyImmediate(plibInputScreen);
                 }
 
                 // PLib already supplies the input's Selectable. Adding a legacy
                 // InputField here is rejected by Unity and returns null.
+                realizedInput.AddComponent<TemperatureLimitInputScreen>();
                 lowField = realizedInput.GetComponent<TMP_InputField>();
                 if (lowField != null)
                 {
@@ -185,19 +185,19 @@ namespace DeliveryTemperatureLimit
             var highInputField = new PTextField("highLimit")
             {
                 Type = PTextField.FieldType.Integer,
-                OnTextChanged = OnHighInputChanged,
                 MinWidth = 72
             };
             highInputField.AddOnRealize(realizedInput =>
             {
                 highInput = realizedInput;
-                var rogueScreen = realizedInput.GetComponent<KScreen>();
-                if (rogueScreen != null)
+                var plibInputScreen = realizedInput.GetComponent<KScreen>();
+                if (plibInputScreen != null)
                 {
-                    UnityEngine.Object.DestroyImmediate(rogueScreen);
+                    UnityEngine.Object.DestroyImmediate(plibInputScreen);
                 }
 
                 // Keep the PLib TMP input as this object's only Selectable.
+                realizedInput.AddComponent<TemperatureLimitInputScreen>();
                 highField = realizedInput.GetComponent<TMP_InputField>();
                 if (highField != null)
                 {

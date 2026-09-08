@@ -12,30 +12,6 @@ namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
 public sealed class DeliveryTemperatureUserInterfaceContractTests
 {
     [TestMethod]
-    public void TemperatureLimitWidget_WhenBuilt_NeutralizesRoguePLibKScreenAndDeactivatesFocus()
-    {
-        string sourceRoot = ResolveSourceRoot();
-        string widgetSource = File.ReadAllText(
-            Path.Combine(sourceRoot, "TemperatureLimitUserInterface", "TemperatureLimitWidget.cs"));
-
-        // Must destroy the rogue KScreen (PTextFieldEvents) on realized text inputs
-        StringAssert.Contains(
-            widgetSource,
-            "realizedInput.GetComponent<KScreen>()",
-            "TemperatureLimitWidget must locate rogue KScreen component on realized input.");
-        StringAssert.Contains(
-            widgetSource,
-            "DestroyImmediate",
-            "TemperatureLimitWidget must destroy the rogue KScreen component before it can register in KScreenManager.");
-
-        // Must deactivate input fields in OnDisable
-        StringAssert.Contains(
-            widgetSource,
-            "DeactivateInputField",
-            "TemperatureLimitWidget.OnDisable must deactivate any focused text fields.");
-    }
-
-    [TestMethod]
     public void TemperatureLimitWidget_WhenCompiled_DoesNotAddLegacyInputFieldToTmpInputs()
     {
         var builds = PipelineProvenanceBoundAssemblyLocator

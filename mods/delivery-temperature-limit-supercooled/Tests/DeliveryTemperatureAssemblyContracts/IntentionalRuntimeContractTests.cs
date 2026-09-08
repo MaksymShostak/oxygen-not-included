@@ -241,35 +241,6 @@ public sealed class IntentionalRuntimeContractTests
     }
 
     [TestMethod]
-    public void TemperatureLimitSideScreen_WhenKeyboardInputInspected_OverridesInputEventHandlersToProtectGameHotkeys()
-    {
-        string sourceRoot = ResolveSourceRoot();
-        string sideScreenSource = ReadRequiredSource(
-            sourceRoot,
-            "TemperatureLimitUserInterface",
-            "TemperatureLimitSideScreen.cs");
-
-        StringAssert.Contains(
-            sideScreenSource,
-            "public override void OnKeyDown(KButtonEvent e)",
-            "Side screen must explicitly override OnKeyDown to prevent KScreen from consuming game hotkeys when unfocused.");
-        StringAssert.Contains(
-            sideScreenSource,
-            "public override void OnKeyUp(KButtonEvent e)",
-            "Side screen must explicitly override OnKeyUp to prevent KScreen from consuming game hotkeys when unfocused.");
-        StringAssert.Contains(
-            sideScreenSource,
-            "if (!e.Consumed && isEditing)",
-            "Side screen must only consume key events when text input editing is active.");
-        Assert.IsFalse(
-            sideScreenSource.Contains("base.OnKeyDown", StringComparison.Ordinal),
-            "Side screen must not call base.OnKeyDown because KScreen consumes keys or processes child scroll rects.");
-        Assert.IsFalse(
-            sideScreenSource.Contains("base.OnKeyUp", StringComparison.Ordinal),
-            "Side screen must not call base.OnKeyUp because KScreen consumes keys or processes child scroll rects.");
-    }
-
-    [TestMethod]
     public void TemperatureLimitWidget_WhenDraftsReverted_DeactivatesInputFieldsAndClearsSelection()
     {
         string sourceRoot = ResolveSourceRoot();
