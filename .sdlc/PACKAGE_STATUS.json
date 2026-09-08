@@ -1,0 +1,7 @@
+{
+  "version": "1.0.0",
+  "status": "pre-release",
+  "deployed": false,
+  "deploymentConfirmation": "ONI repository-local setup and affected control/pipeline verification qualified on 2026-09-08 under the owner's bootstrap authority. Native ONI Stop-hook loading/trust remains unverified, so deployed remains false. GitHub delivery evidence is recorded in the bootstrap PR; see docs/sdlc/adoption.md and verification.md for the distinct acceptance boundaries.",
+  "versionPolicy": "Keep SDLC 1.0.0 pre-release unless Max explicitly approves a version/status change. Repository integration does not publish a product or establish hook trust."
+}

@@ -1,0 +1,24 @@
+{
+  "name": "oni-repository-controls",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "npm@12.0.2",
+  "engines": { "node": "24.20.0", "npm": "12.0.2" },
+  "scripts": {
+    "setup:development": "node scripts/setUpDevelopmentEnvironment.js",
+    "setup:sdlc": "node scripts/runRepositoryPython.js scripts/set_up_sdlc.py",
+    "setup:skills": "node scripts/runRepositoryPython.js scripts/set_up_agent_skills.py --agent codex --local-only",
+    "setup:sdlc:github": "node scripts/runRepositoryPython.js scripts/bootstrap_github_sdlc.py",
+    "sdlc": "node scripts/runRepositoryPython.js scripts/sdlc.py",
+    "check:sdlc": "node scripts/runRepositoryPython.js scripts/set_up_sdlc.py --check",
+    "check:affected": "node scripts/runAffectedChecks.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
+    "test:sdlc": "node scripts/runRepositoryPython.js -m unittest discover -s tests/sdlc -v",
+    "test:setup": "node scripts/runRepositoryPython.js -m unittest discover -s tests -p test_set_up_*.py",
+    "test:pipeline": "dotnet test --project tools/oni-mod-pipeline/tests/OniModPipeline.Tests/OniModPipeline.Tests.csproj --no-restore",
+    "pipeline": "dotnet run --project tools/oni-mod-pipeline/src/OniModPipeline/OniModPipeline.csproj --no-restore --"
+  },
+  "devDependencies": { "jest": "30.5.1", "yaml": "2.9.0" }
+}
