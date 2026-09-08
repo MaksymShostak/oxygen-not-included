@@ -9,11 +9,11 @@ Please keep discussion respectful, specific, and focused on improving the mod fo
 - For a player-visible bug, use the [Temperature Limit bug form](https://github.com/MaksymShostak/oxygen-not-included/issues/new?template=temperature-limit-bug.yml) and the automated report flow in [SUPPORT.md](SUPPORT.md).
 - For a feature idea, use the [feature form](https://github.com/MaksymShostak/oxygen-not-included/issues/new?template=temperature-limit-feature.yml) and describe the player problem and desired experience.
 - For translations, follow the [Translation Guide](docs/guides/translating-delivery-temperature-limit-supercooled.md) and use the template at [`mods/delivery-temperature-limit-supercooled/translations/delivery_temperature_limit.pot`](mods/delivery-temperature-limit-supercooled/translations/delivery_temperature_limit.pot).
-- For a code or documentation change, open or link an issue before substantial work so scope and compatibility expectations are visible.
+- For code or documentation, follow the [repository SDLC](docs/sdlc/howto.md): an accepted task or normal PR brief suffices for R0/R1; R2/R3 require a previously accepted baseline. Keep scope and compatibility expectations visible.
 
 ## Set up and validate a checkout
 
-Follow the existing [getting-started](docs/guides/getting-started-with-oni-mod-pipeline.md) and [development](docs/guides/developing-oni-mods.md) guides. ONI Mod Pipeline is the repository's supported build, test, install, and release path.
+Set up repository controls using the [SDLC guide](docs/sdlc/howto.md). For mod work, follow the existing [getting-started](docs/guides/getting-started-with-oni-mod-pipeline.md) and [development](docs/guides/developing-oni-mods.md) guides. ONI Mod Pipeline is the repository's supported build, test, install, and release path. SDLC-only changes need the control/setup suites; they do not require game installation or in-game scenarios.
 
 Run these commands from `mods/delivery-temperature-limit-supercooled`:
 
@@ -35,8 +35,8 @@ Never select a result by timestamp, directory ordering, or a "latest" convention
 
 ## Make a focused change
 
-Keep each change focused on one agreed player or maintainer outcome. Preserve unrelated working-tree changes, add or update a failing test before behavior code when practical, and keep production source compatible with the repository's C# 8 ceiling. Discuss dependency, build, test, formatting, CI, repository-policy, release-process, or other configuration changes in the linked issue before editing those files.
+Keep each change focused on one agreed player or maintainer outcome. Preserve unrelated working-tree changes and use the adapted TDD procedure for changed behavior; use preservation checks for working imported code. Keep mod production source compatible with the repository's C# 8 ceiling. Configuration changes need the approval described in AGENTS.md; an existing approval remains valid within its scope.
 
 ## Prepare a pull request
 
-Link the issue, explain the player or maintainer rationale, summarize the focused change, and include fresh automated test evidence plus relevant in-game ONI evidence. Explicitly describe compatibility, performance/allocation, save/persistence, UI, localization, and documentation impact, writing `None` where a category does not apply. Release changes must follow [Preparing ONI mod releases](docs/guides/preparing-oni-mod-releases.md).
+Use the PR template's seven SDLC metadata fields and explain the accepted task or Issue, rationale, change and fresh affected test evidence. Include in-game ONI evidence when relevant. Describe compatibility, performance/allocation, save/persistence, UI, localization and documentation impact where applicable. Release changes must follow [Preparing ONI mod releases](docs/guides/preparing-oni-mod-releases.md).

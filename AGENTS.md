@@ -36,3 +36,15 @@ Treat all existing working-tree changes as user-owned and potentially valuable.
 
 - Avoid executing destructive Git operations (such as force-pushing to protected branches or deleting remote branches) without explicit, case-by-case approval.
 
+# Repository-owned SDLC
+
+- Read [the SDLC guide](docs/sdlc/howto.md) and, for material work, [the engineering principles](docs/sdlc/engineering-principles.md). The current user-approved task is the authority; reuse recorded approvals within their scope.
+- Select the smallest justified R0/R1/R2/R3 route. R0/R1 may use the accepted task or PR brief; ordinary R2/R3 work requires a previously accepted baseline. Do not invent extra Issues, plans or reviewers to fill a template.
+- Use the repository-adapted [test-driven-development](.sdlc/skills/test-driven-development/SKILL.md) as the sole implementation procedure. All six SDLC skills are available on demand. Role installation does not authorize delegation against user limits.
+- Require semantically precise names, reassessing retained names when responsibility changes. Do not introduce or extend shims without a specific prior user override.
+- Before new functionality or material integration, research maintained alternatives and supported configuration/composition/extension. Select current stable or the latest patch of the newest applicable LTS line; inspect exact licences and restrictions. Record the residual custom gap.
+- Use consumer-owned parsers, schemas and validators, then independently check the mod/tooling outcome. A passing check or metadata field is not evidence of human acceptance or semantic correctness.
+- Use npm entry points for SDLC controls; execute Python through this checkout's `.venv`. Inspect lifecycle side effects before execution. SDLC-only work runs control/setup checks; mod and pipeline work follows the existing [ONI Mod Pipeline](docs/guides/oni-mod-development-workflow.md). Carry exact emitted artifact paths.
+- Preserve the .NET toolchain and root MIT/Klei licence. New separately licensed modules need explicit subpackage boundaries. Repository tooling success is not in-game acceptance, Workshop readiness or publication.
+- Follow [REVIEW.md](REVIEW.md), native Codex Security when authorized, and existing command protections. Installation, hook trust, live scans, GitHub writes and publication retain their separate authorities.
+- Remove only spent task-owned scratch after checking remaining consumers and evidence retention. Read [adoption.md](docs/sdlc/adoption.md) for ONI-specific activation evidence and gaps; do not reuse another repository's deployment as an ONI pass.

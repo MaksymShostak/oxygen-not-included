@@ -1,0 +1,367 @@
+{
+  "repository": "https://github.com/Hadden-Industries/universal-ontology",
+  "commit": "b3984ffbfe9b38cca7bd4570aeb3f5bc0fa6f20e",
+  "importedAt": "2026-09-08",
+  "license": "UPSTREAM-LICENSE",
+  "adaptations": "docs/sdlc/adoption.md",
+  "files": [
+    {
+      "path": ".github/ISSUE_TEMPLATE/sdlc-change.yml",
+      "sourcePath": ".github/ISSUE_TEMPLATE/change.yml",
+      "sha256": "123b334f1f316d798a744df5b3adc6e0563d9d28aaec789f58a141aed11423de"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/sdlc-bug.yml",
+      "sourcePath": ".github/ISSUE_TEMPLATE/bug.yml",
+      "sha256": "0287b8806b6c5419340a18506b3cdb92ddedcb9a4fe569998dcf0255cc717a6a"
+    },
+    {
+      "path": ".sdlc/PACKAGE_STATUS.json",
+      "sha256": "febd2a926dc2b9b56d8f83d68573637444d7899096e80b060f2413581afff395"
+    },
+    {
+      "path": ".sdlc/SOURCE_PACKAGE.json",
+      "sha256": "8f6b8f02158eb6a264a05188b2f15d32352576505e18c2fed94b5455a6aa4e4b"
+    },
+    {
+      "path": ".sdlc/codex/agents/principles_reviewer.toml",
+      "sha256": "45f85e4dded0ce7e0ec29dd13d84081a9cf2007ac0df075f2927234b7ca489b6"
+    },
+    {
+      "path": ".sdlc/codex/agents/repo_explorer.toml",
+      "sha256": "061c62e224b38dbc076aefd5035d01a7d78654aadbbbd941677817c1ff30de82"
+    },
+    {
+      "path": ".sdlc/codex/agents/researcher.toml",
+      "sha256": "021a8655adda0d3d83c69193bb6ea5f6685b1bb6595c80d0e13ba50b8c783d14"
+    },
+    {
+      "path": ".sdlc/codex/agents/review_maintainability.toml",
+      "sha256": "68b07a43eb0cb1c9979914af67f59b5fba9c0bb32e75fb038bef92aad2caf35d"
+    },
+    {
+      "path": ".sdlc/codex/agents/review_operability.toml",
+      "sha256": "982b5f3551a6bde2947cb0829ec6d25af5fdf8efff6a0a0c29426bf6d5f65465"
+    },
+    {
+      "path": ".sdlc/codex/agents/security_requirements_reviewer.toml",
+      "sha256": "f95d72710c100a32915f9db6190a31f538ed2795d1a0b20dbca1e4559b746c97"
+    },
+    {
+      "path": ".sdlc/codex/agents/test_oracle_reviewer.toml",
+      "sha256": "8b8d806a0a023dc92c24092ea24242e6ac758aeb19e79db3815d147b856a5a19"
+    },
+    {
+      "path": ".sdlc/codex/agents/verifier.toml",
+      "sha256": "6460cdcc80f7b8f4ddead4bbd2098987c10ee0219b67cd1805ce22fb9f8401c1"
+    },
+    {
+      "path": ".sdlc/codex/config.toml",
+      "sha256": "c288ad9fa8a386d5cf0aa3000ec5c17f59457e3d2c78673fb841c5b0ac3b92e4"
+    },
+    {
+      "path": ".sdlc/codex/hooks.json",
+      "sha256": "a2e00536033b5b6dd6b4d755fd55bedc646b9eac1209c8d387931336ce0c9ab9"
+    },
+    {
+      "path": ".sdlc/codex/rules/default.rules",
+      "sha256": "5c8421cec5f73c89730d2fa91b04d5309d3a2888c8f21bc28f16f87e64e06458"
+    },
+    {
+      "path": ".sdlc/dcg/UPSTREAM.json",
+      "sha256": "11a703c1d9552811430524d1c036b6aa0ef75dd3fafd76f4926a058eb9923c58"
+    },
+    {
+      "path": ".sdlc/dcg/codex-hook.example.json",
+      "sha256": "1f9cfc8b78b0f3419806112567e672b6dd5649ceaaa111d77499b3e3910dd277"
+    },
+    {
+      "path": ".sdlc/dcg/git-reset-hard.yaml",
+      "sha256": "e62af55b59293b84194ded18117e4183f835922ca9f69d6fa829e7c124cff9aa"
+    },
+    {
+      "path": ".sdlc/dcg/hook-probe-cases.json",
+      "sha256": "d7c1ee25acf8f3977c2925f8a6f04ecfe6b7d753cf554da5e1a7d54b18788c11"
+    },
+    {
+      "path": ".sdlc/dcg/operator-config.example.toml",
+      "sha256": "f69d7ef54714213836cb8ffd3484b272b277ba4383874bf9560667becbdf6b34"
+    },
+    {
+      "path": ".sdlc/pipeline-policy.json",
+      "sha256": "13c254add78f3186719c990333bb0c5b9068c094589eaf34ad8eaec179128a26"
+    },
+    {
+      "path": ".sdlc/schemas/accepted-baseline.schema.json",
+      "sha256": "7411fd7a393768b5ac772943ebb7ce925f407b4f088ae4929340d43d3edfe485"
+    },
+    {
+      "path": ".sdlc/schemas/pipeline-policy.schema.json",
+      "sha256": "0ed4e2212f8302bf0320719de2a188c855187293e71ab9df5031901ad7782dad"
+    },
+    {
+      "path": ".sdlc/schemas/verification-config.schema.json",
+      "sha256": "84a79026100f3df984a19fcc83d65b5dcf227df46a7b43ec801b3677aa67ceb5"
+    },
+    {
+      "path": ".sdlc/skill-policies.json",
+      "sha256": "e1cf150eb6f31ea19425ddc018f3c4ef37090040b78d78a8428d38fcdc844c12"
+    },
+    {
+      "path": ".sdlc/skills/motivation-to-evidence/SKILL.md",
+      "sha256": "f8afd5fb82bc7e5bf75205e0dd5323647a60ddf07208d9d40e779086471a0692"
+    },
+    {
+      "path": ".sdlc/skills/quality-attribute-scenarios/SKILL.md",
+      "sha256": "5d674655b68f8176aa246f27f84eda137b1e848fa376a57d3aa31ba711d2e507"
+    },
+    {
+      "path": ".sdlc/skills/release-readiness/SKILL.md",
+      "sha256": "0d64ca82622965fd5c84f100528db15ca865a7dd9c9d29c4d494d4d097c5d608"
+    },
+    {
+      "path": ".sdlc/skills/sdlc-route/SKILL.md",
+      "sha256": "45f267955fd93e995ad30e3a3776531d87c3c7642a77430eb04372e4d51559cd"
+    },
+    {
+      "path": ".sdlc/skills/test-driven-development/LICENSE",
+      "sha256": "a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400"
+    },
+    {
+      "path": ".sdlc/skills/test-driven-development/SKILL.md",
+      "sha256": "06b78be8167a2fa193feb60a477894b1bfd363f0d7746f8daae06ad6a9597830"
+    },
+    {
+      "path": ".sdlc/skills/test-driven-development/UPSTREAM.json",
+      "sha256": "75bfe88fa53a9cbf3b0856dcc411ca2b2e4b1d63cb88eba9a993e13ea2506e3c"
+    },
+    {
+      "path": ".sdlc/skills/test-driven-development/agents/openai.yaml",
+      "sha256": "5caf523e7aff1278ad2961434d848dcaf8c4e6318cf6446fd96a60019107988e"
+    },
+    {
+      "path": ".sdlc/skills/test-driven-development/references/evidence-and-handoffs.md",
+      "sha256": "1eb4ca28625ac1b203337b3fc0291aa1dcc1e7a24606f548450b3a9a611bef9c"
+    },
+    {
+      "path": ".sdlc/skills/test-driven-development/references/verification-routes.md",
+      "sha256": "115d45ee13e4da007bcd3f6eee6169781cdcba11eaae3e52172a500a04be5954"
+    },
+    {
+      "path": ".sdlc/skills/test-driven-development/writing-good-tests.md",
+      "sha256": "5f35d091c63f647a598a8db0c3cfe3302692f1a628b897c7ed382b321aa07259"
+    },
+    {
+      "path": ".sdlc/skills/thin-implementation-plan/SKILL.md",
+      "sha256": "8c70dcd10758add142a2ec1d819f17a7e5cdab379926b2a0620a7b5140402ebf"
+    },
+    {
+      "path": ".sdlc/verification.json",
+      "sha256": "809e36f051e4ea37cbfedfd3e6ee0b17e086949ad1e0774b96be71a1ce1bd972"
+    },
+    {
+      "path": "docs/sdlc/SDLC-BOOTSTRAP-01.md",
+      "sha256": "c8e0691c6071fd15a6bc2ca9109bbd7319f0d91f5a49124b4dab19ef0cededb7"
+    },
+    {
+      "path": "docs/sdlc/adoption.md",
+      "sha256": "b5357860b287742b503c7adef21deadfd6f85c3d45c1b8c8d9c976a37821ee8f"
+    },
+    {
+      "path": "docs/sdlc/baselines/.gitkeep",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/sdlc/codex-security.md",
+      "sha256": "ca61bb242213bcdc415d38becec64af58656886ba06dec8616579945f4acadd2"
+    },
+    {
+      "path": "docs/sdlc/command-safety.md",
+      "sha256": "d8e4b32a361615bffcdbfaf94f12af279e296d6b793cfd02fbf65b8231cb0250"
+    },
+    {
+      "path": "docs/sdlc/dcg-acceptance.md",
+      "sha256": "b752a49a10da2d5c3fc9f6cc6c4d0d0bd6871cba69053ce9db1fc19cbba552db"
+    },
+    {
+      "path": "docs/sdlc/engineering-principles.md",
+      "sha256": "e142a9a6904cd191a1a91c04fc0c37368de62418c7966c2f22ab68cd54bddc80"
+    },
+    {
+      "path": "docs/sdlc/github-governance.md",
+      "sha256": "439773a51f301beb39c8694e64a3e80140ee674f1450a9a11e7fae5aeb098005"
+    },
+    {
+      "path": "docs/sdlc/howto.md",
+      "sha256": "8d288aca544f369263780aa31b8d6381d66dded62da94a2f34fccd96903a3140"
+    },
+    {
+      "path": "docs/sdlc/package-reuse-assessment.md",
+      "sha256": "ea34b87141ac608e17806b9a3a3498c3eda6662aaee71a25476e2846b95e1682"
+    },
+    {
+      "path": "docs/sdlc/proportional-workflow.md",
+      "sha256": "348ce6608320de9800760a4e598f13b2cf05f0be8a82ba92cc47861adcb84f22"
+    },
+    {
+      "path": "docs/sdlc/software-selection.md",
+      "sha256": "81d639f3f8ae785949d5c0d8586aa8e6208f6be35c4ed533738fc879b8bc9452"
+    },
+    {
+      "path": "docs/sdlc/sources.md",
+      "sha256": "224f9f57a1822b2e76649d97e7a77b69733db0f856c583d5f94664c31cd5dcd3"
+    },
+    {
+      "path": "docs/sdlc/subagent-playbook.md",
+      "sha256": "4cf80f6b1ec04ab98db79e3eeb0fcbefc73f16514299e52941ea40aa0215a0fb"
+    },
+    {
+      "path": "docs/sdlc/temporary-artefacts-howto.md",
+      "sha256": "c2c2232883484765e3ba92a8d0d8bb1a85dee6c54be8d273cc67f33b7cb0bb82"
+    },
+    {
+      "path": "docs/sdlc/temporary-artefacts.md",
+      "sha256": "53cb621b14f28f2c787d190e8602d8a9490716a35358fc2e8c889f2905c867d2"
+    },
+    {
+      "path": "docs/sdlc/toolchain-selection.md",
+      "sha256": "830bdd254750b2aed05db4bd805a5693ead957767b6edc4dda018f1156ee3bdd"
+    },
+    {
+      "path": "docs/sdlc/verification.md",
+      "sha256": "dc9f36728d4aa9fb577563b752342ed152e318bd9784e8e75f0b3be6b3fec320"
+    },
+    {
+      "path": "REVIEW.md",
+      "sha256": "bf4eba4c75a830343d0cd752f12a18b5689d286cd7f0f8ac6f04e8bb7c74b638"
+    },
+    {
+      "path": "scripts/_commands.py",
+      "sha256": "12cd243049a61b640288020f38b2e598392fed571b6cb80459a04d534e6f98c5"
+    },
+    {
+      "path": "scripts/_repository.py",
+      "sha256": "ba33678c2b959bf1ed5a9fcaa8ec162d85390055427351270bd22b0803c22366"
+    },
+    {
+      "path": "scripts/_sdlc_state.py",
+      "sha256": "0dcd8e80ec24e1620f12bce45b743c8ca5a4df2751ed96482fdc5ba74475e37e"
+    },
+    {
+      "path": "scripts/sdlc.py",
+      "sha256": "988043394e4f51e40325ffd4e29a5e83f8382322cc462ea3a6ac9045bce21ee7"
+    },
+    {
+      "path": "scripts/sdlc_stop_gate.py",
+      "sha256": "999975bfadc1561f39d87a4d91b61d185487bf4a7ebe3f757ca11f4b69bf3507"
+    },
+    {
+      "path": "scripts/validate_sdlc_pr.py",
+      "sha256": "6422d571468f176727627f1dc06619a860bf3b925c0530400a6b70dada3b18a0"
+    },
+    {
+      "path": "scripts/bootstrap_github_sdlc.py",
+      "sha256": "e270e2364b29c0bab88c211c4db3bac63654ee40c8616d8025beb703e94ff116"
+    },
+    {
+      "path": "scripts/probe_dcg_hook_protocol.py",
+      "sha256": "2a585a24c1531eea2db4ed119695f2e1a94317bc17e4a1f7c6934f0378938c8e"
+    },
+    {
+      "path": "scripts/set_up_sdlc.py",
+      "sha256": "dd38737d0be81c046100b26d2c9c1b9a5b0a06c6783024e9a86a67c976a789f8"
+    },
+    {
+      "path": "scripts/set_up_agent_skills.py",
+      "sha256": "bebba86a9708131c699d2ae0fa8a5aa4c49e81d5727b59a8596017bc00a8edab"
+    },
+    {
+      "path": "scripts/set_up_mcp_servers.py",
+      "sha256": "e932deec0c2d83aa78f8e8aa0e272e8b53149002db1f2cf9863324a33520a5e1"
+    },
+    {
+      "path": "scripts/runRepositoryPython.js",
+      "sha256": "bfe04799a53bb769a18717c5dd8efb37e09d804c26e600cbb60e6bf9e983065e"
+    },
+    {
+      "path": "scripts/setUpDevelopmentEnvironment.js",
+      "sha256": "ac3afe55998668587cd17d9a4a8e47af71f6a4e96a68a5ef6c7e1a06534638a3"
+    },
+    {
+      "path": "scripts/selectPullRequestChecks.js",
+      "sha256": "bd35a2e5a1cb1080818de8363b1cad28fb7dd5e00d9b4276707b6e3922c9ebef"
+    },
+    {
+      "path": "tests/sdlc/test_dcg_protocol_probe.py",
+      "sha256": "236b4da9670d6c92c48d3a8b95475c7987c56ac6d4febca3e198c0fb3389037d"
+    },
+    {
+      "path": "tests/sdlc/test_pipeline_controls.py",
+      "sha256": "1fd62186c1cdb33443d5f89d27ddb24eb7248b50111ef47ee9ca7fa8b32f4cd3"
+    },
+    {
+      "path": "tests/sdlc/test_repository_integration.py",
+      "sha256": "d14a94bcd3976d18a1d5a95f91eb98afd80cbea48e4676da96a77e84529cfb5e"
+    },
+    {
+      "path": "tests/test_set_up_agent_skills.py",
+      "sha256": "22216a04cc786dd5f3f836234c072f58f0328fe4752f71bf3b134a108240bbf0"
+    },
+    {
+      "path": "tests/test_set_up_mcp_servers.py",
+      "sha256": "65202f628ef3a08940a4a2f3309a851e4683d67b6aa9f1267a93ba7d4e2d92a7"
+    },
+    {
+      "path": "tests/set-up-development-environment.test.js",
+      "sha256": "13bd3eaea0a73e8e8a33590e0c27190df2f953c51347c35b6e8e05b017087575"
+    },
+    {
+      "path": "tests/run-repository-python.test.js",
+      "sha256": "2aa76577fbdddba3acfafa10fe887fb9d41dc0ddd4ef65584e7826fabb9592f4"
+    },
+    {
+      "path": "tests/sdlc-issue-acceptance.test.js",
+      "sha256": "1d565205f35a6264979c93b725842affb5cfbcd930c466fab117161effd435c7"
+    },
+    {
+      "path": "tests/pr-check-scopes.test.js",
+      "sha256": "f28d70a6a6cf735f3bd7889f896fb7ea88e40f92e7394cf33776e8bffeca7bc3"
+    },
+    {
+      "path": ".github/workflows/sdlc-control-tests.yml",
+      "sha256": "99dc80f751ed3e61ad662a13382371e6dcc8682d127ad7ffaecd2507f59bec3c"
+    },
+    {
+      "path": ".github/workflows/sdlc-pr.yml",
+      "sha256": "dab4ba9e54ea7c7f732c6ad58a5e6fca0b4c223abb67ddac1dc679b11dcc1e49"
+    },
+    {
+      "path": ".github/workflows/sdlc-issue-acceptance.yml",
+      "sha256": "4ac33cea0eb460b89a5cf14de1865b58a414fdf90ece3fb17891b08dbc9091b5"
+    },
+    {
+      "path": ".github/workflows/codeql.yml",
+      "sha256": "62b8ab166cdc725c1ffc31f0ac22ce1e6de4a87986ef1f98a7ef79837fa5e0f4"
+    },
+    {
+      "path": ".github/dependabot.yml",
+      "sha256": "c097300b5645c18bdb73e1c40a40701ae4068cf1f8d5e51f499810b1e20e1532"
+    },
+    {
+      "path": ".github/CODEOWNERS",
+      "sha256": "96f210edcbd3ce10def9b7ee5487714ffdad8353dc8912a8314d93bf02675378"
+    },
+    {
+      "path": ".node-version",
+      "sha256": "5b9d0e73029969ae9000117cb877f17bb9841c1279bfe8024e294acfcf017800"
+    },
+    {
+      "path": ".python-version",
+      "sha256": "922fe0c3de073b01988e23348ea184456161678c5e329e6f34be89be24383f93"
+    },
+    {
+      "path": "requirements-sdlc.txt",
+      "sha256": "f28d36c262213364151ea65639cffb54dd32c7567eb5e452d288ecc30679e5eb"
+    }
+  ]
+}

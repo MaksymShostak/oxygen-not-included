@@ -1,0 +1,33 @@
+name: ONI pipeline tests
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pipeline:
+    name: ONI pipeline tests
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .node-version
+      - name: Select affected pipeline checks
+        id: scope
+        run: node scripts/selectPullRequestChecks.js --scope pipeline
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        if: steps.scope.outputs.pipeline == 'true'
+        with:
+          global-json-file: global.json
+      - name: Restore locked pipeline dependencies
+        if: steps.scope.outputs.pipeline == 'true'
+        run: dotnet restore tools/oni-mod-pipeline/OniModPipeline.slnx --locked-mode
+      - name: Test the pipeline without game installation
+        if: steps.scope.outputs.pipeline == 'true'
+        run: dotnet test --project tools/oni-mod-pipeline/tests/OniModPipeline.Tests/OniModPipeline.Tests.csproj --no-restore
