@@ -446,3 +446,90 @@ Its authoritative outcome and exact before/after input identities are recorded i
 `.sdlc/runtime/verification/full.json`. Completion requires `passed: true` and
 identical identities; this record is prepared before the run so that documenting
 the result does not invalidate the snapshot it describes.
+
+## Partial reverse slice resumed (9 September 2026)
+
+The owner preapproved subsequent detailed per-file commits and configuration
+changes explicitly stated in the implementation plan, and requested continuous
+execution until a genuine unresolved decision. Forward refinements are recorded
+in signed commit `a1602c61f1742e3ca24b8f5284edbbde36cba14f`; its tree, message,
+parent and SSH signature were verified. Publication still requires its own authority.
+
+Continue the accepted v2 partial-reverse gate on the existing R2 route, inline
+under the repository-adapted TDD skill. Bring back only this task's three parked
+new files and merge the reverse public contracts into current source. The saved
+tests and implementation retain their previous chronology; the source/tree/output
+quota regression is the next RED, not a new claim of test-first authorship.
+
+The maintained native GFM parser and extension remain the selected syntax owners;
+their public composition contracts and Valve's Workshop formatting help were
+rechecked on 9 September. No dependency or licence change is needed. The custom
+gap is the qualified Steam target mapping, literal encoding, diagnostics and
+resource accounting. Unsupported GFM must be preserved as literal source, with
+its own per-node outcomes; forward registry coverage cannot imply reverse support.
+
+Sequence: reproduce the saved quota RED; enforce validated UTF-8 input/output
+and MDAST node/depth bounds; qualify literal and block preservation with independent
+expected trees and exact target syntax; generate the reverse subset report from
+executed cases; extend checked declarations and actual installed consumers; then
+run the package and full repository verification before the next signed checkpoint.
+The decisive tests exercise the public function, native GFM tree and Steam syntax
+consumer with hand-authored expectations. Source input is never fetched or evaluated.
+Focused command: `npm --prefix tools/steam-community-bbcode test`.
+
+The resumed suite reproduced the saved quota failure (345/346 passed). Splitting
+the quota scenarios into independently executable cases exposed all four missing
+bounds and invalid-option acceptance. After validated GFM-specific limits and
+input-scoped failure results were added, 350/350 passed. Node count includes the
+root at depth zero; UTF-8 bytes and exact-limit acceptance have separate controls.
+Tree bounds run after native parsing and before rendering. Subtree output checks
+return an empty target on failure; neither these checks nor the input bound claim
+a native-parser timeout or intermediate-allocation ceiling.
+
+Four further RED cases showed unsupported relative links/images and uneven tables
+being advertised as equivalent. Native WHATWG absolute-reference checking and a
+rectangular-table eligibility check now preserve those sources with diagnostics;
+354/354 passed. The checked source API, URL scheme policy and immutable forward
+behavior remain intact. The shared diagnostic-code inventory was renamed from
+`steamConversionDiagnosticCodes` to `conversionDiagnosticCodes` because it now
+owns both directions; its type consumer was updated with it.
+
+The independent reverse corpus executes 33 authored cases spanning 23 native
+MDAST node kinds. Supported cases assert exact Steam syntax and hand-authored
+semantic trees. Unsupported cases assert complete literal source and absence of
+active injected tags; every native source occurrence is matched with reported
+coverage exactly once. The existing report generator and shipped report/matrix
+carry these results in separate reverse sections, using no forward outcome as
+reverse evidence. No package configuration change was needed. Two additional
+seeded properties ran 1,000 cases each: literal text through native Markdown
+escaping, and bounded arbitrary Markdown. The maximum supported renderer depth
+and next-level failure are exercised through the actual source and target parsers.
+Current runtime total: 390/390.
+
+The first package check correctly found stale declarations when the new packed
+consumer referred to the added export; the normal build regenerated them. A later
+strict type-coverage check found two inferred-any references to the result local;
+an explicit string JSDoc annotation resolved them without suppressions or aliases.
+`reverse-package-green.log` records primary TypeScript 7 checking, 11344/11344
+typed references in the isolated authorized TypeScript 6 tool, 54 reproducible
+declaration artifacts, positive/negative type contracts and actual installed
+JavaScript/TypeScript consumers. All 198 forward case/profile executions and
+25 parser qualification tests still pass.
+
+Final repository command: `npm run sdlc -- verify --keep-going`, output retained
+in `.sdlc/runtime/converter/reverse-final-verification.log`. The authoritative
+result and input identities are `.sdlc/runtime/verification/full.json`; a stable
+pass requires `passed: true` and identical before/after identities. This record
+is finalized before that run. The prior failures remain in `reverse-resumed-red.log`,
+`reverse-limits-red.log`, `reverse-context-red.log`, `reverse-package-check.log`
+and `reverse-package-check-after-build.log`; corresponding GREEN and generated
+report logs are retained alongside them.
+
+This task owns the retained reverse evidence. The parked pre-limit source remains
+a concrete reproduction/review input until independent review is complete; it is
+no longer an implementation-restoration dependency. No spent scratch dependency
+was introduced. The combined self-check covered changed names, native reuse,
+literal preservation, consumers and higher-outcome alignment; it is not independent
+review. CLI delivery, comparative evaluation, broader runtime/mutation qualification,
+independent review/security, cross-platform CI and release acceptance remain later
+plan gates. This checkpoint authorizes no publication.

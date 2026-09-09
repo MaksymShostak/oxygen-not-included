@@ -9,7 +9,7 @@ export const steamParseDiagnosticCodes = /** @type {const} */ ([
 ]);
 /** @typedef {typeof steamParseDiagnosticCodes[number]} SteamParseDiagnosticCode */
 /** Closed conversion codes are distinct from prose and registry construct IDs. */
-export const steamConversionDiagnosticCodes = /** @type {const} */ ([
+export const conversionDiagnosticCodes = /** @type {const} */ ([
   ...steamParseDiagnosticCodes,
   'STEAM_UNKNOWN_CONSTRUCT', 'STEAM_CONSTRUCT_PRESERVED',
   'STEAM_LIST_CONTENT_PRESERVED', 'STEAM_TABLE_STRUCTURE_PRESERVED',
@@ -24,5 +24,8 @@ export const steamConversionDiagnosticCodes = /** @type {const} */ ([
   'STEAM_URL_WIDGET_LOWERED_TO_LINK',
   'STEAM_EMOTICON_PRESERVED_AS_TEXT', 'STEAM_CLAN_IMAGE_UNRESOLVED',
   'GFM_RENDERER_AUTOLINK_POSSIBLE',
+  'GFM_NODE_UNSUPPORTED_PRESERVED',
+  'GFM_MAX_INPUT_BYTES_EXCEEDED', 'GFM_MAX_NODE_COUNT_EXCEEDED',
+  'GFM_MAX_NESTING_DEPTH_EXCEEDED', 'GFM_MAX_OUTPUT_BYTES_EXCEEDED',
 ]);
-/** @typedef {typeof steamConversionDiagnosticCodes[number]} DiagnosticCode */
+/** @typedef {typeof conversionDiagnosticCodes[number]} DiagnosticCode */

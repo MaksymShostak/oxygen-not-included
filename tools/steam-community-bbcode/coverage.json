@@ -4,7 +4,7 @@
   "registryVersion": "2026-09-08",
   "evidenceScope": "Executed conversion policies; Steam rendering and release readiness are separate qualifications.",
   "targetContract": "GFM syntax; additional GitHub autolinking is checked separately and diagnosed per input.",
-  "canonicalLfInputsSha256": "346d2eec6cad11b4f95cacee2837107dd8fef621e56bf288d4761480769e3e66",
+  "canonicalLfInputsSha256": "43468d22007d738f751837e2c8c1b79b71a0ac3202eab7f5cdc1396a487ed439",
   "registryConstructCount": 39,
   "sourceConstructCount": 37,
   "contextOnlyConstructCount": 2,
@@ -5152,5 +5152,529 @@
         "STEAM_CLAN_IMAGE_UNRESOLVED"
       ]
     }
-  ]
+  ],
+  "reverse": {
+    "direction": "gfm-to-steam",
+    "targetProfile": "workshop-item",
+    "evidenceScope": "Partial GFM syntax subset, independently executed against authored Steam syntax and semantic expectations; not live Steam rendering.",
+    "executedCaseCount": 33,
+    "sourceNodeTypes": [
+      "blockquote",
+      "break",
+      "code",
+      "definition",
+      "delete",
+      "emphasis",
+      "heading",
+      "html",
+      "image",
+      "imageReference",
+      "inlineCode",
+      "link",
+      "linkReference",
+      "list",
+      "listItem",
+      "paragraph",
+      "root",
+      "strong",
+      "table",
+      "tableCell",
+      "tableRow",
+      "text",
+      "thematicBreak"
+    ],
+    "executions": [
+      {
+        "caseId": "empty",
+        "policy": "Empty document",
+        "status": "pass",
+        "fidelity": "equivalent",
+        "sourceNodeTypes": [
+          "root"
+        ],
+        "unsupportedSourceNodeTypes": [],
+        "sourceNodeCount": 1
+      },
+      {
+        "caseId": "text",
+        "policy": "Literal paragraph text",
+        "status": "pass",
+        "fidelity": "equivalent",
+        "sourceNodeTypes": [
+          "paragraph",
+          "root",
+          "text"
+        ],
+        "unsupportedSourceNodeTypes": [],
+        "sourceNodeCount": 3
+      },
+      {
+        "caseId": "headings",
+        "policy": "Headings 1 through 3",
+        "status": "pass",
+        "fidelity": "equivalent",
+        "sourceNodeTypes": [
+          "heading",
+          "root",
+          "text"
+        ],
+        "unsupportedSourceNodeTypes": [],
+        "sourceNodeCount": 7
+      },
+      {
+        "caseId": "inline",
+        "policy": "Strong, emphasis and deletion",
+        "status": "pass",
+        "fidelity": "equivalent",
+        "sourceNodeTypes": [
+          "delete",
+          "emphasis",
+          "paragraph",
+          "root",
+          "strong",
+          "text"
+        ],
+        "unsupportedSourceNodeTypes": [],
+        "sourceNodeCount": 10
+      },
+      {
+        "caseId": "quote",
+        "policy": "Blockquote",
+        "status": "pass",
+        "fidelity": "equivalent",
+        "sourceNodeTypes": [
+          "blockquote",
+          "paragraph",
+          "root",
+          "text"
+        ],
+        "unsupportedSourceNodeTypes": [],
+        "sourceNodeCount": 4
+      },
+      {
+        "caseId": "rule",
+        "policy": "Thematic break",
+        "status": "pass",
+        "fidelity": "equivalent",
+        "sourceNodeTypes": [
+          "root",
+          "thematicBreak"
+        ],
+        "unsupportedSourceNodeTypes": [],
+        "sourceNodeCount": 2
+      },
+      {
+        "caseId": "unordered-list",
+        "policy": "Unordered list",
+        "status": "pass",
+        "fidelity": "equivalent",
+        "sourceNodeTypes": [
+          "list",
+          "listItem",
+          "paragraph",
+          "root",
+          "text"
+        ],
+        "unsupportedSourceNodeTypes": [],
+        "sourceNodeCount": 8
+      },
+      {
+        "caseId": "ordered-list",
+        "policy": "Ordered list starting at 1",
+        "status": "pass",
+        "fidelity": "equivalent",
+        "sourceNodeTypes": [
+          "list",
+          "listItem",
+          "paragraph",
+          "root",
+          "text"
+        ],
+        "unsupportedSourceNodeTypes": [],
+        "sourceNodeCount": 8
+      },
+      {
+        "caseId": "code",
+        "policy": "Code block without metadata or closing delimiter",
+        "status": "pass",
+        "fidelity": "equivalent",
+        "sourceNodeTypes": [
+          "code",
+          "root"
+        ],
+        "unsupportedSourceNodeTypes": [],
+        "sourceNodeCount": 2
+      },
+      {
+        "caseId": "link",
+        "policy": "Safe absolute link without title",
+        "status": "pass",
+        "fidelity": "equivalent",
+        "sourceNodeTypes": [
+          "link",
+          "paragraph",
+          "root",
+          "text"
+        ],
+        "unsupportedSourceNodeTypes": [],
+        "sourceNodeCount": 4
+      },
+      {
+        "caseId": "image",
+        "policy": "Safe absolute image without alt text or title",
+        "status": "pass",
+        "fidelity": "equivalent",
+        "sourceNodeTypes": [
+          "image",
+          "paragraph",
+          "root"
+        ],
+        "unsupportedSourceNodeTypes": [],
+        "sourceNodeCount": 3
+      },
+      {
+        "caseId": "table",
+        "policy": "Rectangular table without alignment",
+        "status": "pass",
+        "fidelity": "equivalent",
+        "sourceNodeTypes": [
+          "root",
+          "table",
+          "tableCell",
+          "tableRow",
+          "text"
+        ],
+        "unsupportedSourceNodeTypes": [],
+        "sourceNodeCount": 8
+      },
+      {
+        "caseId": "heading-4",
+        "policy": "Heading 4 preserved",
+        "status": "pass",
+        "fidelity": "unsupported",
+        "sourceNodeTypes": [
+          "heading",
+          "root",
+          "text"
+        ],
+        "unsupportedSourceNodeTypes": [
+          "heading"
+        ],
+        "sourceNodeCount": 3
+      },
+      {
+        "caseId": "heading-5",
+        "policy": "Heading 5 preserved",
+        "status": "pass",
+        "fidelity": "unsupported",
+        "sourceNodeTypes": [
+          "heading",
+          "root",
+          "text"
+        ],
+        "unsupportedSourceNodeTypes": [
+          "heading"
+        ],
+        "sourceNodeCount": 3
+      },
+      {
+        "caseId": "heading-6",
+        "policy": "Heading 6 preserved",
+        "status": "pass",
+        "fidelity": "unsupported",
+        "sourceNodeTypes": [
+          "heading",
+          "root",
+          "text"
+        ],
+        "unsupportedSourceNodeTypes": [
+          "heading"
+        ],
+        "sourceNodeCount": 3
+      },
+      {
+        "caseId": "inline-code",
+        "policy": "Inline code preserved",
+        "status": "pass",
+        "fidelity": "unsupported",
+        "sourceNodeTypes": [
+          "inlineCode",
+          "paragraph",
+          "root"
+        ],
+        "unsupportedSourceNodeTypes": [
+          "inlineCode"
+        ],
+        "sourceNodeCount": 3
+      },
+      {
+        "caseId": "html",
+        "policy": "Raw HTML preserved",
+        "status": "pass",
+        "fidelity": "unsupported",
+        "sourceNodeTypes": [
+          "html",
+          "root"
+        ],
+        "unsupportedSourceNodeTypes": [
+          "html"
+        ],
+        "sourceNodeCount": 2
+      },
+      {
+        "caseId": "task-list",
+        "policy": "Task-list state preserved",
+        "status": "pass",
+        "fidelity": "unsupported",
+        "sourceNodeTypes": [
+          "list",
+          "listItem",
+          "paragraph",
+          "root",
+          "text"
+        ],
+        "unsupportedSourceNodeTypes": [
+          "list"
+        ],
+        "sourceNodeCount": 5
+      },
+      {
+        "caseId": "list-start",
+        "policy": "Non-default list start preserved",
+        "status": "pass",
+        "fidelity": "unsupported",
+        "sourceNodeTypes": [
+          "list",
+          "listItem",
+          "paragraph",
+          "root",
+          "text"
+        ],
+        "unsupportedSourceNodeTypes": [
+          "list"
+        ],
+        "sourceNodeCount": 5
+      },
+      {
+        "caseId": "code-language",
+        "policy": "Code metadata preserved",
+        "status": "pass",
+        "fidelity": "unsupported",
+        "sourceNodeTypes": [
+          "code",
+          "root"
+        ],
+        "unsupportedSourceNodeTypes": [
+          "code"
+        ],
+        "sourceNodeCount": 2
+      },
+      {
+        "caseId": "code-delimiter",
+        "policy": "Code with Steam closing delimiter preserved",
+        "status": "pass",
+        "fidelity": "unsupported",
+        "sourceNodeTypes": [
+          "code",
+          "root"
+        ],
+        "unsupportedSourceNodeTypes": [
+          "code"
+        ],
+        "sourceNodeCount": 2
+      },
+      {
+        "caseId": "image-alt",
+        "policy": "Image alternative text preserved",
+        "status": "pass",
+        "fidelity": "unsupported",
+        "sourceNodeTypes": [
+          "image",
+          "paragraph",
+          "root"
+        ],
+        "unsupportedSourceNodeTypes": [
+          "image"
+        ],
+        "sourceNodeCount": 3
+      },
+      {
+        "caseId": "image-title",
+        "policy": "Image title preserved",
+        "status": "pass",
+        "fidelity": "unsupported",
+        "sourceNodeTypes": [
+          "image",
+          "paragraph",
+          "root"
+        ],
+        "unsupportedSourceNodeTypes": [
+          "image"
+        ],
+        "sourceNodeCount": 3
+      },
+      {
+        "caseId": "link-title",
+        "policy": "Link title preserved",
+        "status": "pass",
+        "fidelity": "unsupported",
+        "sourceNodeTypes": [
+          "link",
+          "paragraph",
+          "root",
+          "text"
+        ],
+        "unsupportedSourceNodeTypes": [
+          "link"
+        ],
+        "sourceNodeCount": 4
+      },
+      {
+        "caseId": "unsafe-link",
+        "policy": "Unsafe link preserved",
+        "status": "pass",
+        "fidelity": "unsupported",
+        "sourceNodeTypes": [
+          "link",
+          "paragraph",
+          "root",
+          "text"
+        ],
+        "unsupportedSourceNodeTypes": [
+          "link"
+        ],
+        "sourceNodeCount": 4
+      },
+      {
+        "caseId": "relative-link",
+        "policy": "Relative link preserved without a document base",
+        "status": "pass",
+        "fidelity": "unsupported",
+        "sourceNodeTypes": [
+          "link",
+          "paragraph",
+          "root",
+          "text"
+        ],
+        "unsupportedSourceNodeTypes": [
+          "link"
+        ],
+        "sourceNodeCount": 4
+      },
+      {
+        "caseId": "relative-image",
+        "policy": "Relative image preserved without a document base",
+        "status": "pass",
+        "fidelity": "unsupported",
+        "sourceNodeTypes": [
+          "image",
+          "paragraph",
+          "root"
+        ],
+        "unsupportedSourceNodeTypes": [
+          "image"
+        ],
+        "sourceNodeCount": 3
+      },
+      {
+        "caseId": "aligned-table",
+        "policy": "Table alignment preserved",
+        "status": "pass",
+        "fidelity": "unsupported",
+        "sourceNodeTypes": [
+          "root",
+          "table",
+          "tableCell",
+          "tableRow",
+          "text"
+        ],
+        "unsupportedSourceNodeTypes": [
+          "table"
+        ],
+        "sourceNodeCount": 8
+      },
+      {
+        "caseId": "uneven-table",
+        "policy": "Uneven table rows preserved",
+        "status": "pass",
+        "fidelity": "unsupported",
+        "sourceNodeTypes": [
+          "root",
+          "table",
+          "tableCell",
+          "tableRow",
+          "text"
+        ],
+        "unsupportedSourceNodeTypes": [
+          "table"
+        ],
+        "sourceNodeCount": 10
+      },
+      {
+        "caseId": "hard-break",
+        "policy": "Hard-break source preserved",
+        "status": "pass",
+        "fidelity": "unsupported",
+        "sourceNodeTypes": [
+          "break",
+          "paragraph",
+          "root",
+          "text"
+        ],
+        "unsupportedSourceNodeTypes": [
+          "break"
+        ],
+        "sourceNodeCount": 5
+      },
+      {
+        "caseId": "definition",
+        "policy": "Reference definition preserved",
+        "status": "pass",
+        "fidelity": "unsupported",
+        "sourceNodeTypes": [
+          "definition",
+          "root"
+        ],
+        "unsupportedSourceNodeTypes": [
+          "definition"
+        ],
+        "sourceNodeCount": 2
+      },
+      {
+        "caseId": "link-reference",
+        "policy": "Link reference and definition preserved",
+        "status": "pass",
+        "fidelity": "unsupported",
+        "sourceNodeTypes": [
+          "definition",
+          "linkReference",
+          "paragraph",
+          "root",
+          "text"
+        ],
+        "unsupportedSourceNodeTypes": [
+          "linkReference",
+          "definition"
+        ],
+        "sourceNodeCount": 5
+      },
+      {
+        "caseId": "image-reference",
+        "policy": "Image reference and definition preserved",
+        "status": "pass",
+        "fidelity": "unsupported",
+        "sourceNodeTypes": [
+          "definition",
+          "imageReference",
+          "paragraph",
+          "root"
+        ],
+        "unsupportedSourceNodeTypes": [
+          "imageReference",
+          "definition"
+        ],
+        "sourceNodeCount": 4
+      }
+    ]
+  }
 }

@@ -10,7 +10,7 @@ unfinished; the private `1.0.0` development label does not attest readiness.
 The [accepted implementation plan](../../docs/plans/2026-09-08-steam-community-bbcode-implementation-plan-v2.md)
 defines an ESM JavaScript package with checked JSDoc, generated declarations,
 source-provenanced Steam constructs, MDAST semantics and native GFM serialization.
-Steam-to-GFM is the primary direction; GFM-to-Steam will be an explicit subset.
+Steam-to-GFM is the primary direction; GFM-to-Steam implements an explicit subset.
 The default source profile is `workshop-item`. The library performs no
 network or filesystem I/O. Unavoidable loss must receive structured diagnostics.
 
@@ -55,12 +55,37 @@ or support for every parameter variant. Some GitHub surfaces additionally autoli
 escaped text; `GFM_RENDERER_AUTOLINK_POSSIBLE` reports that possibility separately
 from GFM syntax fidelity.
 
-The reverse converter, CLI, broader property/resource/mutation qualification,
+The CLI, broader property/resource/mutation qualification,
 comparative evaluation and independent security/release review remain later gates.
 Runtime test coverage and mutation thresholds have not yet been qualified.
 
-Current URL policy uses native WHATWG parsing, permits HTTP/HTTPS and relative
+The forward URL policy uses native WHATWG parsing, permits HTTP/HTTPS and relative
 references (plus `mailto:` for links), and rejects control characters and
 backslashes before normalization. Rejected destinations remain literal source with
 diagnostics. The package never fetches destinations. Unknown and currently
 unmapped constructs also retain their complete source with explicit diagnostics.
+
+`gfmToSteamCommunityBbcode` is intentionally partial. Its
+[independent support matrix](docs/steam-support-matrix.md#partial-gfm-to-steam)
+records mappings and literal preservation for unsupported GFM. Check
+`unsupportedSourceNodes` and `diagnostics` before using its output. Reverse resources
+must be safe absolute URLs: a relative Markdown destination has no qualified
+document base in Steam. Images with meaningful alternative text, metadata and
+other unsupported nodes retain their complete Markdown source as literal text.
+
+```js
+import {gfmToSteamCommunityBbcode} from 'steam-community-bbcode';
+
+const partial = gfmToSteamCommunityBbcode('## Heading\n\n**Text**');
+console.log(partial.value);
+console.log(partial.unsupportedSourceNodes);
+```
+
+Reverse `resourceLimits` default to 1 MiB of UTF-8 input, 100,000 native MDAST
+nodes, depth 128 and 8 MiB of UTF-8 output. The root counts as one node at depth
+zero. Input bytes are checked before native parsing; node/depth limits apply
+after native parsing and before rendering. Output limits are checked as rendered
+subtrees are assembled. Exceeding a limit returns an input-scoped error and an
+empty target, never a truncated document. These bounds are not a parser timeout
+or a limit on the native parser's intermediate allocations. Caller limits must
+be positive safe integers; supported renderer depth cannot exceed 256.

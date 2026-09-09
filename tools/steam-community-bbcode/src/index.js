@@ -26,3 +26,8 @@ export {parseSteamCommunityBbcode} from './steam/parse-steam-bbcode.js';
 export {steamCommunityBbcodeToMdast} from './mdast/steam-bbcode-to-mdast.js';
 /** @typedef {import('./gfm/steam-bbcode-to-gfm.js').SteamBbcodeToGfmOptions} SteamBbcodeToGfmOptions */
 export {steamCommunityBbcodeToGfm} from './gfm/steam-bbcode-to-gfm.js';
+/** @template T @typedef {import('./diagnostics/conversion-result.js').PartialConversionResult<T>} PartialConversionResult */
+/** @typedef {import('./diagnostics/conversion-result.js').UnsupportedGfmFeatureDiagnostic} UnsupportedGfmFeatureDiagnostic */
+export {gfmToSteamCommunityBbcode} from './steam/gfm-to-steam-bbcode.js';
+/** @typedef {import('./steam/gfm-to-steam-bbcode.js').GfmToSteamBbcodeOptions} GfmToSteamBbcodeOptions */
+/** @typedef {import('./security/gfm-resource-limits.js').GfmConversionResourceLimits} GfmConversionResourceLimits */

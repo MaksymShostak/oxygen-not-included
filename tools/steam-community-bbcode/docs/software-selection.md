@@ -5,6 +5,42 @@ Checked 2026-09-08. Reuses the complete research and alternatives in the
 This refresh changes package/tooling facts; it does not rewrite the source dialect
 or declare future conformance and release gates passed.
 
+## Partial reverse continuation (9 September 2026)
+
+The accepted plan's reverse capability continues to use the already qualified
+`mdast-util-from-markdown` 2.0.3, `mdast-util-gfm` 3.1.0 and
+`micromark-extension-gfm` 3.0.0. The native
+[parser API](https://github.com/syntax-tree/mdast-util-from-markdown) and
+[GFM extension composition](https://github.com/syntax-tree/mdast-util-gfm)
+were rechecked on 9 September. Requirements and the locked dependency graph are
+unchanged; the existing current-version and MIT notice qualification applies.
+No new parser, dependency, compiler alias or vendor modification is introduced.
+
+Those libraries own source syntax and native MDAST positions. They do not emit
+Steam syntax or enforce this package's target-fidelity policies. The residual
+custom work is the partial Steam renderer, source-scoped diagnostics, literal
+encoding and resource accounting. Valve's
+[Workshop formatting help](https://steamcommunity.com/comment/WorkshopItem/formattinghelp)
+remains the target syntax reference, including opaque noparse regions. Splitting
+each literal opening bracket into its own opaque region prevents an embedded,
+case-varied noparse closing tag from activating source markup. No input is fetched.
+
+Reverse mappings have independently authored exact Steam syntax and semantic
+trees. Unsupported cases retain their complete original source, and native source
+nodes are compared independently with every reported occurrence. The reverse
+report is generated from those executions in its own `coverage.json.reverse`
+section and support-matrix section; forward outcomes do not confer reverse support.
+Relative destinations lack a qualified target document base and are preserved.
+Uneven/aligned tables, metadata, meaningful image alternatives, unsupported heading
+levels, task state, HTML, inline code and reference syntax remain explicitly partial.
+
+Input bytes are bounded before native parsing. Native-tree count/depth limits
+apply before rendering, and output bytes are checked while assembling subtrees.
+These bounds do not claim a timeout or limit native parser intermediate memory.
+The library returns no partial output on quota failure. Seeded generated checks
+exercise arbitrary bounded Markdown and literal delimiter injection; they do not
+establish universal Steam renderer equivalence or replace independent review.
+
 | Component | Current selected/candidate version | Role and evidence |
 |---|---|---|
 | Node | 24.20.0 | Repository development LTS; package target remains Node 22/24/26. |
