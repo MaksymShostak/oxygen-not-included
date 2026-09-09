@@ -1541,3 +1541,102 @@ select its intended test and is not RED evidence. Keep the original ordering
 helpers and coordinated names: their residual role protects native deletion
 flanking, and the new test detects that real effect without requiring incidental
 nesting. The earlier plan to remove/rename them is superseded by this evidence.
+
+### Release qualification continuation — 9 September 2026
+
+The user explicitly directed continued release qualification after the local
+implementation handoff. Reuse the accepted v2 baseline and standing detailed
+commit/configuration authority; the handoff does not terminate the remaining
+accepted release obligations. Native lifecycle task `converter-release-qualification`
+uses R2 and the unchanged baseline. Start from signed `281cdc9620ba5d7d6cff82e9ff1ad80284658582`.
+Its full local receipt, final 90.04%/98.37% mutation reports and both completed
+independent follow-ups remain valid for that candidate, with original failures retained.
+
+- [x] Reproduce the near-limit opaque workload through the public API and isolate
+  the remaining native serializer cost. Keep complete literal-output and diagnostic
+  expectations, the established five-second subprocess qualification budget and
+  the no-shim/no-vendor-patch rule. Evaluate current supported native capabilities
+  before selecting a repair; a dependency release-channel or accepted-resource
+  contract change needs its actual owner decision.
+- [x] Scan the exact Snapper native Cargo SBOM with unmodified OSV-Scanner 2.5.1,
+  the current stable release, in task-local scratch. Verify the maintainer's release
+  digest and preserve its Apache-2.0 terms. Refresh native npm advisory evidence
+  for the main, type-coverage, API-docs and isolated comparator locks. Account for
+  every extracted component and actual advisory result, without suppressions.
+- [ ] Review the locked dependency licence texts and native package allowlist;
+  record concrete redistribution obligations and any unresolved terms. Retain the
+  existing compiler boundaries and AGPL-3.0-only package identity.
+  Include the exact MIT Microsoft notice from `@types/unist` 3.0.3 in authored
+  `docs/third-party-notices.md`, since the generated API copies its descriptions.
+  The existing `docs/` archive allowlist and authored-prose selector cover this
+  file without a configuration change. Link it from the README and selection record.
+- [ ] Validate the prepared Windows/Linux Node 22/24/26, CodeQL and dependency-review
+  workflow against the actual candidate. Inspect the exact PR/base policy and prepare
+  the signed branch and detailed PR body before requesting the separately required
+  remote push/PR action. Authentication through the GitHub connector works; the
+  local `gh` credential currently receives HTTP 401. No candidate PR or workflow run
+  exists, and this host has no installed WSL distribution or container engine.
+- [ ] Finish any authorized repairs with the repository TDD procedure, focused
+  consumer checks, required fresh full verification and the already authorized
+  independent review roles. Commit exact task-owned files with detailed signed
+  messages. Keep release qualification active until its remaining decisions and
+  external gates are actually resolved; publication remains a separate action.
+
+Evidence for this continuation is retained under
+`.sdlc/runtime/converter/release-qualification/`. Native profiling and controlled
+reproductions isolate the remaining serializer availability finding. A minimal
+owning-library proposal passes the retained semantic corpus and additional seeded
+byte-preservation comparisons in a disposable copy. The installed dependencies
+and converter implementation remain unchanged, and the primary near-limit
+qualification still fails. The private upstream report is prepared but unsent;
+its reproduction and proposed repair stay in the restricted local evidence until
+disclosure is authorized. No downstream patch, compiler alias, checker suppression
+or resource-contract change has been adopted.
+
+The actual package `check` command passes on Windows x64 with official Node
+22.23.2 and 26.8.1 and npm 12.0.2, supplementing the existing Node 24.20.0 full
+receipt on `281cdc9620ba5d7d6cff82e9ff1ad80284658582`. Both additional native
+executables match the published SHA-256 lists, and only each command's process
+environment selects its runtime. Raw logs and acquisition receipts remain in the
+release-qualification directory. These local passes do not establish Linux CI.
+
+Native OSV-Scanner 2.5.1 accounts for all six explicit inputs: 268 Snapper Cargo
+components and 360 main, 37 type-coverage, 23 API-docs, 108 legacy-comparator and
+26 BBob npm dependencies. The refreshed native npm audits report zero issues for
+the main, type-coverage, API-docs and BBob graphs. The legacy comparator retains
+11 propagated affected-package entries (nine moderate, two critical); this is
+not a count of independent vulnerabilities. OSV retains 12 Rust records, including
+alias records and three maintenance notices, plus eight Node advisory records.
+
+The same authorized direct R2 reviewer assessed all 31 supplied OSV/npm entries:
+28 are not actionable through the assessed authored-prose and fixed-corpus
+commands, and three unmaintained-component notices remain open for release review.
+The matched neural/model/TLS paths are not entered by the Unicode-only formatter
+integration. Arbitrary standalone comparator input remains unqualified; the
+benchmark deadline is not a filesystem or network sandbox. Keep these boundaries
+and upstream maintenance status visible when remote dependency review runs.
+No advisory suppression, dependency downgrade or risk waiver has been introduced.
+The native Codex Security inventory remains incomplete; the owner-authorized
+direct assessment and this static advisory follow-up are the actual evidence.
+
+The installed notice inventory records exact locked identities, full notice text
+and digests, while the earlier full-term inspections remain tied to the unchanged
+graphs. The additional shipped Microsoft notice covers copied generated prose;
+the package's own licence remains AGPL-3.0-only. Metadata and this engineering
+notice review do not replace the baseline's independent pre-release legal review.
+
+Live `origin/main` is `975acf599d06ec3d274c55bac8d1731278ffa153` and already
+contains the unchanged accepted plan. Its trusted PR validator still accepts only
+Issue snapshot baselines; the Markdown-plan route is introduced by this branch.
+The prepared converter draft may run its ordinary matrix and security jobs, but
+its trusted-base linkage cannot pass until the separately reviewed baseline-route
+change is present on `main`. Do not lower the converter's R2 classification,
+rewrite the accepted plan or run candidate policy with privileged credentials.
+Remote push/PR creation and any prerequisite merge retain their separate authority.
+
+Keep the continuation's runtime executables, scanner, isolated upstream proposal
+and probe programs until their remote-CI or upstream-report consumers finish.
+The converter task owns these copies; reassess disposal after the external
+qualification/reporting checkpoint while retaining acquisition records, original
+failures, review reports and the exact proposal/reproduction as evidence.
+No lifecycle handoff is claimed while those release obligations remain open.

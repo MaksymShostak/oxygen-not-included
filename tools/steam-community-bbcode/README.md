@@ -14,7 +14,7 @@ Unavoidable loss must receive structured diagnostics.
 This directory is a separate licensing boundary.
 The repository root MIT/Klei licence and .NET/ONI Mod Pipeline are unchanged.
 See [LICENSE](LICENSE) for AGPL version 3 only.
-Dependency notices retain their original terms.
+Dependency notices retain their original terms; [third-party notices](docs/third-party-notices.md) accompany the descriptions copied into generated API documentation.
 Publication and pre-release legal review are separate gates.
 
 Use npm 12.0.2; `npm --version` should report that exact version.
@@ -64,7 +64,8 @@ Independent security/release review and the complete remote Node/OS matrix remai
 See [testing](docs/testing.md) for exact scope and retained evidence.
 
 Start with [getting started](docs/getting-started.md), the [API](docs/api.md), [CLI](docs/cli.md), [per-construct examples](docs/conversion-semantics.md) and [diagnostics](docs/diagnostics.md).
-Node 22/24/26 are the configured CI lines; current local results use Node 24.20.0 on Windows x64.
+Local package checks pass on Windows x64 with Node 22.23.2, 24.20.0 and 26.8.1.
+The configured Linux matrix and remote security checks still require execution.
 The [security model](docs/security-model.md) states resource and HTML boundaries, and [SECURITY.md](SECURITY.md) provides private reporting.
 [Comparison](docs/comparison.md) and [release qualification](docs/releasing.md) distinguish recorded results from outstanding acceptance.
 

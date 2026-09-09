@@ -306,7 +306,8 @@ No rejected tool or monkey patch is installed in the adopted dependency graphs.
 
 The separate docs SBOM records 23 dependencies and its native npm audit reports zero advisories.
 Its declared licence set adds Python-2.0 through unmodified argparse, alongside MIT, Apache-2.0, BSD-2-Clause, BlueOak-1.0.0 and ISC.
-The full argparse historical/PSF terms, entities redistribution terms and native syntax highlighter notices were inspected and remain with their installed packages. The generated SourceSpan descriptions originate in MIT @types/unist; retain its Microsoft notice in the installed dependency distribution.
+The full argparse historical/PSF terms, entities redistribution terms and native syntax highlighter notices were inspected and remain with their installed packages.
+The generated SourceSpan descriptions originate in MIT `@types/unist` 3.0.3; its complete Microsoft notice is also retained in the shipped [third-party notices](third-party-notices.md).
 This selection does not substitute for the separately required pre-release legal review.
 
 Sources: [TypeDoc JSDoc support](https://typedoc.org/documents/Doc_Comments.JSDoc_Support.html), [native entry points](https://typedoc.org/documents/Options.Input.html), [TypeDoc plugins](https://typedoc.org/documents/Plugins.html), [documentation.js](https://github.com/documentationjs/documentation), and [TypeScript JSDoc](https://www.typescriptlang.org/docs/handbook/jsdoc-supported-types.html).

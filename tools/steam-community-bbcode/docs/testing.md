@@ -9,6 +9,11 @@ Run commands from this package's source checkout with the locked dependencies in
 The repository entry point is `npm run check:converter`.
 Native ESLint recommended rules also run without inline configuration or warning allowances.
 
+On 9 September 2026 the full package check passed locally on Windows x64 under Node 22.23.2 and 26.8.1, supplementing the existing Node 24.20.0 full verification.
+The additional runtimes were unmodified official executables checked against their published SHA-256 lists, with npm 12.0.2 and the same locked dependency graphs.
+Each invocation used the selected runtime for its child processes as well.
+These runs do not establish Linux compatibility or successful GitHub CodeQL and dependency-review jobs.
+
 | Command | Contract |
 | --- | --- |
 | `npm test` | Focused runtime examples and seeded properties |
