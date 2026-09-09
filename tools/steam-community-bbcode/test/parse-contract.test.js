@@ -99,3 +99,33 @@ test('parser diagnostic positions and endpoints are immutable', () => {
   assert.equal(Reflect.set(diagnostic.sourceSpan.start, 'line', 99), false);
   assert.equal(Reflect.set(diagnostic.sourceSpan.end, 'offset', 99), false);
 });
+
+test('unfinished quoted attributes retain source and explain each syntax problem', () => {
+  for (const quote of ['"', "'"]) {
+    const source = `[url=${quote}https://example.org/unfinished`;
+    const parsed = parseSteamCommunityBbcode(source);
+    assert.equal(parsed.source, source);
+    assert.equal(parsed.children.map(node => node.rawSource).join(''), source);
+    assert.deepEqual(parsed.diagnostics.map(d => d.code).sort(),
+      ['STEAM_UNCLOSED_ATTRIBUTE_QUOTE', 'STEAM_UNCLOSED_TAG', 'STEAM_UNCLOSED_TAG_HEADER']);
+    for (const diagnostic of parsed.diagnostics) {
+      assert.notEqual(diagnostic.message.trim(), '', `Missing explanation: ${diagnostic.code}`);
+      assert.ok(diagnostic.sourceSpan);
+    }
+  }
+});
+
+test('an unfinished header counts only its attribute bytes and rejects overflow without a partial tree', () => {
+  // The attribute text is =" followed by a two-byte UTF-8 character: four bytes.
+  const source = 'prefix [url="é';
+  const accepted = parseSteamCommunityBbcode(source, {resourceLimits: {maxAttributeBytes: 4}});
+  assert.equal(accepted.children.map(node => node.rawSource).join(''), source);
+  assert.ok(accepted.diagnostics.some(d => d.code === 'STEAM_UNCLOSED_ATTRIBUTE_QUOTE'));
+  assert.ok(accepted.diagnostics.every(d => d.code !== 'STEAM_MAX_ATTRIBUTE_BYTES_EXCEEDED'));
+
+  const rejected = parseSteamCommunityBbcode(source, {resourceLimits: {maxAttributeBytes: 3}});
+  assert.equal(rejected.source, source);
+  assert.deepEqual(rejected.children, []);
+  assert.deepEqual(rejected.diagnostics.map(d => d.code), ['STEAM_MAX_ATTRIBUTE_BYTES_EXCEEDED']);
+  assert.notEqual(rejected.diagnostics[0]?.message.trim(), '');
+});

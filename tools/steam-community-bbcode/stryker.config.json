@@ -1,0 +1,19 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "testRunner": "tap",
+  "plugins": ["@stryker-mutator/tap-runner"],
+  "tap": {"testFiles": ["test/*.test.js", "test/parser-qualification/*.test.js"]},
+  "mutate": ["src/**/*.js", "!src/cli.js"],
+  "coverageAnalysis": "perTest",
+  "disableTypeChecks": false,
+  "inPlace": false,
+  "symlinkNodeModules": false,
+  "concurrency": 4,
+  "thresholds": {"high": 90, "low": 90, "break": 90},
+  "ignorePatterns": ["/artifacts", "/comparison", "/tooling", "/types", "**/tsconfig*.json"],
+  "tempDirName": "artifacts/mutation-library-tmp",
+  "reporters": ["clear-text", "progress", "json", "html"],
+  "clearTextReporter": {"reportTests": false, "reportMutants": false},
+  "jsonReporter": {"fileName": "artifacts/mutation-library/mutation.json"},
+  "htmlReporter": {"fileName": "artifacts/mutation-library/mutation.html"}
+}

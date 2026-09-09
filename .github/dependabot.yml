@@ -6,7 +6,11 @@ multi-ecosystem-groups:
       interval: daily
 updates:
   - package-ecosystem: npm
-    directory: /
+    directories:
+      - /
+      - /tools/steam-community-bbcode
+      - /tools/steam-community-bbcode/tooling/type-coverage
+      - /tools/steam-community-bbcode/comparison/node
     patterns: ["*"]
     multi-ecosystem-group: repository-version-updates
     cooldown:

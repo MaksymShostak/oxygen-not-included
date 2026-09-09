@@ -97,7 +97,7 @@ and shipped source were inspected. `contextFreeTags`, `caseFreeTags` and
 sibling nodes. Native spans retain unknown syntax and reveal malformed pairs;
 the recovery AST itself cannot be treated as a valid Steam semantic tree.
 The strict checker fails on `TagNode.toJSON()` and `TagNodeObject` optional
-coordinate properties. The [isolated reproduction](../comparison/bbob/README.md)
+coordinate properties. The source-checkout reproduction in `comparison/bbob/README.md`
 preserves this result; no ambient declaration, vendor patch or checker suppression
 is authorized.
 
@@ -293,3 +293,98 @@ root licensing and the .NET toolchain are unchanged.
 
 Sources: [Node util.parseArgs](https://nodejs.org/docs/latest-v24.x/api/util.html#utilparseargsconfig)
 and [Node filesystem APIs](https://nodejs.org/docs/latest-v24.x/api/fs.html).
+
+## Runtime, mutation and supply-chain qualification (9 September 2026)
+
+Use c8 12.0.0 (ISC) for native V8 coverage and Stryker core/TAP runner 10.0.0
+(Apache-2.0) for executable JavaScript mutation. Exact installed licence texts
+were inspected; native installations retain attribution, notices and patent terms.
+c8's licence SHA256 is
+`1a9c55b2961f5e3062e181fa55666c44d011fc3cc03ed6d4fa4321c51f2a5ec5`;
+both Stryker licence texts match
+`b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1`.
+
+The maintained TAP runner consumes the existing `node:test` suite. A separate
+built-in command runner exercises the actual CLI child process. The proposed
+native Node runner remains unmerged and was not adopted. Stryker sandboxes omit
+unconsumed compiler configuration because its config rewriter uses a removed
+TypeScript API; primary TypeScript 7 checking remains unchanged. Native Node
+ancestor resolution avoids unnecessary node_modules links. No vendor patch,
+alternate compiler, alias, shim or checker suppression is introduced. Windows
+host execution only accommodates native cleanup of the tool's own workers.
+
+Runtime thresholds remain 98% statements/lines/functions and 95% branches;
+mutation profiles each require 90%. Three modules containing only JSDoc and
+`export {}` have no executable behavior and are excluded from runtime coverage;
+their type/declaration contracts remain checked. Executable registry/diagnostic
+data remains measured. See [testing](testing.md) for commands and limitations.
+
+Native npm 12 CycloneDX SBOM output describes each actual lock graph without
+installation scripts or a second dependency resolver. The initial quality graph
+has 299 components; its runtime-only view has 66, all declaring MIT or Apache-2.0.
+The isolated type-coverage graph has 37. Development graphs additionally declare
+ISC, BSD-3-Clause, BlueOak-1.0.0, 0BSD and CC-BY-4.0. Inspected full texts include
+the BlueOak tools, tslib's 0BSD terms and caniuse-lite's CC-BY-4.0 data licence.
+These counts describe that retained snapshot, before subsequent lint tooling.
+Metadata is not licence-text clearance, a vulnerability scan or signature proof.
+Recheck the exact final graph for a release and retain all native notices.
+
+CI composes the existing converter matrix with native dependency review 5.0.0
+and artifact upload 7.0.1. Exact full-commit pins and action interfaces were
+checked against GitHub release metadata; both action packages carry MIT terms.
+No custom security scanner, Actions wrapper or platform-protection change is
+introduced. Remote results and independent security acceptance remain outstanding.
+
+Sources: [c8](https://github.com/bcoe/c8),
+[Stryker TAP](https://stryker-mutator.io/docs/stryker-js/tap-runner/),
+[Stryker configuration](https://stryker-mutator.io/docs/stryker-js/configuration/),
+[npm SBOM](https://docs.npmjs.com/cli/v12/commands/npm-sbom/),
+[dependency review](https://github.com/actions/dependency-review-action),
+[artifact upload](https://github.com/actions/upload-artifact).
+
+## Native JavaScript linting (9 September 2026)
+
+The registry selects ESLint 10.10.0, @eslint/js 10.0.1 and globals 17.12.0 as
+current stable. Their exact published archives and full MIT licence texts were
+inspected, retaining OpenJS and Sindre Sorhus notices. Their Node requirements
+cover the accepted CI matrix. These are development dependencies only.
+
+Use native flat configuration and all maintained recommended JavaScript rules,
+with Node ESM globals and intentional object-rest exclusion through the supported
+`ignoreRestSiblings` setting. TypeScript remains responsible for checked JSDoc
+and consumer declarations. No TypeScript-aware ESLint parser or second compiler
+is needed. The custom gap is package scope/configuration, not new lint rules.
+Inline configuration is disallowed and warnings fail the command.
+
+Sources: [ESLint configuration](https://eslint.org/docs/latest/use/configure/configuration-files)
+and [ESLint setup](https://eslint.org/docs/latest/use/getting-started).
+
+## Final locked graph and workflow validation (9 September 2026)
+
+The final parent SBOM contains 360 dependency components; the isolated
+type-coverage graph contains 37. Every component has declared licence metadata.
+The additional BSD-2-Clause lint/parser packages retain their full source and
+binary redistribution conditions and disclaimers. Full installed texts were
+inspected for eslint-scope, espree, esrecurse, estraverse, esutils and uri-js;
+esrecurse carries its terms in the source header. This inspection and the SBOM
+remain distinct from the plan's independent pre-release legal review.
+
+Stryker's typed-rest-client 2.3.1 pins qs 6.15.1, for which the native npm audit
+reported moderate advisories. The latest supported client patch still selects
+that release. A narrowly scoped native npm override selects unmodified qs 6.16.0
+for that client only. Its exact BSD-3-Clause licence was inspected. No alias,
+shim, vendor patch, audit suppression or runtime dependency is introduced.
+The refreshed audit reports zero advisories on this locked graph. Reassess the
+override when the supported client itself selects a patched qs version.
+
+Native actionlint 1.7.12 validates the changed GitHub Actions workflow. The
+official Windows archive's SHA256 matches both release metadata and the published
+checksum list:
+`6e7241b51e6817ea6a047693d8e6fed13b31819c9a0dd6c5a726e1592d22f6e9`.
+Its exact MIT licence was inspected. The task-local executable requires no Go
+installation or project dependency. Its clean result checks workflow syntax and
+Actions expressions; it does not execute the remote matrix or adopt branch rules.
+
+Sources: [qs advisory](https://github.com/advisories/GHSA-4mjr-xmp4-gh2g),
+[native npm overrides](https://docs.npmjs.com/cli/v12/configuring-npm/package-json#overrides),
+and [actionlint release](https://github.com/rhysd/actionlint/releases/tag/v1.7.12).

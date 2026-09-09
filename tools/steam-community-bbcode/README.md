@@ -7,7 +7,7 @@ The [generated matrix](docs/steam-support-matrix.md) distinguishes preserved,
 approximated and unsupported semantics. Stable release qualification remains
 unfinished; the private `1.0.0` development label does not attest readiness.
 
-The [accepted implementation plan](../../docs/plans/2026-09-08-steam-community-bbcode-implementation-plan-v2.md)
+The [accepted implementation plan](../../docs/plans/2026-09-08-steam-community-bbcode-implementation-plan-v2.md) (source checkout)
 defines an ESM JavaScript package with checked JSDoc, generated declarations,
 source-provenanced Steam constructs, MDAST semantics and native GFM serialization.
 Steam-to-GFM is the primary direction; GFM-to-Steam implements an explicit subset.
@@ -55,10 +55,19 @@ or support for every parameter variant. Some GitHub surfaces additionally autoli
 escaped text; `GFM_RENDERER_AUTOLINK_POSSIBLE` reports that possibility separately
 from GFM syntax fidelity.
 
-The CLI and comparative corpus have local execution evidence.
-Broader property/resource/mutation qualification and independent security/release
-review remain later gates.
-Runtime test coverage and mutation thresholds have not yet been qualified.
+The CLI, comparative corpus, seeded properties and resource contracts have local
+execution evidence. Runtime coverage and both mutation thresholds pass locally
+(library 90.18%, CLI 98.37%). Independent security/release review
+and the complete remote Node/OS matrix remain separate gates. See
+[testing](docs/testing.md) for exact scope and retained evidence.
+
+Start with [getting started](docs/getting-started.md), the [API](docs/api.md),
+[CLI](docs/cli.md), [per-construct examples](docs/conversion-semantics.md) and
+[diagnostics](docs/diagnostics.md). Node 22/24/26 are the configured CI lines;
+current local results use Node 24.20.0 on Windows x64. The [security model](docs/security-model.md)
+states resource and HTML boundaries, and [SECURITY.md](SECURITY.md) provides private
+reporting. [Comparison](docs/comparison.md) and [release qualification](docs/releasing.md)
+distinguish recorded results from outstanding acceptance.
 
 The forward URL policy uses native WHATWG parsing, permits HTTP/HTTPS and relative
 references (plus `mailto:` for links), and rejects control characters and

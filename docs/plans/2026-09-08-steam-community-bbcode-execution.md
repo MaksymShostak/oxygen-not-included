@@ -674,3 +674,423 @@ references in native iterator return parameters and child-exit promises. Explici
 native generic parameters and `number | null` promise results restored 100% typed
 references (12703/12703) without aliases, shims or suppressions. Primary TypeScript
 7 checking also passed. The final run follows those annotation changes.
+
+## Runtime coverage and mutation slice (R2)
+
+The CLI checkpoint is signed commit `7fc921225cbb95c0ccc67d975b95908d6d4c7009`.
+Its full verification passed with matching identities, 417 runtime tests,
+12703/12703 typed references, 56 reproducible declarations and installed API/CLI
+consumers. Continue the accepted numerical quality gate without lowering its
+98% statement/line/function, 95% branch and 90% mutation thresholds.
+
+Primary registry/documentation research selects c8 12.0.0 (ISC),
+@stryker-mutator/core 10.0.0 and @stryker-mutator/tap-runner 10.0.0 (Apache-2.0).
+Node's native coverage command does not expose a separate statement threshold;
+c8 uses native V8 coverage and maintained Istanbul reporting, including unloaded
+source with `all`. Stryker's official TAP runner explicitly supports `node:test`
+without changing test frameworks. The proposed dedicated Node runner remains an
+unmerged upstream PR; do not use unreleased code or a custom runner shim.
+
+Exact configuration changes covered by the owner's standing plan approval:
+
+- Add those three exact development versions to the converter `package.json`
+  and update its native npm lockfile with lifecycle scripts disabled. Inspect
+  installed licence texts and retain native notices before execution. Do not
+  install a TypeScript checker plugin or another TypeScript compiler.
+- Add `.c8rc.json` in the converter package with `all: true`, source `src`,
+  inclusion `src/**/*.js`, thresholds statements/lines/functions 98 and branches
+  95, `check-coverage: true`, and text/JSON/HTML/LCOV reports under ignored
+  `artifacts/runtime-coverage`. Add `test:coverage = c8 node --test test/*.test.js`.
+  Replace the ordinary `npm test` invocation within package `check` with this
+  superset, retaining `npm test` as the focused runtime entry point.
+- Add `stryker.config.json` using the official TAP plugin over existing runtime
+  tests plus parser qualification, mutating library `src/**/*.js` except CLI.
+  CLI is a separate `stryker.cli.config.json` profile using Stryker's built-in
+  command runner and the real CLI subprocess tests. This avoids assuming that
+  TAP's in-process coverage can see a spawned CLI. Both profiles enforce 90%.
+- Both mutation profiles use native sandboxes (`inPlace: false`), four workers,
+  explicit `disableTypeChecks: false`, local JSON/HTML/text reports, and ignored
+  task-owned `artifacts/mutation-*` temporary directories. No dashboard upload.
+  Non-test comparison installations, generated types and artifact trees are not
+  copied into sandboxes. Library TAP coverage is per test file; CLI command
+  coverage analysis is off because that runner cannot provide it.
+- Add `test:mutation:library`, `test:mutation:cli`, and sequential
+  `test:mutation` npm entry points. Qualify both native runners before starting
+  full mutation work. Preserve failures and survivors as evidence; do not hide
+  survivors, ignore mutants or add coverage/checker suppression comments to pass.
+
+Use coverage/survivors to find meaningful missing contracts, not mirror code.
+Strengthen the CLI filename test so its actual relative argument begins with a
+hyphen, rather than only the basename of an absolute path. Existing correct
+behaviour uses qualification, without manufactured RED; discovered defects use
+the repository test-first procedure. A changed behavioural requirement returns
+to the accepted baseline authority. Record measured scope and tooling limitations
+before claiming the release gate, then run current full verification.
+
+Sources: [c8](https://github.com/bcoe/c8),
+[Stryker TAP runner](https://stryker-mutator.io/docs/stryker-js/tap-runner/),
+[Stryker configuration](https://stryker-mutator.io/docs/stryker-js/configuration/),
+and [unmerged Node runner PR](https://github.com/stryker-mutator/stryker-js/pull/6020).
+
+Initial measurement (`runtime-coverage-initial.log`) was 95.51% lines/statements,
+95.91% functions and 90.19% branches. c8 assigned fictitious uncovered runtime
+functions to three modules containing only JSDoc and `export {}`. Refine
+`.c8rc.json` to exclude exactly `src/diagnostics/conversion-result.js`,
+`src/mdast/steam-mdast-nodes.js` and `src/steam/steam-bbcode-syntax.js` from runtime
+measurement; their contracts remain checked by TypeScript/declaration consumers.
+Do not exclude `diagnostic-codes.js`, which contains actual array construction.
+Include parser-qualification tests in `test:coverage` and remove their duplicate
+execution from `check`; retain `qualify:parser` as the focused entry point.
+
+The first Stryker dry run found 3750 library mutants, then failed because its
+tsconfig sandbox rewriter calls the removed TypeScript compiler API
+`parseConfigFileTextToJson` (`mutation-library-dry-run.log`). Installed source
+confirms that preprocessing runs only for a tsconfig present in the sandbox file
+set. Refine both profiles' supported `ignorePatterns` with `**/tsconfig*.json`:
+these runtime JavaScript mutation tests do not consume compiler configuration.
+This removes unnecessary compiler-config copying/rewriting, not primary checking.
+No vendor modification, fake configuration path, compiler downgrade or type-check
+suppression is permitted. Primary checks continue using the real TypeScript 7
+configuration before/after mutation. Installed Stryker licences match SHA256
+`b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1`;
+c8's ISC text is `1a9c55b2961f5e3062e181fa55666c44d011fc3cc03ed6d4fa4321c51f2a5ec5`.
+Their attribution, notice and patent terms remain intact in native installations.
+
+The next dry run exposed an overly broad sandbox ignore pattern: `comparison`
+also matched the maintained `scripts/comparison` test dependency. Anchor all four
+non-test directory ignores to the package root (`/artifacts`, `/comparison`,
+`/tooling`, `/types`) in both profiles. Retain this setup failure separately;
+it is not a behavioral mutation result. The scoped coverage run now passes
+line/statement/function thresholds (98.48/98.48/98.94%) and identifies the real
+remaining branch gap (92.04%).
+
+The corrected TAP baseline passes all 30 test files, but Stryker's native Windows
+worker cleanup is denied inside the restricted process sandbox. The host retry
+then exposes Stryker's unrelated recursive node_modules discovery entering a
+protected Python bytecode cache. Use the supported `symlinkNodeModules: false`
+setting in both profiles: their sandboxes already sit below this package, so
+native Node ancestor resolution finds this package's exact installed dependencies.
+No symlink, loader override, cache permission change or vendor patch is needed.
+Qualify that resolution and worker cleanup in a narrowly scoped host dry run.
+Retain all setup failures separately from behavioral mutation evidence.
+
+Coverage qualification will exercise malformed and variant preview-image fields,
+quoted resource attributes, optional table layout, JavaScript input rejection and
+the existing typed Steam-MDAST lowering boundary. Authored trees at that boundary
+must satisfy its native content contracts and use independent expected GFM trees;
+they do not imply that every tree shape can be authored in Steam's grammar.
+
+The qualified native TAP and command dry runs complete successfully on the host
+(`mutation-library-native-resolution-dry-run.log`, `mutation-cli-dry-run.log`).
+Runtime coverage now passes at 98.86% lines/statements, 98.94% functions and
+95.59% branches with 479 tests (`runtime-coverage-contracts-green.log`). The first
+CLI mutation run kills 163/184 mutants (88.59%); all 21 survivors are retained in
+`artifacts/mutation-cli/initial-mutation.json`. Strengthen actual CLI contracts:
+nonempty actionable errors, validation before I/O, default coverage formatting,
+combined invalid options, the one-byte minimum and overrides above the default
+reaching both converters. These already-correct cases pass without manufactured
+RED. The invalid extra-file fixture now uses real stdin so ENOENT cannot mask a
+removed argument-count check. The test process buffer accommodates the actual
+1-MiB code-payload result. The complete run will test these assertions' sensitivity.
+
+## Security documentation and inventory slice (R2)
+
+Continue the accepted pure-transformation security boundary while numerical
+mutation qualification runs. Apply the standing approval to create exactly
+`tools/steam-community-bbcode/SECURITY.md`, scoped to this separately licensed
+package: untrusted text/URLs, trusted caller-selected limits and CLI paths,
+no source-triggered I/O/evaluation, structural escaping and opaque preservation,
+bounded-input failure semantics, reportability based on actual reachability and
+impact, and explicit parser-allocation/timeout limits. No finding exclusions,
+severity caps, risk acceptance or scanner bypasses are added. Documentation is
+not independent security acceptance. The private GitHub reporting endpoint is
+enabled (read-only API check, 9 September 2026); use the repository's native
+private advisory form without promising an unapproved response SLA.
+
+Add factual `docs/security-model.md` and `docs/testing.md` covering the accepted
+contracts, observed controls and qualification gaps. The policy path and boundary
+are already required by the accepted baseline; the security-policy skill's
+per-edit approval is covered by the owner's explicit standing configuration
+approval. Resolve its effective policy after writing.
+
+For the locked dependency/licence inventory, reuse npm 12.0.2's built-in
+`sbom --package-lock-only --offline --ignore-scripts --sbom-format=cyclonedx`.
+It supplies the actual lock graph, declared licences and archive hashes without
+an extra inventory library or network access. Retain raw output, lock hashes,
+native version and exact command. Declared metadata is not licence-text review
+or vulnerability/provenance qualification. The first parent-graph output contains
+299 components with no missing licence field; it includes platform-specific
+optional packages from the lock, not only this host's installed subset.
+
+The revised CLI mutation run passes: 181 killed, three survived, no timeout,
+uncovered or error results; score 98.37% (`mutation-cli-contracts.log`). Survivors
+14 and 16 change a defensive non-Buffer guard; the supported CLI streams produce
+Buffers. Survivor 75 removes `readFile`'s UTF-8 option, yielding a Buffer which the
+native descriptor writer emits as the same report bytes. Keep all three in the
+denominator; no suppression or contrived stream replacement is introduced.
+
+While inspecting the library's generated data contract, add a runtime projection
+test against the validated, authored JSON specification. Existing `spec:check`
+compares generated file text; this test independently checks loaded field values,
+identities, default profile and collection immutability. Neither source spelling
+nor the generator is the expected-value oracle. The current baseline passes.
+
+## CI qualification configuration (R2)
+
+Apply the standing configuration approval to these exact changes:
+
+- Converter `package.json`: add `sbom` and `sbom:type-coverage` commands invoking
+  npm's native offline, lock-only CycloneDX output for each approved graph. These
+  commands print metadata without writing policy, contacting a registry or running
+  installation hooks. Refresh native lock metadata and conformance input identity.
+  Add `SECURITY.md` to the existing package-file allowlist so installed consumers
+  receive the reporting policy. Expand the existing single-doc entry to `docs/`
+  so that policy and API documentation links resolve in the installed package;
+  source-only commands remain identified as source-checkout workflows.
+- `.github/workflows/steam-community-bbcode.yml`: retain the six existing OS/Node
+  combinations and npm 12.0.2. Generate both SBOMs after dependency installation;
+  run the two mutation profiles once on Ubuntu/Node 24.20.0, in addition to the
+  coverage/type/consumer checks on every matrix entry. Retain coverage, mutation
+  and SBOM artifacts for 30 days even after a check fails. Use a 60-minute job
+  timeout for the complete mutation job. This does not establish any remote pass.
+- Add a pull-request-only dependency-review job in that workflow, selected by the
+  existing converter scope command. Use `contents: read`, fail on all severities
+  from low upward and runtime/development/unknown scopes. Keep native licence
+  reporting, with no invented allowlist or legal-approval claim. Disable PR
+  comments explicitly; no write permission or report messages are needed.
+- Extend only the existing npm entry in `.github/dependabot.yml` from root-only
+  `directory` to `directories` including this package, its approved type-coverage
+  package and isolated Node comparison package. Preserve schedule/grouping and
+  zero cooldown. These are update proposals, subject to compiler/qualification
+  constraints, not automatic dependency acceptance.
+
+Native GitHub release metadata resolves `actions/upload-artifact` v7.0.1 to
+`043fb46d1a93c77aae656e7c1c64a875d1fc6a0a` and
+`actions/dependency-review-action` v5.0.0 to
+`a1d282b36b6f3519aa1f3fc636f609c47dddb294`. Their exact action interfaces use Node 24
+and their inspected licence texts are MIT with GitHub attribution retained in
+the native Actions distribution. Pin those full commits; reuse the already pinned
+checkout/setup-node actions. The existing CodeQL workflow already includes
+JavaScript/TypeScript, uses pinned actions and scoped upload permissions; preserve
+it and report its fork-PR exclusion as a CI coverage limitation. Branch-protection
+adoption and live execution are separate platform actions.
+
+Sources: [native SBOM](https://docs.npmjs.com/cli/v12/commands/npm-sbom/),
+[dependency review](https://github.com/actions/dependency-review-action),
+[artifact action](https://github.com/actions/upload-artifact).
+
+The initial current full route passes (`quality-initial-full-verification.log`):
+483 tests under coverage, 13408/13408 typed references, 56 reproducible declarations
+and installed consumers. Its matching workspace fingerprint is
+`3e6f05f4efc2e8d46bfb0af885f6bcd783199381e131ada4a3b1224b0b27d985`.
+Subsequent test/documentation changes require a fresh final route. The additional
+diagnostic contract tests require unique nonempty catalogue identifiers and
+nonempty explanations for actual conformance/resource outcomes, including all
+three diagnostic scopes. They keep executable diagnostic catalogues in runtime
+coverage and test those data contracts without copying their full identifier list.
+
+Native SBOM commands emit parseable JSON for 299 parent-graph components and 37
+isolated type-coverage components (`quality-package.cdx.json`,
+`quality-type-coverage.cdx.json`). The command guard rejected a separate validation
+redirection to `$null`; no command ran. Direct JSON parsing without redirection
+succeeded. No guard settings or permissions were changed.
+
+The first complete library mutation run fails the 90% gate: 2209 assertion kills,
+8 timeouts, 1345 survivors, 86 uncovered mutants and 102 errors, for 60.77% under
+Stryker's native denominator. Preserve its unmodified report as
+`artifacts/mutation-library/initial-mutation.json`. The subsequent CLI run passes
+at 98.37% (181 kills, three survivors, no timeouts, uncovered mutants or errors).
+Its three survivors concern the native stream's Buffer guard and equivalent
+file-reading encoding; retain them in the denominator without suppressions.
+
+Qualify missing library contracts using the authoritative registry JSON, emitted
+diagnostic and outcome contracts, complete positive/negative URL families, actual
+resource validation and the existing text-position module boundary. Include
+meaningful media body content, whitespace-only media bodies and mixed image/URL
+labels so that preservation cannot silently absorb active markup. Already-correct
+behaviour passes without manufactured RED (`mutation-contracts-qualification.log`,
+480 tests; TypeScript 7 qualification passes). TypeScript caught missing required
+fixture metadata and an over-broad inferred specification type; correct fixtures
+and use native property narrowing, with no assertions or suppressions.
+
+Rerun the library gate with native Stryker incremental mode, seeded with an exact
+copy of the completed report at `artifacts/mutation-library/incremental.json`.
+Use `--incremental --incrementalFile artifacts/mutation-library/incremental.json`;
+Stryker owns source/test-change detection and result reuse. No report fields,
+mutator sets or thresholds are altered. The CLI implementation/tests remain
+unchanged since their passing complete run. Native incremental reuse is described
+in [Stryker's official guide](https://stryker-mutator.io/docs/stryker-js/incremental/).
+
+## Documentation and lint completion slice (R2)
+
+Complete the accepted package documentation with API/CLI/getting-started guides,
+generated per-construct examples, comparison interpretation and a release guide.
+Extend the existing conformance generator to emit `docs/conversion-semantics.md`
+from already qualified canonical cases and explicit context-only reasons. Keep
+native MDAST parsing/serialization and the authoritative registry; do not add a
+second maintained support list. Check source-checkout documentation links through
+the native Markdown parser and filesystem URL resolution. These documentation
+checks establish local file targets, not remote availability or rendered acceptance.
+
+Exact preapproved configuration changes for this slice:
+
+- Parent `package.json`/native lock: add development-only `eslint: 10.10.0`,
+  `@eslint/js: 10.0.1`, `globals: 17.12.0`; add `lint` invoking ESLint on `src`,
+  `scripts`, `test` and `eslint.config.js`, with zero warnings permitted. Add
+  `docs:check` for the documentation contract tests. Include lint and documentation
+  checks in the existing `check` command; CI consumes that command unchanged.
+- Create `eslint.config.js` using native flat configuration, the maintained
+  recommended JavaScript rules and Node ESM globals. Keep all recommended rules
+  enabled, disallow inline rule configuration, and use native `ignoreRestSiblings`
+  for intentional property exclusion through object-rest composition. Lint only
+  authored/package runtime JavaScript, not installed dependencies, generated
+  declarations or isolated external comparators. No formatter, compiler plugin,
+  custom parser, vendor patch, alias or checker suppression is introduced.
+
+Registry metadata on 9 September 2026 selects those current stable versions;
+their Node requirements include all six accepted CI combinations. Exact published
+archives and full MIT licence texts were inspected under
+`.sdlc/runtime/converter/selection`; retain OpenJS and Sindre Sorhus notices.
+ESLint covers JavaScript mistakes beyond the TypeScript contract check; the
+residual local configuration supplies scope and Node globals, with no custom
+rules. Install after the running mutation snapshot finishes so its shared native
+dependency environment stays unchanged. Sources:
+[ESLint configuration](https://eslint.org/docs/latest/use/configure/configuration-files)
+and [ESLint setup](https://eslint.org/docs/latest/use/getting-started).
+
+The first lint run reports six findings: five unnecessary bracket escapes and
+an explicit C0 control range used deliberately for URL rejection. Preserve all
+recommended rules. Remove only redundant character-class escapes and express
+the same C0/DEL/C1 set using native Unicode `\p{Control}`. Qualify accepted and
+rejected boundary code points before that spelling-only refactor. No check is
+disabled. The resource test already passes the original spelling.
+
+The expanded parser fixture finds a behavioral RED: `[hr \t][/HR ]` produces a
+separate unmatched closer, unlike other recognized closing tags. The native
+ClosingTag token already admits trailing whitespace. Correct the horizontal-rule
+gate to require that native token and compare its normalized name, preserving
+optional closers and other following syntax. The retained failing assertion is
+in `mutation-boundaries-qualification.log`; preserve it as
+`horizontal-rule-whitespace-red.log` before running GREEN.
+
+The dependency audit reports `qs@6.15.1` pinned by Stryker's
+`typed-rest-client@2.3.1`, rather than introduced by ESLint. The latest supported
+2.3.x client still pins that vulnerable release; changing Stryker's client major
+or downgrading it would be broader and less justified. Apply this exact native
+npm configuration change in the parent `package.json` and lock:
+`overrides: {"typed-rest-client@2.3.1": {"qs": "6.16.0"}}`.
+Use the real, unmodified current stable qs package. This replaces dependency
+resolution only; no alias, wrapper, source patch or audit suppression is added.
+Its full BSD-3-Clause terms and exact archive were inspected; retain copyright,
+conditions, disclaimer and non-endorsement requirements. Refresh audit/SBOMs and
+rerun Stryker on the final graph. Reassess/remove the override when the supported
+client itself selects a patched qs release. The runtime converter has no qs edge.
+Sources: [upstream advisory](https://github.com/advisories/GHSA-4mjr-xmp4-gh2g)
+and [qs changelog](https://github.com/ljharb/qs/blob/main/CHANGELOG.md).
+
+## Final diagnostic boundary qualification (R2)
+
+The fresh library mutation run on the final dependency graph scores 89.90%
+(3278 killed, 8 timeouts, 350 survived, 19 uncovered, 100 runtime errors), below
+the unchanged 90% gate. Preserve its raw report before rerunning. Surviving
+malformed-attribute mutations expose a meaningful missing caller contract:
+unterminated quoted attributes must retain their source and identify the missing
+header/quote/tag with nonempty explanations. Qualify both quote delimiters and
+the exact UTF-8 attribute-size boundary on an unfinished header. Use authored
+inputs, public parser results and the existing diagnostic catalogue; do not
+assert incidental message wording or expose private grammar internals.
+
+This is characterization of already implemented behavior, not fabricated RED.
+Run the focused parser contract, lint and TypeScript 7 checks, then the native
+Stryker incremental path using the retained complete report and changed tests.
+Also rerun the CLI mutation profile on the current dependency graph. No mutant
+exclusion, threshold reduction, compiler substitution or suppression is allowed.
+
+The two added public parser contracts pass, including both quoted-attribute
+delimiters and a four-byte attribute accepted exactly at its limit then rejected
+at three bytes. Lint and TypeScript 7 checking also pass. The native incremental
+run detects one changed test file and reuses 3518 of 3755 results from the complete
+fresh graph run; it reruns 237, with original reports retained. This is supported
+tool reuse, not manually edited mutation results.
+
+Inspecting the 100 runtime-error reasons distinguishes 89 mutated native-grammar
+setup/execution failures from 11 description-test module-setup failures, including
+one native hit-count limit. These do not count as assertion kills. Remaining
+survivors and uncovered guards stay in the score; some concern native invariants
+or equivalent defensive conditions. No impossible parser tree or fake stream is
+introduced to manufacture coverage.
+
+The implementation and broader behavior contracts are signed in
+`25a24156d473b69feaaa9a59b33a3539f9b4a184`. The fresh pre-commit repository route
+passed 518 tests, 99.93% lines/statements, 100% functions, 96.36% branches,
+15048/15048 typed references, 56 reproducible declarations and actual installed
+API/CLI/TypeScript consumers (`quality-final-full-verification.log`). That older
+snapshot is not the final evidence for these additional tests/documentation.
+
+The final locked parent SBOM has 360 components and the isolated tooling SBOM
+has 37, with no missing declared licence fields. The refreshed native npm audit
+reports zero vulnerabilities (`quality-dependency-audit-final.json`); metadata
+does not discharge independent licence/security review. The comparator rerun
+retains all 250 observations: this converter accounts for all 50 authored cases
+(21 equivalent, 17 diagnosed loss, 12 exact); other classifications are unchanged.
+
+Native actionlint 1.7.12 passes the exact changed workflow
+(`actionlint-workflow.log`, exit 0). Its task-local Windows archive was checked
+against release metadata and published SHA256 checksums, and its full MIT licence
+inspected. The independent YAML 1.2 unique-key parse also passed. Neither is a
+remote Actions run. The remaining work is final mutation outcomes, a signed
+tooling/documentation commit and fresh repository verification, followed by the
+accepted independent-review and release gates.
+
+### Evidence and temporary material disposition
+
+This converter task owns `.sdlc/runtime/converter` and its package `artifacts/`
+outputs. Preserve original RED/failed logs, native mutation reports, target HTML,
+comparison observations, SBOMs and selection/licence archives for the pending
+independent R2/security review. Keep isolated comparator installations as that
+review's reproduction inputs; reassess their retention when review completes or
+an approved release candidate replaces them. The actionlint binary is a bounded
+review reproduction tool with the same reassessment checkpoint.
+
+Permanent parser/resource/diagnostic regressions are promoted into maintained
+tests. Successful Stryker sandboxes and packed-consumer temporary directories are
+disposed by their native tools; inspect any failed-run sandbox left behind before
+removing its task-owned working copy. Retain the code-of-conduct draft solely for
+the pending owner-selected private reporting contact, then replace it with the
+adopted policy and remove the draft. Active lifecycle and verification records
+are control/evidence state and must not be cleared as scratch. No shared cache,
+user-owned checkout, comparison evidence or failed report is eligible for blanket
+deletion.
+
+The final library mutation result passes at 90.18%: 3288 killed, 8 timeouts,
+340 survived, 19 uncovered and 100 runtime errors. The new malformed-attribute
+contracts detect ten former survivors. The native incremental run takes 3m48s
+(`mutation-library-final-diagnostics.log`); its complete native report remains
+`artifacts/mutation-library/mutation.json`. The current-graph full CLI run also
+passes at 98.37% (181 killed, three survived, no timeouts/uncovered/errors), taking
+5m47s (`mutation-cli-final.log`). Preserve both final reports and earlier failures.
+
+Five failed-run library sandboxes were inspected; three had no reparse points
+and two had native node_modules links. DCG rejected permanent recursive deletion.
+Following its reversible alternative, they were moved without overwriting to
+`.sdlc/runtime/converter/retained-sandboxes/`: `sandbox-0TiYp9`, `sandbox-38pYbg`,
+`sandbox-Hg7K0w`, `sandbox-QyVwER` and `sandbox-Tya3rI`. No linked dependency target
+was deleted. The optional host process inventory was unavailable (CIM access
+denied); the producing exec sessions were already completed. These remain owned
+by this task for guarded disposition at the independent-review checkpoint.
+Original setup logs and mutation reports stay at their existing locations.
+This move changes no source, test, dependency or verification input.
+
+Final automatic verification will run through `npm run sdlc -- verify --keep-going`
+after the signed tooling/documentation commit, writing the actual frozen identity
+and outcome to `.sdlc/runtime/verification/full.json` and retaining console output
+as `.sdlc/runtime/converter/quality-committed-full-verification.log`.
+Do not infer that outcome from this prospective command or the earlier pass.
+
+The only missing documentation owner decision is the private conduct-reporting
+contact; the concrete draft is retained and has not been adopted. Independent R2
+verification/review and applicable native security assessment still need an
+authorized independent route under the standing no-subagents instruction. Remote
+CI, branch-rule adoption, pre-release legal review, publisher binding and any
+push/publication remain separate gates. This candidate makes no stable-release
+or in-game/Workshop acceptance claim.

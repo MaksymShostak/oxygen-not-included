@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "testRunner": "command",
+  "commandRunner": {"command": "node --test test/cli.test.js"},
+  "mutate": ["src/cli.js"],
+  "coverageAnalysis": "off",
+  "disableTypeChecks": false,
+  "inPlace": false,
+  "symlinkNodeModules": false,
+  "concurrency": 4,
+  "thresholds": {"high": 90, "low": 90, "break": 90},
+  "ignorePatterns": ["/artifacts", "/comparison", "/tooling", "/types", "**/tsconfig*.json"],
+  "tempDirName": "artifacts/mutation-cli-tmp",
+  "reporters": ["clear-text", "progress", "json", "html"],
+  "clearTextReporter": {"reportTests": false, "reportMutants": false},
+  "jsonReporter": {"fileName": "artifacts/mutation-cli/mutation.json"},
+  "htmlReporter": {"fileName": "artifacts/mutation-cli/mutation.html"}
+}

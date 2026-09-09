@@ -25,17 +25,26 @@
     "types/",
     "spec/",
     "coverage.json",
-    "docs/steam-support-matrix.md",
+    "docs/",
     "README.md",
+    "SECURITY.md",
     "LICENSE"
   ],
   "scripts": {
     "cli": "node src/cli.js",
     "comparison:run": "node scripts/compare-alternatives.js",
+    "sbom": "npm sbom --package-lock-only --offline --ignore-scripts --sbom-format=cyclonedx",
+    "sbom:type-coverage": "npm --prefix tooling/type-coverage sbom --package-lock-only --offline --ignore-scripts --sbom-format=cyclonedx",
     "conformance:generate": "node scripts/generate-conformance-report.js",
     "conformance:check": "node scripts/generate-conformance-report.js --check",
+    "docs:check": "node --test test/documentation.test.js",
+    "lint": "eslint src scripts test eslint.config.js --max-warnings 0",
     "qualify:github": "node scripts/qualify-github-rendering.js --live",
     "test": "node --test test/*.test.js",
+    "test:coverage": "c8 node --test test/*.test.js test/parser-qualification/*.test.js",
+    "test:mutation:library": "stryker run stryker.config.json",
+    "test:mutation:cli": "stryker run stryker.cli.config.json",
+    "test:mutation": "npm run test:mutation:library && npm run test:mutation:cli",
     "typecheck": "tsc --project tsconfig.json",
     "build:types": "tsc --project tsconfig.declarations.json",
     "clean:types": "node scripts/clean-generated-types.js",
@@ -43,7 +52,7 @@
     "types:check": "node scripts/verify-generated-types.js",
     "test:package": "node scripts/test-package-consumers.js",
     "type-coverage": "npm --prefix tooling/type-coverage run check",
-    "check": "npm run spec:check && npm test && npm run conformance:check && npm run qualify:parser && npm run typecheck && npm run type-coverage && npm run types:check && npm run test:types && npm run test:package",
+    "check": "npm run spec:check && npm run lint && npm run test:coverage && npm run conformance:check && npm run typecheck && npm run type-coverage && npm run types:check && npm run test:types && npm run test:package",
     "test:types": "tsc --project test/type-contracts/tsconfig.json",
     "qualify:parser": "node --test test/parser-qualification/*.test.js",
     "validate:spec": "node scripts/validate-specification.js",
@@ -61,11 +70,22 @@
     "micromark-extension-gfm": "3.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@stryker-mutator/core": "10.0.0",
+    "@stryker-mutator/tap-runner": "10.0.0",
     "@types/node": "22.20.1",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",
+    "c8": "12.0.0",
+    "eslint": "10.10.0",
     "fast-check": "4.9.0",
+    "globals": "17.12.0",
     "typescript": "7.0.2"
+  },
+  "overrides": {
+    "typed-rest-client@2.3.1": {
+      "qs": "6.16.0"
+    }
   },
   "repository": {
     "type": "git",
