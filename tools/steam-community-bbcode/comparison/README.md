@@ -31,6 +31,15 @@ the published runtime package or the repository's main Python environment.
 The old generic Node dependency graph is used only for comparison; this record
 does not qualify its dependencies for production adoption.
 
+The locked Node comparison graph uses the maintainer's unmodified `form-data`
+2.5.6 v2 backport through a native override beneath Request 2.88.2.
+The obsolete `~2.3.2` range otherwise retains two vulnerable multipart releases.
+This declared dependency-selection change preserves all 250 outputs, statuses,
+semantic trees and diagnostics against the immediately preceding native run.
+Provider source remains unchanged; the report retains the new manifest/lock hashes.
+Ten moderate affected-package audit entries remain within the assessed fixed-corpus
+tooling boundary, with no high or critical entries in the refreshed npm audit.
+
 `PASS_EXACT` means the output matches an authored target spelling;
 `PASS_EQUIVALENT` means its parsed semantics match. Neither is a stronger semantic
 result. `PASS_DIAGNOSED_LOSS` additionally requires a per-input target-loss or

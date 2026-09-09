@@ -5,40 +5,63 @@ import {mkdtemp, mkdir, readFile, readdir, writeFile, lstat, rm} from 'node:fs/p
 import {tmpdir} from 'node:os';
 import {basename, dirname, join, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {parseArgs} from 'node:util';
+import {registry} from './release-artifacts.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const npmCli = process.env['npm_execpath'];
 assert.ok(npmCli, 'Use npm run test:package.');
-const artifacts = join(root, 'artifacts');
+const {values} = parseArgs({options: {output: {type: 'string'}, coordinate: {type: 'string'}, integrity: {type: 'string'}, audit: {type: 'boolean', default: false}}});
+const artifacts = values.output ? resolve(values.output) : join(root, 'artifacts');
 await mkdir(artifacts, {recursive: true});
 
 /** @param {string[]} args @param {string} cwd @param {string} [input] */
 function run(args, cwd, input = '') {
   const result = spawnSync(process.execPath, args,
-    {cwd, input, encoding: 'utf8', windowsHide: true});
+    {cwd, input, encoding: 'utf8', windowsHide: true, maxBuffer: 32 * 1024 * 1024});
   assert.equal(result.status, 0, result.error?.message ?? result.stdout + result.stderr);
   return result.stdout;
 }
 
-run([npmCli, 'run', 'build'], root);
 /** @type {unknown} */
-const packed = JSON.parse(run([npmCli, 'pack', '--ignore-scripts', '--json', '--pack-destination', artifacts], root));
-assert.ok(packed && typeof packed === 'object' && !Array.isArray(packed));
-assert.deepEqual(Object.keys(packed), ['steam-community-bbcode']);
-assert.ok('steam-community-bbcode' in packed);
-/** @type {unknown} */
-const entry = packed['steam-community-bbcode'];
-assert.ok(entry && typeof entry === 'object' && 'filename' in entry && typeof entry.filename === 'string');
-assert.equal(basename(entry.filename), entry.filename);
-const archive = join(artifacts, entry.filename);
+let entry;
+let subject = values.coordinate;
+if (subject === undefined) {
+  assert.equal(values.integrity, undefined, '--integrity belongs to exact public-coordinate verification.');
+  run([npmCli, 'run', 'build'], root);
+  /** @type {unknown} */
+  const packed = JSON.parse(run([npmCli, 'pack', '--ignore-scripts', '--json', '--pack-destination', artifacts], root));
+  assert.ok(packed && typeof packed === 'object' && !Array.isArray(packed));
+  assert.deepEqual(Object.keys(packed), ['steam-community-bbcode']);
+  assert.ok('steam-community-bbcode' in packed);
+  entry = packed['steam-community-bbcode'];
+  assert.ok(entry && typeof entry === 'object' && 'filename' in entry && typeof entry.filename === 'string');
+  assert.equal(basename(entry.filename), entry.filename);
+  subject = join(artifacts, entry.filename);
+} else {
+  assert.ok(subject.startsWith('steam-community-bbcode@'));
+  assert.ok(values.integrity, 'Public consumers must be bound to the retained archive integrity.');
+  for (const credential of ['NPM_TOKEN', 'NODE_AUTH_TOKEN']) {
+    assert.ok(!process.env[credential], 'Public registry qualification must run without npm publication credentials.');
+  }
+}
 const consumer = await mkdtemp(join(tmpdir(), 'steam-bbcode-consumer-'));
 try {
-  await writeFile(join(consumer, 'package.json'), JSON.stringify({private: true, type: 'module'}));
-  run([npmCli, 'install', '--ignore-scripts', '--omit=dev', '--no-audit', '--no-fund', archive], consumer);
+  await writeFile(join(consumer, 'package.json'), JSON.stringify({name: 'steam-community-bbcode-release-consumer', version: '0.0.0', private: true, type: 'module'}));
+  const registryArgs = values.coordinate ? [`--registry=${registry}`, '--cache', join(consumer, 'cache')] : [];
+  run([npmCli, 'install', '--ignore-scripts', '--omit=dev', '--no-audit', '--no-fund', ...registryArgs, subject], consumer);
   const installed = join(consumer, 'node_modules', 'steam-community-bbcode');
-  /** @type {{license: string, scripts?: Record<string, string>, bin?: Record<string, string>}} */
+  /** @type {{name: string, version: string, private?: boolean, license: string, scripts?: Record<string, string>, bin?: Record<string, string>}} */
   const manifest = JSON.parse(await readFile(join(installed, 'package.json'), 'utf8'));
+  assert.equal(manifest.name, 'steam-community-bbcode');
   assert.equal(manifest.license, 'AGPL-3.0-only');
+  if (values.coordinate) {
+    assert.equal(`${manifest.name}@${manifest.version}`, values.coordinate, 'Install the exact public version, not a tag or range.');
+    /** @type {{packages: Record<string, {integrity?: string}>}} */
+    const lock = JSON.parse(await readFile(join(consumer, 'package-lock.json'), 'utf8'));
+    assert.equal(lock.packages['node_modules/steam-community-bbcode']?.integrity, values.integrity,
+      'The installed public consumer must use the exact qualified archive.');
+  }
   assert.ok((await readFile(join(installed, 'LICENSE'), 'utf8')).includes('GNU AFFERO GENERAL PUBLIC LICENSE'));
   for (const hook of ['preinstall', 'install', 'postinstall', 'prepare']) {
     assert.equal(manifest.scripts?.[hook], undefined, 'Consumers must not compile during installation.');
@@ -88,7 +111,22 @@ try {
   // The publisher provides the compiler; type resolution occurs in the isolated
   // consumer, where only tarball dependencies exist. There is no workspace hoist.
   run([join(root, 'node_modules', 'typescript', 'bin', 'tsc'), '--project', join(consumer, 'tsconfig.json')], consumer);
-  console.log(`Installed JavaScript/type consumer smoke passed: ${archive}`);
+  if (values.audit) {
+    const audit = spawnSync(process.execPath, [npmCli, 'audit', '--omit=dev', '--audit-level=low', '--json', ...registryArgs],
+      {cwd: consumer, encoding: 'utf8', windowsHide: true, maxBuffer: 32 * 1024 * 1024});
+    await writeFile(join(artifacts, 'production-audit.json'), audit.stdout);
+    assert.equal(audit.status, 0, audit.error?.message ?? audit.stdout + audit.stderr);
+    await writeFile(join(artifacts, 'production.cdx.json'), run([npmCli, 'sbom', '--omit=dev', '--ignore-scripts', '--sbom-format=cyclonedx'], consumer));
+  }
+  if (values.coordinate) {
+    await writeFile(join(artifacts, 'signature-audit.json'), run([npmCli, 'audit', 'signatures', '--json', ...registryArgs], consumer));
+  }
+  await writeFile(join(artifacts, 'consumer-report.json'), JSON.stringify({result: 'PASS',
+    package: {name: manifest.name, version: manifest.version, private: manifest.private === true, license: manifest.license},
+    javascript: 'PASS', cli: 'PASS', declarations: 'PASS', compiler: 'TypeScript 7.0.2',
+    productionAudit: values.audit ? 'PASS' : 'NOT_RUN', signatureAudit: values.coordinate ? 'PASS' : 'NOT_RUN'}, null, 2) + '\n');
+  if (entry) await writeFile(join(artifacts, 'pack-actual.json'), JSON.stringify(entry, null, 2) + '\n');
+  console.log(`Installed JavaScript/type consumer smoke passed: ${subject}`);
 } finally {
   const target = resolve(consumer);
   assert.equal(dirname(target), resolve(tmpdir()));

@@ -13,6 +13,11 @@ The current recorded candidate meets all 50 corpus contracts, including explicit
 Steamify 2.0.1, bbcode-to-markdown 1.0.3, Steam Editor Tools 0.5.1 and the BUTR converter 1.0.0.29 are invoked unmodified through documented APIs.
 A project is compared only where its capability evidence makes the case applicable.
 
+The isolated legacy Node graph selects unmodified `form-data` 2.5.6 through a native npm override for Request 2.88.2.
+This maintainer-provided backport fixes the two advisories raised by remote dependency review while all 250 comparison outputs and semantic results remain unchanged.
+The raw report records the changed dependency-selection hashes; no comparator source was patched.
+See [software selection](software-selection.md) for the remaining legacy advisory scope.
+
 Exact output and semantically equivalent output are equally successful results.
 Diagnosed loss also requires the authored expected fallback tree: a warning does not excuse incorrect output.
 No weighted score or general superiority claim is derived from this selected corpus.

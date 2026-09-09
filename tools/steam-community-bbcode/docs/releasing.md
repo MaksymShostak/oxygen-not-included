@@ -1,46 +1,74 @@
-# Release qualification
+# Releasing
 
-This package remains private.
-Its development `1.0.0` label is not a stable release claim.
-Publishing, npm ownership and trusted-publisher setup require separate owner authorization.
-Do not remove `private`, invent credentials or publish as a side effect of checking the package.
+The release implementation reuses owlapi's candidate, checksum and public-registry verification code.
+The exact source revision and retained controls are recorded in [software selection](software-selection.md).
+The package is still a private development package at version 1.0.0; that number does not identify a public release.
 
-Prepare a frozen candidate with an agreed public package identity and version.
-Confirm every registered construct has an executed policy, source evidence and documented example; inspect partial reverse limitations and current comparison results.
-Complete independent R2 verification and applicable security review.
-The source checkout's accepted plan and execution record retain the full gates.
+## Qualify a candidate
 
-Run from the package source checkout:
+From this package's source checkout with the locked development tools installed, run:
 
-```text
+```sh
 npm run check
-npm run test:mutation
-npm run build
-npm run test:package
-npm pack --dry-run --ignore-scripts
-npm run --silent sbom
-npm run --silent sbom:type-coverage
+npm run release:pack
 ```
 
-`check` includes registry/doc freshness, runtime coverage, primary TypeScript 7 checking, isolated 100% type coverage, reproducible declarations and installed consumers. Mutation profiles separately require at least 90%. Preserve failed runs, surviving mutants, timeout/error counts and scope; scores alone do not establish semantic correctness or security approval.
+The second command prints a new directory under `artifacts/release-candidates/`.
+It builds declarations with TS 7, packs through native npm and installs that archive into a temporary consumer.
+The existing authored JavaScript, CLI, declaration contracts, licence and package-boundary checks run against the installed package.
+Native npm audits the actual installed production graph with the same low-severity floor as dependency review and emits its CycloneDX SBOM.
+The candidate retains the archive, native pack inventory, consumer report, audit, SBOM, Git revision and dirty-state marker, archive SHA-256/SHA-512 integrity, and `SHA256SUMS`.
 
-Review the native archive allowlist and actual packed files.
-Ship authored ESM, generated declarations/maps, source specifications, conformance evidence and package documentation/notices.
-Maps must resolve to shipped source.
-Exclude tests, local mutation/coverage artifacts, credentials and comparator installations.
-Review full direct and transitive licence terms from the exact locked graph; SBOM metadata is an inventory, not legal clearance.
-Keep AGPL-3.0-only explicit.
+Use `npm run release:pack -- --output artifacts/my-candidate` to choose an empty directory.
+The empty-directory requirement prevents mixing files from different attempts; it does not impose an immutable-release policy.
+Keep the printed archive with its evidence through publication and registry verification.
+Candidate qualification does not resolve the outstanding renderer, availability or release-review obligations in [testing](testing.md).
 
-Require current Node 22/24/26 checks on Windows and Linux, CodeQL and dependency review results, meaningful property/resource tests and review of every generated HTML path.
-Check the exact Action commit pins and scoped permissions.
-Local Windows results cannot substitute for remote CI or the independent review gates.
+## Release acceptance
 
-Configure the approved npm package to trust the exact GitHub repository, workflow and any selected environment through npm Trusted Publishing.
-That is a platform binding, not something a checked-in workflow can establish by itself.
-Follow the [native npm guide](https://docs.npmjs.com/trusted-publishers/) for OIDC publishing and provenance prerequisites.
-Use scoped permissions and an owner-approved release trigger; avoid a long-lived publication token.
-No publisher binding or publication workflow has been activated for this private candidate.
+Prepare the frozen candidate with an agreed public identity and version.
+Confirm every registered construct has an executed policy, source evidence and documented example, including the partial reverse limitations and current comparison results.
+Complete independent R2 verification and applicable security review against the actual candidate.
+The accepted plan and execution record retain the complete gates.
 
-After an authorized publication, verify the exact registry version, archive integrity, installed consumer behavior and provenance.
-Native [`npm audit signatures`](https://docs.npmjs.com/cli/v12/commands/npm-audit/) checks registry signatures and provenance; it is separate from vulnerability auditing.
-Retain immutable comparison and qualification evidence with the approved release.
+Require current Node 22/24/26 checks on Windows and Linux, CodeQL and dependency review, meaningful property/resource checks and review of generated HTML paths. Run `npm run test:mutation` for the configured library and CLI profiles, each requiring at least 90%, or retain equivalent results for unchanged source and tests. Preserve failures, survivors and native timeout/error counts; the numerical score does not establish semantic correctness or security approval.
+Local package checks cannot substitute for remote CI or independent review.
+
+Review the native archive allowlist and actual installed files, declaration maps pointing to shipped source, exact full dependency licence terms and retained notices.
+Keep AGPL-3.0-only explicit and exclude tests, comparison environments, credentials and local artifacts from the distribution.
+The release production SBOM supplements the existing main and isolated tooling inventories; SBOM metadata is not legal clearance.
+The independent pre-release legal review remains required by the accepted plan.
+Keep the original comparison and qualification evidence with the approved release.
+
+## Publish an approved release
+
+The repository workflow **Steam Community BBCode release** has a manual `publish` input, defaulting to false.
+Its default run qualifies and retains a candidate without publishing.
+Before publication, approve and commit the actual public package version and metadata, complete the release obligations, and configure npm's trusted publisher for `MaksymShostak/oxygen-not-included`, workflow `steam-community-bbcode-release.yml`, environment `npm-release`.
+The binding must allow direct `npm publish`; a binding limited to staged publishing cannot authorize this workflow.
+If npm requires an initial package before that binding can be created, the owner must arrange that first publication separately.
+No bootstrap token or credential is stored by this implementation.
+
+Dispatch the reviewed revision with `publish: true` and the intended distribution tag, such as `next` for a release candidate or `latest` for an approved stable release.
+The private development flag and a dirty candidate prevent publication.
+The publisher downloads the same run's artifact by ID, checks its native artifact digest and `SHA256SUMS`, and publishes its exact archive with native npm OIDC/provenance.
+Only that job receives OIDC permission, and it executes no checked-out project code or package lifecycle scripts.
+The workflow does not create an immutable GitHub release or impose a single distribution channel.
+
+## Verify the registry
+
+A separate job without publication credentials fetches the exact public version and requested tag.
+It verifies that the registry archive has the retained SHA-256 and published SHA-512 integrity, then installs the exact coordinate with a fresh npm cache.
+The installed lockfile must bind the package to the same archive integrity before the existing API, CLI and TS 7 consumers run.
+Native `npm audit signatures` verifies available registry signatures and provenance, and native production audit runs again.
+Other distribution tags may coexist.
+
+To repeat this read-only verification from a qualified source checkout:
+
+```sh
+npm run release:verify-registry -- --candidate artifacts/my-candidate --tag next --output artifacts/registry-verification
+```
+
+Retain the registry verification artifact with the candidate.
+If publishing succeeds but verification fails, diagnose or rerun the verification job against that same candidate; do not republish the version to recover a verification failure.
+Live trusted-publisher configuration and a successful public-registry run are required before claiming operational publication.

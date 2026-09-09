@@ -16,6 +16,7 @@ The repository root MIT/Klei licence and .NET/ONI Mod Pipeline are unchanged.
 See [LICENSE](LICENSE) for AGPL version 3 only.
 Dependency notices retain their original terms; [third-party notices](docs/third-party-notices.md) accompany the descriptions copied into generated API documentation.
 Publication and pre-release legal review are separate gates.
+The [release guide](docs/releasing.md) describes candidate construction, manual publication and registry verification.
 
 Use npm 12.0.2; `npm --version` should report that exact version.
 Install this directory with `npm ci --ignore-scripts`, and install the approved coverage environment with `npm --prefix tooling/type-coverage ci --ignore-scripts`.

@@ -1,0 +1,151 @@
+# SPDX-License-Identifier: MIT
+# Repository integration of the owlapi candidate/publication/verification design.
+# Reused implementation stays in the converter's AGPL-3.0-only subpackage.
+name: Steam Community BBCode release
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the qualified archive to npm (requires release approval and npm trusted-publisher setup)
+        type: boolean
+        default: false
+      tag:
+        description: npm distribution tag for this release
+        type: string
+        default: next
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: steam-community-bbcode-release
+  cancel-in-progress: false
+
+jobs:
+  candidate:
+    name: Qualify the release archive
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      artifact_id: ${{ steps.archive.outputs.artifact-id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24.20.0
+          package-manager-cache: false
+      - name: Select the qualified npm CLI
+        run: npm install --global npm@12.0.2 --ignore-scripts --no-audit --no-fund
+      - name: Install the locked package and isolated tooling
+        run: |
+          npm --prefix tools/steam-community-bbcode ci --ignore-scripts --no-audit --no-fund
+          npm --prefix tools/steam-community-bbcode/tooling/type-coverage ci --ignore-scripts --no-audit --no-fund
+          npm --prefix tools/steam-community-bbcode/tooling/api-docs ci --ignore-scripts --no-audit --no-fund
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version-file: .python-version
+      - name: Install the locked native prose formatter
+        run: |
+          python -m venv .venv
+          node scripts/runRepositoryPython.js -m pip install --require-hashes --only-binary=:all: -r tools/steam-community-bbcode/tooling/prose/requirements.txt
+      - name: Run the existing converter qualification
+        run: npm run check:converter
+      - name: Build and exercise the retained archive
+        working-directory: tools/steam-community-bbcode
+        run: npm run release:pack -- --output artifacts/release-candidate
+      - name: Check publication eligibility
+        if: inputs.publish
+        working-directory: tools/steam-community-bbcode/artifacts/release-candidate
+        run: |
+          jq -e '.package.private == false and .source.dirty == false' candidate.json > /dev/null
+      - name: Retain the candidate from this run
+        id: archive
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: steam-community-bbcode-candidate
+          path: tools/steam-community-bbcode/artifacts/release-candidate/
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    name: Publish the qualified archive
+    needs: candidate
+    if: inputs.publish
+    environment: npm-release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24.20.0
+          registry-url: https://registry.npmjs.org/
+          package-manager-cache: false
+      - name: Select the qualified npm CLI
+        run: npm install --global npm@12.0.2 --ignore-scripts --no-audit --no-fund
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          artifact-ids: ${{ needs.candidate.outputs.artifact_id }}
+          path: candidate
+          merge-multiple: true
+          digest-mismatch: error
+      - name: Verify and publish the retained bytes through npm OIDC
+        working-directory: candidate
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum --check --strict SHA256SUMS
+          jq -e '.package.private == false and .source.dirty == false' candidate.json > /dev/null
+          archives=(steam-community-bbcode-*.tgz)
+          test "${#archives[@]}" -eq 1
+          test -f "${archives[0]}"
+          npm publish "${archives[0]}" --ignore-scripts --provenance --access public --tag "$RELEASE_TAG" --registry=https://registry.npmjs.org/
+
+  verify_registry:
+    name: Verify the public registry and installed consumer
+    needs: [candidate, publish]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24.20.0
+          package-manager-cache: false
+      - name: Select the qualified npm CLI
+        run: npm install --global npm@12.0.2 --ignore-scripts --no-audit --no-fund
+      - name: Install the verifier and TS 7 compiler
+        run: npm --prefix tools/steam-community-bbcode ci --ignore-scripts --no-audit --no-fund
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          artifact-ids: ${{ needs.candidate.outputs.artifact_id }}
+          path: candidate
+          merge-multiple: true
+          digest-mismatch: error
+      - name: Verify the transferred archive
+        working-directory: candidate
+        run: sha256sum --check --strict SHA256SUMS
+      - name: Verify public bytes, signatures, provenance and consumers
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: npm --prefix tools/steam-community-bbcode run release:verify-registry -- --candidate "$GITHUB_WORKSPACE/candidate" --tag "$RELEASE_TAG" --output "$GITHUB_WORKSPACE/registry-verification"
+      - name: Retain registry verification evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: steam-community-bbcode-registry-verification
+          path: registry-verification/
+          if-no-files-found: warn
+          retention-days: 30

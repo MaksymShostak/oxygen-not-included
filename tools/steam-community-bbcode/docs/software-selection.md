@@ -346,3 +346,43 @@ Native `Intl.Segmenter` splits the `e.g. Node` fixture.
 None of these rejected qualification tools enter the adopted dependency graphs.
 
 Sources: [Snapper 0.11.0](https://github.com/TurtleTech-ehf/snapper/tree/v0.11.0), [PyPI distribution](https://pypi.org/project/snapper-fmt/0.11.0/), [Prettier prose wrapping](https://prettier.io/docs/options#prose-wrap), [semantic line breaks](https://sembr.org/), [mdformat-slw](https://github.com/KyleKing/mdformat-slw), and [Flowmark](https://github.com/jlevy/flowmark).
+
+## Release tooling reuse (9 September 2026)
+
+The owner explicitly selected the existing owlapi publication implementation for reuse.
+The source is `Hadden-Industries/owlapi` commit `2ac41c94e6630ca47ce110a484ec9af3b0b1f335`, inspected in the clean local checkout.
+Adapt its `scripts/release-artifacts.mjs`, `scripts/build-release-candidate.mjs` and `scripts/qualify-public-registry.mjs` within this package's matching AGPL-3.0-only boundary, retaining attribution.
+Its native npm archive, checksum, registry-integrity and fresh-consumer code already supplies the required capability.
+Use the same workflow design of separate qualification, publication and verification jobs with the exact same-run artifact ID.
+The residual integration is this package's coordinate and existing API, CLI and declaration consumers.
+The root workflow is a repository-native integration; root MIT/Klei licensing and the `.NET` toolchain remain unchanged.
+
+Use the already qualified Node 24.20.0 and npm 12.0.2.
+Native npm 12 pack JSON is the contract; no older npm output compatibility branch is needed.
+New `actions/download-artifact` 8.0.1 is the current stable release, pinned to `3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c`; its full GitHub MIT notice was inspected.
+The other workflow actions and locked tooling reuse the exact versions already qualified by converter CI.
+OIDC authorization and public registry signature/provenance validation remain native npm responsibilities.
+No new runtime or development npm dependency is introduced.
+
+Omit owlapi's immutable GitHub-release reconciliation, custom archive parsers, package-specific shards and requirement that `next` be the only distribution tag.
+The requested tag must identify the release, while other valid release channels may coexist.
+Retain one tested archive, production SBOM/audit, same-run artifact integrity, scoped publication credentials and a fresh installed public consumer.
+The source checkout's current bootstrap workflow is implementation evidence, not proof of an operational trusted-publishing configuration in this repository.
+The package remains private during qualification; public metadata, first-publication authority and the exact npm trusted-publisher binding are separate owner actions.
+New npm bindings can restrict direct publishing, so activation must explicitly authorize the workflow's `npm publish` operation.
+
+Sources: [owlapi source revision](https://github.com/Hadden-Industries/owlapi/tree/2ac41c94e6630ca47ce110a484ec9af3b0b1f335), [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/), [npm provenance](https://docs.npmjs.com/generating-provenance-statements/), and [download-artifact 8.0.1](https://github.com/actions/download-artifact/releases/tag/v8.0.1).
+
+## Legacy comparator dependency repair (9 September 2026)
+
+Remote dependency review identified two vulnerabilities in the isolated legacy comparator's `form-data` 2.3.3.
+Select the maintainer's unmodified `v2-backport` release 2.5.6 through native npm `overrides["request@2.88.2"]["form-data"]`.
+Request 2.88.2's obsolete `~2.3.2` constraint otherwise prevents selecting that API-compatible maintained backport.
+The exact package and added dependencies' full MIT notices were inspected before execution.
+All 250 provider outputs, classifications, semantic trees and diagnostics are unchanged against the preserved immediately preceding comparison.
+The refreshed report records the changed manifest and lockfile hashes.
+Native npm audit now reports ten moderate affected-package entries and no high or critical entries; it does not report either `form-data` advisory.
+Those remaining legacy risks retain their separately assessed fixed-corpus tooling boundary.
+No provider source, advisory threshold or suppression changed.
+
+Source: [form-data 2.5.6 backport](https://github.com/form-data/form-data/releases/tag/v2.5.6).

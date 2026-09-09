@@ -61,6 +61,7 @@ test.each([
   ["tools/steam-community-bbcode/package-lock.json", ["converter"]],
   ["scripts/runSteamCommunityBbcodeChecks.js", ["converter"]],
   [".github/workflows/steam-community-bbcode.yml", ["sdlc", "converter"]],
+  [".github/workflows/steam-community-bbcode-release.yml", ["sdlc", "converter"]],
 ])("ONI routes %s to the actual affected components", (path, expected) => {
   write(path);
   const head = commit(path);

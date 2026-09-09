@@ -38,7 +38,7 @@ export const CHECK_INPUTS = {
   ],
   pipeline: [...DOTNET_INPUTS, "tools/oni-mod-pipeline", ".github/workflows/oni-pipeline-tests.yml"],
   mods: [...DOTNET_INPUTS, "tools/oni-mod-pipeline", "mods"],
-  converter: ["tools/steam-community-bbcode", "scripts/runSteamCommunityBbcodeChecks.js", ".github/workflows/steam-community-bbcode.yml"],
+  converter: ["tools/steam-community-bbcode", "scripts/runSteamCommunityBbcodeChecks.js", ".github/workflows/steam-community-bbcode.yml", ".github/workflows/steam-community-bbcode-release.yml"],
 };
 function git(root, args) {
   const result = spawnSync("git", args, {

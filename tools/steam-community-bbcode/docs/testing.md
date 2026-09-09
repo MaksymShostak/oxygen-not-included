@@ -59,3 +59,8 @@ Scores measure the configured code and tests.
 They do not prove complete Steam syntax, rendering fidelity, security approval or stable-release readiness.
 The shipped `coverage.json` is a separate **conformance** report, not runtime coverage.
 Current numerical results and retained logs belong to the [execution record](../../../docs/plans/2026-09-08-steam-community-bbcode-execution.md).
+
+The [release workflow](releasing.md) reuses the same installed API, CLI and TS 7 declaration consumers for both retained archives and exact public coordinates.
+`npm run release:pack` also retains native production audit, CycloneDX inventory and archive integrity.
+Registry acceptance checks cover coexistence of release channels and rejection of wrong coordinates, tag targets, archive bytes, origins and SHA-512 integrity.
+The independent public installation and native signature/provenance audit require an actual authorized publication; local fixture checks do not attest those remote operations.

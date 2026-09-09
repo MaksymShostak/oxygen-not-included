@@ -59,6 +59,8 @@
     "build": "npm run spec:generate && npm run clean:types && npm run build:types",
     "types:check": "node scripts/verify-generated-types.js",
     "test:package": "node scripts/test-package-consumers.js",
+    "release:pack": "node scripts/build-release-candidate.js",
+    "release:verify-registry": "node scripts/qualify-public-registry.js",
     "type-coverage": "npm --prefix tooling/type-coverage run check && npm --prefix tooling/type-coverage run check:api-docs",
     "check": "npm run spec:check && npm run lint && npm run docs:api:check && npm run qualify:prose && npm run docs:format:check && npm run test:coverage && npm run qualify:performance && npm run conformance:check && npm run typecheck && npm run type-coverage && npm run types:check && npm run test:types && npm run test:package",
     "test:types": "tsc --project test/type-contracts/tsconfig.json",

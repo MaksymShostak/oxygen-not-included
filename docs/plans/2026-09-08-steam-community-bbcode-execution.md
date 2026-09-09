@@ -1640,3 +1640,160 @@ The converter task owns these copies; reassess disposal after the external
 qualification/reporting checkpoint while retaining acquisition records, original
 failures, review reports and the exact proposal/reproduction as evidence.
 No lifecycle handoff is claimed while those release obligations remain open.
+
+### Remote qualification and owlapi publication reuse — 9 September 2026
+
+The owner separately authorized pushing signed `818cdfe508b0c77b7bcefb48e1ac22e47b443f89`
+to `origin/steam-community-bbcode` and opening a draft against `main`.
+Native signed publication succeeded and [draft PR #4](https://github.com/MaksymShostak/oxygen-not-included/pull/4)
+has that exact head, the expected base and 189 changed paths.
+Readback through the GitHub connector confirms the exact approved body bytes;
+the alternative reader's HTML-escaped quotes are a presentation difference.
+The final five-document independent follow-up passes the actual archive notice,
+native docs/link checks, all 20 authored prose checks and current full-receipt identity.
+
+All six remote Windows/Linux Node matrix jobs have passed the actual package
+check; the Linux Node 24 mutation step remains in progress at this checkpoint.
+The trusted-base job reproduces `Invalid baseline path.` as predicted.
+Dependency review reports two advisories in the isolated legacy comparator's
+`form-data` 2.3.3: GHSA-fjxv-7rqg-78g4 and GHSA-hmw2-7cc7-3qxx.
+Original job logs are retained under the release-qualification directory.
+
+Repair that demonstrated dependency selection using the maintainer's native
+`v2-backport` release, unmodified `form-data` 2.5.6, rather than changing advisory
+policy. The exact planned configuration change is
+`tools/steam-community-bbcode/comparison/node/package.json`:
+`overrides["request@2.88.2"]["form-data"] = "2.5.6"`, with its native npm lockfile
+refresh. Request's obsolete `~2.3.2` constraint prevents selecting that supported
+backport automatically. Preserve the original comparator report and lock bytes,
+review the exact MIT notice and added dependency terms, rerun native audit and
+the common comparison corpus, and require identical provider outcomes.
+This changes the comparator's declared dependency resolution, so its refreshed
+provenance must report that change. It does not patch any provider source or
+introduce an advisory suppression. Other legacy advisories remain separately assessed.
+
+The owner then explicitly directed liberal reuse of the existing Node publication
+solution in `C:/Users/maksy/GitHub/owlapi`, with proportionate release controls.
+That checkout is clean at `2ac41c94e6630ca47ce110a484ec9af3b0b1f335`; its release
+code uses the same AGPL-3.0-only boundary. Assess and adapt its existing candidate
+archive, artifact-ID transfer, scoped publication and fresh public-registry
+verification code. Preserve source attribution and the exact reuse provenance.
+The target integration should publish the already tested archive and verify its
+registry bytes and installed consumer, using native npm authentication/provenance.
+Do not transplant owlapi's immutable GitHub-release/attestation machinery,
+32-shard package-specific qualification or one-prerelease-only registry rules.
+No first-publication credential, trusted-publisher binding, public version change
+or actual npm publication is implied by this reuse instruction; prepare the exact
+workflow and package entry-point changes for local qualification first.
+
+### Publication implementation slice
+
+Continue the accepted R2 release-provenance and installed-consumer obligations,
+using the owner's 9 September owlapi-reuse instruction as the slice authority.
+Adapt owlapi's `release-artifacts.mjs`, `build-release-candidate.mjs`,
+`qualify-public-registry.mjs` and release workflow at the recorded source commit.
+Keep attribution in the adapted files and the software-selection record.
+The residual custom work is the converter coordinate, existing API/CLI/type
+consumer integration and a smaller manual workflow.
+
+The exact configuration changes are:
+
+- Add `release:pack` and `release:verify-registry` npm entry points in
+  `tools/steam-community-bbcode/package.json`; preserve its name, private flag,
+  development version, dependency graph, compiler roles and existing checks.
+- Add `.github/workflows/steam-community-bbcode-release.yml` with manual dispatch,
+  a `publish` boolean defaulting to false and a distribution-tag string defaulting
+  to `next`. Qualify with the existing Node 24.20.0/npm 12.0.2 and locked tooling.
+  Transfer the qualified bundle by its same-run artifact ID, verify native
+  artifact digests and SHA256SUMS, and publish its exact archive with provenance.
+  Only the publication job receives `id-token: write` and names `npm-release`;
+  it executes no checked-out package code. A separate read-only job installs the
+  exact public coordinate, verifies registry bytes/integrity and runs native
+  signature/provenance auditing and the existing consumer fixture.
+  No token secret, automatic tag-triggered publication, immutable GitHub release,
+  attestation reconciliation service or sole-dist-tag policy is introduced.
+
+Extend the existing package-consumer script to accept a candidate output
+directory or an exact public coordinate, retaining its authored JavaScript,
+installed CLI and TS 7 declaration assertions. Release qualification additionally
+retains native production audit and SBOM output. Reuse owlapi's small hash and
+registry-fact helpers instead of its archive parser or release-state framework.
+Native npm packing and actual installed consumers own archive interpretation.
+
+Use preservation evidence for copied capability and existing consumers, and
+test-first checks for changed registry acceptance: the requested tag must select
+the expected version, other legitimate tags may coexist, archive bytes and SRI
+must match, and a wrong coordinate or registry origin must fail.
+Run the package's native lint/type/coverage checks, actual candidate construction,
+and meaningful tamper controls; inspect the workflow using the repository's
+existing YAML consumers. Live OIDC binding and npm publication remain unperformed
+  until explicitly authorized, and `private: true` prevents accidental activation.
+Existing release blockers remain visible rather than being recast as a pass.
+
+The supplied CodeQL alert #1 was statically triaged against its exact test and
+the installed LinkifyIt 6.1.0 implementation. It mistakes `LinkifyIt.match(text)`
+for regex-taking `String.match`; the API actually scans text as data.
+The result is a high-confidence false positive, with full native alert, instance,
+policy and source evidence retained locally. No fixture escaping, API workaround
+or query suppression is appropriate. The owner explicitly approved dismissing
+only alert #1 as a false positive; authenticated native readback confirms that
+state and the recorded explanation. No source or query configuration changed.
+
+The new workflow also requires adding its exact path to `CHECK_INPUTS.converter`
+in `scripts/selectPullRequestChecks.js`, so future workflow-only changes run both
+SDLC and converter checks. The existing native Git fixture test must fail before
+that routing repair and pass afterward; unrelated pipeline/mod routing is retained.
+
+The native lifecycle supports pausing and resuming the existing task, but does
+not support replacing its original functionality metadata while work remains.
+The attempted new begin was rejected without changing state. The task was resumed
+with an explicit decision reference to this new-functionality slice and its
+completed software selection, retaining R2 and every pending release obligation.
+The original metadata is historical; this record declares the additional scope.
+No lifecycle implementation or state file was edited to bypass that limitation.
+
+### Publication qualification evidence
+
+The copied owlapi registry predicate was exercised before adaptation: it accepts
+the correct coordinate/bytes and rejects changed bytes, but rejects an existing
+`latest` alongside `next`. That actual RED result is retained. The adapted native
+Node tests accept independent release channels and reject wrong coordinates,
+tag targets, registry origins, archive hashes and SHA-512 integrity, using
+independent standard `abc` digest vectors. Hash/checksum helpers retain owlapi's
+implementation; native npm and installed consumers retain archive interpretation.
+
+The real candidate builder completes its native build, pack, install and existing
+JavaScript/CLI/TS 7 consumer checks. Its fresh installed production graph has zero
+native audit findings, and the bundle retains the complete audit and CycloneDX
+output. TypeScript 7 checking, ESLint and strict typed-reference coverage pass;
+the metric is 16,973/16,973 primary and 305/305 isolated documentation references.
+Final verification remains tied to the native full receipt and frozen input
+manifest under `.sdlc/runtime`, not to a prose assertion of readiness.
+
+Native YAML 2.9 parses the workflow. Native Git Bash validates and executes the
+actual publisher step against the asserted private candidate: SHA256SUMS passes,
+then native jq stops the step before `npm publish`. A separate synthetic metadata
+control shows the eligibility predicate permits public, clean candidates.
+No public archive is created for that control. A one-byte archive mutation is
+rejected both by the retained-candidate verifier and independently by native
+`sha256sum`. The original candidate remains intact. Workflow-only scope routing
+fails the existing real-Git test before the one-path repair and passes all 14
+cases afterward; unrelated component routing remains unchanged.
+
+The backport preservation check compares all 250 provider results, including
+output bytes, status, applicability, semantic trees and diagnostics. Only
+process-specific stderr is excluded from equality and remains in the raw reports.
+Immediately after the backport, only its two declared dependency-selection hashes
+differed. A subsequent normal comparison run refreshes the report after adding
+the publication npm entry points. The selected corpus outcomes remain unchanged.
+The full licence inventory for every changed dependency is retained separately
+from the earlier frozen inventory; every added/updated package has its MIT notice.
+
+Keep the first signed 818cdfe archive, original failures, candidate/control
+bundles, source-reuse RED, native command logs and registry/alert readbacks until
+the independent reviews and remote qualification consumers finish.
+The converter task owns these artifacts; reassess their disposal after that
+checkpoint while retaining the evidence needed for recovery and review.
+No live release workflow, trusted-publisher binding or public-registry consumer
+run is claimed. The serializer availability finding, trusted-base prerequisite
+and remaining release-review obligations continue to block stable release.
