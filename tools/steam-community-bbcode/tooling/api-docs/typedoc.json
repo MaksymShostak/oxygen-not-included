@@ -1,0 +1,22 @@
+{
+  "entryPoints": [
+    "../../src/index.js",
+    "../../src/diagnostics/conversion-result.js",
+    "../../src/diagnostics/diagnostic-codes.js",
+    "../../src/steam/registry-identifiers.js",
+    "../../src/steam/steam-bbcode-syntax.js",
+    "../../src/steam/parse-steam-bbcode.js",
+    "../../src/mdast/steam-mdast-nodes.js",
+    "../../src/mdast/steam-url-widgets.js",
+    "../../src/mdast/steam-table-layout.js"
+  ],
+  "tsconfig": "../../tsconfig.json",
+  "plugin": ["typedoc-plugin-markdown"],
+  "readme": "none",
+  "disableSources": true,
+  "treatWarningsAsErrors": true,
+  "router": "module",
+  "entryFileName": "index",
+  "out": "../../artifacts/api-reference/markdown",
+  "json": "../../artifacts/api-reference/model.json"
+}

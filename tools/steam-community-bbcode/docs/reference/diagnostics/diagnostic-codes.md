@@ -1,0 +1,37 @@
+[**steam-community-bbcode**](../index.md)
+
+***
+
+[steam-community-bbcode](../index.md) / diagnostics/diagnostic-codes
+
+# diagnostics/diagnostic-codes
+
+## Type Aliases
+
+### SteamParseDiagnosticCode
+
+> **SteamParseDiagnosticCode** = *typeof* [`steamParseDiagnosticCodes`](#steamparsediagnosticcodes)\[`number`\]
+
+#### Type Parameters
+
+## Variables
+
+### conversionDiagnosticCodes
+
+> `const` **conversionDiagnosticCodes**: readonly \[`"STEAM_MAX_INPUT_BYTES_EXCEEDED"`, `"STEAM_MAX_ATTRIBUTE_BYTES_EXCEEDED"`, `"STEAM_MAX_NESTING_DEPTH_EXCEEDED"`, `"STEAM_MAX_NODE_COUNT_EXCEEDED"`, `"STEAM_LEXICAL_ERROR"`, `"STEAM_SYNTAX_ERROR"`, `"STEAM_UNCLOSED_TAG_HEADER"`, `"STEAM_UNCLOSED_ATTRIBUTE_QUOTE"`, `"STEAM_UNCLOSED_TAG"`, `"STEAM_MISMATCHED_CLOSING_TAG"`, `"STEAM_UNMATCHED_CLOSING_TAG"`, `"STEAM_UNKNOWN_CONSTRUCT"`, `"STEAM_CONSTRUCT_PRESERVED"`, `"STEAM_LIST_CONTENT_PRESERVED"`, `"STEAM_TABLE_STRUCTURE_PRESERVED"`, `"STEAM_NESTED_LINK_PRESERVED"`, `"STEAM_UNSAFE_URL_PRESERVED"`, `"STEAM_UNDERLINE_LOWERED_TO_TEXT"`, `"STEAM_SPOILER_LOWERED_TO_TEXT"`, `"STEAM_SPOILER_LOWERED_TO_DETAILS"`, `"STEAM_QUOTE_METADATA_LOWERED"`, `"STEAM_COLOR_LOWERED_TO_TEXT"`, `"STEAM_PULLQUOTE_LOWERED_TO_BLOCKQUOTE"`, `"STEAM_TABLE_LAYOUT_OMITTED"`, `"STEAM_MEDIA_EMBED_LOWERED_TO_LINK"`, `"STEAM_GUIDE_IMAGE_UNRESOLVED"`, `"STEAM_PREVIEW_IMAGE_PRESENTATION_OMITTED"`, `"STEAM_URL_WIDGET_LOWERED_TO_LINK"`, `"STEAM_EMOTICON_PRESERVED_AS_TEXT"`, `"STEAM_CLAN_IMAGE_UNRESOLVED"`, `"GFM_RENDERER_AUTOLINK_POSSIBLE"`, `"GFM_NODE_UNSUPPORTED_PRESERVED"`, `"GFM_MAX_INPUT_BYTES_EXCEEDED"`, `"GFM_MAX_NODE_COUNT_EXCEEDED"`, `"GFM_MAX_NESTING_DEPTH_EXCEEDED"`, `"GFM_MAX_OUTPUT_BYTES_EXCEEDED"`\]
+
+Closed conversion codes are distinct from prose and registry construct IDs.
+
+***
+
+### steamParseDiagnosticCodes
+
+> `const` **steamParseDiagnosticCodes**: readonly \[`"STEAM_MAX_INPUT_BYTES_EXCEEDED"`, `"STEAM_MAX_ATTRIBUTE_BYTES_EXCEEDED"`, `"STEAM_MAX_NESTING_DEPTH_EXCEEDED"`, `"STEAM_MAX_NODE_COUNT_EXCEEDED"`, `"STEAM_LEXICAL_ERROR"`, `"STEAM_SYNTAX_ERROR"`, `"STEAM_UNCLOSED_TAG_HEADER"`, `"STEAM_UNCLOSED_ATTRIBUTE_QUOTE"`, `"STEAM_UNCLOSED_TAG"`, `"STEAM_MISMATCHED_CLOSING_TAG"`, `"STEAM_UNMATCHED_CLOSING_TAG"`\]
+
+Closed parser codes; dependency error messages never become identifiers.
+
+## References
+
+### DiagnosticCode
+
+Re-exports [DiagnosticCode](../index-1.md#diagnosticcode)

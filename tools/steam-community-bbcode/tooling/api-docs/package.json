@@ -1,0 +1,21 @@
+{
+  "name": "steam-community-bbcode-api-docs",
+  "version": "1.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "packageManager": "npm@12.0.2",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typedoc": "typedoc",
+    "generate": "node generate.js",
+    "check": "node generate.js --check"
+  },
+  "devDependencies": {
+    "typedoc": "0.28.20",
+    "typedoc-plugin-markdown": "4.13.0",
+    "typescript": "6.0.3"
+  }
+}

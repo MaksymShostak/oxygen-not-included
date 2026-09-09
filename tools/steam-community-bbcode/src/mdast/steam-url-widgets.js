@@ -8,13 +8,18 @@ import {sourceTextPositionCursor} from '../steam/source-text-position-cursor.js'
 const scanner = new LinkifyIt({fuzzyLink: false, fuzzyEmail: false})
   .add('ftp:', null).add('mailto:', null).add('//', null);
 
-/** @typedef {NonNullable<ReturnType<typeof steamUrlWidgetKind>>} SteamUrlWidgetKind */
+/**
+ * Source-qualified widget identities exposed through Steam link metadata.
+ * Keep this contract independent of the private recognizer's function type.
+ * @typedef {'youtube-widget' | 'store-widget' | 'ugc-widget' | 'inventory-widget' | 'vimeo-widget' | 'sketchfab-widget'} SteamUrlWidgetKind
+ */
 /** @typedef {{kind: SteamUrlWidgetKind, constructId: import('../steam/registry-identifiers.js').ConstructId}} SteamUrlWidget */
 
 /**
  * Recognize only the recorded URL families, not current remote playback. The
  * registry separately qualifies surface applicability and strength of evidence.
  * @param {string} value
+ * @returns {SteamUrlWidgetKind | undefined}
  */
 function steamUrlWidgetKind(value) {
   const url = URL.parse(value);
