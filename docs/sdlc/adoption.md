@@ -85,3 +85,32 @@ needs this bootstrap on main; the bootstrap PR cannot establish its own trusted
 policy pass. Preserve the bootstrap distinction and verify linkage on subsequent
 real work before making that check required. No protection bypass or branch deletion
 is authorized. Repository deployment status remains qualified in PACKAGE_STATUS.json.
+
+## Windows Stop-hook correction, 2026-09-09
+
+The generated Windows command and its regression were adapted from
+[WebVOWL's correction, commit 4e80bd6](https://github.com/Hadden-Industries/webvowl/commit/4e80bd66dc4ec47ad5630ef3ad4d1adc845ca752),
+preserving ONI's `scripts/` paths and Python owner. The regression now tests the
+native cmd.exe boundary instead of supplying PowerShell itself. The new ONI
+RED/GREEN and affected-control results, native discovery and activation
+work are recorded in [verification.md](verification.md#windows-stop-hook-repair-2026-09-09).
+
+`UPSTREAM.json` records original Universal Ontology source hashes, including files
+already adapted for ONI; it has no destination-hash fields. Those donor hashes and
+the donor commit remain unchanged. The repair's actual source/test identities are
+retained with its local evidence. Root licensing and SDLC 1.0.0 pre-release identity
+are preserved.
+
+After exact owner approval, normal-checkout setup and both worktree regenerations
+passed. Native Codex 0.153.4 discovers one enabled/trusted Stop definition from the
+normal checkout for all three contexts. Native missing-evidence worktree and
+current-evidence normal-checkout turns passed their respective block/continuation
+and completion criteria. The worktree's feedback names its own root, independently
+confirming that discovery source and evaluated evidence location differ.
+
+The package-status file was outside the exact activation write scope and remains
+unchanged: its dated bootstrap confirmation describes the earlier unverified
+state, superseded for local activation by the results above. `deployed: false`
+and version 1.0.0 pre-release are not promoted by this local repair. Corrected
+source remains uncommitted; release/CI and independent review are separate from
+native activation. BBCode's active task and product acceptance remain its own.
