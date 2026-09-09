@@ -178,6 +178,10 @@ test('CLI keeps repaired formatting exact and rejects diagnosed nonbreaking tabl
   assert.equal(formatting.status, 0);
   assert.equal(formatting.stdout, '**ab**\n\n~~&#x20;D&#x20;~~\n');
   assert.equal(formatting.stderr, '');
+  const adjacent = cli(['to-gfm', '--fail-on=approximate'], 'a[i][b]b[/b][/i][i]c[/i]');
+  assert.equal(adjacent.status, 0);
+  assert.equal(adjacent.stdout, '&#x61;**_b_**_c_\n');
+  assert.equal(adjacent.stderr, '');
   const table = cli(['to-gfm', '--fail-on=approximate'], '[table]\u00a0[tr][th]H[/th][/tr][tr][td]D[/td][/tr][/table]');
   assert.equal(table.status, 1);
   assert.match(table.stdout, /H.*D/u);

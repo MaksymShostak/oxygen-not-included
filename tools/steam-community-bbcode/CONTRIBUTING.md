@@ -4,6 +4,10 @@ This package is AGPL-3.0-only from its first implementation.
 Keep its licence boundary separate from the enclosing MIT/Klei repository and retain dependency notices.
 Do not add an "or later" grant.
 
+Follow the [Code of Conduct](CODE_OF_CONDUCT.md) in converter community spaces.
+It identifies the private reporting channel, initial moderator and conflict-of-interest process.
+The adapted Contributor Covenant policy text retains its CC BY-SA 4.0 licence; converter code remains AGPL-3.0-only.
+
 Follow the repository's accepted baseline and adapted TDD procedure.
 Add an independent semantic or type-contract fixture before changing executable behavior.
 Use the native JSON Schema consumer for registry structure and the domain reference checks for identities; schema validity is not source evidence or conformance.

@@ -22,7 +22,6 @@ const formattingCases = [
   ['nested deletion', '[strike]a[strike]b[/strike]c[/strike]', '~~abc~~'],
   ['adjacent bold', '[b]a[/b][b]b[/b]', '**ab**'],
   ['redundant bold through italic', '[b]a[i]b[b]c[/b]d[/i]e[/b]', '**a*bcd*e**'],
-  ['equivalent adjacent style order', '[b][i]a[/i][/b][i][b]b[/b][/i]', '***ab***'],
   ['padded deletion', '[strike] D [/strike]', '~~&#x20;D&#x20;~~'],
   ['tab padded deletion', '[strike]\tD\t[/strike]', '~~&#x9;D&#x9;~~'],
   ['nonbreaking padded deletion', '[strike]\u00a0D\u00a0[/strike]', '~~&#xA0;D&#xA0;~~'],

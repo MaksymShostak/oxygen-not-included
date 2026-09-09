@@ -1441,3 +1441,103 @@ working copies at that checkpoint; original RED logs, native inventories, accept
 baselines and active control state remain retained evidence. The prose wheel's
 bundled 268-component SBOM and installer report are retained separately from the
 npm inventories; npm audit does not assess that compiled Rust graph.
+
+### Final review follow-up and adjacent presentation repair
+
+The integrated signed candidate is `1e3fdf80faf4fefb3a85641aa1f4bd3fb4a301ec`.
+Native full lifecycle verification passed on that exact clean commit with equal
+before/after identities. Both authorized reviewers completed their focused delta
+reviews in `independent-verification/repair-followup/` and
+`direct-security-review/repair-followup/`; retain their original results unchanged.
+The independent verifier confirms the original examples, table whitespace,
+predicate naming and API/prose tooling qualifications, but finds 58 failing cases
+among 512 authored adjacent-style combinations. In particular,
+`a[i][b]b[/b][/i][i]c[/i]` silently renders visible `ab**c`.
+
+Continue the same R2 baseline and test-first F1 repair. The native serializer's
+documented `emphasis` option can use `_` while `strong` retains `*`, preventing
+adjacent mixed marks from joining into ambiguous asterisk runs. An inspectable
+scratch probe confirms this option preserves the concrete counterexample through
+the actual native GFM parser. It changes target spelling only; source syntax,
+visible characters, active marks and fidelity obligations remain unchanged.
+Use the existing unmodified dependency and public option, without new handlers,
+output rewriting, shims, suppressions or dependency changes. Source:
+[native serialization options](https://github.com/syntax-tree/mdast-util-to-markdown#options).
+
+Promote the independently expected character/mark test boundary into maintained
+tests, first observing the failure on the current implementation. The scratch
+81-case adjacent-pair corpus has 75 passes and six semantic failures, retained in
+`review-repairs/adjacent-style-red.log`. Check equivalent nested presentation by
+each character's mark set, not incidental nesting order. Exercise the concrete
+case through the CLI and actual installed archive. Then run affected checks,
+regenerate and inspect conformance projections, native mutation and full lifecycle
+verification, sign the scoped change and request bounded follow-up on the same
+independent review corpus. Do not weaken the original expected characters/marks.
+
+The direct reviewer confirms the expensive output-reparse cause is repaired:
+80,019-byte opaque input takes 177 ms; 160,019-byte opaque and 320,000-byte adjacent
+bold inputs finish below one second with complete output and diagnostics. The
+950,019-byte opaque probe still exceeds 15 seconds in native serialization before
+diagnostics. Preserve that residual availability finding and its raw timeout;
+the synchronous API and input quotas do not imply a CPU deadline. Caller process
+controls and deployment/security acceptance remain explicit limitations.
+
+Max identified the Hadden-Industries owlapi code of conduct as the reference and
+explicitly approved extending `conduct@haddenindustries.com`, his initial moderator
+role and the conflict-of-interest rule to this converter. Adopt the prepared
+`tools/steam-community-bbcode/CODE_OF_CONDUCT.md` adaptation, link it from
+`CONTRIBUTING.md`, and include it in the existing authored-prose scope. Preserve
+its Contributor Covenant 3.0 / owlapi attribution and CC BY-SA 4.0 policy-text
+licence; converter code and package identity remain AGPL-3.0-only. The adaptation
+does not assert owlapi's project-specific corporate appointment, mailbox access
+implementation or privacy-notice applicability. This is the exact planned
+repository-policy addition under the standing configuration/commit authority.
+
+The maintained adjacent-pair suite reproduced all six semantic failures before
+the serializer option changed. After the change, 133 focused formatting/CLI
+checks pass. Move the existing equivalent-adjacent-order scenario from incidental
+AST-nesting equality to the character/mark oracle: it still requires exactly
+`ab`, with both characters bold and italic, regardless of which commuting mark
+is the outer node. The prior structural-only failure remains in
+`adjacent-style-first-green.log`; no source character or required mark is waived.
+Replaying the reviewer's retained 512-case corpus with its unchanged expectations
+passes all 512 cases; record its original-byte digest in
+`independent-style-corpus-replay.json`. This coordinator replay does not replace
+the next independent installed-consumer follow-up.
+
+The full package check passes in `final-adjacent-package-check.log`, including
+primary TS 7, 100% typed references (16,098/16,098 primary and 305/305 docs),
+58 declaration artifacts across two clean builds and the packed API/CLI case.
+Native conformance regeneration changes only the source identity hash and the
+italic example's `_` delimiter spelling; construct/fidelity results are unchanged.
+The approved code of conduct passes the native prose gate as the nineteenth
+authored document. Its original proposed text remains in
+`code-of-conduct-owlapi-draft.md`; the older short draft remains historical input.
+The previous candidate's mutation JSON is retained in
+`review-repairs/previous-mutation-1e3fdf80/` before the final native reruns.
+
+The first final library mutation run reports 89.89%, below the unchanged 90%
+gate, and native Windows worker disposal reports `taskkill` access denied.
+The status diff isolates six newly surviving mutations to presentation sorting:
+the old structural-only oracle killed alternate nesting even when every visible
+character and active mark was correct. The native distinct-marker policy removes
+the reason for this custom ordering. Under the preservation route, remove the
+now-redundant `orderedPresentation` and `presentationOrder` helpers rather than
+adding assertions for incidental sort order. Name the remaining responsibility
+`coalesceGfmPhrasing` in `gfm-phrasing.js`, update all consumers without an alias,
+and recheck the same full character/mark corpus plus existing regressions.
+Retain the failed native report and cleanup diagnostics; use the native worker
+workflow with sufficient permission for its own child-process disposal, without
+disabling checks, changing thresholds or editing vendor code.
+
+That preservation hypothesis was falsified: the unchanged independent corpus
+passes only 467/512 cases without ordering. The minimal trigger
+`a[strike][b]b[/b][/strike]c` emits literal tildes and loses deletion when source
+order is retained. Preserve this result in `no-presentation-order-replay.json`.
+Add the semantic fixture before reversing only this task's trial removal; the
+whole maintained file has one genuine failure in
+`presentation-order-all-styles-red.log`. The first name-filter attempt did not
+select its intended test and is not RED evidence. Keep the original ordering
+helpers and coordinated names: their residual role protects native deletion
+flanking, and the new test detects that real effect without requiring incidental
+nesting. The earlier plan to remove/rename them is superseded by this evidence.

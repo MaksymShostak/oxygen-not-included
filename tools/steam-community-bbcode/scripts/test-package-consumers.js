@@ -70,6 +70,9 @@ try {
   const installedFormatting = run([npmCli, 'exec', '--offline', '--', 'steam-community-bbcode', 'to-gfm', '--fail-on=approximate'],
     consumer, '[b]a[b]b[/b][/b]\n\n[strike] D [/strike]');
   assert.equal(installedFormatting, '**ab**\n\n~~&#x20;D&#x20;~~\n');
+  const installedAdjacent = run([npmCli, 'exec', '--offline', '--', 'steam-community-bbcode', 'to-gfm', '--fail-on=approximate'],
+    consumer, 'a[i][b]b[/b][/i][i]c[/i]');
+  assert.equal(installedAdjacent, '&#x61;**_b_**_c_\n');
   /** @type {{registryConstructCount: number}} */
   const installedCoverage = JSON.parse(run([npmCli, 'exec', '--offline', '--', 'steam-community-bbcode', 'coverage', '--format=json'], consumer));
   assert.equal(installedCoverage.registryConstructCount, 39);

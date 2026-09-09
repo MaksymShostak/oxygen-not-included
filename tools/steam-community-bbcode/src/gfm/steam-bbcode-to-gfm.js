@@ -22,7 +22,8 @@ export function steamCommunityBbcodeToGfm(source, options = {}) {
   /** @type {Set<string>} */
   const whitespace = new Set();
   for (const match of source.matchAll(/\s/gu)) whitespace.add(match[0]);
-  const value = toMarkdown(result.value, {extensions: [gfmToMarkdown()], fences: true,
+  // Distinct native markers keep adjacent bold/italic runs unambiguous.
+  const value = toMarkdown(result.value, {extensions: [gfmToMarkdown()], fences: true, emphasis: '_',
     unsafe: [...whitespace].map(character => ({character, inConstruct: 'strikethrough'}))});
   return {...result, value, diagnostics: [...result.diagnostics, ...rendererAutolinkDiagnostics(result.value)]};
 }

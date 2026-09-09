@@ -104,7 +104,7 @@ Example policy: exact. Steam source:
 Generated GFM:
 
 ```markdown
-*A \*literal\* \<tag>*
+_A \*literal\* \<tag>_
 
 ```
 

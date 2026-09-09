@@ -61,6 +61,22 @@ for (const [input, style, text] of formattingCases) {
   assert.deepEqual(converted.diagnostics, []);
 }
 const tableSource = '[table]\u00a0[tr][th]H[/th][/tr][tr][td]D[/td][/tr][/table]';
+const adjacent = steamCommunityBbcodeToGfm('a[i][b]b[/b][/i][i]c[/i]');
+assert.deepEqual(adjacent.diagnostics, []);
+const adjacentTarget = fromMarkdown(adjacent.value, {extensions: [gfm()], mdastExtensions: [gfmFromMarkdown()]});
+const adjacentParagraph = adjacentTarget.children[0];
+assert.ok(adjacentParagraph?.type === 'paragraph');
+assert.equal(adjacentParagraph.children.length, 3);
+const [plain, boldItalic, italic] = adjacentParagraph.children;
+assert.ok(plain?.type === 'text');
+assert.equal(plain.value, 'a');
+assert.ok(boldItalic?.type === 'strong');
+assert.equal(boldItalic.children.length, 1);
+const nestedItalic = boldItalic.children[0];
+assert.ok(nestedItalic?.type === 'emphasis');
+assert.deepEqual(nestedItalic.children.map(node => node.type === 'text' ? node.value : node.type), ['b']);
+assert.ok(italic?.type === 'emphasis');
+assert.deepEqual(italic.children.map(node => node.type === 'text' ? node.value : node.type), ['c']);
 const tableResult = steamCommunityBbcodeToGfm(tableSource);
 assert.ok(tableResult.diagnostics.some(d => d.code === 'STEAM_TABLE_STRUCTURE_PRESERVED'));
 assert.ok(tableResult.coverage.constructs.every(outcome => outcome.fidelity === 'unsupported'));
