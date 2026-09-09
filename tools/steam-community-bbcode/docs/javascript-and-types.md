@@ -14,9 +14,11 @@ generated declarations. `npm run types:check` compares two clean declaration bui
 `npm run test:package` packs with npm 12, installs the actual archive into an
 isolated temporary consumer, and checks ESM loading and declaration resolution.
 The installed JavaScript smoke executes parsing, MDAST interpretation and GFM
-serialization, including a diagnosed fallback. Declaration fixtures cover all
-three APIs and nested/media extension contracts. The future CLI still needs its
-own consumer assertions.
+serialization and the partial reverse API, including diagnosed fallbacks.
+Declaration fixtures cover the public APIs and nested/media extension contracts.
+The consumer check also invokes the installed npm binary with offline resolution
+for help, stdin conversion and the shipped conformance report. CLI source has a
+native Node shebang and requires no compiler or loader at execution time.
 
 `npm run type-coverage` uses the approved isolated TypeScript 6.0.3 environment.
 It measures the parent project's authored JavaScript at 100%, with no exclusions

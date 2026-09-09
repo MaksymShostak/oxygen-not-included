@@ -12,10 +12,10 @@ assert.ok(npmCli, 'Use npm run test:package.');
 const artifacts = join(root, 'artifacts');
 await mkdir(artifacts, {recursive: true});
 
-/** @param {string[]} args @param {string} cwd */
-function run(args, cwd) {
+/** @param {string[]} args @param {string} cwd @param {string} [input] */
+function run(args, cwd, input = '') {
   const result = spawnSync(process.execPath, args,
-    {cwd, encoding: 'utf8', windowsHide: true});
+    {cwd, input, encoding: 'utf8', windowsHide: true});
   assert.equal(result.status, 0, result.error?.message ?? result.stdout + result.stderr);
   return result.stdout;
 }
@@ -36,14 +36,14 @@ try {
   await writeFile(join(consumer, 'package.json'), JSON.stringify({private: true, type: 'module'}));
   run([npmCli, 'install', '--ignore-scripts', '--omit=dev', '--no-audit', '--no-fund', archive], consumer);
   const installed = join(consumer, 'node_modules', 'steam-community-bbcode');
-  /** @type {{license: string, scripts?: Record<string, string>}} */
+  /** @type {{license: string, scripts?: Record<string, string>, bin?: Record<string, string>}} */
   const manifest = JSON.parse(await readFile(join(installed, 'package.json'), 'utf8'));
   assert.equal(manifest.license, 'AGPL-3.0-only');
   assert.ok((await readFile(join(installed, 'LICENSE'), 'utf8')).includes('GNU AFFERO GENERAL PUBLIC LICENSE'));
   for (const hook of ['preinstall', 'install', 'postinstall', 'prepare']) {
     assert.equal(manifest.scripts?.[hook], undefined, 'Consumers must not compile during installation.');
   }
-  for (const excluded of ['test', 'scripts', 'node_modules']) {
+  for (const excluded of ['test', 'scripts', 'comparison', 'node_modules']) {
     assert.equal(await lstat(join(installed, excluded)).catch(() => undefined), undefined);
   }
   const mapNames = (await readdir(join(installed, 'types'), {recursive: true})).filter(name => name.endsWith('.map'));
@@ -61,6 +61,15 @@ try {
   // Execute the authored consumer against the archive's actual runtime exports.
   await writeFile(join(consumer, 'consumer.js'), await readFile(new URL('../test/package-consumers/javascript/public-api.js', import.meta.url)));
   run(['consumer.js'], consumer);
+  assert.equal(manifest.bin?.['steam-community-bbcode'], 'src/cli.js');
+  assert.ok((await readFile(join(installed, 'src', 'cli.js'), 'utf8')).startsWith('#!/usr/bin/env node\n'));
+  const installedHelp = run([npmCli, 'exec', '--offline', '--', 'steam-community-bbcode', '--help'], consumer);
+  assert.match(installedHelp, /to-steam.*partial/iu);
+  const installedConversion = run([npmCli, 'exec', '--offline', '--', 'steam-community-bbcode', 'to-gfm'], consumer, '[b]B[/b]');
+  assert.equal(installedConversion, '**B**\n');
+  /** @type {{registryConstructCount: number}} */
+  const installedCoverage = JSON.parse(run([npmCli, 'exec', '--offline', '--', 'steam-community-bbcode', 'coverage', '--format=json'], consumer));
+  assert.equal(installedCoverage.registryConstructCount, 39);
   const contractRoot = new URL('../test/type-contracts/', import.meta.url);
   const contracts = (await readdir(contractRoot)).filter(name => name.endsWith('.mts'));
   assert.ok(contracts.length > 0);

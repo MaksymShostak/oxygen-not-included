@@ -10,6 +10,9 @@
   },
   "packageManager": "npm@12.0.2",
   "main": "./src/index.js",
+  "bin": {
+    "steam-community-bbcode": "src/cli.js"
+  },
   "types": "./types/index.d.ts",
   "exports": {
     ".": {
@@ -27,6 +30,7 @@
     "LICENSE"
   ],
   "scripts": {
+    "cli": "node src/cli.js",
     "comparison:run": "node scripts/compare-alternatives.js",
     "conformance:generate": "node scripts/generate-conformance-report.js",
     "conformance:check": "node scripts/generate-conformance-report.js --check",

@@ -55,8 +55,9 @@ or support for every parameter variant. Some GitHub surfaces additionally autoli
 escaped text; `GFM_RENDERER_AUTOLINK_POSSIBLE` reports that possibility separately
 from GFM syntax fidelity.
 
-The CLI, broader property/resource/mutation qualification,
-comparative evaluation and independent security/release review remain later gates.
+The CLI and comparative corpus have local execution evidence.
+Broader property/resource/mutation qualification and independent security/release
+review remain later gates.
 Runtime test coverage and mutation thresholds have not yet been qualified.
 
 The forward URL policy uses native WHATWG parsing, permits HTTP/HTTPS and relative
@@ -89,3 +90,36 @@ subtrees are assembled. Exceeding a limit returns an input-scoped error and an
 empty target, never a truncated document. These bounds are not a parser timeout
 or a limit on the native parser's intermediate allocations. Caller limits must
 be positive safe integers; supported renderer depth cannot exceed 256.
+
+## Command line
+
+The installed package exposes `steam-community-bbcode`. From this source checkout,
+use `npm run cli -- COMMAND ...`. The CLI executes the same public converters:
+
+```text
+steam-community-bbcode to-gfm STEAM_DESCRIPTION.bbcode
+steam-community-bbcode to-gfm --fail-on=lossy STEAM_DESCRIPTION.bbcode
+steam-community-bbcode to-gfm --format=json --profile=workshop-item description.bbcode
+steam-community-bbcode to-steam README.md
+steam-community-bbcode coverage --format=json
+```
+
+`to-steam` is **partial**. Unsupported GFM is preserved as literal source and
+reported; inspect `unsupportedSourceNodes` in JSON output. Omit the input path or
+use `-` to read stdin. Use `--` before an input filename that starts with `-`.
+Input is UTF-8; malformed byte sequences fail instead of becoming replacement
+characters. The CLI enforces the default 1-MiB input bound while reading, with
+`--max-input-bytes=N` for an explicit positive safe-integer override.
+
+Stdout contains only converted text, or the public result object with
+`--format=json`. Stderr contains one JSON object per diagnostic. `--fail-on`
+accepts `none` (default), `approximate`, `lossy` or `unsupported`, and rejects the
+chosen fidelity or worse. Exit status is 0 for acceptance, 1 for conversion or
+fidelity failure, and 2 for argument, I/O or encoding failure. Fidelity failures
+retain output for inspection; check the exit status before adopting it. No
+output-file overwrite option is provided. `--profile` applies to `to-gfm` only.
+
+The `coverage` command prints the shipped **conformance** report. It does not
+measure runtime code coverage or run a Steam renderer. `--help` describes the
+commands and partial reverse contract. Archive consumer checks exercise the
+actual installed npm binary and shipped report without network resolution.

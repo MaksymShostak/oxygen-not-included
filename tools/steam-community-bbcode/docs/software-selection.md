@@ -275,3 +275,21 @@ Sources: [Valve formatting help](https://steamcommunity.com/comment/WorkshopItem
 [GFM paragraphs and lists](https://github.github.com/gfm/),
 [native serialization](https://github.com/syntax-tree/mdast-util-to-markdown),
 and [CSS whitespace processing](https://drafts.csswg.org/css-text-3/#white-space-processing).
+
+## Native CLI composition (9 September 2026)
+
+Node 24.20.0 supplies stable `util.parseArgs`, filesystem streams, descriptor
+writes and fatal UTF-8 decoding. These supported interfaces cover the command's
+argument and I/O needs without another parser package. The remaining code selects
+the public converter, validates command-specific options, applies fidelity policy
+and emits its result. Native descriptor writes make closed-pipe errors observable
+at the CLI's I/O boundary and finish output before exit.
+
+The existing default byte bound is enforced during input reads, before conversion;
+this is additional CLI acquisition protection, not a claim that native parser
+intermediate allocations are bounded. The package manifest adds only its native
+npm binary and a source-checkout command. TypeScript versions, runtime libraries,
+root licensing and the .NET toolchain are unchanged.
+
+Sources: [Node util.parseArgs](https://nodejs.org/docs/latest-v24.x/api/util.html#utilparseargsconfig)
+and [Node filesystem APIs](https://nodejs.org/docs/latest-v24.x/api/fs.html).

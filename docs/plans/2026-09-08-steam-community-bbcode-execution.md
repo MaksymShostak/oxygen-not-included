@@ -615,3 +615,62 @@ pass and matching before/after identities are recorded in
 inputs remain task-owned independent-review reproduction inputs; no spent
 scratch is required by ordinary package checks. Independent review/security,
 CLI, runtime/mutation qualification and release gates remain outstanding.
+
+## CLI delivery slice (R2)
+
+Comparative evidence is signed commit `7ca087993dcdb52f06c8af8f0dcaeca88eaa7893`.
+Continue the accepted CLI contract with Node's stable native `util.parseArgs`,
+filesystem streams and fatal UTF-8 decoding; no additional argument-parser or
+compatibility dependency is needed. The Node 24 official util/test documentation
+was checked. The residual custom work is command policy and conversion I/O.
+
+Configuration within the owner's standing plan approval: add the package's
+`bin.steam-community-bbcode = src/cli.js` and `scripts.cli = node src/cli.js`, then
+refresh its native npm lockfile metadata. The existing source allowlist and
+declaration configuration already include CLI source. Preserve the runtime
+dependencies and both approved TypeScript versions.
+
+Implement `to-gfm`, explicitly partial `to-steam`, and `coverage --format=json`.
+Conversion reads a file or stdin (`-` or omitted), writes only the result to
+stdout and JSON diagnostics to stderr. `--format=json` emits the public result
+model. `--fail-on=approximate|lossy|unsupported` rejects that fidelity or worse;
+the default is `none`. Conversion errors always fail. Preserve output for
+inspection even on a fidelity failure, and document that consumers must check
+the exit status before adopting it. Exit codes: 0 accepted, 1 conversion/fidelity
+failure, 2 argument/I/O/encoding failure. No output-file overwrite option is added.
+`--profile` applies only to forward conversion. Bound input while reading, with
+the existing default byte limit and a validated `--max-input-bytes` override.
+
+Use test-first real child-process scenarios for output, diagnostics, thresholds,
+invalid options, file/stdin parity, input bounds and malformed UTF-8. Exercise the
+actual npm-installed binary through the existing archive consumer check, with
+network-disabled npm exec resolution. Regenerate declarations/reports and finish
+with the package and repository verification entry points. This slice does not
+qualify Linux execution or publish the package.
+
+CLI RED/GREEN evidence is retained in `cli-red.log`, `cli-first-green.log`,
+`cli-contract-red.log` and `cli-contract-green.log`. Closed stdout and stderr
+pipes exposed genuine unhandled error paths; native descriptor writes and guarded
+diagnostic emission preserve exit code 2 (`cli-pipe-red.log`,
+`cli-diagnostic-pipe-red.log`, `cli-final-green.log`). All 23 real-process CLI
+scenarios pass. The conversion resource-error case was already satisfied and
+was retained as qualification, without manufactured RED.
+
+The packed consumer first failed because no binary was declared, then passed
+after the approved manifest/native-lock update (`cli-installed-red.log` and
+`cli-installed-green.log`). The actual npm-installed executable handled help,
+stdin conversion and the shipped report through offline resolution. The existing
+allowlist excludes comparison tools; no extra installation hooks were added.
+
+Final check: `npm run sdlc -- verify --keep-going`, recorded in
+`.sdlc/runtime/converter/cli-final-verification-green.log`, with the authoritative full
+verification identity in `.sdlc/runtime/verification/full.json`. Test-owned npm
+consumer directories were removed by the established bounded cleanup. Retain CLI
+RED/GREEN and package logs for independent review. Current declarations and
+conformance evidence are regenerated through their normal package commands.
+
+The first full run (`cli-final-verification.log`) found four implicitly broad
+references in native iterator return parameters and child-exit promises. Explicit
+native generic parameters and `number | null` promise results restored 100% typed
+references (12703/12703) without aliases, shims or suppressions. Primary TypeScript
+7 checking also passed. The final run follows those annotation changes.
