@@ -6,9 +6,12 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   converter:
-    name: BBCode / ${{ matrix.os }} / Node ${{ matrix.node }}
+    name: BBCode / ${{ matrix.os }} / Node ${{ matrix.node }}${{ matrix.os == 'ubuntu-latest' && matrix.node == '24.20.0' && ' / checks' || '' }}
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -58,9 +61,6 @@ jobs:
       - name: Check the converter and real packed consumer
         if: steps.scope.outputs.converter == 'true'
         run: npm exec --yes --package=npm@12.0.2 -- npm run check:converter
-      - name: Qualify library and CLI mutation sensitivity
-        if: steps.scope.outputs.converter == 'true' && matrix.os == 'ubuntu-latest' && matrix.node == '24.20.0'
-        run: npm exec --yes --package=npm@12.0.2 -- npm --prefix tools/steam-community-bbcode run test:mutation
       - name: Retain qualification reports
         if: always() && steps.scope.outputs.converter == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -70,12 +70,57 @@ jobs:
           if-no-files-found: warn
           path: |
             tools/steam-community-bbcode/artifacts/runtime-coverage/
-            tools/steam-community-bbcode/artifacts/mutation-library/
-            tools/steam-community-bbcode/artifacts/mutation-cli/
             tools/steam-community-bbcode/artifacts/supply-chain/
             tools/steam-community-bbcode/artifacts/api-reference/
             tools/steam-community-bbcode/artifacts/api-documentation-fixture/
             tools/steam-community-bbcode/artifacts/prose/
+  mutation:
+    name: BBCode / Mutation / ${{ matrix.profile }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [library, cli]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24.20.0
+      - name: Select affected converter checks
+        id: scope
+        run: node scripts/selectPullRequestChecks.js --scope converter
+      - name: Install locked converter development dependencies
+        if: steps.scope.outputs.converter == 'true'
+        run: npm exec --yes --package=npm@12.0.2 -- npm --prefix tools/steam-community-bbcode ci --ignore-scripts
+      - name: Qualify mutation sensitivity
+        if: steps.scope.outputs.converter == 'true'
+        env:
+          MUTATION_PROFILE: ${{ matrix.profile }}
+        run: npm exec --yes --package=npm@12.0.2 -- npm --prefix tools/steam-community-bbcode run "test:mutation:$MUTATION_PROFILE"
+      - name: Retain mutation reports
+        if: always() && steps.scope.outputs.converter == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: bbcode-mutation-${{ matrix.profile }}
+          retention-days: 30
+          if-no-files-found: warn
+          path: tools/steam-community-bbcode/artifacts/mutation-${{ matrix.profile }}/
+  qualification:
+    name: BBCode / ubuntu-latest / Node 24.20.0
+    needs: [converter, mutation]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Require converter checks and both mutation profiles
+        env:
+          CHECK_RESULT: ${{ needs.converter.result }}
+          MUTATION_RESULT: ${{ needs.mutation.result }}
+        run: test "$CHECK_RESULT" = success && test "$MUTATION_RESULT" = success
   dependency-review:
     name: BBCode / Dependency review
     if: github.event_name == 'pull_request'

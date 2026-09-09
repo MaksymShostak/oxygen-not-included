@@ -34,6 +34,12 @@ Executable diagnostic arrays are counted even when unloaded.
 See `.c8rc.json` for the exact scope.
 
 Both mutation profiles require 90%; neither excludes surviving mutants or uses checker suppressions.
+CI runs the full library and CLI profiles in separate parallel Linux jobs.
+The six ordinary converter jobs finish independently; the existing Ubuntu/Node 24 qualification check requires both matrices to succeed.
+Superseded PR runs are cancelled within the same workflow and PR; main and manual runs remain independent.
+The first remote run spent about 40 minutes on library mutation testing and ten minutes on CLI mutation testing, compared with 40 seconds for ordinary converter checks.
+Parallel jobs reduce the expected critical path without reducing mutation scope; runner availability still affects elapsed time.
+Incremental mutation-result caching is not enabled: Stryker's command runner cannot detect CLI test changes, and environment and dependency changes require separate invalidation.
 The library uses Stryker's maintained TAP runner with `node:test` and per-file coverage.
 The CLI uses its built-in command runner with real child processes, because in-process TAP coverage cannot establish coverage inside a spawned CLI.
 CLI mutation coverage analysis is disabled by that runner's contract, not inferred from the library score.

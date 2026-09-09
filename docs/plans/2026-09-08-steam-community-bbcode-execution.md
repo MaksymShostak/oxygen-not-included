@@ -1797,3 +1797,63 @@ checkpoint while retaining the evidence needed for recovery and review.
 No live release workflow, trusted-publisher binding or public-registry consumer
 run is claimed. The serializer availability finding, trusted-base prerequisite
 and remaining release-review obligations continue to block stable release.
+
+### CI mutation duration and bounded parallelism
+
+The owner asked whether job 102408860181 in run 34333962240 was proportionate.
+Its retained native log shows 39.56 seconds for ordinary converter checks and
+49 minutes 53.67 seconds for mutation testing: 3,958 library mutants in
+40 minutes 3 seconds, followed by 184 CLI mutants in 9 minutes 48 seconds.
+The library already uses native per-file coverage selection and four workers.
+The CLI command runner must run its real-process suite for each mutant.
+These are test-sensitivity workloads, not normal conversion latency.
+
+The accepted baseline retains both full 90% mutation gates.
+Use the owner's standing approval for configuration changes stated in this
+execution plan to change only `.github/workflows/steam-community-bbcode.yml`:
+
+- Run the existing library and CLI mutation npm scripts in independent Linux
+  Node 24.20.0 matrix jobs, with the same locked install, four workers, full source
+  scope, thresholds and 60-minute job limit. Retain each native report separately.
+- Let the six ordinary converter-check jobs finish independently. Give the
+  Ubuntu/Node 24 execution job a descriptive ` / checks` suffix; retain its old
+  check name on an aggregate job that requires both the ordinary matrix and
+  mutation matrix to succeed, including explicit rejection of failure, cancellation
+  and skipped dependencies. Preserve every other existing check name.
+- Add native workflow concurrency grouped by workflow, event and PR number;
+  non-PR events use their unique run ID. Cancel only superseded PR runs, never
+  a different PR, a main run or the publication workflow.
+
+This uses supported GitHub Actions matrix, dependency and concurrency behavior;
+no new package, action, cache, checker suppression or runner plugin is needed.
+Stryker's documented incremental mode cannot detect CLI command-runner test
+changes, and it does not independently invalidate dependency/environment changes.
+Blind result reuse is therefore outside this bounded improvement.
+The existing native TAP runner and current full library/CLI commands are retained.
+Primary sources are GitHub's workflow concurrency documentation and Stryker's
+TAP-runner and incremental-mode documentation, inspected on 9 September 2026.
+
+Use the repository's configuration-preservation verification route: native YAML
+and actionlint validation, preserved npm/configuration inputs, actual Bash gate
+execution across dependency-result combinations, and independent bounded review.
+The timing estimate is roughly ten minutes less critical-path time when both
+mutation jobs can start together, plus early ordinary-check feedback.
+Runner queueing and actual post-push timings must be measured before claiming a
+real speedup; this change does not reduce the number of mutations executed.
+Retain the original run log and original publication verification unchanged.
+
+The publication implementation is signed commit
+`771d9607238cc4afc74a091285f0de579c2652cd`.
+Its two independent follow-ups report no new blocking findings, verify all
+20 frozen paths and the retained archive, and leave live publication unperformed.
+
+Native actionlint 1.7.12 and YAML 2.9 accept the parallel workflow.
+An isolated execution of its actual Bash aggregate step accepts both matrices
+succeeding and rejects all 24 other combinations of success, failure, cancellation,
+skipping and absent results. Preservation checks retain the six runtime/OS entries,
+original ordinary commands, triggers, dependency-review job, package/lock files
+and both Stryker configurations. The executed gate matrix and original log are
+retained under `.sdlc/runtime/converter/release-qualification`.
+Startup-only Stryker checks, the native final verification receipt and the two
+bounded follow-up reviews are retained there without overwriting prior evidence.
+Actual parallel Linux execution and timing remain pending the next authorized push.
