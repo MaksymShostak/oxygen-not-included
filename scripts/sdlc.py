@@ -15,7 +15,7 @@ import uuid
 from pathlib import Path
 from _commands import SetupError, require_command, run
 from _repository import derive_repo_from_script
-from _sdlc_baseline import is_committed_plan_path, require_plan_text, require_acceptance_reference
+from _sdlc_baseline import is_canonical_plan_path, require_plan_text, require_acceptance_reference
 from _sdlc_state import ACTIVE_TASK_PATH, RUNTIME_DIRECTORY, json_content_digest, required_verification_gaps, git_output_bytes, load_verification_controls, load_json, require_repository_file, write_json_atomically, verification_input_identity, validate_document
 
 def utc_now() -> str:
@@ -55,7 +55,7 @@ def begin_task(repo: Path, args: argparse.Namespace) -> None:
         raise SetupError(f'{args.risk} requires a previously approved baseline.')
     if args.baseline:
         baseline_file = require_repository_file(repo, args.baseline)
-        if is_committed_plan_path(args.baseline):
+        if is_canonical_plan_path(args.baseline):
             require_plan_text(baseline_file.read_bytes().decode('utf-8'))
             require_acceptance_reference(args.intent_reference)
         else:

@@ -7,7 +7,7 @@ from pathlib import PurePosixPath
 from _commands import SetupError
 
 
-def is_committed_plan_path(path: str) -> bool:
+def is_canonical_plan_path(path: str) -> bool:
     """Recognize a canonical repository-relative plan path, without traversal."""
     supplied = PurePosixPath(path)
     return (supplied.as_posix() == path and not supplied.is_absolute()

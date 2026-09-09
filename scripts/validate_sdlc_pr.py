@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 from _commands import SetupError
 from _sdlc_state import validate_document
-from _sdlc_baseline import is_committed_plan_path, require_plan_text, require_acceptance_reference
+from _sdlc_baseline import is_canonical_plan_path, require_plan_text, require_acceptance_reference
 FIELDS = {'issue': '^Change issue:[ \\t]*(#[1-9][0-9]*|none)[ \\t]*$', 'baseline': '^Accepted baseline:[ \\t]*(\\S+)[ \\t]*$', 'risk': '^Risk class:[ \\t]*(R[0-3])[ \\t]*$', 'acceptance': '^Acceptance IDs implemented:[ \\t]*([^\\r\\n]*)$', 'baseline_only': '^Baseline-only:[ \\t]*(yes|no)[ \\t]*$'}
 FIELDS.update({
     'new_functionality': r'^New functionality:[ \t]*(yes|no)[ \t]*$',
@@ -32,7 +32,7 @@ def parse_pull_request_fields(body: str) -> dict[str, str]:
         if len(matches) != 1:
             raise SetupError(f'Expected exactly one valid PR field: {key}.')
         values[key] = matches[0].group(1).strip()
-    if is_committed_plan_path(values['baseline']):
+    if is_canonical_plan_path(values['baseline']):
         matches = list(re.finditer(r'^Baseline acceptance:[ \t]*([^\r\n]+)$', body,
                                   flags=re.MULTILINE | re.IGNORECASE))
         if len(matches) != 1:
@@ -49,7 +49,7 @@ def validate_pull_request_linkage(repo_root: Path, fields: dict[str, str], repos
     baseline_only = fields['baseline_only'].lower() == 'yes'
     issue_number = int(fields['issue'][1:]) if fields['issue'].startswith('#') else None
     required = risk in {'R2', 'R3'}
-    plan_baseline = is_committed_plan_path(fields['baseline'])
+    plan_baseline = is_canonical_plan_path(fields['baseline'])
     if required and issue is None and not plan_baseline:
         errors.append(f'{risk} requires an accepted Issue/baseline.')
     if issue_number is not None and issue is None:
@@ -140,14 +140,14 @@ def gh_api(path: str) -> object:
 
 def fetch_baseline_at_revision(repository: str, path: str, ref: str) -> dict | str:
     """Read a contained baseline blob at a specific revision without executing candidate code."""
-    if not BASELINE_PATH.fullmatch(path) and not is_committed_plan_path(path):
+    if not BASELINE_PATH.fullmatch(path) and not is_canonical_plan_path(path):
         raise SetupError('Invalid baseline path.')
     from urllib.parse import quote
     value = gh_api(f"repos/{repository}/contents/{quote(path, safe='/')}?ref={quote(ref, safe='')}")
     if not isinstance(value, dict) or value.get('type') != 'file' or value.get('encoding') != 'base64':
         raise SetupError('Expected a regular base64-encoded GitHub content file.')
     content = base64.b64decode(value['content']).decode('utf-8')
-    return require_plan_text(content) if is_committed_plan_path(path) else json.loads(content)
+    return require_plan_text(content) if is_canonical_plan_path(path) else json.loads(content)
 
 def main() -> int:
     """Validate a complete changed-file listing and detect movement during reads. This is not an atomic merge-time transaction."""
