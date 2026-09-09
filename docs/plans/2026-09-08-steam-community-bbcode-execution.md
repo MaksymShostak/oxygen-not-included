@@ -533,3 +533,85 @@ literal preservation, consumers and higher-outcome alignment; it is not independ
 review. CLI delivery, comparative evaluation, broader runtime/mutation qualification,
 independent review/security, cross-platform CI and release acceptance remain later
 plan gates. This checkpoint authorizes no publication.
+
+## Comparative validation slice (R2)
+
+The partial reverse checkpoint is signed commit
+`a4d3bb04dbb7d0bc107c97cffb762c120e67ac1e`, with matching tree/message/parent and
+verified SSH signature. Its full repository snapshot and a separate package run
+starting without generated declarations passed. Continue the accepted comparative
+conformance gate using unmodified tools and their documented public interfaces.
+
+The primary registries currently identify Steamify 2.0.1, bbcode-to-markdown 1.0.3,
+Steam Editor Tools 0.5.1 and Converter.MarkdownToBBCodeSteam.Tool 1.0.0.29.
+Their upstream MIT licence texts and documented conversion directions were read.
+Steamify covers both directions, generic bbcode-to-markdown covers forward
+conversion, and the other two provide Markdown-to-Steam conversion. The native
+Steam Editor Tools parse_markdown/BBCodeRenderer path consumes supplied text;
+its unrelated Steam queries and image-processing APIs are outside this slice.
+The .NET tool's documented intentional interpretation of literal BBCode must be
+reported as a policy difference, not disguised as an undocumented defect.
+
+Implementation/configuration details within the owner's standing plan approval:
+
+- Create `tools/steam-community-bbcode/comparison/node/package.json` as a private
+  AGPL-3.0-only benchmark environment with only `bbcode-to-markdown: 1.0.3`, and
+  its native npm lockfile. Install with lifecycle scripts disabled; this graph
+  must not enter the runtime package.
+- Create `comparison/python/requirements-windows-py314.txt` under the same package
+  from pip's native resolution report, pinning both Python comparators and their
+  transitive versions/hashes for this Windows Python 3.14 qualification. Use the
+  checkout's `.venv` interpreter and an isolated ignored `artifacts/comparison/python`
+  target, preserving the SDLC environment's installed packages.
+- Install the exact .NET comparator with native `dotnet tool install --tool-path`
+  under ignored `artifacts/comparison/dotnet`; retain its package/framework evidence.
+  Preserve the root .NET toolchain and all global tool settings.
+  The host NuGet configuration is unreadable to this task. Add
+  `comparison/dotnet/NuGet.Config` with `packageSources/clear` and only
+  `https://api.nuget.org/v3/index.json`, then supply it through native `--configfile`.
+  This confines benchmark resolution to the public registry without modifying
+  host configuration. Native installation still attempted an early host-config
+  read; narrowly elevated execution of that same install succeeded. No host file
+  or permission was changed.
+- Add `comparison:run` to the converter package's npm scripts, invoking
+  `node scripts/compare-alternatives.js`. This is an explicit benchmark command;
+  ordinary consumers never install or run comparators.
+- Maintain checked JavaScript and Python protocol adapters, authored common
+  corpus/expectations, classifier regressions and raw results with versions,
+  identities, capability applicability and per-case explanations. Test only
+  documented directions; retain unavailable/inapplicable states honestly.
+
+Use native parsers for output structure and independently authored expected
+semantics. Do not compute expected results from the candidate or patch an
+alternative to make it pass. Preserve raw exceptions and differing target policies.
+Compare semantic outcomes without a weighted superiority score. Fixture and
+classification changes require meaningful RED/GREEN or an explicitly recorded
+preservation/qualification route; finish with actual benchmark execution and full
+repository verification. Live security review and independent acceptance remain
+separate authorities.
+
+Comparative implementation uses the test-first classifier boundary: four authored
+classification scenarios failed against the executable empty seam, then passed
+after implementation (`comparison-classifier-red.log` / `comparison-classifier-green.log`).
+The unchanged external APIs use characterization/qualification: actual installed
+tools consume the common authored corpus, with no fabricated RED for third-party
+behaviour. Native Python text streams explicitly preserve source/output newlines.
+The first execution is retained in `comparison-first-run.log`; ordinary controls
+were then added so escaping stress cases cannot be mistaken for every ordinary
+conversion failing. Final execution is `comparison-final-run.log`.
+
+The maintained comparison README and raw result explain observed failures,
+declared passthrough, intentional literal-BBCode interpretation and the reverse
+consumer's unverified code-padding semantics. Exact spelling is not ranked above
+equivalent structure. All 33 historical Steamify regression obligations remain
+in the normal test suite. The comparison graph is excluded by the existing
+package file allowlist and remains isolated from runtime/type-checker selection.
+
+Final repository verification command for this slice:
+`npm run sdlc -- verify --keep-going`, captured in
+`.sdlc/runtime/converter/comparison-final-verification.log`; the authoritative
+pass and matching before/after identities are recorded in
+`.sdlc/runtime/verification/full.json`. Comparator installations and exact CLI
+inputs remain task-owned independent-review reproduction inputs; no spent
+scratch is required by ordinary package checks. Independent review/security,
+CLI, runtime/mutation qualification and release gates remain outstanding.

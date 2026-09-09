@@ -27,6 +27,7 @@
     "LICENSE"
   ],
   "scripts": {
+    "comparison:run": "node scripts/compare-alternatives.js",
     "conformance:generate": "node scripts/generate-conformance-report.js",
     "conformance:check": "node scripts/generate-conformance-report.js --check",
     "qualify:github": "node scripts/qualify-github-rendering.js --live",
