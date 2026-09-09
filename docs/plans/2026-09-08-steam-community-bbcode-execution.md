@@ -5,7 +5,9 @@
 The technical baseline is the complete [v2 implementation plan](2026-09-08-steam-community-bbcode-implementation-plan-v2.md),
 already present in merged commit `1d352b9040005e144a9fc4a1ac7dd628241e7284`.
 Its SHA-256 is `d639468a9e1a11b79139371a659b28b6c09a9f9b76128f2c13ac2da7b65e6ac4`.
-This record refers to that plan; it neither replaces nor amends its requirements.
+This record refers to that plan; the original baseline bytes remain unchanged.
+The owner-approved [forward refinement amendment](2026-09-09-steam-community-bbcode-forward-refinements.md)
+records the subsequent diagnostic and whitespace work authorized on 2026-09-09.
 
 Recorded authority: the [bootstrap handoff](2026-09-08-sdlc-bootstrap-handoff.md#accepted-sequence-and-authority)
 authorizes the converter after the SDLC merge and preapproves configuration required
@@ -352,3 +354,95 @@ is retained in `.sdlc/runtime/converter/forward-checkpoint-verification.log`; th
 repository-owned verifier records its actual input identities in
 `.sdlc/runtime/verification/full.json`. This checkpoint is not independent review,
 runtime coverage/mutation qualification, cross-platform CI or release acceptance.
+
+## Forward refinements (9 September 2026)
+
+The forward checkpoint was subsequently committed with the owner's explicit
+approval as signed local commit `e51073134c1e306f8bf0f25b8a9fe6be1480b22c`.
+The discussion after that checkpoint authorized the linked
+[forward refinement amendment](2026-09-09-steam-community-bbcode-forward-refinements.md).
+This is a bounded repair within the existing R2 route and unchanged v2 baseline.
+The prior commit approval does not authorize a further commit or push.
+
+The literal-label tests first failed four cases because the parser reported an
+unclosed tag for labels that its grammar already treated as unpaired literal
+source. Restricting that diagnostic to recognized tags produced 319/319 runtime
+and 25/25 parser passes. Unknown labels still receive one preservation warning;
+known malformed tags, unknown paired markup and opaque noparse have separate controls.
+Public source spans, visible text, emphasis and link destinations are asserted.
+
+The first whitespace regression failed on `"\n\nBody\n\n"` at the MDAST boundary
+(320/321 passed). Flow construction now trims ordinary source text only at explicit
+block boundaries and list-item edges. Follow-up list tests failed for LF, CRLF and
+CR before the list-edge change. A nonbreaking-space preservation check also failed;
+flow layout now recognizes only ASCII space/tab/newline characters. A further RED
+showed that nonbreaking prose preceding the first list marker was silently discarded;
+that case now uses the existing whole-list preservation diagnostic. Source syntax
+remains immutable; original positions, inline and interior spacing, multi-paragraph
+items, nested lists, code/noparse and malformed/unknown fallback are preserved.
+
+The existing opt-in GitHub renderer gained a synthetic `flow-whitespace` scenario.
+It compares actual output with independently authored expected Markdown through the
+same native HTML endpoint. The initial request failed on loose-list paragraph
+wrappers and padding. After the change, actual and expected HTML matched exactly,
+including two-space padding in protected literal text. Both failing and passing
+request/response/provenance sets are retained under package
+`artifacts/github-rendering/flow-whitespace-red` and `flow-whitespace`.
+This establishes the selected target rendering contract, not universal Steam
+renderer equivalence, browser visual acceptance or a release qualification.
+
+Current local results: 329/329 runtime tests, 25/25 parser qualification tests,
+198 conformance case/profile executions for 39 registry policies, primary TypeScript
+7 checking and consumer contracts, 9679/9679 typed references in the approved isolated
+TypeScript 6 coverage tool, 48 reproducible declaration artifacts and installed
+JavaScript/TypeScript consumers. The full repository verifier passed. Its first run
+correctly rejected the old generated report fingerprint; regeneration changed only
+`canonicalLfInputsSha256` in `coverage.json`, leaving all conformance outcomes and
+the support matrix unchanged. No fixture expectation or gate was weakened.
+
+The committed mod description was rerun from its exact Git blob, SHA-256
+`6200c0a0ad51ae4270cb231eadae9b4192ae9138933e7fa5344c7fa8a65c95ef`.
+Its output retains six headings, six images, six links, four lists and 17 list items.
+The four lists are tight, redundant blank lines and list-padding entities are gone,
+and the two remaining warnings accurately preserve `[sd]` and `[Fixed]`. Source text
+was not edited. The 6388-byte output SHA-256 is
+`d48b3c8b6da11d7af1778edb7df002e1f82bcfc146da5f3d782eaa6ca3d3f054`.
+
+Evidence is retained under `.sdlc/runtime/converter`: `literal-brackets-*.log`,
+`flow-whitespace-*.log`, `forward-refinements-*.log` and the description Markdown/JSON.
+The failed `npm exec` startup attempt is explicitly retained as
+`flow-whitespace-block-startup-error.log`; it was not counted as behavioral RED.
+The supported package test script then produced the actual assertion failure.
+The passing full run is `forward-refinements-verification-green.log`; the verifier
+refresh after this record update is `forward-refinements-final-verification.log`,
+with exact input identities in `.sdlc/runtime/verification/full.json`.
+
+No new dependency, configuration, public interface, checker suppression or shim was
+introduced. The combined implementation self-check found no naming/ownership mismatch;
+it is not independent review. All new tests exercise public interfaces and native
+consumers. This follow-up's local artifacts are retained review evidence owned by
+this task, to be reassessed after review under the repository retention policy.
+There is no spent follow-up scratch dependency to remove. Earlier parked reverse
+work remains an active downstream input. Independent review/security qualification,
+cross-platform CI, runtime coverage/mutation gates and release acceptance remain
+outstanding under the original plan; this amendment does not claim them complete.
+
+Final-snapshot qualification: every command in the final repository refresh passed,
+including converter checks and generated configuration. The verifier nevertheless
+correctly recorded `passed: false` because `workspaceFingerprint` changed during
+the run. Concurrent, externally owned edits appeared in `scripts/set_up_sdlc.py`
+and `tests/sdlc/test_pipeline_controls.py`; Max confirmed another task was still
+editing this worktree. Those files were preserved without modification by this task.
+The failed freshness result and exact before/after identities are retained in
+`forward-refinements-snapshot-changed.log` and `.json`. The separately refreshed
+package check is recorded in `forward-refinements-converter-final.log`; it does not
+substitute for the repository-wide freshness gate.
+
+On resumption, the concurrent SDLC edits had been merged at
+`eb58b4c3118b44313de0d8ca78950990641276b7`; only this refinement's nine paths remained
+changed. The final command is `npm run sdlc -- verify --keep-going`, with output
+retained in `.sdlc/runtime/converter/forward-refinements-resumed-verification.log`.
+Its authoritative outcome and exact before/after input identities are recorded in
+`.sdlc/runtime/verification/full.json`. Completion requires `passed: true` and
+identical identities; this record is prepared before the run so that documenting
+the result does not invalidate the snapshot it describes.

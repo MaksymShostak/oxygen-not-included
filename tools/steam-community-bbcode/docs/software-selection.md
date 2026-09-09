@@ -196,3 +196,46 @@ forward path; end-to-end resource qualification must include it.
 Sources: [maintainer explanation](https://github.com/syntax-tree/mdast-util-gfm-autolink-literal#what-is-this),
 [GFM specification](https://github.github.com/gfm/), and the retained synthetic
 request/response/provenance in `artifacts/github-rendering/literal-autolinks`.
+
+## Literal labels and flow whitespace (9 September 2026)
+
+The owner-approved [forward refinement plan](../../../docs/plans/2026-09-09-steam-community-bbcode-forward-refinements.md)
+corrects two interpretation policies without changing dependencies or the serializer.
+Unpaired unknown labels such as `[sd]` retain source and the unknown-construct
+diagnostic. A missing-closer diagnostic requires a recognized tag. Known malformed
+tags, incomplete headers and unmatched closers remain diagnosed; explicitly paired
+unknown constructs retain their whole body without activating nested formatting.
+Valve's `[noparse]` continues to express explicitly literal source.
+
+Flow construction removes ordinary ASCII spaces/tabs and LF/CRLF/CR at the edges
+of text adjoining an explicit converted block or list-item delimiter. Separators
+between blocks and after item markers are layout in this conversion policy.
+Document edges without a block/item boundary, interior paragraph separators,
+inline spaces, nonbreaking spaces, code/noparse payloads, link labels and literal
+fallback are preserved. Only text created from ordinary Steam text is eligible;
+the immutable source syntax, source spans and original document are unchanged.
+Nonbreaking text before a first list marker requires the existing whole-list
+preservation fallback instead of being silently discarded as indentation.
+
+The native serializer correctly encodes literal leading spaces as character
+references. It was receiving layout inside paragraph text, including trailing
+newlines that made GFM lists loose. A GitHub Markdown REST comparison against an
+independently authored target first failed on those extra paragraph wrappers and
+then matched after the interpretation change, while protected padding remained
+identical. The opt-in command is:
+
+```text
+npm run qualify:github -- --scenario=flow-whitespace
+```
+
+Actual and expected Markdown, HTML and request provenance are retained under
+`artifacts/github-rendering/flow-whitespace`; the initial failing response is
+retained under `artifacts/github-rendering/flow-whitespace-red`. This is target
+HTML evidence, not visual acceptance or a claim about every Steam renderer.
+Backslashes and character references remain owned by the native serializer;
+there is no output-string cleanup, global trim or requirement to edit descriptions.
+
+Sources: [Valve formatting help](https://steamcommunity.com/comment/WorkshopItem/formattinghelp),
+[GFM paragraphs and lists](https://github.github.com/gfm/),
+[native serialization](https://github.com/syntax-tree/mdast-util-to-markdown),
+and [CSS whitespace processing](https://drafts.csswg.org/css-text-3/#white-space-processing).

@@ -146,7 +146,7 @@ export function steamCommunityBbcodeToMdast(source, options = {}) {
       else {
         const last = items.at(-1);
         if (last) last.body.push(child);
-        else if (child.type !== 'steamText' || child.value.trim() !== '') return undefined;
+        else if (child.type !== 'steamText' || !/^[ \t\r\n]*$/u.test(child.value)) return undefined;
       }
     }
     if (!items.length) return undefined;
@@ -154,7 +154,7 @@ export function steamCommunityBbcodeToMdast(source, options = {}) {
     return {type: 'list', ordered: node.tagName === 'olist', spread: false, position: copyPosition(node.sourceSpan),
       children: items.map(item => {
         record(item.marker, 'exact');
-        return {type: 'listItem', spread: false, children: flow(item.body)};
+        return {type: 'listItem', spread: false, children: flow(item.body, true)};
       })};
   }
 
@@ -233,27 +233,55 @@ export function steamCommunityBbcodeToMdast(source, options = {}) {
     }
   }
 
-  /** @param {readonly SourceNode[]} nodes @returns {RootContent[]} */
-  function flow(nodes) {
+  /** @param {readonly SourceNode[]} nodes @param {boolean} [withinListItem] @returns {RootContent[]} */
+  function flow(nodes, withinListItem = false) {
     /** @type {RootContent[]} */
     const children = [];
+    /** @type {WeakSet<import('mdast').Text>} */
+    const ordinaryTextNodes = new WeakSet();
     /** @type {PhrasingContent[]} */
     let inline = [];
-    function flush() {
+    let startsAtFlowBoundary = withinListItem;
+
+    /** @param {number} start @param {1 | -1} step @param {RegExp} pattern */
+    function trimLayoutEdge(start, step, pattern) {
+      for (let index = start; index >= 0 && index < inline.length; index += step) {
+        const child = inline[index];
+        if (child?.type !== 'text' || !ordinaryTextNodes.has(child)) break;
+        child.value = child.value.replace(pattern, '');
+        if (child.value !== '') break;
+      }
+    }
+
+    /** @param {boolean} [endsAtFlowBoundary] */
+    function flush(endsAtFlowBoundary = false) {
       if (!inline.length) return;
+      // Only ordinary source text adjacent to an explicit flow boundary is
+      // layout. Opaque regions and preserved malformed/unknown source never
+      // enter this set. Source syntax and all original positions stay intact.
+      if (startsAtFlowBoundary) trimLayoutEdge(0, 1, /^[ \t\r\n]+/u);
+      if (endsAtFlowBoundary) trimLayoutEdge(inline.length - 1, -1, /[ \t\r\n]+$/u);
+      inline = inline.filter(child => child.type !== 'text' || child.value !== '');
       // Source indentation between block structures is layout, not an empty
       // semantic paragraph. Opaque text is never normalized by this boundary.
-      if (!inline.every(child => child.type === 'text' && child.value.trim() === '')) children.push({type: 'paragraph', children: inline});
+      if (!inline.every(child => child.type === 'text' && /^[ \t\r\n]*$/u.test(child.value))) children.push({type: 'paragraph', children: inline});
       inline = [];
     }
     for (const node of nodes) {
       const converted = block(node);
       if (converted) {
-        flush();
+        flush(true);
         children.push(converted);
-      } else inline.push(...phrasingChildren([node]));
+        startsAtFlowBoundary = true;
+      } else {
+        const inlineNodes = phrasingChildren([node]);
+        if (node.type === 'steamText') {
+          for (const child of inlineNodes) if (child.type === 'text') ordinaryTextNodes.add(child);
+        }
+        inline.push(...inlineNodes);
+      }
     }
-    flush();
+    flush(withinListItem);
     return children;
   }
 

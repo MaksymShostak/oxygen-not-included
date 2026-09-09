@@ -294,7 +294,11 @@ function inspectStructure(cst, source) {
     const opening = firstToken(node, 'TagStart') ?? firstToken(node, 'CodeStart') ?? firstToken(node, 'NoParseStart');
     if (opening) {
       const closing = firstToken(node, 'ClosingTag') ?? firstToken(node, 'CodeEnd') ?? firstToken(node, 'NoParseEnd');
-      if (!closing) add('STEAM_UNCLOSED_TAG', `Opening ${opening.image} has no closing tag.`, node.location);
+      // Only a recognized tag establishes a requirement for a closing tag.
+      // Unknown unpaired labels own no body and are preserved as literal source.
+      if (!closing) {
+        if (findSteamTagDefinition(opening.image.slice(1).toLowerCase())) add('STEAM_UNCLOSED_TAG', `Opening ${opening.image} has no closing tag.`, node.location);
+      }
       else if (opening.image.slice(1).toLowerCase() !== closing.image.slice(2, -1).trim().toLowerCase()) add('STEAM_MISMATCHED_CLOSING_TAG', `${opening.image} is paired with ${closing.image}.`, node.location);
     }
     for (const children of Object.values(node.children)) {
