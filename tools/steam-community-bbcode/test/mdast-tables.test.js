@@ -17,9 +17,19 @@ test('a rectangular Steam table uses native rows and cells with nested inline se
 });
 
 for (const body of [
+  '',
+  '[tr][/tr]',
+  '[tr extra=1][th]A[/th][/tr]',
+  '[tr][th extra=1]A[/th][/tr]',
+  '[tr][td]No header[/td][/tr]',
+  '[tr][th]A[/th][/tr][tr][th]Not a body cell[/th][/tr]',
+  '[tr]Unowned row prose[th]A[/th][/tr]',
   '[tr][th]A[/th][/tr][tr][td]B[/td][td]C[/td][/tr]',
   '[tr][th]A[/th][/tr][tr][td][list][*]B[/list][/td][/tr]',
   'Unowned prose[tr][th]A[/th][/tr]',
+  '[tr][th][code]Block code[/code][/th][/tr]',
+  '[tr][th][h3]Heading[/h3][/th][/tr]',
+  '[tr][th][hr][/hr][/th][/tr]',
 ]) {
   test(`unrepresentable table structure is preserved without inventing a GFM table: ${body}`, () => {
     const source = `[table]${body}[/table]`;

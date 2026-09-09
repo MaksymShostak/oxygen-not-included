@@ -18,7 +18,7 @@ test('known table layout is retained as metadata and its target loss is diagnose
   assert.ok(converted.diagnostics.some(diagnostic => diagnostic.code === 'STEAM_TABLE_LAYOUT_OMITTED' && diagnostic.fidelity === 'lossy'));
 });
 
-for (const attributes of ['noborder=1 noborder=0', 'noborder=2', 'onclick="alert(1)"', 'noborder="1']) {
+for (const attributes of ['noborder=1 noborder=0', 'noborder=2', 'onclick="alert(1)"', 'unknown=1', 'noborder="1']) {
   test(`ambiguous or unknown table attributes remain source: ${attributes}`, () => {
     const source = `[table ${attributes}][tr][th]H[/th][/tr][/table]`;
     const result = steamCommunityBbcodeToMdast(source);
@@ -28,3 +28,15 @@ for (const attributes of ['noborder=1 noborder=0', 'noborder=2', 'onclick="alert
     assert.ok(result.diagnostics.length > 0);
   });
 }
+
+test('explicitly disabled table layout has no omitted presentation to diagnose', () => {
+  const source = "[table equalcells='0' noborder=0][tr][th]H[/th][/tr][/table]";
+  const semantic = steamCommunityBbcodeToMdast(source, {profile: 'review'});
+  const table = semantic.value.children[0];
+  assert.ok(table?.type === 'table');
+  assert.deepEqual(table.data?.steamTableLayout, {equalcells: false, noborder: false});
+  const result = steamCommunityBbcodeToGfm(source, {profile: 'review'});
+  assert.ok(!result.diagnostics.some(d => d.code === 'STEAM_TABLE_LAYOUT_OMITTED'));
+  const target = fromMarkdown(result.value, {extensions: [gfm()], mdastExtensions: [gfmFromMarkdown()]});
+  assert.equal(target.children[0]?.type, 'table');
+});

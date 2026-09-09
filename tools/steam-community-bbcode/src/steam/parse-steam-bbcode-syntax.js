@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import {createToken, Lexer, CstParser} from 'chevrotain';
+import {createToken, Lexer, CstParser, tokenMatcher} from 'chevrotain';
 import {defaultSteamParseResourceLimits, resolveSteamParseResourceLimits} from '../security/resource-limits.js';
 import {findSteamTagDefinition} from './construct-definition.js';
 
@@ -27,7 +27,7 @@ const HorizontalRuleStart = createToken({name: 'HorizontalRuleStart', pattern: /
 const TagStart = createToken({name: 'TagStart', pattern: /\[[a-z][a-z0-9]*/i, push_mode: 'attributes'});
 const ClosingTag = createToken({name: 'ClosingTag', pattern: /\[\/[a-z][a-z0-9]*\s*\]/i, line_breaks: true});
 const ItemBoundary = createToken({name: 'ItemBoundary', pattern: /\[\*\]/});
-const LiteralText = createToken({name: 'LiteralText', pattern: /[^\[]+/, line_breaks: true});
+const LiteralText = createToken({name: 'LiteralText', pattern: /[^[]+/, line_breaks: true});
 const LiteralBracket = createToken({name: 'LiteralBracket', pattern: /\[/});
 const HeaderEnd = createToken({name: 'HeaderEnd', pattern: /\]/, pop_mode: true});
 const CodeHeaderEnd = createToken({name: 'CodeHeaderEnd', pattern: /\]/, categories: [HeaderEnd], pop_mode: true, push_mode: 'codeBody'});
@@ -38,9 +38,9 @@ const AttributeText = createToken({name: 'AttributeText', pattern: /[^\s\]="']+/
 const AttributeEquals = createToken({name: 'AttributeEquals', pattern: /=/});
 const UnclosedAttributeQuote = createToken({name: 'UnclosedAttributeQuote', pattern: /["']/});
 const CodeEnd = createToken({name: 'CodeEnd', pattern: /\[\/code\s*\]/i, line_breaks: true, pop_mode: true});
-const CodeText = createToken({name: 'CodeText', pattern: /(?:[^\[]|\[(?!\/code\s*\]))+/i, line_breaks: true});
+const CodeText = createToken({name: 'CodeText', pattern: /(?:[^[]|\[(?!\/code\s*\]))+/i, line_breaks: true});
 const NoParseEnd = createToken({name: 'NoParseEnd', pattern: /\[\/noparse\s*\]/i, line_breaks: true, pop_mode: true});
-const NoParseText = createToken({name: 'NoParseText', pattern: /(?:[^\[]|\[(?!\/noparse\s*\]))+/i, line_breaks: true});
+const NoParseText = createToken({name: 'NoParseText', pattern: /(?:[^[]|\[(?!\/noparse\s*\]))+/i, line_breaks: true});
 const attributeTokens = [AttributeSpace, QuotedAttribute, AttributeText, AttributeEquals, UnclosedAttributeQuote];
 const modes = {
   text: [CodeStart, NoParseStart, HorizontalRuleStart, TagStart, ClosingTag, ItemBoundary, LiteralText, LiteralBracket],
@@ -143,7 +143,7 @@ class SteamBbcodeGrammar extends CstParser {
       this.ACTION(() => this.enterTag());
       this.CONSUME(HorizontalRuleStart);
       this.SUBRULE(this.tagHeaderTail);
-      this.OPTION({GATE: () => this.LA(1).image.toLowerCase().trim() === '[/hr]', DEF: () => this.CONSUME(ClosingTag)});
+      this.OPTION({GATE: () => tokenMatcher(this.LA(1), ClosingTag) && this.LA(1).image.slice(2, -1).trim().toLowerCase() === 'hr', DEF: () => this.CONSUME(ClosingTag)});
       this.ACTION(() => { this.depth -= 1; });
     });
     this.performSelfAnalysis();

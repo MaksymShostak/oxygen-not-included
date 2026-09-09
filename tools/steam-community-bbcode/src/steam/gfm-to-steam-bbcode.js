@@ -112,7 +112,7 @@ export function gfmToSteamCommunityBbcode(source, options = {}) {
         // into an unverified URL or allowing it to inject a target tag.
         // Relative source destinations depend on a document base unavailable
         // in Steam. WHATWG URL owns the absolute-reference distinction.
-        if (!URL.canParse(node.url) || !isAllowedResourceUrl(node.url, node.type) || /[\[\]"']/u.test(node.url) || node.title
+        if (!URL.canParse(node.url) || !isAllowedResourceUrl(node.url, node.type) || /[[\]"']/u.test(node.url) || node.title
             || (node.type === 'image' && node.alt)) return preserve(node);
         record(node, 'equivalent');
         return node.type === 'link' ? `[url="${node.url}"]${node.children.map(render).join('')}[/url]` : `[img]${node.url}[/img]`;

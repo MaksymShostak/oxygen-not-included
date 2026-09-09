@@ -41,11 +41,20 @@ test('a guide image remains an unresolved reference rather than a fabricated URL
 });
 
 for (const source of [
+  '[screenshot]Keep[/screenshot]',
+  '[screenshot=;https://example.org/i.png]Keep[/screenshot]',
+  '[screenshot=not-an-id;https://example.org/i.png]Keep[/screenshot]',
+  '[screenshot=420;]Keep[/screenshot]',
   '[screenshot=420;javascript:alert(1)]Keep[/screenshot]',
   '[screenshot=420;https://example.org/i.png;unknown]Keep[/screenshot]',
   '[previewimg=420;sizeGiant,floatLeft;example.png]Keep[/previewimg]',
   '[previewimg=420;sizeFull,floatCenter;example.png]Keep[/previewimg]',
+  '[previewimg=420;sizeFull,floatLeft]Keep[/previewimg]',
+  '[previewimg=420;sizeFull,floatLeft;]Keep[/previewimg]',
+  '[previewimg=420;sizeFull;example.png]Keep[/previewimg]',
+  '[previewimg=420;sizeFull,floatLeft,extra;example.png]Keep[/previewimg]',
   '[previewimg=420;sizeFull,floatLeft;example.png][b]Keep[/b][/previewimg]',
+  '[previewimg=420;sizeFull,floatLeft;example.png]Plain [b]Keep[/b][/previewimg]',
   '[previewicon=420;sizeThumb,inline;example.png]Keep[/previewicon]',
 ]) {
   test(`unqualified image syntax retains source with an explanation: ${source}`, () => {
@@ -54,5 +63,27 @@ for (const source of [
     assert.ok(target?.type === 'paragraph');
     assert.deepEqual(target.children.map(n => n.type === 'text' ? n.value : n.type), [source]);
     assert.ok(result.diagnostics.some(d => d.code === 'STEAM_CONSTRUCT_PRESERVED'));
+  });
+}
+
+for (const [attributes, size, alignment] of [
+  ['420;sizeThumb,floatRight;small.png', 'thumb', 'right'],
+  ['420;sizeOriginal,inline;original.png', 'original', 'inline'],
+]) {
+  test(`guide image layout variants retain their identity without inventing a URL: ${attributes}`, () => {
+    const source = `[previewimg=${attributes}]View[/previewimg]`;
+    const semantic = steamCommunityBbcodeToMdast(source, {profile: 'guide-section'});
+    const paragraph = semantic.value.children[0];
+    assert.ok(paragraph?.type === 'paragraph');
+    const preview = paragraph.children[0];
+    assert.ok(preview?.type === 'steamPreviewImage');
+    assert.equal(preview.size, size);
+    assert.equal(preview.alignment, alignment);
+    assert.equal(preview.image.kind, 'guideImage');
+    const result = steamCommunityBbcodeToGfm(source, {profile: 'guide-section'});
+    const target = fromMarkdown(result.value).children[0];
+    assert.ok(target?.type === 'paragraph');
+    assert.deepEqual(target.children.map(n => n.type === 'text' ? n.value : n.type), [source]);
+    assert.ok(result.diagnostics.some(d => d.code === 'STEAM_GUIDE_IMAGE_UNRESOLVED'));
   });
 }

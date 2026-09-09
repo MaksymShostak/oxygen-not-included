@@ -72,6 +72,13 @@ for (const [source, limits, code] of [
     assert.equal(result.value, '');
     assert.ok(result.diagnostics.some(d => d.scope === 'input' && d.severity === 'error' && d.code === code));
     assert.deepEqual(result.coverage.sourceNodes, []);
+    assert.deepEqual(result.coverage.constructs, []);
+    assert.deepEqual(result.coverage.contextOnlyPolicies, []);
+    assert.deepEqual(result.unsupportedSourceNodes, []);
+    assert.equal(result.coverage.direction, 'gfm-to-steam');
+    assert.equal(result.coverage.profile, 'workshop-item');
+    assert.equal(result.diagnostics[0]?.fidelity, 'unsupported');
+    assert.ok(result.diagnostics.every(d => d.message.length > 0));
   });
 }
 
@@ -131,4 +138,35 @@ test('reverse maps code payload, links, empty-alt images and rectangular tables'
     ]},
   ]});
   assert.deepEqual(result.unsupportedSourceNodes, []);
+});
+
+test('reverse retains mixed inline siblings and distinct paragraphs inside quotes and list items', () => {
+  const source = '> First **bold *inner* tail**.\n>\n> Second.\n\n- First paragraph.\n\n  Second paragraph.\n\n| H |\n| - |\n| **B** tail |';
+  const result = gfmToSteamCommunityBbcode(source);
+  assert.deepEqual(result.unsupportedSourceNodes, []);
+  const expected = semanticProjection(fromMarkdown(source, {extensions: [gfm()], mdastExtensions: gfmFromMarkdown()}));
+  assert.deepEqual(targetTree(result.value), expected);
+  assert.equal(result.coverage.profile, 'workshop-item');
+  assert.deepEqual(result.coverage.constructs, []);
+  assert.deepEqual(result.coverage.contextOnlyPolicies, []);
+});
+
+test('one unsupported child or column keeps its enclosing reverse structure literal', () => {
+  for (const source of ['- Ordinary\n- [x] Task', '| A | B |\n| - | -: |\n| X | Y |']) {
+    const result = gfmToSteamCommunityBbcode(source);
+    assert.equal(result.unsupportedSourceNodes.length, 1);
+    assert.ok(result.coverage.sourceNodes.length > 1);
+    assert.ok(result.coverage.sourceNodes.filter(node => node.nodeType !== 'root').every(node => node.fidelity === 'unsupported'));
+    assert.deepEqual(targetTree(result.value), {type: 'root', children: [{type: 'paragraph', children: [{type: 'text', value: source}]}]});
+  }
+});
+
+test('a code closer with zero or multiple spaces cannot terminate a reverse literal fallback', () => {
+  for (const closer of ['[/code]', '[/CODE  ]', '[/code\t\t]']) {
+    const source = `\x60\x60\x60\nBefore ${closer} after\n\x60\x60\x60`;
+    const result = gfmToSteamCommunityBbcode(source);
+    assert.equal(result.unsupportedSourceNodes[0]?.nodeType, 'code');
+    assert.deepEqual(parseSteamCommunityBbcode(result.value).diagnostics, []);
+    assert.deepEqual(targetTree(result.value), {type: 'root', children: [{type: 'paragraph', children: [{type: 'text', value: source}]}]});
+  }
 });

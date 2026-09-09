@@ -4,12 +4,19 @@ import test from 'node:test';
 import {fromMarkdown} from 'mdast-util-from-markdown';
 import {gfmFromMarkdown} from 'mdast-util-gfm';
 import {gfm} from 'micromark-extension-gfm';
-import {steamCommunityBbcodeToGfm} from '../src/index.js';
+import {steamCommunityBbcodeToGfm, gfmToSteamCommunityBbcode} from '../src/index.js';
 
 /** @param {string} markdown */
 function targetTree(markdown) {
   return fromMarkdown(markdown, {extensions: [gfm()], mdastExtensions: [gfmFromMarkdown()]});
 }
+
+test('both JavaScript conversion directions reject non-string input instead of coercing it', () => {
+  for (const source of [null, undefined, 42, Buffer.from('[b]x[/b]'), {toString: () => '[b]x[/b]'}]) {
+    assert.throws(() => Reflect.apply(steamCommunityBbcodeToGfm, undefined, [source]), TypeError);
+    assert.throws(() => Reflect.apply(gfmToSteamCommunityBbcode, undefined, [source]), TypeError);
+  }
+});
 
 test('the GFM parser observes literal Markdown and HTML-shaped source without formatting', () => {
   const source = '*literal* <script>alert(1)</script> [sd]';
@@ -48,4 +55,13 @@ test('noparse is lowered to literal text only at the GFM boundary', () => {
   const text = paragraph.children[0];
   assert.ok(text?.type === 'text');
   assert.equal(text.value, '[b]*literal*[/b]');
+});
+
+test('quote attribution without comment metadata is equivalent visible text', () => {
+  const result = steamCommunityBbcodeToGfm('[quote=Author]Quoted text[/quote]');
+  const quote = targetTree(result.value).children[0];
+  assert.ok(quote?.type === 'blockquote');
+  assert.deepEqual(quote.children.map(node => node.type === 'paragraph' ? node.children.map(child => child.type === 'text' ? child.value : child.type).join('') : node.type), ['Originally posted by Author:', 'Quoted text']);
+  assert.ok(result.diagnostics.some(d => d.code === 'STEAM_QUOTE_METADATA_LOWERED' && d.fidelity === 'equivalent'));
+  assert.equal(result.coverage.constructs[0]?.fidelity, 'equivalent');
 });

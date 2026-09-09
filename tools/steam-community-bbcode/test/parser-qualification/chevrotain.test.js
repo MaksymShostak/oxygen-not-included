@@ -7,7 +7,7 @@ import {createToken, Lexer, CstParser} from 'chevrotain';
 // It is not a claim that the full Steam grammar already exists.
 const Open = createToken({name: 'Open', pattern: /\[b\]/});
 const Close = createToken({name: 'Close', pattern: /\[\/b\]/});
-const Literal = createToken({name: 'Literal', pattern: /[^\[]+/, line_breaks: true});
+const Literal = createToken({name: 'Literal', pattern: /[^[]+/, line_breaks: true});
 const tokens = [Open, Close, Literal];
 const lexer = new Lexer(tokens);
 

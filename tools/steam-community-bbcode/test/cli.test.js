@@ -4,10 +4,10 @@ import {spawn, spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 
-/** @param {string[]} args @param {string | Buffer} [input] */
-function cli(args, input = '') {
+/** @param {string[]} args @param {string | Buffer} [input] @param {string} [cwd] */
+function cli(args, input = '', cwd = fileURLToPath(new URL('../', import.meta.url))) {
   const result = spawnSync(process.execPath, [fileURLToPath(new URL('../src/cli.js', import.meta.url)), ...args],
-    {input, encoding: 'utf8', windowsHide: true, timeout: 10000});
+    {input, cwd, encoding: 'utf8', windowsHide: true, timeout: 10000, maxBuffer: 4 * 1024 * 1024});
   assert.equal(result.error, undefined);
   return result;
 }
@@ -33,8 +33,7 @@ test('CLI makes reverse limitations visible and returns unsupported source diagn
 });
 
 test('CLI accepts a spaced file path after the option terminator and explicit stdin', () => {
-  const path = fileURLToPath(new URL('./fixtures/cli/- source.bbcode', import.meta.url));
-  const file = cli(['to-gfm', '--', path]);
+  const file = cli(['to-gfm', '--', '- source.bbcode'], '', fileURLToPath(new URL('./fixtures/cli/', import.meta.url)));
   assert.equal(file.status, 0);
   assert.equal(file.stdout, '**B**\n');
   const stdin = cli(['to-gfm', '-'], '[b]B[/b]');
@@ -63,6 +62,9 @@ test('CLI bounds UTF-8 input bytes before conversion and rejects malformed encod
   const exact = cli(['to-gfm', '--max-input-bytes=4'], '💙');
   assert.equal(exact.status, 0);
   assert.equal(exact.stdout, '💙\n');
+  const minimum = cli(['to-gfm', '--max-input-bytes=1'], 'X');
+  assert.equal(minimum.status, 0);
+  assert.equal(minimum.stdout, 'X\n');
   const invalid = cli(['to-gfm'], Buffer.from([0xff]));
   assert.equal(invalid.status, 2);
   assert.equal(invalid.stdout, '');
@@ -77,6 +79,9 @@ test('CLI emits the shipped conformance report and selected forward profile', ()
   assert.equal(report.registryConstructCount, 39);
   assert.equal(report.reverse.executedCaseCount, 33);
   assert.equal(coverage.stderr, '');
+  const defaultFormat = cli(['coverage']);
+  assert.equal(defaultFormat.status, 0);
+  assert.equal(defaultFormat.stdout, coverage.stdout);
   const conversion = cli(['to-gfm', '--profile=discussion', '--format=json'], '[b]B[/b]');
   assert.equal(conversion.status, 0);
   /** @type {{coverage: {profile: string}}} */
@@ -84,17 +89,41 @@ test('CLI emits the shipped conformance report and selected forward profile', ()
   assert.equal(result.coverage.profile, 'discussion');
 });
 
-for (const args of [[], ['unknown'], ['to-gfm', '--unknown'], ['to-gfm', 'one', 'two'],
+for (const args of [[], ['unknown'], ['to-gfm', '--unknown'], ['to-gfm', '-', 'unexpected'],
   ['to-gfm', '--format=xml'], ['to-gfm', '--profile=typo'], ['to-steam', '--profile=workshop-item'],
   ['to-gfm', '--fail-on=typo'], ['to-gfm', '--max-input-bytes=0'], ['to-gfm', '--max-input-bytes=1.5'],
-  ['coverage', 'unexpected.bbcode'], ['coverage', '--fail-on=lossy'], ['coverage', '--format=text']]) {
+  ['coverage', 'unexpected.bbcode'], ['coverage', '--fail-on=lossy'], ['coverage', '--format=json', '--fail-on=lossy'], ['coverage', '--format=text']]) {
   test(`CLI rejects invalid invocation ${JSON.stringify(args)}`, () => {
     const result = cli(args, '[b]B[/b]');
     assert.equal(result.status, 2);
     assert.equal(result.stdout, '');
     assert.match(result.stderr, /CLI_ERROR/u);
+    /** @type {{message: string}} */
+    const diagnostic = JSON.parse(result.stderr);
+    assert.equal(typeof diagnostic.message, 'string');
+    assert.notEqual(diagnostic.message.trim(), '');
   });
 }
+
+test('CLI reports invalid byte-limit arguments before attempting to read a missing input', () => {
+  for (const limit of ['0', '-1', '1.5', 'Infinity', '9007199254740992']) {
+    const result = cli(['to-gfm', `--max-input-bytes=${limit}`, 'does-not-exist.bbcode']);
+    assert.equal(result.status, 2);
+    assert.equal(result.stdout, '');
+    assert.match(result.stderr, /--max-input-bytes.*positive safe integer/u);
+    assert.doesNotMatch(result.stderr, /ENOENT/u);
+  }
+});
+
+test('an explicit input limit above the default reaches both public converters', () => {
+  const payload = 'x'.repeat(1024 * 1024);
+  const forward = cli(['to-gfm', '--max-input-bytes=1048600'], `[code]${payload}[/code]`);
+  assert.equal(forward.status, 0);
+  assert.equal(forward.stdout, '```\n' + payload + '\n```\n');
+  const reverse = cli(['to-steam', '--max-input-bytes=1048600'], '```\n' + payload + '\n```');
+  assert.equal(reverse.status, 0);
+  assert.equal(reverse.stdout, `[code]${payload}[/code]`);
+});
 
 test('CLI reports missing files without a stack trace or partial output', () => {
   const result = cli(['to-gfm', fileURLToPath(new URL('./fixtures/cli/does-not-exist.bbcode', import.meta.url))]);

@@ -61,3 +61,41 @@ test('unpaired unknown bracket labels do not absorb known formatting or its clos
   assert.equal(parsed.children.at(-1)?.rawSource, '[b]Next[/b]');
   assert.equal(parsed.children.map(child => child.rawSource).join(''), source);
 });
+
+test('opaque and horizontal-rule whitespace retains normalized tag names and complete source positions', () => {
+  const parts = ['[CODE \r\n]A\rB\nC[/CoDe \t]', '[hr \t][/HR ]', '[noparse \t]X[/NoParse \t]', '[/B \t]'];
+  const result = parseSteamCommunityBbcode(parts.join(''));
+  assert.deepEqual(result.children.map(node => node.rawSource), parts);
+  assert.deepEqual(result.children.map(node => node.type), ['steamOpaqueTag', 'steamTag', 'steamOpaqueTag', 'steamUnmatchedClosingTag']);
+  assert.deepEqual(result.children.map(node => 'tagName' in node ? node.tagName : ''), ['code', 'hr', 'noparse', 'b']);
+  const first = result.children[0];
+  assert.ok(first?.type === 'steamOpaqueTag');
+  assert.equal(first.value, 'A\rB\nC');
+  assert.equal(first.rawAttributes, ' \r\n');
+  assert.deepEqual(result.children.map(node => node.sourceSpan), [
+    {start: {line: 1, column: 1, offset: 0}, end: {line: 4, column: 11, offset: 23}},
+    {start: {line: 4, column: 11, offset: 23}, end: {line: 4, column: 23, offset: 35}},
+    {start: {line: 4, column: 23, offset: 35}, end: {line: 4, column: 47, offset: 59}},
+    {start: {line: 4, column: 47, offset: 59}, end: {line: 4, column: 53, offset: 65}},
+  ]);
+  assert.deepEqual(result.diagnostics.map(d => d.code), ['STEAM_UNMATCHED_CLOSING_TAG']);
+  assert.deepEqual(result.diagnostics[0]?.sourceSpan, result.children[3]?.sourceSpan);
+});
+
+test('adjacent opaque and boundary constructs release depth and respect the exact node quota', () => {
+  const source = '[code]A[/code][noparse]B[/noparse][hr][hr][/hr]';
+  const result = parseSteamCommunityBbcode(source, {resourceLimits: {maxNestingDepth: 1, maxNodeCount: 4}});
+  assert.deepEqual(result.diagnostics, []);
+  assert.equal(result.children.length, 4);
+  assert.equal(result.children.map(node => node.rawSource).join(''), source);
+  assert.equal(parseSteamCommunityBbcode(source, {resourceLimits: {maxNodeCount: 3}}).diagnostics[0]?.code, 'STEAM_MAX_NODE_COUNT_EXCEEDED');
+});
+
+test('parser diagnostic positions and endpoints are immutable', () => {
+  const diagnostic = parseSteamCommunityBbcode('[/B]').diagnostics[0];
+  assert.ok(diagnostic?.sourceSpan);
+  assert.equal(Reflect.set(diagnostic, 'message', 'changed'), false);
+  assert.equal(Reflect.set(diagnostic.sourceSpan, 'start', {}), false);
+  assert.equal(Reflect.set(diagnostic.sourceSpan.start, 'line', 99), false);
+  assert.equal(Reflect.set(diagnostic.sourceSpan.end, 'offset', 99), false);
+});

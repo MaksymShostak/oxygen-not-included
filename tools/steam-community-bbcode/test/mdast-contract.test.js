@@ -37,3 +37,11 @@ test('prepared source must be issued by the parser and retain its parsing contra
   assert.throws(() => steamCommunityBbcodeToMdast(issued, {profile: 'review'}), RangeError);
   assert.throws(() => steamCommunityBbcodeToMdast(issued, {resourceLimits: {maxInputBytes: 1}}), TypeError);
 });
+
+test('MDAST conversion rejects malformed and misspelled JavaScript options', () => {
+  for (const options of [null, [], 42, 'review', {profil: 'review'}]) {
+    for (const input of ['Text', parseSteamCommunityBbcode('Text')]) {
+      assert.throws(() => Reflect.apply(steamCommunityBbcodeToMdast, undefined, [input, options]), TypeError);
+    }
+  }
+});

@@ -10,7 +10,7 @@
  * @returns {boolean}
  */
 export function isAllowedResourceUrl(value, kind) {
-  if (!value || /[\u0000-\u001f\u007f-\u009f\\]/u.test(value)) return false;
+  if (!value || /[\p{Control}\\]/u.test(value)) return false;
   const parsed = URL.parse(value, 'https://steam-bbcode.invalid/');
   return parsed !== null && (parsed.protocol === 'https:' || parsed.protocol === 'http:' || (kind === 'link' && parsed.protocol === 'mailto:'));
 }
