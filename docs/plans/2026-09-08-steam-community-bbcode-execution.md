@@ -1094,3 +1094,350 @@ authorized independent route under the standing no-subagents instruction. Remote
 CI, branch-rule adoption, pre-release legal review, publisher binding and any
 push/publication remain separate gates. This candidate makes no stable-release
 or in-game/Workshop acceptance claim.
+
+## Independent review repairs (9 September 2026)
+
+Both authorized reviewers finished on signed `52fd7f76aa8aa70146774218cc479496e0837807`
+with all 164 changed paths accounted for and no tracked drift. The independent
+verifier reproduced five installed-consumer failures despite passing automation:
+empty, redundant nested, padded deletion and paragraph-spanning formatting (F1),
+and deleted nonbreaking table content (F2). F3 identifies the path classifier's
+misleading commitment claim. Preserve the original reports and counterexamples
+under `.sdlc/runtime/converter/independent-verification/`.
+
+The separately approved direct security assessment is retained under
+`.sdlc/runtime/converter/direct-security-review/`. It identifies mandatory native
+diagnostic reparsing as a concrete availability concern (D1), and records legacy
+isolated-comparator advisories without claiming exploit reachability (D2). The
+native precheck remains incomplete: 70 of 164 paths selected, 94 omitted, no live
+scan or native bundle. The direct alternative does not change that status.
+
+Continue R2 against the unchanged accepted v2 baseline. Max's standing instruction
+authorizes implementation, detailed signed commits and configuration explicitly
+specified here. The supported lifecycle starts `converter-review-repairs` after
+the earlier implementation handoff; it does not fabricate a resumed active record.
+Use the repository-adapted TDD procedure for repairs. For D1, apply the Codex
+Security fix-finding boundary/integration checks using the completed independent
+source-to-sink investigation and the same authorized reviewer for verification;
+the user's two-reviewer limit excludes additional agent dispatch.
+
+### Repair slices and independent oracles
+
+- F1: keep native Markdown serialization. Normalize empty, redundant nested and
+  adjacent identical presentation nodes in target lowering; preserve content and
+  other active styles. Represent ordinary paragraph boundaries with native flow
+  nodes while retaining formatting on each paragraph. Qualify padded deletion
+  through the serializer's supported `unsafe` configuration, including Unicode
+  whitespace; no output rewriting, HTML substitute or vendor patch. Authored GFM
+  expectations and the actual GFM parser are the oracle. Source syntax, positions,
+  per-occurrence accounting and opaque content must remain intact.
+- F2: `src/mdast/steam-table-structure.js` must recognize only ASCII space, tab,
+  CR and LF as structural layout. Nonbreaking or other substantive separators
+  cause existing complete-table preservation and its diagnostic. Include an
+  otherwise-valid TH-header/TD-body positive control and both row/cell boundaries.
+- F3: rename `is_committed_plan_path` to `is_canonical_plan_path` in
+  `scripts/_sdlc_baseline.py`, `scripts/sdlc.py` and `scripts/validate_sdlc_pr.py`.
+  Preserve the actual native Git commitment checks and existing control tests;
+  add no compatibility alias or name-mirroring test.
+- D1: qualify applying the existing GFM extension's documented MDAST transforms
+  directly to an isolated target-tree copy. Those transforms already own the
+  optional GitHub autolink policy. Avoid reparsing escaped Markdown solely to
+  count links. Compare diagnostics against the prior native-parser path on
+  authored legitimate and hostile inputs; preserve the caller tree. Before
+  implementation, retain the original public API repro and a five-second child
+  budget failure for 16,000 opaque repetitions. Recheck that input and adjacent
+  formatting, record actual timings and scaling, and make no global CPU-bound
+  claim. The selected native transform contract is exported by the existing
+  `mdast-util-gfm` and typed by `mdast-util-from-markdown`; no dependency is added.
+
+The five initial behavioral RED reproductions are retained in
+`review-regressions-red.log`. Earlier setup/import and invalid-header fixture
+attempts remain separately identified, not counted as behavioral evidence.
+Run focused Node tests first, then the package checks, control regressions and
+fresh repository full verification. Refresh the native mutation profiles whose
+inputs changed, preserving earlier reports, and ask the same two reviewers to
+verify the signed repair candidate. Passing automation does not erase findings.
+
+### Documentation and mechanical follow-through
+
+The baseline's generated API-reference fixture is not satisfied by declaration
+generation or authored `docs/api.md`. Qualify current maintained documentation
+tools against imported generic checked JSDoc before adopting one. Native registry
+metadata selects TypeDoc 0.28.20, documentation 14.0.3 and JSDoc 4.0.5. TypeDoc's
+supported peer range stops at TypeScript 6; the existing TS 6 authorization remains
+strictly confined to type coverage. Do not substitute that compiler for docs.
+
+For bounded qualification only, create
+`.sdlc/runtime/converter/selection/api-documentation/qualification/package.json`
+with `private: true`, `type: "module"`, and exact development dependencies
+`documentation: "14.0.3"`, `jsdoc: "4.0.5"`; native npm may create its lockfile.
+Install with lifecycle scripts disabled after inspecting selected licence texts.
+This isolated fixture changes no maintained dependency, build or CI command and
+is removed after its evidence is retained or superseded by a qualified adoption.
+Any adopted generator and its exact maintained configuration will be stated here
+before implementation. No custom type parser, rewritten JSDoc or checker
+suppression may disguise a failed qualification.
+
+Remove only the extra final blank line in the three existing JSON schemas:
+`spec/schema/common.schema.json`, `profiles.schema.json`, and `sources.schema.json`
+under the converter. JSON values and pipeline behavior remain identical; validate
+the native schema consumer and the complete Git range's whitespace afterward.
+The private conduct-reporting contact remains an outstanding owner decision;
+retain the prepared draft without inventing a contact or adopting placeholders.
+
+For the measured D1 regression, add `qualify:performance` to the converter's
+`package.json`: `node --test test/performance/*.test.js`, and invoke it from
+`check` after runtime coverage. The dedicated subprocess fixtures have a fixed
+five-second budget for 16,000/32,000 opaque repetitions and 40,000 adjacent bold
+nodes. They check complete output size/content and diagnostics as well as
+termination. This is a bounded regression floor on the supported CI runtimes,
+not a public conversion deadline. Mutation runners keep their existing scope;
+timing fixtures are not repeated for every mutant. No threshold is weakened.
+
+The serializer's `strikethrough` construct name is registered by the native
+`mdast-util-gfm-strikethrough` type augmentation, which the aggregate GFM entry
+point does not import in its declarations. Add exact direct runtime/type
+dependency `mdast-util-gfm-strikethrough: "2.0.0"` to the converter package and
+native lock. This is already the aggregate extension's installed version and the
+current stable release; its full MIT text was inspected. A native JSDoc `@import`
+loads its declared construct names without runtime code, aliases, a local
+augmentation or a type assertion hiding the mismatch. Runtime GFM composition
+continues to use the existing aggregate extension.
+
+Max answered "Authorize isolated docs-only qualification" after reviewing the
+compiler restriction and failed imported-generic fixtures. This explicitly adds
+the docs-only TypeScript 6 scope without changing any primary compiler role.
+Qualify TypeDoc 0.28.20 and unmodified TypeScript 6.0.3 in the separate private
+`tools/steam-community-bbcode/tooling/api-docs/package.json`, both exact development
+dependencies, with the native npm lock and scripts disabled during installation.
+Use package version 1.0.0, AGPL-3.0-only, ESM and npm 12.0.2. Its native `typedoc`
+script runs the supported CLI. The maintained qualification fixtures live under
+`test/documentation-fixtures/` so primary TS 7 checking covers them too. TypeDoc
+must retain the imported generic result and its value type in its native JSON
+model and rendered reference. An unsupported fixture is not a successful adoption.
+
+The rejected documentation.js 14.0.3 fixture exits zero while dropping the return
+type; its native lint reports the imported type parse error and unknown template
+tags. JSDoc 4.0.5 exits one on the import type syntax. The identical fixture passes
+the actual TypeScript 7 checker. Preserve both failures under the documentation
+selection evidence. These generators are not adopted into the converter graph.
+
+The TypeDoc fixture retains `Envelope<T>`, resolves the imported alias to its
+definition, and keeps the value property's generic type; native generation exits
+zero with warnings treated as errors. The first package-root reference correctly
+reports 20 referenced symbols outside its selected entry point. Inspection of
+`typedoc-plugin-missing-exports` 4.1.4 found prototype monkey patches, so reject and
+remove that qualification dependency. Include the referenced project-owned source
+modules through TypeDoc's native entry points instead, without adding runtime
+exports or suppressing missing-type diagnostics. Use `typedoc-plugin-markdown` 4.13.0
+(MIT) to produce reviewable, package-local Markdown without shipping a second
+website's scripts, fonts or copied repository documents. Add both exact development
+dependency only to the docs-only package and its native lock.
+
+The qualified docs configuration will select `src/index.js` and the source modules
+owning its referenced types, the existing `tsconfig.json`, the Markdown plugin,
+source-owned referenced types and exported native contracts, `readme: "none"`,
+`disableSources: true` to omit commit-dependent source hyperlinks from repeatable
+offline documentation, warnings-as-errors, and native `router: "module"` Markdown
+output under `docs/reference/` with `index.md` as entry. TypeDoc's JSON model stays
+in `artifacts/api-reference/` for fixture/contract validation. No checker settings,
+runtime exports, source comments or type syntax are weakened. Add the actual
+generator/fixture checks to the package check after qualifying this configuration;
+state their exact npm and CI/dependency-update changes before execution.
+
+The native entry-point qualification passes with zero warnings after documenting
+nine source modules. The exposed `SteamUrlWidgetKind` contract now states its six
+source-qualified identities and checks the private recognizer against that union;
+public metadata no longer depends on the type of an undocumented private function.
+The accepted widget identities and executable recognizer are unchanged.
+
+Adopt `tooling/api-docs/typedoc.json` with these native entry points: `src/index.js`,
+`src/diagnostics/{conversion-result,diagnostic-codes}.js`,
+`src/steam/{registry-identifiers,steam-bbcode-syntax,parse-steam-bbcode}.js`, and
+`src/mdast/{steam-mdast-nodes,steam-url-widgets,steam-table-layout}.js`.
+Use the options above and `entryFileName: "index"`. Keep the generated root API
+module distinct from supporting source-module documentation; the latter does not
+make internal modules importable through the package exports map.
+
+Add docs-only native Application orchestration and fixture assertions in
+`tooling/api-docs/generate.js`. Its `generate` and `check` npm scripts generate
+the native model/Markdown, qualify the imported generic and compare generated
+bytes with `docs/reference/`; only explicit generation updates that owned folder.
+Extend the ESLint file/command scope to this script. Its native TypeDoc API types
+reference WebAssembly through the standard DOM library. Check this script with
+the parent's TS 7 executable and a separate `tooling/api-docs/tsconfig.json`
+extending the unchanged strict base with `lib: ["ES2022", "DOM"]`, `noEmit: true`
+and only `generate.js` included. Keep DOM globals outside runtime/consumer checking.
+Add `typecheck:api-docs` to the primary `typecheck` sequence; add `check:api-docs`
+to the isolated type-coverage tool and run it from the existing metric sequence
+with the same 100% strict threshold. No library checking is skipped.
+Add parent `docs:api`, `docs:api:check` and `sbom:api-docs` forwarding scripts.
+Run docs freshness/qualification from `check` before ordinary documentation tests;
+the packed consumer receives the checked reference through the existing `docs/`
+allowlist. No documentation generator is added to the shipped runtime.
+
+In `.github/workflows/steam-community-bbcode.yml`, install the exact docs-only
+lock with npm 12 and `--ignore-scripts`, emit its native SBOM, and retain
+`artifacts/api-reference/` plus the documentation-fixture output with existing
+qualification reports. Add only its package directory to the existing npm
+Dependabot group. These extend the existing matrix and dependency review; they
+do not change permissions, compiler versions, thresholds or remote protections.
+
+The native `excludeExternals` filter also removed the exported unist `SourceSpan`
+and its point fields. A direct public-contract assertion reproduces that failure.
+Retain TypeDoc's default external inclusion instead: selected source entry points
+still bound the reference, while native contracts used by public exports retain
+their actual structure. Raising conversion depth did not address this omission
+and is not adopted. Keep the SourceSpan assertion beside the generic fixture.
+
+## Authored documentation line breaks (9 September 2026)
+
+Max requested enforceable semantic line breaking and selected converter-only
+authored documentation as the initial scope. Qualify maintained native Markdown
+formatting before configuration/adoption. The output must retain paragraphs,
+inline code, links, tables, fenced examples, nonbreaking spaces and hard breaks;
+an ordinary multi-sentence paragraph must become sentence-separated source.
+Generated `docs/reference/`, `docs/conversion-semantics.md` and
+`docs/steam-support-matrix.md`, fixtures, vendored material and the immutable
+repository baseline are outside the authored-document rewrite scope.
+
+Prettier 3.9.6 preserves wrapping by default but needs a plugin for sentence
+boundaries. Inspecting exact `eslint-plugin-sentences-per-line` 0.1.3 and
+`prettier-plugin-sentences-per-line` 0.2.4 with `sentences-per-line` 0.5.3 (MIT)
+shows capital-letter heuristics and incomplete coverage across inline nodes.
+The older textlint sentence rule has no release after 2022. Do not substitute
+these limitations for evidence that every authored sentence boundary is enforced.
+
+For bounded qualification, create only the ignored
+`.sdlc/runtime/converter/selection/semantic-lines/requirements.txt` with exact
+`mdformat==1.0.0`, `mdformat-gfm==1.0.0`, `mdformat-slw==0.4.0` and
+`mdformat-sembr==0.2.0` (all MIT). Install their unmodified wheels into the adjacent
+ignored `python/` target, using the checkout interpreter and native installer.
+Select each plugin explicitly when comparing outcomes, retain raw failures, and
+keep mdformat's native rendered-equivalence validation enabled. This qualification
+adds no maintained dependency or CI change. State the exact selected integration
+after the fixture succeeds; add no custom sentence splitter or vendor patch.
+
+The native 15-case comparison retains every result: slw passes 14 but misses a
+sentence whose punctuation is inside emphasis; sembr additionally loses NBSP,
+misses sentence-starting code/links and triggers native equivalence failure on
+a hard break. Extend only the ignored qualification requirements/target with
+current MIT `flowmark==0.8.0` and evaluate the identical authored expectations.
+No failing oracle is weakened to accept a formatter.
+
+Flowmark's CLI width zero disables sentence wrapping and collapses NBSP; its
+default semantic mode also combines short sentences. Native `Intl.Segmenter`
+splits the accepted `e.g. Node` abbreviation case. Neither supplies the required
+contract as configured. Before custom composition, qualify current MIT
+`snapper-fmt==0.11.0`, published as a standalone native formatter in a wheel with
+no Python dependencies. Extend only the ignored qualification requirement and
+download its unmodified Windows wheel; run its published CLI on the same corpus.
+Its documented Unicode segmentation, abbreviation handling and Markdown-aware
+regions directly address the remaining gap. No global installation, MCP server,
+editor integration, generated configuration or Git filter is authorized here.
+
+Snapper's native Windows CLI passes all 15 unchanged expectations. Select its
+unmodified 0.11.0 release for authored converter Markdown. The residual local
+work is file selection and invoking that CLI through the existing checkout
+Python entry point; sentence detection, Markdown handling and check/write behavior
+remain vendor-owned. Use the configuration/build verification route for this
+integration, retaining the failed candidate qualification as counterevidence.
+
+Under the owner's standing approval for explicit implementation-plan configuration,
+make these exact changes:
+
+- Add `tools/steam-community-bbcode/tooling/prose/requirements.in` with
+  `snapper-fmt==0.11.0` and native uv-generated, hash-locked `requirements.txt`.
+  Install wheels additively in this checkout's existing `.venv`; never sync away
+  SDLC dependencies. This is a development tool, outside the published package.
+- Add package `.snapperrc.toml`: Markdown format, unlimited source width,
+  sentence breaks only (`clause_breaks = false`), and no code-language formatter
+  configuration. Pass this exact config explicitly to prevent ancestor overrides.
+- In the converter `package.json`, add `docs:format`, `docs:format:check` and
+  `qualify:prose` npm commands using `scripts/runRepositoryPython.js`. Add the
+  native read-only formatting check and its qualification to `check`. Neither
+  command formats generated API references, conformance/support projections,
+  vendored fixtures or documentation outside this converter.
+- In `.github/workflows/steam-community-bbcode.yml`, reuse the repository's pinned
+  `actions/setup-python` and `.python-version`; create the checkout `.venv` and
+  install only the hash-locked formatter wheel with `--only-binary=:all:` before
+  converter checking. Retain its installer report and packaged native SBOM.
+- In `.github/dependabot.yml`, extend the existing pip directory list with the
+  converter's `tooling/prose` directory so native update proposals cover its pin.
+
+The bounded gate covers package-root Markdown and authored `docs/**/*.md`.
+Use native CLI fixtures for bold, inline code/links, versions, abbreviations,
+NBSP, explicit hard breaks, quoted sentences, lists, blockquotes and GFM tables;
+check idempotence and failure-without-writing on a temporary unformatted document.
+Verify scope exclusions with distinct fixture files, then compare real authored
+documents before/after with the existing native GFM parser and inspect the diff.
+Natural-language sentence detection is deterministic tooling, not proof of
+linguistic understanding. Prettier is unnecessary for this selected narrow gate.
+
+The real-file check exposed Snapper's documented render backstop: it can return
+the original file after an unsafe reflow and exit zero, while structured diagnostics
+still identify fused sentences and arbitrary wraps. Refine the local gate to
+consume native `--check --output-format json`: fail on native nonzero exit,
+`would_reformat`, or native `fused`/`wrap` diagnostics. Keep `long` advisory under
+the selected unlimited-width policy, retain the complete native JSON report, and
+leave all vendor safeguards enabled. This is orchestration of native findings,
+not a replacement Markdown parser, sentence splitter or compatibility shim.
+Add the independently reproduced backstop fixture before changing the gate.
+Review exceptional prose manually; never rewrite vendor output or suppress an
+unresolved native finding.
+
+### Repair and prose integration results
+
+The six maintained prose qualification tests pass, covering the 15 authored
+sentence/literal cases, GFM tables and code comments, both hard-break forms,
+idempotence, native read-only rejection, scope exclusions, backstop rejection and
+long-sentence acceptance. The actual gate first failed against the existing
+wrapping, then passes on all 18 selected authored guides. Native GFM comparison
+preserves every document's structure/content after accounting for the deliberate
+inline-code marking of `.NET` in two guides and the added tooling explanation.
+Keep `prose-before.json`, `prose-gfm-preservation.log`, native JSON and both
+backstop RED/GREEN logs under `.sdlc/runtime/converter/review-repairs/`.
+Generated reference/projection files were excluded from this prose rewrite.
+
+The combined package check passes on Windows x64 / Node 24.20.0 / npm 12.0.2:
+557 tests; runtime statements/lines 99.93%, functions 100%, branches 96.43%; three
+bounded-process regressions; native conformance; strict TS 7 primary checks;
+100% typed references (15,845/15,845 primary, 305/305 docs orchestration);
+58 identical declaration artifacts across two clean builds; and actual packed
+JavaScript, type and CLI consumers. Retain
+`package-repair-and-prose-green.log` and the emitted package artifact at
+`tools/steam-community-bbcode/artifacts/steam-community-bbcode-1.0.0.tgz`.
+The earlier combined check correctly failed on the conformance input hash after
+the package command changes; native regeneration changes that hash and the already
+reviewed deletion-whitespace example, without changing construct outcomes.
+Its original failed log remains retained. Native actionlint passes the exact
+modified workflow; this is local validation, not execution of the remote matrix.
+
+The first repair mutation run failed at 89.86%. Native-parser cases for adjacent
+distinct links and mixed presentation marks then detected real untested faults;
+equivalent internal array-guard mutants were not given artificial tests. The native
+incremental rerun passes at 90.01% (3,462 killed, eight timeouts, 366 survived,
+19 uncovered, 102 runtime errors), taking 5m48s. Of the runtime errors, 89 occur
+in mutated native grammar setup and 13 in historical-description module setup;
+these are excluded by Stryker's score, not assertion kills. The independent CLI
+profile passes at 98.37% (181 killed, three survived, no other statuses), taking
+5m52s. Native reports are under the package's `artifacts/mutation-library` and
+`artifacts/mutation-cli`; keep their old-candidate and 89.86% predecessors in
+`review-repairs/` rather than overwriting the counterevidence.
+
+The three SDLC predicate files are signed in `1f67f55c1ff3784438b9ea368c3173babee413de`;
+the API generator/reference foundation is signed in
+`18b190e4df77e82a385e5b829f279d78e44b55d2`. Both exact messages, staged trees and
+parents matched, with successful SSH signature verification. Commit the remaining
+integrated repair/prose paths under the same standing approval, freeze that final
+candidate, run the native full lifecycle verification, and obtain focused follow-up
+from the same two authorized reviewers. Do not infer those future outcomes here.
+
+The API and prose qualification wheels/sources, failed experiments, original
+review consumers and native mutation reports remain task-owned review inputs until
+the two reviewers complete the signed repair follow-up. The maintainer record and
+permanent fixtures preserve the useful qualification conclusions. Reassess spent
+working copies at that checkpoint; original RED logs, native inventories, accepted
+baselines and active control state remain retained evidence. The prose wheel's
+bundled 268-component SBOM and installer report are retained separately from the
+npm inventories; npm audit does not assess that compiled Rust graph.

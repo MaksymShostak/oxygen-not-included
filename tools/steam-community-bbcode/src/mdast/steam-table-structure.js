@@ -42,7 +42,7 @@ export function rectangularSteamTableRows(table) {
 
 /** @param {SourceNode} node */
 function isLayout(node) {
-  return node.type === 'steamText' && node.value.trim() === '';
+  return node.type === 'steamText' && /^[ \t\r\n]*$/u.test(node.value);
 }
 
 /** @param {Tag} node */

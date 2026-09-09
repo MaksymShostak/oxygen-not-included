@@ -172,3 +172,14 @@ test('CLI always fails on a conversion resource error, independently of fidelity
   assert.equal(parsed.value, '');
   assert.ok(parsed.diagnostics.some(diagnostic => diagnostic.severity === 'error'));
 });
+
+test('CLI keeps repaired formatting exact and rejects diagnosed nonbreaking table preservation', () => {
+  const formatting = cli(['to-gfm', '--fail-on=approximate'], '[b]a[b]b[/b][/b]\n\n[strike] D [/strike]');
+  assert.equal(formatting.status, 0);
+  assert.equal(formatting.stdout, '**ab**\n\n~~&#x20;D&#x20;~~\n');
+  assert.equal(formatting.stderr, '');
+  const table = cli(['to-gfm', '--fail-on=approximate'], '[table]\u00a0[tr][th]H[/th][/tr][tr][td]D[/td][/tr][/table]');
+  assert.equal(table.status, 1);
+  assert.match(table.stdout, /H.*D/u);
+  assert.match(table.stderr, /STEAM_TABLE_STRUCTURE_PRESERVED/u);
+});

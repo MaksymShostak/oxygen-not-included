@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import assert from 'node:assert/strict';
+import {fromMarkdown} from 'mdast-util-from-markdown';
+import {gfmFromMarkdown} from 'mdast-util-gfm';
+import {gfm} from 'micromark-extension-gfm';
 import {parseSteamCommunityBbcode, steamCommunityBbcodeToMdast, steamCommunityBbcodeToGfm, gfmToSteamCommunityBbcode} from 'steam-community-bbcode';
 
 const source = '[b]Packed[/b]';
@@ -33,3 +36,34 @@ assert.equal(unsupported.value, '[noparse]#### Deeper[/noparse]');
 const limited = gfmToSteamCommunityBbcode('😀', {resourceLimits: {maxInputBytes: 3}});
 assert.equal(limited.value, '');
 assert.equal(limited.diagnostics[0]?.code, 'GFM_MAX_INPUT_BYTES_EXCEEDED');
+
+// These authored outcomes exercise the installed formatter, independent of
+// the source checkout's test helpers or a converter-produced expected value.
+assert.equal(steamCommunityBbcodeToGfm('[b][/b]').value, '');
+/** @type {[string, string, string[]][]} */
+const formattingCases = [
+  ['[b]a[b]b[/b]c[/b]', 'strong', ['abc']],
+  ['[strike] D [/strike]', 'delete', [' D ']],
+  ['[b]a\n\nb[/b]', 'strong', ['a', 'b']],
+];
+for (const [input, style, text] of formattingCases) {
+  const converted = steamCommunityBbcodeToGfm(input);
+  const target = fromMarkdown(converted.value, {extensions: [gfm()], mdastExtensions: [gfmFromMarkdown()]});
+  assert.equal(target.children.length, text.length);
+  for (const [index, block] of target.children.entries()) {
+    assert.ok(block.type === 'paragraph');
+    assert.equal(block.children.length, 1);
+    const mark = block.children[0];
+    assert.ok(mark && 'children' in mark);
+    assert.equal(mark.type, style);
+    assert.deepEqual(mark.children.map(child => child.type === 'text' ? child.value : child.type), [text[index]]);
+  }
+  assert.deepEqual(converted.diagnostics, []);
+}
+const tableSource = '[table]\u00a0[tr][th]H[/th][/tr][tr][td]D[/td][/tr][/table]';
+const tableResult = steamCommunityBbcodeToGfm(tableSource);
+assert.ok(tableResult.diagnostics.some(d => d.code === 'STEAM_TABLE_STRUCTURE_PRESERVED'));
+assert.ok(tableResult.coverage.constructs.every(outcome => outcome.fidelity === 'unsupported'));
+const tableParagraph = fromMarkdown(tableResult.value).children[0];
+assert.ok(tableParagraph?.type === 'paragraph');
+assert.deepEqual(tableParagraph.children.map(child => child.type === 'text' ? child.value : child.type), [tableSource]);

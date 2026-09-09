@@ -4,7 +4,7 @@ import js from '@eslint/js';
 import globals from 'globals';
 
 export default defineConfig([{
-  files: ['src/**/*.js', 'scripts/**/*.js', 'test/**/*.js', 'eslint.config.js'],
+  files: ['src/**/*.js', 'scripts/**/*.js', 'test/**/*.js', 'tooling/api-docs/*.js', 'eslint.config.js'],
   extends: [js.configs.recommended],
   languageOptions: {sourceType: 'module', globals: globals.nodeBuiltin},
   linterOptions: {noInlineConfig: true},

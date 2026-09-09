@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import {findSteamTagDefinition} from '../steam/construct-definition.js';
+import {canonicalGfmPhrasing, gfmParagraphs} from './canonical-phrasing.js';
 
 /** @typedef {import('../mdast/steam-mdast-nodes.js').SteamMdastRoot} SteamMdastRoot */
 /** @typedef {import('../mdast/steam-mdast-nodes.js').SteamPhrasingContent} SteamPhrasingContent */
@@ -73,7 +74,7 @@ export function lowerSteamMdastToGfm(source) {
 
   /** @param {import('../mdast/steam-mdast-nodes.js').SteamTableRow} node @returns {import('mdast').TableRow} */
   function tableRow(node) {
-    return {...node, children: node.children.map(cell => ({...cell, children: cell.children.flatMap(phrasing)}))};
+    return {...node, children: node.children.map(cell => ({...cell, children: canonicalGfmPhrasing(cell.children.flatMap(phrasing))}))};
   }
 
   /** @param {import('../mdast/steam-mdast-nodes.js').SteamListItem} node @returns {import('mdast').ListItem} */
@@ -87,7 +88,7 @@ export function lowerSteamMdastToGfm(source) {
       case 'steamEmbeddedMedia':
         recordConstructOutcome(node, node.constructId, node.mediaKind === 'video' ? 'lossy' : 'approximate', 'STEAM_MEDIA_EMBED_LOWERED_TO_LINK', 'Steam media-widget presentation becomes an ordinary link; playback, poster and layout are not retained.');
         return [{type: 'paragraph', children: [{type: 'link', url: node.source,
-          children: node.children.length ? node.children.flatMap(phrasing) : [{type: 'text', value: node.mediaKind === 'youtube' ? 'YouTube video' : 'Video'}]}]}];
+          children: node.children.length ? canonicalGfmPhrasing(node.children.flatMap(phrasing)) : [{type: 'text', value: node.mediaKind === 'youtube' ? 'YouTube video' : 'Video'}]}]}];
       case 'steamBlockSpoiler':
         recordTargetOutcome(node, 'spoiler', 'approximate', 'STEAM_SPOILER_LOWERED_TO_DETAILS', 'Steam spoiler presentation becomes a GitHub collapsible block.');
         return [{type: 'html', value: '<details>\n<summary>Spoiler</summary>'}, ...node.children.flatMap(flow), {type: 'html', value: '</details>'}];
@@ -100,7 +101,7 @@ export function lowerSteamMdastToGfm(source) {
         return [{type: 'blockquote', children: node.children.flatMap(flow)}];
       case 'code': return [{...node, value: gfmLineEndings(node.value)}];
       case 'paragraph': return paragraph(node);
-      case 'heading': return [{...node, children: node.children.flatMap(phrasing)}];
+      case 'heading': return [{...node, children: canonicalGfmPhrasing(node.children.flatMap(phrasing))}];
       case 'blockquote': case 'footnoteDefinition': return [{...node, children: node.children.flatMap(flow)}];
       case 'list': return [{...node, children: node.children.map(listItem)}];
       case 'table':
@@ -119,7 +120,7 @@ export function lowerSteamMdastToGfm(source) {
     /** @type {import('mdast').PhrasingContent[]} */
     let inline = [];
     function flush() {
-      if (inline.length) blocks.push({...node, children: inline});
+      if (inline.length) blocks.push(...gfmParagraphs({...node, children: inline}));
       inline = [];
     }
     for (const child of node.children) {
@@ -145,9 +146,9 @@ export function lowerSteamMdastToGfm(source) {
       case 'code': case 'definition': case 'thematicBreak': return flow(node);
       case 'listItem': return [listItem(node)];
       case 'tableRow': return [tableRow(node)];
-      case 'tableCell': return [{...node, children: node.children.flatMap(phrasing)}];
+      case 'tableCell': return [{...node, children: canonicalGfmPhrasing(node.children.flatMap(phrasing))}];
       case 'yaml': return [node];
-      default: return phrasing(node);
+      default: return canonicalGfmPhrasing(phrasing(node));
     }
   }
 

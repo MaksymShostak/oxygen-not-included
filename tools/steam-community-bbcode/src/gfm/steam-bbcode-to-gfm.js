@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+/** @import {} from 'mdast-util-gfm-strikethrough' */
 import {steamCommunityBbcodeToMdast} from '../mdast/steam-bbcode-to-mdast.js';
 import {toMarkdown} from 'mdast-util-to-markdown';
 import {gfmToMarkdown} from 'mdast-util-gfm';
@@ -16,6 +17,12 @@ import {rendererAutolinkDiagnostics} from './renderer-autolink-diagnostics.js';
 export function steamCommunityBbcodeToGfm(source, options = {}) {
   if (typeof source !== 'string') throw new TypeError('The GFM conversion source must be a string.');
   const result = lowerSteamMdastToGfm(steamCommunityBbcodeToMdast(source, options));
-  const value = toMarkdown(result.value, {extensions: [gfmToMarkdown()], fences: true});
-  return {...result, value, diagnostics: [...result.diagnostics, ...rendererAutolinkDiagnostics(value, result.value)]};
+  // Native deletion delimiters need escaped whitespace to remain flanking.
+  // Use the serializer's public policy, retaining every source character.
+  /** @type {Set<string>} */
+  const whitespace = new Set();
+  for (const match of source.matchAll(/\s/gu)) whitespace.add(match[0]);
+  const value = toMarkdown(result.value, {extensions: [gfmToMarkdown()], fences: true,
+    unsafe: [...whitespace].map(character => ({character, inConstruct: 'strikethrough'}))});
+  return {...result, value, diagnostics: [...result.diagnostics, ...rendererAutolinkDiagnostics(result.value)]};
 }

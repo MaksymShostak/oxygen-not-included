@@ -67,6 +67,9 @@ try {
   assert.match(installedHelp, /to-steam.*partial/iu);
   const installedConversion = run([npmCli, 'exec', '--offline', '--', 'steam-community-bbcode', 'to-gfm'], consumer, '[b]B[/b]');
   assert.equal(installedConversion, '**B**\n');
+  const installedFormatting = run([npmCli, 'exec', '--offline', '--', 'steam-community-bbcode', 'to-gfm', '--fail-on=approximate'],
+    consumer, '[b]a[b]b[/b][/b]\n\n[strike] D [/strike]');
+  assert.equal(installedFormatting, '**ab**\n\n~~&#x20;D&#x20;~~\n');
   /** @type {{registryConstructCount: number}} */
   const installedCoverage = JSON.parse(run([npmCli, 'exec', '--offline', '--', 'steam-community-bbcode', 'coverage', '--format=json'], consumer));
   assert.equal(installedCoverage.registryConstructCount, 39);

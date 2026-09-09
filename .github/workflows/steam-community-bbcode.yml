@@ -33,6 +33,20 @@ jobs:
       - name: Install the approved isolated type-coverage tool
         if: steps.scope.outputs.converter == 'true'
         run: npm exec --yes --package=npm@12.0.2 -- npm --prefix tools/steam-community-bbcode/tooling/type-coverage ci --ignore-scripts
+      - name: Install the approved isolated API documentation tool
+        if: steps.scope.outputs.converter == 'true'
+        run: npm exec --yes --package=npm@12.0.2 -- npm --prefix tools/steam-community-bbcode/tooling/api-docs ci --ignore-scripts
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        if: steps.scope.outputs.converter == 'true'
+        with:
+          python-version-file: .python-version
+      - name: Install the hash-locked native prose formatter
+        if: steps.scope.outputs.converter == 'true'
+        run: |
+          python -m venv .venv
+          node scripts/runRepositoryPython.js -c "from pathlib import Path; Path('tools/steam-community-bbcode/artifacts/supply-chain').mkdir(parents=True, exist_ok=True)"
+          node scripts/runRepositoryPython.js -m pip install --require-hashes --only-binary=:all: --report tools/steam-community-bbcode/artifacts/supply-chain/prose-install.json -r tools/steam-community-bbcode/tooling/prose/requirements.txt
+          node scripts/runRepositoryPython.js -c "from importlib.metadata import distribution; from shutil import copyfile; d = distribution('snapper-fmt'); f = next(f for f in d.files if f.name == 'snapper-fmt.cyclonedx.json'); copyfile(d.locate_file(f), 'tools/steam-community-bbcode/artifacts/supply-chain/prose.cdx.json')"
       - name: Generate locked dependency inventories
         if: steps.scope.outputs.converter == 'true'
         working-directory: tools/steam-community-bbcode
@@ -40,6 +54,7 @@ jobs:
           node --input-type=module -e "import {mkdirSync} from 'node:fs'; mkdirSync('artifacts/supply-chain', {recursive: true});"
           npm exec --yes --package=npm@12.0.2 -- npm run --silent sbom > artifacts/supply-chain/package.cdx.json
           npm exec --yes --package=npm@12.0.2 -- npm run --silent sbom:type-coverage > artifacts/supply-chain/type-coverage.cdx.json
+          npm exec --yes --package=npm@12.0.2 -- npm run --silent sbom:api-docs > artifacts/supply-chain/api-docs.cdx.json
       - name: Check the converter and real packed consumer
         if: steps.scope.outputs.converter == 'true'
         run: npm exec --yes --package=npm@12.0.2 -- npm run check:converter
@@ -58,6 +73,9 @@ jobs:
             tools/steam-community-bbcode/artifacts/mutation-library/
             tools/steam-community-bbcode/artifacts/mutation-cli/
             tools/steam-community-bbcode/artifacts/supply-chain/
+            tools/steam-community-bbcode/artifacts/api-reference/
+            tools/steam-community-bbcode/artifacts/api-documentation-fixture/
+            tools/steam-community-bbcode/artifacts/prose/
   dependency-review:
     name: BBCode / Dependency review
     if: github.event_name == 'pull_request'

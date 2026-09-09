@@ -111,3 +111,23 @@ test('flow-whitespace keeps literal fallback and source positions around a link'
   assert.ok(label?.type === 'text');
   assert.equal(label.value, ' Label ');
 });
+
+for (const separator of ['\u00a0', '\u2003']) {
+  for (const boundary of ['table', 'row']) {
+    test(`table layout preserves ${JSON.stringify(separator)} at its ${boundary} boundary`, () => {
+      const header = '[tr][th]H[/th][/tr]';
+      const row = '[tr][td]D[/td][/tr]';
+      const positive = steamCommunityBbcodeToMdast(`[table] \t\r\n${header}\n${row}[/table]`);
+      assert.equal(positive.value.children[0]?.type, 'table', 'the fixture must otherwise be a representable table');
+      const source = boundary === 'table'
+        ? `[table]${header}${separator}${row}[/table]`
+        : `[table]${header}[tr]${separator}[td]D[/td][/tr][/table]`;
+      const result = steamCommunityBbcodeToGfm(source);
+      const paragraph = fromMarkdown(result.value).children[0];
+      assert.ok(paragraph?.type === 'paragraph');
+      assert.deepEqual(paragraph.children.map(child => child.type === 'text' ? child.value : child.type), [source]);
+      assert.ok(result.diagnostics.some(diagnostic => diagnostic.code === 'STEAM_TABLE_STRUCTURE_PRESERVED'));
+      assert.ok(result.coverage.constructs.every(outcome => outcome.fidelity === 'unsupported'));
+    });
+  }
+}
