@@ -1898,3 +1898,39 @@ The refreshed native audit has nine moderate entries and no high/critical or
 nwmatcher finding; its nonzero exit remains recorded for those legacy findings.
 Native prose checks pass. Final affected-control and independent-review evidence
 is retained beside the failing remote log; no live dependency-review pass is claimed.
+
+### Local delivery and future repository move — 10 September 2026
+
+The owner directed all further work to remain local on `steam-community-bbcode`
+for a future move into a purpose-built repository. Do not push further work,
+merge into remote `main`, update the ONI PR, dispatch remote workflows or publish.
+This supersedes the earlier remote next steps without undoing completed,
+previously authorized pushes. The destination repository is not yet specified.
+Defer the ONI trusted-base prerequisite and publisher activation; they do not
+advance the newly stated delivery scope.
+
+The pending comparator fix is signed local commit
+`88a63e679522cc2356a6ab0ca95be6475e7ccb5f`.
+All seven source hashes match the retained review manifest and affected-verification
+receipt. The independent verifier's saved `nwmatcher-followup/evidence.json`
+records PASS for native resolution, archive identity and all 250 preserved
+comparison observations. The direct security follow-up records no new causal
+findings. Reuse those completed checks; do not restart reviewers or mutation runs
+solely because the allowance interruption delayed the commit.
+
+Use the R0 documentation route to align the existing release guide with this
+direction and record the source, tooling, licences and ignored evidence that
+must accompany the move. Check authored prose, documentation contracts and the
+actual diff. Then use the existing `release:pack` command once from the clean
+signed snapshot to retain an installable local development archive with its
+native production audit and fresh API, CLI and TS 7 consumer evidence.
+That archive is not the complete source-transfer bundle or an approved release.
+
+Native npm metadata still lists `mdast-util-to-markdown` 2.1.2 as latest on
+10 September. The retained dense-punctuation availability finding therefore
+remains unresolved in the unmodified dependency. Preserve the private upstream
+report, reproduction and isolated proposed fix for the future owner; do not
+adopt a vendor patch, shim, alias or checker suppression. Renderer acceptance,
+independent pre-release legal review and destination-specific release decisions
+remain separate obligations. This local continuation changes no runtime or
+publication configuration and makes no claim of new remote qualification.

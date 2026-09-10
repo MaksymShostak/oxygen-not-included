@@ -4,6 +4,24 @@ The release implementation reuses owlapi's candidate, checksum and public-regist
 The exact source revision and retained controls are recorded in [software selection](software-selection.md).
 The package is still a private development package at version 1.0.0; that number does not identify a public release.
 
+## Current delivery scope
+
+The owner's 10 September 2026 direction keeps further work local on the `steam-community-bbcode` branch for a future move to a purpose-built repository.
+Do not push this work, merge it into the ONI repository's `main`, dispatch remote workflows or publish a package from this checkout.
+Previously authorized remote commits and draft PR #4 remain historical evidence.
+The destination repository has not been selected.
+The commands below support local qualification and describe publication after the move and separate authorization.
+
+Move the source package with its tests, comparison environments, isolated tooling, lockfiles, complete licence texts and retained notices.
+Carry the accepted implementation plan and execution record, together with the required evidence under `.sdlc/runtime/converter/` and package `artifacts/`; these ignored directories are not included in Git or the npm archive.
+Keep the unsent upstream serializer report and its reproduction evidence private.
+Retain the original MIT/Klei notice for the copied Workshop-description fixture as well as the package's AGPL-3.0-only licence.
+
+Adapt the existing check and release workflows to the destination rather than designing another publication system.
+The prose npm commands currently use the ONI root's `scripts/runRepositoryPython.js` and `.venv`; repository metadata, documentation links and workflow paths also require deliberate adjustment after the destination layout is known.
+The current npm archive is an installable development artifact, not a complete source-checkout transfer.
+The ONI trusted-base PR prerequisite is outside this delivery scope.
+
 ## Qualify a candidate
 
 From this package's source checkout with the locked development tools installed, run:
@@ -44,7 +62,9 @@ Keep the original comparison and qualification evidence with the approved releas
 
 The repository workflow **Steam Community BBCode release** has a manual `publish` input, defaulting to false.
 Its default run qualifies and retains a candidate without publishing.
-Before publication, approve and commit the actual public package version and metadata, complete the release obligations, and configure npm's trusted publisher for `MaksymShostak/oxygen-not-included`, workflow `steam-community-bbcode-release.yml`, environment `npm-release`.
+After moving to the selected repository, approve and commit the actual public package version and destination metadata and complete the release obligations.
+Configure npm's trusted publisher for that destination's reviewed workflow and environment; the current reusable names are `steam-community-bbcode-release.yml` and `npm-release`.
+Do not bind this package's publisher to the ONI repository.
 The binding must allow direct `npm publish`; a binding limited to staged publishing cannot authorize this workflow.
 If npm requires an initial package before that binding can be created, the owner must arrange that first publication separately.
 No bootstrap token or credential is stored by this implementation.
