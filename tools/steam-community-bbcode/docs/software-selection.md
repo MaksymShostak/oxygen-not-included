@@ -66,7 +66,8 @@ No TLS validation or host setting was disabled.
 Direct MDAST, micromark, BBob and definition packages carry MIT permission and notice obligations.
 BBob's two locked companion packages have the identical MIT licence SHA-256 `a2f19878ad19b733e3b97f0118f0282c2ba70e6161076539fa4c23b9158dfe91`.
 Chevrotain and TypeScript carry Apache-2.0 terms, including licence/notice retention, patent terms and modified-file notices if their source is modified. Their source is not patched or copied into the implementation. Ajv is MIT. type-coverage's published tarball omits a licence file; the exact version's upstream [MIT licence](https://raw.githubusercontent.com/plantain-00/type-coverage/v2.30.1/LICENSE) was inspected. No paid account, hosted service, telemetry integration, or remote fetching is needed by these transformation libraries. npm/pip dependency acquisition is development setup only.
-Exact graph reports and copied dependency notices must be refreshed for distribution; pre-1.0 legal review remains an explicit plan gate.
+The explicit [licence compatibility assessment](licensing-review.md) completes the current graph review and records the distribution obligations.
+Refresh it when dependency identities, copied material or the packaging boundary change.
 
 ## Parser decision
 
@@ -253,7 +254,7 @@ The final parent SBOM contains 360 dependency components; the isolated type-cove
 Every component has declared licence metadata.
 The additional BSD-2-Clause lint/parser packages retain their full source and binary redistribution conditions and disclaimers.
 Full installed texts were inspected for eslint-scope, espree, esrecurse, estraverse, esutils and uri-js; esrecurse carries its terms in the source header.
-This inspection and the SBOM remain distinct from the plan's independent pre-release legal review.
+This inspection and the SBOM are evidence for the subsequent [licence compatibility assessment](licensing-review.md); they are not themselves compatibility decisions.
 
 Stryker's typed-rest-client 2.3.1 pins qs 6.15.1, for which the native npm audit reported moderate advisories.
 The latest supported client patch still selects that release.
@@ -308,7 +309,7 @@ The separate docs SBOM records 23 dependencies and its native npm audit reports 
 Its declared licence set adds Python-2.0 through unmodified argparse, alongside MIT, Apache-2.0, BSD-2-Clause, BlueOak-1.0.0 and ISC.
 The full argparse historical/PSF terms, entities redistribution terms and native syntax highlighter notices were inspected and remain with their installed packages.
 The generated SourceSpan descriptions originate in MIT `@types/unist` 3.0.3; its complete Microsoft notice is also retained in the shipped [third-party notices](third-party-notices.md).
-This selection does not substitute for the separately required pre-release legal review.
+The subsequent [licence compatibility assessment](licensing-review.md) applies the inspected terms to the actual distribution boundary.
 
 Sources: [TypeDoc JSDoc support](https://typedoc.org/documents/Doc_Comments.JSDoc_Support.html), [native entry points](https://typedoc.org/documents/Options.Input.html), [TypeDoc plugins](https://typedoc.org/documents/Plugins.html), [documentation.js](https://github.com/documentationjs/documentation), and [TypeScript JSDoc](https://www.typescriptlang.org/docs/handbook/jsdoc-supported-types.html).
 
@@ -318,7 +319,7 @@ Select unmodified Snapper (`snapper-fmt` 0.11.0, MIT) for semantic line breaks.
 The exact published wheel licence was inspected; the hash-locked wheel is installed only as a development tool in the checkout `.venv`, outside the npm distribution.
 Its bundled CycloneDX inventory lists 268 Rust components, including permissive licences, Unicode-3.0 and MPL-2.0.
 Preserve the native inventory and installed notices; the formatter is neither modified nor redistributed in this package.
-Independent pre-release legal review remains a separate gate.
+The subsequent [licence compatibility assessment](licensing-review.md) records this separate, unmodified development-tool boundary.
 
 Use its native Markdown parser and deterministic sentence segmentation, with unlimited source width and no clause, code, neural or Pandoc formatting options.
 The package's explicit `.snapperrc.toml` prevents ancestor configuration from changing these settings.

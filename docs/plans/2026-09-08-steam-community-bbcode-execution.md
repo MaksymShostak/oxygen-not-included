@@ -2010,3 +2010,115 @@ copy. API logs and the updated private report remain in release-qualification
 evidence; the isolated source, test, lock and patch stay in the qualification
 directory for its upstream-report consumer. This closes the upstream API-test
 gap, not the downstream release blocker, and requires no mutation rerun or scan.
+
+### Performance, renderer and licence qualification — 10 September 2026
+
+The owner accepted the grilling recommendations with “Proceed with these
+recommendations”. Qualify the existing synchronous API and configurable limits,
+accept the documented large-input performance limitation, and keep the upstream
+defect open. Do not replace the general 1-MiB default with Workshop's 8,000-byte
+limit or claim a universal CPU deadline. Complete an explicit licence-compatibility
+assessment for owner acceptance; the original plan does not require an independent
+lawyer. Escalate concrete unresolved terms rather than inventing legal clearance.
+
+Use the R1 route for the renderer qualification repair and R0 documentation
+updates under the existing accepted baseline. Reuse the completed runtime,
+mutation and independent-review evidence for unchanged implementation. The
+grilling fact checks found no request/source drift in the three retained GitHub
+scenarios. Presentation and literal-autolink probes lack HTML assertions; the
+flow probe already compares an independently authored target. The scheduled
+secondary check required by the original plan is absent.
+
+1. Add `test/github-rendering.test.js` with independently authored expected HTML
+   for presentation and literal-autolink cases. Exercise correct output and
+   HTTP-success-shaped wrong content: removed insertion/spoiler/table structure,
+   active literal links, and injected script markup. Observe failed assertions
+   before introducing the shared qualification assertion. Compare normalized
+   line endings and trailing newlines, preserving meaningful text whitespace.
+   Update `scripts/qualify-github-rendering.js` and its scenario module so the
+   default npm command verifies all three scenarios, retaining fresh evidence
+   in a new run directory rather than overwriting the earlier observations.
+   Keep the GitHub endpoint, synthetic inputs and absence of credentials/context.
+2. Under the standing approval for configuration stated in this record, create
+   `.github/workflows/steam-community-bbcode-renderer.yml` with weekly schedule
+   `17 6 * * 1` and `workflow_dispatch`, `contents: read`, one Ubuntu job with
+   a ten-minute timeout, the existing pinned checkout/setup-node/upload-artifact
+   actions, Node 24.20.0 and npm 12.0.2. Install only the locked production
+   dependencies with lifecycle scripts disabled, run `qualify:github`, and retain
+   renderer evidence for 30 days even on failure. This workflow is independent
+   of the expensive mutation pipeline. Prepare it locally; activation belongs
+   to the destination repository and is not claimed here.
+3. Add a maintained Workshop-size resource-limit test using the existing API,
+   preserving the accepted default and earlier large-input counterevidence.
+   Record measured scope and owner risk acceptance in the security/testing/release
+   guides. The byte-limit example is a caller policy, not a universal Steam limit.
+4. Complete `docs/licensing-review.md` against the locked distributions, retained
+   full notices, primary licence terms and historical-fixture provenance. Resolve
+   missing notice receipts for development/comparator components and bundled
+   tooling code; distinguish npm distribution from the source/evidence transfer.
+   Correct later claims that the baseline requires independent legal counsel.
+5. Run focused RED/GREEN renderer checks, the maintained performance checks,
+   a fresh synthetic GitHub rendering qualification, native actionlint, authored
+   documentation checks, and the affected verification from
+   `11471b88d7882f3a017dc442861be419b26e318d`. Use detailed signed local commits.
+   No push, remote workflow dispatch, publication, upstream report submission,
+   repository migration or source cleanup is authorized by this slice.
+
+Qualification results:
+
+- Renderer RED used the real opt-in command in child processes with a test-only
+  HTTP transport: 8 of 10 tests failed for the missing HTML assertions and
+  incomplete default selection. Two earlier harness mistakes were corrected
+  before this behavioral RED and are not counted as bug reproductions. The
+  retained `artifacts/renderer-contract-red.log` records the actual RED result.
+- GREEN passes all 10 renderer contracts and three Workshop-limit preservation
+  tests. The latter characterize existing behavior, not a newly failing bug.
+  `artifacts/renderer-contract-green.log` retains the focused result. Full HTML
+  expectations preserve insertion/spoiler/table structure, literal text and
+  protected spaces; negative responses demonstrate meaningful rejection.
+- A fresh uncredentialed GitHub Markdown API run passes all three selected
+  scenarios and the independent flow reference. Actual requests/responses and
+  provenance are in `tools/steam-community-bbcode/artifacts/github-rendering/run-ZKNSl5/`.
+  Earlier observations remain intact. Native actionlint 1.7.12 passes the weekly
+  renderer workflow. The workflow is prepared locally, not remotely activated.
+- The refreshed licence assessment covers 570 entries across five locks,
+  distinguishing 66 production entries, development/comparison tooling and
+  uninstalled optional platform packages. It identifies no incompatible term
+  for the current AGPL-3.0-only archive. Missing notices were recovered from
+  exact upstream versions or explicit maintainer clarifications, with those
+  provenance differences stated. The compiled mutation dependency's source map
+  and build identify its bundled projects and retained notices. The comparator's
+  tr46 data matches all 8,179 Unicode 8.0.0 mapping rows exactly after the recorded
+  JSON transformation; preserve Unicode attribution in addition to its MIT
+  implementation terms. Complete receipts and hashes are under
+  `.sdlc/runtime/converter/release-qualification/licensing-followup/` and the
+  portable assessment is `tools/steam-community-bbcode/docs/licensing-review.md`.
+- `npm run check:affected -- --base 11471b88d7882f3a017dc442861be419b26e318d`
+  passes the selected repository controls and full converter check: 99 SDLC,
+  82 setup, 95 Jest and 658 converter/parser tests, plus all three maintained
+  performance cases. Runtime coverage remains 99.93% statements/lines,
+  96.53% branches and 100% functions. Primary TS 7 checking, 17,232/17,232
+  typed references and 305/305 docs references pass; 58 declaration artifacts
+  reproduce across two clean builds and the packed JS/CLI/TS consumer passes.
+  The complete log is
+  `.sdlc/runtime/converter/release-qualification/qualification-followup-checks.log`.
+  The existing local upstream source copies produce a non-fatal Jest package-name
+  collision warning; all six Jest suites pass. They remain retained for the
+  private report rather than being deleted to hide that warning.
+- Authored semantic formatting passes for 21 documents; construct examples and
+  package-local documentation links pass. The affected run includes the prose
+  contract checks. No converter runtime, dependency identity, compiler selection
+  or generated declaration changed, so previous mutation and independent runtime
+  review evidence is reused without another expensive scan or mutation run.
+
+This disposition supersedes the later execution notes that described mandatory
+independent legal review or unspecified renderer acceptance as unresolved local
+prerequisites. The original baseline calls for explicit legal review and selected
+GitHub HTML conformance, which are now recorded. It does not require independent
+counsel or universal Steam/browser visual acceptance. The owner's accepted
+performance limitation closes the local qualification decision while leaving
+the upstream defect and its counterevidence open; it does not mark that defect
+remediated. These three obligations no longer prevent the source handoff within
+the accepted scope. Destination CI, scheduled renderer activation, public package
+identity, publisher configuration and release authorization remain destination
+responsibilities. The historical review reports remain unchanged.

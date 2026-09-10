@@ -60,6 +60,16 @@ The performance qualification runs hostile opaque text and adjacent formatting i
 It checks complete output and diagnostics, not only termination.
 That fixture budget does not become a deadline enforced by the synchronous API or a general native-parser memory bound.
 
+The owner accepted the current performance limitation on 10 September 2026: unmodified `mdast-util-to-markdown` 2.1.2 can take quadratic time on large punctuation-heavy text.
+Near the general 1-MiB input allowance, a retained hostile case exceeds the five-second regression budget; the upstream defect remains unresolved.
+This acceptance qualifies the existing documented resource contract, not a claim that the defect is fixed or large hostile inputs are cheap.
+
+For a Workshop-description caller, set `resourceLimits: {maxInputBytes: 8000}` when calling `steamCommunityBbcodeToGfm`, or pass `--max-input-bytes 8000` to the CLI.
+Valve documents an [8,000-byte Workshop description limit](https://partner.steamgames.com/doc/api/ISteamRemoteStorage#k_cchPublishedDocumentDescriptionMax); that limit is not universal across Steam text surfaces or this general-purpose package.
+The maintained tests cover acceptance at 8,000 bytes, rejection above it including multibyte text, and preservation of the general default.
+The limit bounds accepted input, not conversion time; services needing a hard deadline must isolate synchronous conversion in an externally supervised worker or process.
+Current sample timings and their measurement scope are recorded in [testing](testing.md#performance-disposition).
+
 ## Evidence and outstanding assurance
 
 Maintained tests cover unsafe URLs, controls, malformed attributes, opaque-region delimiters, nested/list/table structure, immutable parse results, limits and real CLI byte streams.

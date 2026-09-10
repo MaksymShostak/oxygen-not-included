@@ -40,7 +40,9 @@ The candidate retains the archive, native pack inventory, consumer report, audit
 Use `npm run release:pack -- --output artifacts/my-candidate` to choose an empty directory.
 The empty-directory requirement prevents mixing files from different attempts; it does not impose an immutable-release policy.
 Keep the printed archive with its evidence through publication and registry verification.
-Candidate qualification does not resolve the outstanding renderer, availability or release-review obligations in [testing](testing.md).
+The owner-approved performance disposition and completed selected-renderer qualification are recorded in [testing](testing.md).
+The explicit [licence compatibility assessment](licensing-review.md) covers the current graph and distribution boundary.
+These local results do not activate the destination's renderer schedule, public CI or publication controls.
 
 ## Release acceptance
 
@@ -55,7 +57,8 @@ Local package checks cannot substitute for remote CI or independent review.
 Review the native archive allowlist and actual installed files, declaration maps pointing to shipped source, exact full dependency licence terms and retained notices.
 Keep AGPL-3.0-only explicit and exclude tests, comparison environments, credentials and local artifacts from the distribution.
 The release production SBOM supplements the existing main and isolated tooling inventories; SBOM metadata is not legal clearance.
-The independent pre-release legal review remains required by the accepted plan.
+Use the completed [licence compatibility assessment](licensing-review.md) for this unchanged graph and packaging boundary.
+The accepted plan requires explicit legal review, not mandatory independent legal counsel; escalate concrete unresolved rights or terms if the destination changes the distribution.
 Keep the original comparison and qualification evidence with the approved release.
 
 ## Publish an approved release

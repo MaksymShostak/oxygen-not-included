@@ -19,6 +19,7 @@ These runs do not establish Linux compatibility or successful GitHub CodeQL and 
 | `npm test` | Focused runtime examples and seeded properties |
 | `npm run qualify:parser` | Native grammar foundation and resource contracts |
 | `npm run qualify:performance` | Bounded subprocess regression for opaque text and adjacent formatting |
+| `npm run qualify:github` | Opt-in live GitHub HTML assertions for three synthetic renderer scenarios |
 | `npm run test:coverage` | Both suites under c8/V8, including unloaded runtime source |
 | `npm run conformance:check` | Generated forward/reverse policy report matches executed cases |
 | `npm run docs:check` | Construct examples and package-local documentation links |
@@ -72,3 +73,39 @@ The [release workflow](releasing.md) reuses the same installed API, CLI and TS 7
 `npm run release:pack` also retains native production audit, CycloneDX inventory and archive integrity.
 Registry acceptance checks cover coexistence of release channels and rejection of wrong coordinates, tag targets, archive bytes, origins and SHA-512 integrity.
 The independent public installation and native signature/provenance audit require an actual authorized publication; local fixture checks do not attest those remote operations.
+
+## Performance disposition
+
+On 10 September 2026 the owner accepted the existing general-purpose synchronous API with the documented large-input serializer limitation in the [security model](security-model.md#resource-limits-and-their-scope).
+The default 1-MiB byte allowance remains intact; Workshop callers can select 8,000 bytes through the existing API or CLI.
+The three five-second subprocess regression fixtures remain mandatory.
+They establish a regression floor for those cases, not a universal time bound or proof that the upstream defect is fixed.
+
+Retained measurements on Windows, Node 24.20.0 and an Intel Core i9-12900K exclude process startup.
+The committed ONI description contains 6,765 UTF-8 bytes and converted in a median 2.344 ms, with a 12.33 ms first call.
+At 8,000 bytes, ordinary prose took a median 0.201 ms, opaque brackets 41.898 ms and bare brackets 54.673 ms.
+Opaque bracket cases at 16,000, 32,000 and 64,000 bytes took medians of 163.267, 656.281 and 2,619.569 ms respectively.
+These are observed sample timings, not worst-case guarantees; concurrent work and different hardware can change the effect.
+The upstream defect remains relevant for larger or adversarial workloads even though the sampled Workshop descriptions complete quickly.
+
+The measurements and preserved large-input failures are in `.sdlc/runtime/converter/release-qualification/`, including `workshop-size-timings.json`.
+An isolated upstream patch proposal passes the upstream API suite and local equivalence checks, but the installed dependency remains unmodified and the report remains unsent.
+
+## Selected GitHub renderer conformance
+
+`npm run qualify:github` now verifies all three independently specified cases: underline/insertion/spoiler/table presentation, literal autolinks, and flow structure with protected spaces.
+Expected HTML is reviewed source, not regenerated from live observations.
+Comparison normalizes CRLF and terminal newlines while preserving meaningful text padding.
+The flow case additionally renders an independently authored Markdown target for comparison.
+The HTTP-success regression tests reject missing structures, active script markup, newly activated literal links and lost text.
+
+Each opt-in live run sends only the hardcoded synthetic public cases to GitHub's Markdown API in GFM mode, without credentials or repository context.
+It retains requests, responses, expected HTML, timestamps, request IDs and hashes in a new `artifacts/github-rendering/run-*` directory.
+All three cases passed a fresh live run on 10 September 2026.
+This is endpoint-specific HTML evidence; it does not assert browser interaction, live Steam acceptance or every GitHub surface's presentation.
+
+The locally prepared `steam-community-bbcode-renderer.yml` workflow runs the same command weekly and on manual dispatch, with a production-only locked install and retained artifacts.
+It is separate from mutation testing and has a ten-minute job limit.
+Its syntax passes native actionlint; remote scheduling is not active because the owner requires all current changes to stay local.
+Adapt and activate it in the destination repository as part of that repository's CI setup.
+The original plan's selected-renderer qualification is complete here; destination schedule activation remains a delivery task.
