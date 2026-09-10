@@ -1934,3 +1934,36 @@ adopt a vendor patch, shim, alias or checker suppression. Renderer acceptance,
 independent pre-release legal review and destination-specific release decisions
 remain separate obligations. This local continuation changes no runtime or
 publication configuration and makes no claim of new remote qualification.
+
+### Short CI checks before mutation testing — 10 September 2026
+
+The owner requested that a failed short dependency review prevent expensive
+mutation runs. Run 34342366498 confirms the gap: dependency review failed while
+both mutation jobs and the aggregate qualification check completed successfully.
+Use the R1 configuration route for this bounded scheduling repair, under the
+standing approval for exact changes recorded here. Keep the work local.
+
+In `.github/workflows/steam-community-bbcode.yml`, set `converter.needs` to
+`dependency-review` and `mutation.needs` to `converter`. Keep both matrices
+parallel within their stage. Move the dependency review's PR event condition
+from the job to the `Review introduced dependencies` step, preserving its
+existing converter-scope condition. The job can then complete normally on
+non-PR events rather than skipping every downstream job.
+Add `dependency-review` to `qualification.needs` and require its successful
+result in the existing Bash aggregate alongside converter and mutation success.
+Retain the aggregate's `always()` condition and current check name so an
+upstream failure produces a failed qualification result, not a skipped check.
+Preserve all triggers, permissions, action versions, test commands, mutation
+scope, thresholds and artifact retention.
+
+GitHub's [native job dependency contract](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idneeds)
+requires prerequisites to succeed and propagates failure or skipping through
+the dependent chain. No workflow-cancellation service or new dependency is needed.
+Add focused regression contracts in `tests/bbcode-workflow.test.js` for the job
+dependencies, PR-only action, non-PR job eligibility and actual Bash aggregate.
+Observe their failure before changing the workflow, then verify the repair with
+the existing YAML parser, native actionlint, authored-doc checks and
+`npm run check:affected -- --base 5f66b0f305e51431658c1fa108ec58115bfee1f7`.
+Update `tools/steam-community-bbcode/docs/testing.md` to describe the staged order.
+Do not rerun mutation testing for a scheduling-only change or claim live GitHub
+scheduling validation before a separately authorized push.

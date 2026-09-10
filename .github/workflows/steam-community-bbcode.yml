@@ -12,6 +12,7 @@ concurrency:
 jobs:
   converter:
     name: BBCode / ${{ matrix.os }} / Node ${{ matrix.node }}${{ matrix.os == 'ubuntu-latest' && matrix.node == '24.20.0' && ' / checks' || '' }}
+    needs: dependency-review
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -76,6 +77,7 @@ jobs:
             tools/steam-community-bbcode/artifacts/prose/
   mutation:
     name: BBCode / Mutation / ${{ matrix.profile }}
+    needs: converter
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -111,19 +113,19 @@ jobs:
           path: tools/steam-community-bbcode/artifacts/mutation-${{ matrix.profile }}/
   qualification:
     name: BBCode / ubuntu-latest / Node 24.20.0
-    needs: [converter, mutation]
+    needs: [dependency-review, converter, mutation]
     if: always()
     runs-on: ubuntu-latest
     permissions: {}
     steps:
-      - name: Require converter checks and both mutation profiles
+      - name: Require dependency review, converter checks and both mutation profiles
         env:
+          DEPENDENCY_REVIEW_RESULT: ${{ needs.dependency-review.result }}
           CHECK_RESULT: ${{ needs.converter.result }}
           MUTATION_RESULT: ${{ needs.mutation.result }}
-        run: test "$CHECK_RESULT" = success && test "$MUTATION_RESULT" = success
+        run: test "$DEPENDENCY_REVIEW_RESULT" = success && test "$CHECK_RESULT" = success && test "$MUTATION_RESULT" = success
   dependency-review:
     name: BBCode / Dependency review
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -140,7 +142,7 @@ jobs:
         id: scope
         run: node scripts/selectPullRequestChecks.js --scope converter
       - name: Review introduced dependencies
-        if: steps.scope.outputs.converter == 'true'
+        if: github.event_name == 'pull_request' && steps.scope.outputs.converter == 'true'
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
           fail-on-severity: low

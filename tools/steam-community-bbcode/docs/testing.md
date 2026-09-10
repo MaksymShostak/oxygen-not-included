@@ -34,8 +34,10 @@ Executable diagnostic arrays are counted even when unloaded.
 See `.c8rc.json` for the exact scope.
 
 Both mutation profiles require 90%; neither excludes surviving mutants or uses checker suppressions.
-CI runs the full library and CLI profiles in separate parallel Linux jobs.
-The six ordinary converter jobs finish independently; the existing Ubuntu/Node 24 qualification check requires both matrices to succeed.
+CI requires the dependency-review job to succeed before starting the six ordinary converter jobs.
+The full library and CLI profiles then run in separate parallel Linux jobs only after every ordinary check passes.
+The dependency-review action runs only for affected pull requests; its job remains eligible on push and manual runs so those events can reach the test stages.
+The existing Ubuntu/Node 24 qualification check requires dependency review and both matrices to succeed, and explicitly fails if an upstream stage fails or is skipped.
 Superseded PR runs are cancelled within the same workflow and PR; main and manual runs remain independent.
 The first remote run spent about 40 minutes on library mutation testing and ten minutes on CLI mutation testing, compared with 40 seconds for ordinary converter checks.
 Parallel jobs reduce the expected critical path without reducing mutation scope; runner availability still affects elapsed time.
