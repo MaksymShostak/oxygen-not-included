@@ -1967,3 +1967,46 @@ the existing YAML parser, native actionlint, authored-doc checks and
 Update `tools/steam-community-bbcode/docs/testing.md` to describe the staged order.
 Do not rerun mutation testing for a scheduling-only change or claim live GitHub
 scheduling validation before a separately authorized push.
+
+### Upstream serializer API qualification — 10 September 2026
+
+Continue the local-only delivery by closing the owning-library API-test gap in
+the retained serializer proposal. Reuse the existing profiler, failing bounded
+reproduction and 512 plus 2,000 preservation comparisons; do not restart diagnosis.
+Use the exact upstream 2.1.2 tag at
+`d0b9be9fe178210b1684fe07dcef3ddc5ec54ab2` and its unchanged `test/index.js`.
+Run its native `test-api` entry point against the unmodified package and the
+retained one-line proposal in separate task-owned copies. Preserve their MIT
+notices and use existing native ancestor resolution for the converter's locked
+runtime dependencies. This tests the proposal without adopting it downstream.
+
+Under the standing configuration approval, create only an ignored test environment
+at `tools/steam-community-bbcode/artifacts/upstream-api-qualification/package.json`
+and its native npm lockfile. Set its name to
+`mdast-util-to-markdown-api-qualification`, version to `1.0.0`, `private` to true,
+`type` to `module`, and its sole dependency to `unist-util-remove-position` 5.0.0.
+Provide `test:baseline` and `test:proposed` scripts invoking `npm --prefix baseline
+run test-api` and `npm --prefix proposed run test-api`, respectively.
+The native registry identifies 5.0.0 as the latest release and it satisfies the
+upstream test dependency range; its complete Titus Wormer MIT notice was inspected.
+Resolve and install with lifecycle scripts disabled, inspecting the resulting
+graph before running the tests. No primary package/configuration or compiler
+selection changes. The full upstream `npm test` includes a different compiler
+and mutating format command and is outside this API-only qualification.
+
+Retain the exact upstream test, dependency identities, original and proposed
+source hashes, native test results and a portable patch with the private report.
+Update the report's validation scope to match actual execution. Keep the
+downstream availability finding open and the proposal unsent; a supported
+upstream release or a resource-contract decision remains outside this local work.
+
+Both native API runs pass all 478 upstream tests. Their shared source test hash
+is `9240aefa842896dae70c35971d478d11bc8863db29bf0c104669d7daf8ccbead`.
+The isolated helper's four transitive packages exactly match already qualified
+main-lock identities and integrity values. The original and proposed serializer
+hashes match the retained reproduction; the production dependency is unchanged.
+The portable one-line patch passes native `git apply --check` against the original
+copy. API logs and the updated private report remain in release-qualification
+evidence; the isolated source, test, lock and patch stay in the qualification
+directory for its upstream-report consumer. This closes the upstream API-test
+gap, not the downstream release blocker, and requires no mutation rerun or scan.
