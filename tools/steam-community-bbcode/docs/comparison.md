@@ -17,6 +17,8 @@ The isolated legacy Node graph selects unmodified `form-data` 2.5.6 through a na
 This maintainer-provided backport fixes the two advisories raised by remote dependency review while all 250 comparison outputs and semantic results remain unchanged.
 The raw report records the changed dependency-selection hashes; no comparator source was patched.
 The same isolated graph selects unmodified `nwmatcher` 1.4.4 beneath `jsdom-nogyp` 0.8.3 to address GHSA-6394-6h9h-cfjg from the subsequent dependency-review run.
+Request also selects unmodified `qs` 6.16.0 to address GHSA-6rw7-vpxm-498p and GHSA-4mjr-xmp4-gh2g from run 34524391937.
+All 250 observations remain identical after this change, including output, diagnostics, consumer trees and classifications.
 The provider's public API and comparison corpus remain unchanged.
 See [software selection](software-selection.md) for the remaining legacy advisory scope.
 

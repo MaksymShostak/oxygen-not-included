@@ -394,4 +394,22 @@ The old parent's `~1.3.1` range requires a native parent-scoped npm override; th
 The exact npm archive contains 12 entries, no declared dependencies or install hooks, and Diego Perini's full MIT grant and warranty disclaimer, inspected before adoption.
 The [upstream security repair](https://github.com/dperini/nwmatcher/commit/9dcc2b039beeabd18327a5ebaa537625872e16f0) changes the selector regular expressions.
 The provider API, fixed-corpus scope, primary package graph and existing form-data backport remain unchanged.
-The refreshed native audit has nine moderate affected-package entries, no high or critical entries and no nwmatcher finding; the remaining legacy risks retain their assessed tooling boundary.
+The nwmatcher qualification audit reported nine moderate affected-package entries, no high or critical entries and no nwmatcher finding; the remaining legacy risks retained their assessed tooling boundary.
+
+## Legacy comparator qs repair (10 September 2026)
+
+[GitHub run 34524391937](https://github.com/MaksymShostak/oxygen-not-included/actions/runs/34524391937) failed dependency review on `qs` 6.5.5 in the isolated comparison graph.
+The reported advisories are [GHSA-6rw7-vpxm-498p](https://github.com/advisories/GHSA-6rw7-vpxm-498p) and [GHSA-4mjr-xmp4-gh2g](https://github.com/advisories/GHSA-4mjr-xmp4-gh2g).
+Request 2.88.2's `~6.5.2` constraint retains that vulnerable version.
+Select unmodified `qs` 6.16.0 through native npm `overrides["request@2.88.2"]["qs"]`, reusing the current release already qualified in the main development graph.
+Its BSD-3-Clause terms and the six additional MIT components match that assessed graph in exact version, archive integrity and full installed licence text.
+The [licence assessment](licensing-review.md) records the supplemental evidence and updated lock hash.
+
+Native npm audit reproduced both findings before the change and reports no `qs` finding afterward.
+Eight moderate affected-package entries remain within the existing fixed-corpus tooling assessment, with no high or critical entries.
+All 250 comparison observations, including output, diagnostics, consumer trees and classifications, remain identical to the preserved preceding report.
+The regenerated report records the new dependency-selection hashes.
+The primary converter graph, provider source and CI advisory thresholds remain unchanged.
+
+The failing run stopped in 29 seconds and skipped the converter and mutation matrices, confirming the existing prerequisite gate prevents expensive jobs from starting after dependency-review failure.
+The repair is verified locally; no remote rerun is claimed.

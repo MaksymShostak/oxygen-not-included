@@ -2122,3 +2122,68 @@ remediated. These three obligations no longer prevent the source handoff within
 the accepted scope. Destination CI, scheduled renderer activation, public package
 identity, publisher configuration and release authorization remain destination
 responsibilities. The historical review reports remain unchanged.
+
+### Legacy comparator qs repair — 10 September 2026
+
+The owner reported failing GitHub run `34524391937` on candidate
+`c8b9d0495e2e163d9a8a1812f8124efb04b5c7b1`. Its dependency-review job identifies
+only qs 6.5.5 in the isolated Node comparison lock as vulnerable to
+GHSA-6rw7-vpxm-498p and GHSA-4mjr-xmp4-gh2g. The dependent converter and mutation
+matrices are skipped, and the aggregate correctly fails; the whole run takes
+29 seconds. Ten Scorecard warnings are advisory, not the failure cause.
+
+Use R1 under the existing accepted baseline and the standing configuration and
+local-commit preapproval. Native npm audit reproduces both exact qs advisories
+before edits, so a speculative root-cause search or artificial unit-test RED is
+unnecessary. Use the configuration/consumer-verification route: remove the
+flagged locked version through native dependency resolution, then verify the
+native audit no longer reports either qs advisory and all existing comparator
+observations remain equivalent. Preserve other advisory findings honestly.
+
+The exact configuration change is
+`tools/steam-community-bbcode/comparison/node/package.json`:
+add `overrides["request@2.88.2"]["qs"] = "6.16.0"`, retaining the existing
+form-data override, and regenerate its `package-lock.json` through native npm
+12.0.2 with lifecycle scripts disabled. Request's `~6.5.2` constraint otherwise
+selects vulnerable 6.5.5. Reuse the unmodified qs 6.16.0 and full BSD-3-Clause
+terms already qualified in the main development graph; inspect any added locked
+components before executing the comparator. This changes only the fixed-corpus
+comparison environment; do not relax CI scopes, severity or warnings or change
+runtime dependencies.
+
+Preserve the current comparison report, run `npm run comparison:run`, and compare
+all 250 outputs, diagnostic arrays, semantic trees and classifications against
+the preserved report. Refresh dependency hashes in the report and the licence
+assessment, retaining the original legal receipts. Run affected converter checks
+from c8b9d0495e2e163d9a8a1812f8124efb04b5c7b1, authored documentation checks and a
+detailed signed local commit. Do not repeat mutation tests for an isolated
+comparator dependency change or dispatch/push remote work.
+
+The repair passes the native audit regression: neither qs advisory remains.
+The overall audit still exits 1 for eight previously assessed moderate
+affected-package entries in legacy comparison tooling, with no high or critical
+entries. The native comparison run passes and all 250 observations, corpus
+definitions, summaries and direct-provider identities match the preserved
+preceding report exactly. Only the execution timestamp and dependency-selection
+hashes change in that report. The six added MIT components and upgraded BSD
+component match the already assessed main development graph in version,
+archive integrity and complete installed licence text; the original legal
+receipt remains intact alongside the supplemental record.
+
+`npm run check:affected -- --base c8b9d0495e2e163d9a8a1812f8124efb04b5c7b1`
+selects only the converter and passes: 658 converter/parser tests, three
+performance probes, six prose-tool tests, documentation links and semantic
+formatting, lint, API documentation, conformance, primary TS 7 checking,
+100% type coverage, 58 reproducible declarations and installed JavaScript/CLI
+and TypeScript consumers. Statement/line coverage is 99.93%, branch coverage
+96.53% and function coverage 100%. The emitted archive is
+`tools/steam-community-bbcode/artifacts/steam-community-bbcode-1.0.0.tgz`.
+
+The before/after native audits, filtered dependency-review log, preserved old
+lock/report, comparison log, full check log, supplemental licence texts and
+equivalence receipt are retained under
+`.sdlc/runtime/converter/release-qualification/ci-34524391937-*`.
+This is local repair evidence; it does not claim that the remote workflow has
+rerun or passed. The existing fail-fast gate and all advisory thresholds remain
+unchanged. No fresh mutation or independent R2 review is justified by this
+isolated comparator dependency selection.

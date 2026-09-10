@@ -86,7 +86,11 @@ Installed development/comparison dependencies are reproducible setup inputs, not
 ## Reproducible review record
 
 The refreshed evidence is under `.sdlc/runtime/converter/release-qualification/licensing-followup/` in the source checkout.
-`locked-licence-texts.json` records 570 lock entries across the five environments, including full installed texts and their hashes.
+The original `locked-licence-texts.json` records 570 lock entries across the five environments, including full installed texts and their hashes.
+The subsequent comparator `qs` repair adds six MIT entries and replaces `qs` 6.5.5 with BSD-3-Clause 6.16.0, bringing the current total to 576 entries; the production graph is unchanged.
+The sibling `../ci-34524391937-licences.json` preserves supplemental full texts for all seven changed components, whose exact versions, archive integrities and complete notices match the already assessed main development graph.
+Their existing notice-retention, disclaimer and BSD non-endorsement conditions continue to apply within the separate comparison-tool boundary.
+The original receipt remains intact; the table below identifies the current locks.
 There are 38 uninstalled entries across platform-specific optional development compiler packages; their declared Apache terms and the selected compiler's notices are recorded without claiming an installed-file inspection for those platforms.
 Additional primary-source receipts record retrieval time, exact URL/revision, HTTP status and SHA-256. These local records supplement the existing SBOMs and archive/consumer checks; they are not included in Git or the npm archive and must be carried with the handoff.
 
@@ -95,5 +99,5 @@ Additional primary-source receipts record retrieval time, exact URL/revision, HT
 | `package-lock.json` | `a81aa74d301361594437a200ba7336f4d3aa8a7fb5b4be1bcb3c96089a77c5d0` |
 | `tooling/type-coverage/package-lock.json` | `4d759bb525c039b8e8036194317729b052b8a0d97f326620df5f5a842e9bf2e4` |
 | `tooling/api-docs/package-lock.json` | `2ca887f8c16c70f3c8634c2e03151f01e0df30a330ee182f7a00bd68f0afd346` |
-| `comparison/node/package-lock.json` | `882baf53b6793faf5b16b7e0d56c6373e9b2b79866966151bff37e3a840ab444` |
+| `comparison/node/package-lock.json` | `a156499d290c6f01482e8a98f61011104244a4763597cab344ba690c3048f9ff` |
 | `comparison/bbob/package-lock.json` | `06bf089fba6471e10fb92bb05b9c84e2085d8b978e09eacd58be18877b61cb2b` |

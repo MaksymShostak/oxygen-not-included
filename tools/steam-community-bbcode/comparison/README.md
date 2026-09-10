@@ -39,7 +39,9 @@ semantic trees and diagnostics against the immediately preceding native run.
 Provider source remains unchanged; the report retains the new manifest/lock hashes.
 The graph also selects unmodified `nwmatcher` 1.4.4 beneath `jsdom-nogyp` 0.8.3,
 fixing GHSA-6394-6h9h-cfjg without changing the comparator's public API.
-Nine moderate affected-package audit entries remain within the assessed fixed-corpus
+Request also selects unmodified `qs` 6.16.0, fixing GHSA-6rw7-vpxm-498p and
+GHSA-4mjr-xmp4-gh2g. All 250 observations remain identical after this repair.
+Eight moderate affected-package audit entries remain within the assessed fixed-corpus
 tooling boundary, with no high or critical entries in the refreshed npm audit.
 
 `PASS_EXACT` means the output matches an authored target spelling;

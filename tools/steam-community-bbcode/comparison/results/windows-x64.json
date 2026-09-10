@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "license": "AGPL-3.0-only",
-  "executedAt": "2026-09-09T10:56:28.221Z",
+  "executedAt": "2026-09-10T20:15:53.174Z",
   "scope": "Windows x64 Python 3.14 local execution; unmodified public APIs. Selected common cases, not complete project coverage or live Steam rendering.",
   "oracle": "Authored conformance trees and Steam spellings. Native GFM syntax parser; reverse outputs use the candidate Steam consumer, whose gaps can affect external classifications. Review raw outputs before asserting a comparator defect.",
   "interpretation": "Exact/equivalent are equally successful semantics. PASS_DIAGNOSED_LOSS requires expected fallback semantics and a per-input diagnostic. FAIL statuses mean mismatch with this corpus contract, not necessarily an upstream bug. No weighted score or global superiority claim.",
@@ -29,8 +29,8 @@
   },
   "inputs": {
     "comparison/dotnet/NuGet.Config": "f545a7e2ea14ac53cdfb91217cae67b8ff14275313f6298f9a3331d205b6c948",
-    "comparison/node/package-lock.json": "882baf53b6793faf5b16b7e0d56c6373e9b2b79866966151bff37e3a840ab444",
-    "comparison/node/package.json": "546434ba204ef4ba9122e0e5f2c0268b12957d46a9453cc091a4aed3ed6cdc0a",
+    "comparison/node/package-lock.json": "a156499d290c6f01482e8a98f61011104244a4763597cab344ba690c3048f9ff",
+    "comparison/node/package.json": "1c8c1db4aa992586f91564a41216a09bd34b6cf4758c36d6349457c1c6c0557b",
     "comparison/python/convert.py": "28075d2f16c9a650359b6115489e04128a63cdea45de78321494a4e23c41e042",
     "comparison/python/requirements-windows-py314.txt": "2f4c5f68a024a29cea9586e35fdb1cb25a3bff66cf48c3d2ee3f1c598c7d0524",
     "package-lock.json": "a81aa74d301361594437a200ba7336f4d3aa8a7fb5b4be1bcb3c96089a77c5d0",
@@ -80,7 +80,7 @@
     "test/conformance/execute-reverse-cases.js": "2631840d14e530c2444ded00b2bffce860b749bd2a2c0f0917b2db232d828ca7",
     "test/conformance/reverse-cases.js": "a0fc09dcaec6d16359b71c15df756195398af388baa3cfe64fd3d7be06684d16"
   },
-  "canonicalLfInputsSha256": "3655ee7127bbb535e3e83dc850cf1d10a58a61d60b5a94d1d2889e3a51cf1de3",
+  "canonicalLfInputsSha256": "cbef46e28f62f4e8a18534687fff05c6d3f3dc6fd6bbbaaf69716730f6ee5f03",
   "nativeIdentities": {
     "comparison/node/node_modules/bbcode-to-markdown/package.json": "de0fb7f1afe4e7844951a86ba84245d99eafe13f0473417ac14a44af402e5c87",
     "comparison/node/node_modules/bbcode-to-markdown/LICENSE": "c2bcb6e01bf65e63dbb309e43a2b49cc338b49beb9f1c711054bc745c54c13e9",
