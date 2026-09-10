@@ -376,6 +376,8 @@ Sources: [owlapi source revision](https://github.com/Hadden-Industries/owlapi/tr
 
 ## Legacy comparator dependency repair (9 September 2026)
 
+These repair records describe the historical Node comparison graph, retired from executable tooling on 10 September 2026 as recorded below.
+
 Remote dependency review identified two vulnerabilities in the isolated legacy comparator's `form-data` 2.3.3.
 Select the maintainer's unmodified `v2-backport` release 2.5.6 through native npm `overrides["request@2.88.2"]["form-data"]`.
 Request 2.88.2's obsolete `~2.3.2` constraint otherwise prevents selecting that API-compatible maintained backport.
@@ -412,4 +414,18 @@ The regenerated report records the new dependency-selection hashes.
 The primary converter graph, provider source and CI advisory thresholds remain unchanged.
 
 The failing run stopped in 29 seconds and skipped the converter and mutation matrices, confirming the existing prerequisite gate prevents expensive jobs from starting after dependency-review failure.
-The repair is verified locally; no remote rerun is claimed.
+The repair was initially verified locally; the subsequent remote result and retirement are recorded below.
+
+## Retired executable comparator (10 September 2026)
+
+After the separately approved push, [run 34527020676](https://github.com/MaksymShostak/oxygen-not-included/actions/runs/34527020676) no longer reported either qs advisory but blocked Request 2.88.2 with [GHSA-p8p7-x288-28g6](https://github.com/advisories/GHSA-p8p7-x288-28g6).
+The advisory lists no patched Request release, and the authoritative npm registry still identifies bbcode-to-markdown 1.0.3 as its latest release.
+The owner approved retiring that executable comparator while preserving its historical evidence.
+
+Remove its isolated manifest, lockfile, runner, capability entry and Dependabot directory entry together.
+The current comparison executes the candidate and three retained alternatives over the same 50 cases, yielding 200 observations.
+The preceding complete 250-observation report is preserved byte-for-byte at `comparison/results/historical/windows-x64-2026-09-10.json`; the [source revision](https://github.com/MaksymShostak/oxygen-not-included/tree/b13825c099c1ea715917af8cc67eaea6fff067e3/tools/steam-community-bbcode) retains the historical source and locks.
+The current command runs with the retired installation path absent, and all retained observations match that report exactly.
+Historical dependency and licence receipts remain available for the source handoff; the retired graph is excluded from the current four-environment npm inventory.
+This retirement removes an unsupported tool from active use without adding a replacement dependency, alias, vendor patch or advisory exception.
+CI thresholds, scopes and prerequisite gates remain unchanged.

@@ -1,6 +1,6 @@
 # Licence compatibility assessment
 
-Reviewed 10 September 2026 for the current private `steam-community-bbcode` 1.0.0 source package and its five locked npm environments.
+Reviewed 10 September 2026 for the current private `steam-community-bbcode` 1.0.0 source package and its four retained locked npm environments.
 This is the documented assessment selected by the owner, not an independent lawyer's opinion or authorization to publish.
 The accepted baseline requires explicit pre-release legal review; it does not prescribe independent legal counsel.
 
@@ -35,7 +35,7 @@ These sources support the following assessment of the observed distribution boun
 | Development MIT, ISC, BSD-2-Clause, BSD-3-Clause, 0BSD and BlueOak-1.0.0 components | Inspect their separate notice, disclaimer and non-endorsement terms. [BlueOak](https://blueoakcouncil.org/license/1.0.0) additionally grants patent rights. These tools are not included in the npm archive; copying their binaries or source would require carrying the applicable terms. |
 | `caniuse-lite` 1.0.30001810 data | CC-BY-4.0, with attribution, licence-reference and change-indication conditions if shared. It is development data, not incorporated into converter output or shipped as converter code. |
 | Docs-only `argparse` 2.0.1 | Its complete Python/PSF historical licence chain is retained, including notice retention and modification-summary conditions. The tool is unmodified and excluded from the archive; the label `Python-2.0` alone is not the assessment. |
-| Legacy comparator alternatives | Use `json-schema`'s BSD-3-Clause option in its AFL-2.1 OR BSD-3-Clause grant. Retain the actual Unlicense and WTFPL grants where present. Six entries lacking modern lockfile licence fields are covered by their MIT texts or the versioned CSSOM receipt below. No comparator implementation is incorporated into the converter. |
+| Historical legacy comparator graph | The retired graph used `json-schema`'s BSD-3-Clause option in its AFL-2.1 OR BSD-3-Clause grant, alongside actual Unlicense and WTFPL grants. Six entries lacking modern lockfile licence fields were covered by their MIT texts or the versioned CSSOM receipt below. These receipts remain historical evidence; the graph is no longer selected or executed by this package. |
 | Snapper 0.11.0 | The unmodified MIT development executable has a native inventory of 268 Rust components, including Unicode-3.0 and MPL-2.0. It formats authored text and is neither linked into the converter nor redistributed in its archive. Its dependencies do not relicense that authored text. Preserve its inventory and notices if carrying the installed tool separately. |
 
 The FSF's [licence list](https://www.gnu.org/licenses/license-list.html) provides supporting interpretation for the permissive, Python and Unicode families.
@@ -51,6 +51,8 @@ That resolves omissions for CSSStyle, commander and esrecurse without changing t
 `type-coverage` and `type-coverage-core` 2.30.1 use their exact upstream version's [MIT text](https://github.com/plantain-00/type-coverage/blob/v2.30.1/LICENSE).
 
 Four additional cases required source-specific investigation:
+
+The CSSOM and tr46 cases below now belong solely to the retired comparator's historical record.
 
 | Component | Evidence and resolution |
 | --- | --- |
@@ -81,16 +83,17 @@ The fixture contains text and references, not copied game binaries or image asse
 Links do not establish rights to download and redistribute the referenced assets, and this implementation does not fetch them.
 
 Transfer the source, lockfiles, authored notices and retained review evidence together.
-Installed development/comparison dependencies are reproducible setup inputs, not part of the npm archive or a reason to copy `node_modules` into the new repository. If a separate offline bundle includes those dependencies, carry the recovered full terms and bundled-code/data notices with it.
+Retained development/comparison dependencies are reproducible setup inputs, not part of the npm archive or a reason to copy `node_modules` into the new repository. Carry the retired comparator's results and licence receipts as historical evidence, without reintroducing its executable graph. If a separate offline bundle includes third-party implementations, carry their recovered full terms and bundled-code/data notices with it.
 
 ## Reproducible review record
 
 The refreshed evidence is under `.sdlc/runtime/converter/release-qualification/licensing-followup/` in the source checkout.
 The original `locked-licence-texts.json` records 570 lock entries across the five environments, including full installed texts and their hashes.
-The subsequent comparator `qs` repair adds six MIT entries and replaces `qs` 6.5.5 with BSD-3-Clause 6.16.0, bringing the current total to 576 entries; the production graph is unchanged.
+The subsequent comparator `qs` repair added six MIT entries and replaced `qs` 6.5.5 with BSD-3-Clause 6.16.0, bringing that historical snapshot to 576 entries.
 The sibling `../ci-34524391937-licences.json` preserves supplemental full texts for all seven changed components, whose exact versions, archive integrities and complete notices match the already assessed main development graph.
-Their existing notice-retention, disclaimer and BSD non-endorsement conditions continue to apply within the separate comparison-tool boundary.
-The original receipt remains intact; the table below identifies the current locks.
+Those terms continue to govern any separately retained copies of that historical tooling.
+The owner-approved retirement removes the 129-entry legacy Node comparison graph from current selection, leaving 447 entries across four npm environments and preserving the unchanged 66-entry production graph.
+The original and supplemental receipts remain intact; the table below identifies the current locks.
 There are 38 uninstalled entries across platform-specific optional development compiler packages; their declared Apache terms and the selected compiler's notices are recorded without claiming an installed-file inspection for those platforms.
 Additional primary-source receipts record retrieval time, exact URL/revision, HTTP status and SHA-256. These local records supplement the existing SBOMs and archive/consumer checks; they are not included in Git or the npm archive and must be carried with the handoff.
 
@@ -99,5 +102,4 @@ Additional primary-source receipts record retrieval time, exact URL/revision, HT
 | `package-lock.json` | `a81aa74d301361594437a200ba7336f4d3aa8a7fb5b4be1bcb3c96089a77c5d0` |
 | `tooling/type-coverage/package-lock.json` | `4d759bb525c039b8e8036194317729b052b8a0d97f326620df5f5a842e9bf2e4` |
 | `tooling/api-docs/package-lock.json` | `2ca887f8c16c70f3c8634c2e03151f01e0df30a330ee182f7a00bd68f0afd346` |
-| `comparison/node/package-lock.json` | `a156499d290c6f01482e8a98f61011104244a4763597cab344ba690c3048f9ff` |
 | `comparison/bbob/package-lock.json` | `06bf089fba6471e10fb92bb05b9c84e2085d8b978e09eacd58be18877b61cb2b` |

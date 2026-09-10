@@ -2187,3 +2187,93 @@ This is local repair evidence; it does not claim that the remote workflow has
 rerun or passed. The existing fail-fast gate and all advisory thresholds remain
 unchanged. No fresh mutation or independent R2 review is justified by this
 isolated comparator dependency selection.
+
+### Retire the unsupported executable comparator — 10 September 2026
+
+After the separately approved push of b13825c099c1ea715917af8cc67eaea6fff067e3,
+GitHub run 34527020676 confirmed that the qs advisories are absent but blocked
+Request 2.88.2 with GHSA-p8p7-x288-28g6. The advisory lists no patched Request
+release, and npm still identifies bbcode-to-markdown 1.0.3 as its latest release.
+The fixed-corpus risk assessment does not exempt that graph from dependency
+review. Converter and mutation jobs were skipped; ONI, CodeQL and SDLC passed.
+The owner approved the recommendation to retire this executable comparator while
+preserving its historical comparison evidence: "I approve your recommendation".
+
+This is a bounded R1 retirement under the accepted baseline, not a replacement
+parser or a change to converter semantics. Preserve the remaining providers and
+all 50 authored cases. Use the repository's preservation and configuration/
+consumer-verification routes: the existing remote dependency-review failure is
+the pre-change defect, and the retained report independently anchors all 200
+remaining observations. Do not fabricate a new unit-test failure for removal.
+The current user approval authorizes retiring the specific comparison package;
+the standing detailed local-commit approval applies. A new push remains separate.
+
+Implementation scope and acceptance:
+
+- Preserve `comparison/results/windows-x64.json` byte-for-byte as
+  `comparison/results/historical/windows-x64-2026-09-10.json`, with its source
+  commit and SHA-256 documented. Preserve the raw findings and full licence
+  receipts; the historical report must not be presented as a fresh execution.
+- Delete `tools/steam-community-bbcode/comparison/node/package.json` and its
+  `package-lock.json`, which solely define the retired executable package.
+  Remove only `/tools/steam-community-bbcode/comparison/node` from the npm
+  directories in `.github/dependabot.yml`. Keep update policy, CI scopes,
+  thresholds, primary dependencies and all other environments unchanged.
+- Delete `scripts/comparison/node-provider.js`; remove the retired provider's
+  dispatch, capability policy, type member, input hashes, native identities and
+  version from `scripts/compare-alternatives.js` and `scripts/comparison/corpus.js`.
+  Keep the candidate, Steamify, Steam Editor Tools and BUTR observations.
+- After checking remaining consumers and evidence retention, remove only the
+  retired comparison package's task-installed `node_modules` inside this
+  checkout. Run `npm run comparison:run` without that installation and require
+  the 200 results, retained provider summaries and all corpus definitions to
+  match the archived report. Preserve the historical report's exact bytes.
+- Update comparison/reproduction documentation and software selection. The
+  licence assessment must distinguish the retired 129-entry graph and its
+  historical receipts from the four retained npm graphs, totaling 447 entries;
+  the 66 production entries retain their existing terms and identity.
+- Run native audits of the retained npm graphs and affected checks from
+  b13825c099c1ea715917af8cc67eaea6fff067e3, including the existing formatter,
+  documentation, classification, type and installed-consumer checks. Review
+  the exact diff and make one detailed signed local commit. No mutation rerun,
+  suppression, alias, vendor patch, new baseline document or reviewer fan-out
+  is justified by this retirement.
+
+The historical report is preserved with SHA-256
+`aafe061b9a4efc4dc1553b6790bc5cc7dad2b21cf17b6a4da87f80dc8fc79c45`.
+The fresh comparison succeeds with the retired installation path absent; all
+200 retained observations, provider summaries and 50 case definitions match
+the historical report exactly. The native audit of each retained npm graph
+passes with zero vulnerabilities. Exact graph hashes and the 447-entry total
+are retained in `comparator-retirement-verification.json` under the existing
+release-qualification evidence directory.
+
+The cleanup hook rejected permanent recursive deletion of the old installed
+dependencies. Its supported reversible alternative was used: after verifying
+both absolute paths stay inside this worktree and are not reparse points,
+the task-owned installation was moved to the ignored
+`.sdlc/runtime/converter/release-qualification/retired-node-comparator-2026-09-10`
+recovery directory. It has no current harness consumer and must not be copied
+into the destination's active tooling. Retain it until the source handoff's
+evidence consumers finish; the results, source revision and full licence
+receipts remain the historical evidence. No hook policy was changed or bypassed.
+
+Final affected verification passes from b13825c099c1ea715917af8cc67eaea6fff067e3.
+It selects SDLC and converter checks: 99 SDLC tests, 82 setup tests, 95 JavaScript
+control tests, 658 converter/parser tests, six prose-tool tests and three
+performance probes all pass. Documentation links, semantic formatting of 21
+authored documents, API generation, conformance, lint and primary TS 7 checks
+pass. Type coverage is 17190/17190 plus 305/305 for API-doc orchestration;
+58 declarations reproduce across two clean builds. The fresh installed
+JavaScript/CLI and TS consumers pass against
+`tools/steam-community-bbcode/artifacts/steam-community-bbcode-1.0.0.tgz`.
+Coverage remains 99.93% statements/lines, 96.53% branches and 100% functions.
+
+The exact diff review confirms removal of the retired dispatch and configuration,
+preservation of the active corpus and classification policies, and accurate
+separation of historical evidence from current results. No retained runtime API
+or checker policy changes. Logs, four native audits, historical-byte preservation
+and active-result equivalence are retained under the release-qualification
+directory as `comparator-retirement-*`. The preceding remote run remains failed;
+this new retirement has local evidence and still needs its own approved push
+and remote dependency-review result.

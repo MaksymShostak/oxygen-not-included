@@ -2,6 +2,7 @@
 # Comparative conversion evidence
 
 This benchmark executes unmodified published tools through their documented APIs.
+The candidate and three active alternatives yield 200 observations.
 It compares 37 Steam-to-GFM cases and 13 GFM-to-Steam cases against independently
 authored semantic trees. The forward corpus includes four ordinary controls and
 33 construct cases, many deliberately containing literal Markdown/HTML-shaped
@@ -19,30 +20,14 @@ below. The result date is an execution timestamp, not a release designation.
 | --- | --- | --- |
 | Candidate | Private development package 1.0.0 | Forward registry policies and the explicitly partial reverse subset |
 | [Steamify](https://github.com/pivoshenko/steamify) | 2.0.1 | Both directions; README supported-feature lists |
-| [bbcode-to-markdown](https://github.com/akhoury/bbcode-to-markdown) | 1.0.3 | Generic forward conversion; installed `bbcodejs.BUILTIN` and `newBBCodeTags` registrations |
 | [Steam Editor Tools](https://github.com/cainmagi/steam-editor-tools) | 0.5.1 | `DocumentParser.parse_markdown` followed by `BBCodeRenderer.render` |
 | [BUTR Markdown converter](https://github.com/BUTR/Converter.MarkdownToBBCode) | 1.0.0.29 | Native Markdown-to-Steam CLI, default options |
 
-All four direct comparator packages carry MIT licences. Installed licence texts
+All three active comparator packages carry MIT licences. Installed licence texts
 and package metadata were inspected; their identities are retained. The isolated
 Python graph also contains BSD, PSF, MIT-CMU and MPL-2.0 dependencies. Native
 installations retain their notices. None of these benchmark dependencies enters
 the published runtime package or the repository's main Python environment.
-The old generic Node dependency graph is used only for comparison; this record
-does not qualify its dependencies for production adoption.
-
-The locked Node comparison graph uses the maintainer's unmodified `form-data`
-2.5.6 v2 backport through a native override beneath Request 2.88.2.
-The obsolete `~2.3.2` range otherwise retains two vulnerable multipart releases.
-This declared dependency-selection change preserves all 250 outputs, statuses,
-semantic trees and diagnostics against the immediately preceding native run.
-Provider source remains unchanged; the report retains the new manifest/lock hashes.
-The graph also selects unmodified `nwmatcher` 1.4.4 beneath `jsdom-nogyp` 0.8.3,
-fixing GHSA-6394-6h9h-cfjg without changing the comparator's public API.
-Request also selects unmodified `qs` 6.16.0, fixing GHSA-6rw7-vpxm-498p and
-GHSA-4mjr-xmp4-gh2g. All 250 observations remain identical after this repair.
-Eight moderate affected-package audit entries remain within the assessed fixed-corpus
-tooling boundary, with no high or critical entries in the refreshed npm audit.
 
 `PASS_EXACT` means the output matches an authored target spelling;
 `PASS_EQUIVALENT` means its parsed semantics match. Neither is a stronger semantic
@@ -61,17 +46,13 @@ projects choose to transform. Those alternative capabilities remain relevant.
 
 The raw results show these distinct issues or policy differences:
 
-- Steamify and the generic converter pass ordinary formatting controls. Literal
+- Steamify passes ordinary formatting controls. Literal
   asterisks and HTML-shaped text in the construct corpus become GFM formatting or
-  HTML. Steamify also leaves compact lists/quotes unconverted. Both split a code
+  HTML. Steamify also leaves compact lists/quotes unconverted and splits a code
   block containing its chosen closing fence.
 - Steamify explicitly passes Steam-only underline, spoiler, noparse and table
   markup through in its forward direction. Its reverse feature list does not
   claim tables. These cases are excluded from its applicable conversion counts.
-- The generic converter registers content-only underline, colour and noparse
-  handlers. Its behaviour differs from our loss-accounting and opacity contracts;
-  it has no complete Steam-dialect claim. Its generated table lacks the GFM
-  delimiter row in this corpus.
 - Steam Editor Tools' Markdown parser drops the empty-alt image fixture on the
   direct document/renderer path. Its wider image and authoring APIs are outside
   this benchmark.
@@ -95,6 +76,31 @@ All 33 historical Steamify obligations remain independently exercised by
 are identified in the result. They are historical comparator evidence; the
 current common-corpus executions above are recorded separately.
 
+## Retired comparator evidence
+
+The owner retired `bbcode-to-markdown` 1.0.3 from executable comparison tooling
+on 10 September 2026. Its dependency on unsupported Request 2.88.2 blocks native
+dependency review with [GHSA-p8p7-x288-28g6](https://github.com/advisories/GHSA-p8p7-x288-28g6),
+for which Request has no patched release. Earlier form-data, nwmatcher and qs
+repairs did not remove that remaining dependency risk.
+
+The complete preceding five-provider report, including all 250 observations,
+is preserved byte-for-byte in
+[the historical report](results/historical/windows-x64-2026-09-10.json).
+Its SHA-256 is `aafe061b9a4efc4dc1553b6790bc5cc7dad2b21cf17b6a4da87f80dc8fc79c45`.
+[Source commit b13825c](https://github.com/MaksymShostak/oxygen-not-included/tree/b13825c099c1ea715917af8cc67eaea6fff067e3/tools/steam-community-bbcode)
+retains the exact historical runner, capability policy and dependency locks.
+The current command does not install or execute that comparator, and its archived
+results are not included in current provider counts or relabelled as fresh runs.
+All 200 retained-provider observations and all 50 case definitions remain identical
+to that historical report.
+
+The archived generic converter passed ordinary formatting controls but interpreted
+literal Markdown/HTML, split a code block containing its chosen fence, used
+content-only underline/colour/noparse handlers, and emitted a table without a GFM
+delimiter row in this corpus. These remain historical observations, with no claim
+that the generic package implemented a complete Steam dialect.
+
 ## Reproduction
 
 Run from the repository root on Windows x64, with the checkout's Python 3.14
@@ -103,7 +109,6 @@ Python lock is platform-specific. The converter's ordinary documented dependency
 setup must already be complete.
 
 ```powershell
-npm --prefix tools/steam-community-bbcode/comparison/node ci --ignore-scripts --no-audit --no-fund
 .venv/Scripts/python.exe -m pip install --only-binary=:all: --require-hashes --target tools/steam-community-bbcode/artifacts/comparison/python -r tools/steam-community-bbcode/comparison/python/requirements-windows-py314.txt
 dotnet tool install Converter.MarkdownToBBCodeSteam.Tool --tool-path tools/steam-community-bbcode/artifacts/comparison/dotnet --version 1.0.0.29 --configfile tools/steam-community-bbcode/comparison/dotnet/NuGet.Config
 npm --prefix tools/steam-community-bbcode run comparison:run

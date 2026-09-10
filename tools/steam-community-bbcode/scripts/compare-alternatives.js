@@ -37,7 +37,6 @@ async function convert(provider, fixture) {
     return {output: result.value,
       diagnostics: result.diagnostics.filter(diagnostic => ['approximate', 'lossy', 'unsupported'].includes(diagnostic.fidelity)).map(diagnostic => diagnostic.code), stderr: ''};
   }
-  if (provider === 'bbcode-to-markdown') return execute(process.execPath, [local('scripts/comparison/node-provider.js')], fixture.source);
   if (provider === 'steamify' || provider === 'steam-editor-tools') return execute(python,
     ['-P', local('comparison/python/convert.py'), `${provider}-${fixture.direction}`], fixture.source, pythonEnvironment);
   // Use an actual file: the native -i option interprets either a path or text.
@@ -96,7 +95,7 @@ function countStatuses(observations) {
 // Hash authored inputs and installed native package identities. Keep full pip
 // reports in ignored artifacts; they can contain host paths unrelated to results.
 const inputPaths = ['package.json', 'package-lock.json', 'scripts/compare-alternatives.js',
-  'comparison/node/package.json', 'comparison/node/package-lock.json', 'comparison/python/convert.py',
+  'comparison/python/convert.py',
   'comparison/python/requirements-windows-py314.txt', 'comparison/dotnet/NuGet.Config'];
 for (const directory of ['src', 'spec', 'scripts/comparison', 'test/conformance']) {
   for (const path of await readdir(local(directory), {recursive: true})) {
@@ -108,8 +107,7 @@ const inputs = {};
 for (const path of inputPaths.sort()) inputs[path] = createHash('sha256').update((await readFile(local(path), 'utf8')).replace(/\r\n?/gu, '\n')).digest('hex');
 /** @param {string} path */
 const sha256 = async path => createHash('sha256').update(await readFile(local(path))).digest('hex');
-const nativeIdentityPaths = ['comparison/node/node_modules/bbcode-to-markdown/package.json',
-  'comparison/node/node_modules/bbcode-to-markdown/LICENSE',
+const nativeIdentityPaths = [
   'artifacts/comparison/python/steamify-2.0.1.dist-info/METADATA',
   'artifacts/comparison/python/steamify-2.0.1.dist-info/licenses/LICENSE',
   'artifacts/comparison/python/steam_editor_tools-0.5.1.dist-info/METADATA',
@@ -126,7 +124,7 @@ const report = {schemaVersion: 1, license: 'AGPL-3.0-only', executedAt: new Date
   interpretation: 'Exact/equivalent are equally successful semantics. PASS_DIAGNOSED_LOSS requires expected fallback semantics and a per-input diagnostic. FAIL statuses mean mismatch with this corpus contract, not necessarily an upstream bug. No weighted score or global superiority claim.',
   environment: {platform: process.platform, architecture: process.arch, node: process.version,
     python: execute(python, ['--version'], '', pythonEnvironment), dotnetRuntimes: execute('dotnet', ['--list-runtimes'], '')},
-  versions: {candidate: '1.0.0 private development package', steamify: '2.0.1', 'bbcode-to-markdown': '1.0.3',
+  versions: {candidate: '1.0.0 private development package', steamify: '2.0.1',
     'steam-editor-tools': '0.5.1', butr: '1.0.0.29'},
   inputs, canonicalLfInputsSha256: createHash('sha256').update(JSON.stringify(inputs)).digest('hex'), nativeIdentities,
   nugetPackageSha512: (await readFile(local(`${dotnetPackage}converter.markdowntobbcodesteam.tool.1.0.0.29.nupkg.sha512`), 'utf8')).trim(),

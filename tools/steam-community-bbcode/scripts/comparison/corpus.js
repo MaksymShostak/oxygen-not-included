@@ -29,19 +29,15 @@ export const comparisonCases = [
     policy: 'Preserve GFM text. BUTR deliberately interprets literal BBCode: a documented policy difference, not an undocumented defect.'},
 ];
 
-/** @typedef {'candidate' | 'steamify' | 'bbcode-to-markdown' | 'steam-editor-tools' | 'butr'} ProviderId */
+/** @typedef {'candidate' | 'steamify' | 'steam-editor-tools' | 'butr'} ProviderId */
 /** @type {readonly ProviderId[]} */
-export const providerIds = ['candidate', 'steamify', 'bbcode-to-markdown', 'steam-editor-tools', 'butr'];
+export const providerIds = ['candidate', 'steamify', 'steam-editor-tools', 'butr'];
 const steamifyForward = new Set(['b', 'i', 'strike', 'h1', 'h2', 'h3', 'list', 'olist', 'code', 'hr', 'url', 'quote', 'img']);
-const genericForward = new Set(['b', 'i', 'strike', 'h1', 'h2', 'h3', 'list', 'code', 'hr', 'url', 'quote', 'img', 'table', 'u', 'color', 'noparse']);
 
 /** @param {ProviderId} provider @param {ComparisonCase} fixture */
 export function applicability(provider, fixture) {
   const construct = fixture.id.startsWith('plain-') ? fixture.id.slice(6) : fixture.id;
   if (provider === 'candidate') return {applicable: true, reason: fixture.policy};
-  if (provider === 'bbcode-to-markdown') return fixture.direction === 'forward' && genericForward.has(construct)
-    ? {applicable: true, reason: 'Installed bbcodejs BUILTIN/newBBCodeTags registration; no claim of a complete Steam dialect. Content-only tags deliberately lose formatting.'}
-    : {applicable: false, reason: 'No documented conversion for this direction or Steam-specific syntax; generic list=1 is not Steam olist.'};
   if (provider === 'steamify') return fixture.direction === 'forward'
     ? {applicable: steamifyForward.has(construct), reason: 'README supported-tag table. Underline, spoiler, noparse and table are explicitly passthrough; Steam media widgets are not claimed.'}
     : {applicable: fixture.id !== 'table', reason: 'Documented Markdown-to-Steam API; tables are absent from its supported Markdown feature list.'};
