@@ -1857,3 +1857,44 @@ retained under `.sdlc/runtime/converter/release-qualification`.
 Startup-only Stryker checks, the native final verification receipt and the two
 bounded follow-up reviews are retained there without overwriting prior evidence.
 Actual parallel Linux execution and timing remain pending the next authorized push.
+
+### Remaining introduced comparator dependency advisory
+
+The owner authorized pushing `f92f16d` and updating draft PR #4; both operations
+succeeded and native readback matches the exact approved head/body.
+Run 34342366498 starts the two mutation profiles concurrently.
+Its dependency-review job no longer reports `form-data`, but rejects the remaining
+`nwmatcher` 1.3.9 selection under GHSA-6394-6h9h-cfjg.
+This was among the retained fixed-corpus audit findings; reachability assessment
+does not replace the configured introduced-dependency gate.
+
+Select unmodified `nwmatcher` 1.4.4, the latest upstream release and the advisory's
+fixed version. The original 12-entry npm archive and its complete Diego Perini MIT
+grant/warranty notice were inspected and retained. No dependencies or install
+hooks are declared by that package. Keep the comparator provider and its API intact.
+The exact configuration change, under the owner's standing plan approval, is to
+add `overrides["jsdom-nogyp@0.8.3"].nwmatcher = "1.4.4"` to
+`tools/steam-community-bbcode/comparison/node/package.json` and regenerate only its
+native lockfile. This overcomes the old parent's `~1.3.1` range; the other jsdom
+consumer already permits 1.4.4. Preserve the Request/form-data override.
+
+Use the dependency/configuration-preservation route: retain the failing native
+dependency-review log and immediate pre-change graph/results; resolve and install
+with scripts disabled; verify native installed paths, version and registry integrity;
+rerun all 250 comparison observations and compare outputs, status, applicability,
+semantic trees and diagnostics, excluding only retained process-specific stderr.
+Run native audit, authored-doc checks, affected repository controls and the two
+existing bounded reviewers. Preserve every threshold, primary dependency graph,
+compiler role and publication/CI workflow. A new commit and push carry their
+existing separate authorities; this record does not claim remote GREEN in advance.
+
+Native resolution changes only the existing `node_modules/nwmatcher` lock entry;
+both jsdom consumers resolve 1.4.4. Its archive SRI matches the native lock, and
+the full installed MIT notice matches the inspected archive exactly.
+The normal comparison run preserves all 250 outputs, applicability decisions,
+statuses, semantic trees and diagnostics against the immediate pre-change report.
+Only process-specific stderr is excluded and remains retained.
+The refreshed native audit has nine moderate entries and no high/critical or
+nwmatcher finding; its nonzero exit remains recorded for those legacy findings.
+Native prose checks pass. Final affected-control and independent-review evidence
+is retained beside the failing remote log; no live dependency-review pass is claimed.

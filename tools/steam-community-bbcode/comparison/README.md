@@ -37,7 +37,9 @@ The obsolete `~2.3.2` range otherwise retains two vulnerable multipart releases.
 This declared dependency-selection change preserves all 250 outputs, statuses,
 semantic trees and diagnostics against the immediately preceding native run.
 Provider source remains unchanged; the report retains the new manifest/lock hashes.
-Ten moderate affected-package audit entries remain within the assessed fixed-corpus
+The graph also selects unmodified `nwmatcher` 1.4.4 beneath `jsdom-nogyp` 0.8.3,
+fixing GHSA-6394-6h9h-cfjg without changing the comparator's public API.
+Nine moderate affected-package audit entries remain within the assessed fixed-corpus
 tooling boundary, with no high or critical entries in the refreshed npm audit.
 
 `PASS_EXACT` means the output matches an authored target spelling;

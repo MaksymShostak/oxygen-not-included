@@ -16,6 +16,8 @@ A project is compared only where its capability evidence makes the case applicab
 The isolated legacy Node graph selects unmodified `form-data` 2.5.6 through a native npm override for Request 2.88.2.
 This maintainer-provided backport fixes the two advisories raised by remote dependency review while all 250 comparison outputs and semantic results remain unchanged.
 The raw report records the changed dependency-selection hashes; no comparator source was patched.
+The same isolated graph selects unmodified `nwmatcher` 1.4.4 beneath `jsdom-nogyp` 0.8.3 to address GHSA-6394-6h9h-cfjg from the subsequent dependency-review run.
+The provider's public API and comparison corpus remain unchanged.
 See [software selection](software-selection.md) for the remaining legacy advisory scope.
 
 Exact output and semantically equivalent output are equally successful results.

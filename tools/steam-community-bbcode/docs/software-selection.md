@@ -381,8 +381,16 @@ Request 2.88.2's obsolete `~2.3.2` constraint otherwise prevents selecting that 
 The exact package and added dependencies' full MIT notices were inspected before execution.
 All 250 provider outputs, classifications, semantic trees and diagnostics are unchanged against the preserved immediately preceding comparison.
 The refreshed report records the changed manifest and lockfile hashes.
-Native npm audit now reports ten moderate affected-package entries and no high or critical entries; it does not report either `form-data` advisory.
+The form-data-only qualification audit reported ten moderate affected-package entries and no high or critical entries; it did not report either `form-data` advisory.
 Those remaining legacy risks retain their separately assessed fixed-corpus tooling boundary.
 No provider source, advisory threshold or suppression changed.
 
 Source: [form-data 2.5.6 backport](https://github.com/form-data/form-data/releases/tag/v2.5.6).
+
+The subsequent dependency-review run identified [GHSA-6394-6h9h-cfjg](https://github.com/advisories/GHSA-6394-6h9h-cfjg) in `nwmatcher` 1.3.9.
+The graph now selects unmodified 1.4.4, both the advisory's fixed version and the current latest npm release, beneath `jsdom-nogyp` 0.8.3.
+The old parent's `~1.3.1` range requires a native parent-scoped npm override; the other jsdom consumer already allows this release.
+The exact npm archive contains 12 entries, no declared dependencies or install hooks, and Diego Perini's full MIT grant and warranty disclaimer, inspected before adoption.
+The [upstream security repair](https://github.com/dperini/nwmatcher/commit/9dcc2b039beeabd18327a5ebaa537625872e16f0) changes the selector regular expressions.
+The provider API, fixed-corpus scope, primary package graph and existing form-data backport remain unchanged.
+The refreshed native audit has nine moderate affected-package entries, no high or critical entries and no nwmatcher finding; the remaining legacy risks retain their assessed tooling boundary.
