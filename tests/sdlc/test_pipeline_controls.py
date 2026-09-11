@@ -151,6 +151,26 @@ class LocalVerificationControlTests(unittest.TestCase):
         with self.assertRaises((SetupError, subprocess.CalledProcessError)):
             self.begin_task('R2', baseline_path)
 
+    def test_r2_accepts_committed_plan_and_rejects_changed_content(self):
+        plan_path = 'docs/plans/accepted-consumer.md'
+        plan = self.repo / plan_path
+        plan.parent.mkdir(parents=True)
+        plan.write_text('# Accepted consumer plan\n', encoding='utf-8', newline='\n')
+        with self.assertRaises((SetupError, subprocess.CalledProcessError)):
+            self.begin_task('R2', plan_path)
+        self.commit('Prior accepted plan')
+        self.begin_task('R2', plan_path)
+        active = state.load_json(self.repo / state.ACTIVE_TASK_PATH)
+        self.assertEqual(active['baseline'], plan_path)
+        self.assertEqual(active['requiredProfiles'], ['full'])
+        self.verify_task()
+        self.assertEqual(state.required_verification_gaps(self.repo), [])
+        plan.write_text('# Changed plan\n', encoding='utf-8')
+        self.assertTrue(state.required_verification_gaps(self.repo))
+        self.disposition(completed=False)
+        with self.assertRaises(SetupError):
+            self.invoke(sdlc.resume_task, argparse.Namespace(decision_reference='owner-decision'))
+
     def test_start_does_not_overwrite_active_work(self):
         self.begin_task(); prior = (self.repo / state.ACTIVE_TASK_PATH).read_bytes()
         with self.assertRaises(SetupError): self.begin_task('R1')
