@@ -151,6 +151,26 @@ class LocalVerificationControlTests(unittest.TestCase):
         with self.assertRaises((SetupError, subprocess.CalledProcessError)):
             self.begin_task('R2', baseline_path)
 
+    def test_r2_accepts_committed_plan_and_rejects_changed_content(self):
+        plan_path = 'docs/plans/accepted-consumer.md'
+        plan = self.repo / plan_path
+        plan.parent.mkdir(parents=True)
+        plan.write_text('# Accepted consumer plan\n', encoding='utf-8', newline='\n')
+        with self.assertRaises((SetupError, subprocess.CalledProcessError)):
+            self.begin_task('R2', plan_path)
+        self.commit('Prior accepted plan')
+        self.begin_task('R2', plan_path)
+        active = state.load_json(self.repo / state.ACTIVE_TASK_PATH)
+        self.assertEqual(active['baseline'], plan_path)
+        self.assertEqual(active['requiredProfiles'], ['full'])
+        self.verify_task()
+        self.assertEqual(state.required_verification_gaps(self.repo), [])
+        plan.write_text('# Changed plan\n', encoding='utf-8')
+        self.assertTrue(state.required_verification_gaps(self.repo))
+        self.disposition(completed=False)
+        with self.assertRaises(SetupError):
+            self.invoke(sdlc.resume_task, argparse.Namespace(decision_reference='owner-decision'))
+
     def test_start_does_not_overwrite_active_work(self):
         self.begin_task(); prior = (self.repo / state.ACTIVE_TASK_PATH).read_bytes()
         with self.assertRaises(SetupError): self.begin_task('R1')
@@ -347,6 +367,53 @@ class PullRequestValidationTests(unittest.TestCase):
              prior if prior is not None else self.baseline,existing)
 
     def test_r2_prior_baseline_passes(self): self.assertEqual(self.validate_fixture_pr(), [])
+
+    def test_r2_plan_baseline_uses_exact_prior_content_and_references(self):
+        plan = '# Converter\n\n## Preserve literal source\nRequirement text.\n'
+        fields = dict(self.fields, issue='none', baseline='docs/plans/accepted-converter.md',
+                      acceptance='["## Preserve literal source"]', baseline_acceptance='owner-task#decision')
+        def validate(candidate=plan, prior=plan, paths=None):
+            return pull_request_validation.validate_pull_request_linkage(REPOSITORY, fields,
+                'example/service', None, paths or ['tools/converter/src/index.js'], candidate, prior)
+        self.assertEqual(validate(), [])
+        self.assertTrue(validate(prior=None))
+        self.assertTrue(validate(candidate=plan + 'Changed intent.\n'))
+        self.assertTrue(validate(paths=[fields['baseline']]))
+        fields['acceptance'] = '["## Unaccepted requirement"]'
+        self.assertTrue(validate())
+        fields['acceptance'] = '[]'
+        self.assertTrue(validate())
+        fields['acceptance'] = '["## Preserve literal source"]'
+        fields['baseline_acceptance'] = 'pending'
+        self.assertTrue(validate())
+
+    def test_plan_metadata_requires_a_single_acceptance_reference(self):
+        body = ('Change issue: none\nAccepted baseline: docs/plans/accepted-converter.md\n'
+                'Risk class: R2\nAcceptance IDs implemented: ["## Preserve literal source"]\n'
+                'Baseline-only: no\nNew functionality: yes\nSoftware selection: recorded-research\n')
+        with self.assertRaises(SetupError):
+            pull_request_validation.parse_pull_request_fields(body)
+        parsed = pull_request_validation.parse_pull_request_fields(body + 'Baseline acceptance: owner-task#decision\n')
+        self.assertEqual(parsed['baseline_acceptance'], 'owner-task#decision')
+        with self.assertRaises(SetupError):
+            pull_request_validation.parse_pull_request_fields(body + 'Baseline acceptance: first\nBaseline acceptance: second\n')
+
+    def test_plan_fetch_uses_exact_revision_and_rejects_non_file_content(self):
+        import base64
+        text = '# Accepted plan\r\n'
+        payload = {'type': 'file', 'encoding': 'base64',
+                   'content': base64.b64encode(text.encode()).decode()}
+        with patch.object(pull_request_validation, 'gh_api', return_value=payload) as api:
+            fetched = pull_request_validation.fetch_baseline_at_revision(
+                'example/service', 'docs/plans/accepted-converter.md', 'a' * 40)
+        self.assertEqual(fetched, text)
+        self.assertIn('?ref=' + 'a' * 40, api.call_args.args[0])
+        for path in ('../outside.md', 'docs/plans/../outside.md', 'docs/plans/./x.md', 'README.md'):
+            with self.assertRaises(SetupError):
+                pull_request_validation.fetch_baseline_at_revision('example/service', path, 'a' * 40)
+        with patch.object(pull_request_validation, 'gh_api', return_value={'type': 'symlink'}):
+            with self.assertRaises(SetupError):
+                pull_request_validation.fetch_baseline_at_revision('example/service', 'docs/plans/x.md', 'a' * 40)
 
     def test_r0_can_use_task_or_pr_without_issue(self):
         fields = {'issue':'none','risk':'R0','acceptance':'none','baseline_only':'no','baseline':'none','new_functionality':'no','software_selection':'none'}
