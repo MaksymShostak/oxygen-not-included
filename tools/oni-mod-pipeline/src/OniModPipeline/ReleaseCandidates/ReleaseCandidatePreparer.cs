@@ -5,6 +5,7 @@ using MaksymShostak.OniModPipeline.ModBuild;
 using MaksymShostak.OniModPipeline.ModProfiles;
 using MaksymShostak.OniModPipeline.ModTest;
 using MaksymShostak.OniModPipeline.Processes;
+using MaksymShostak.OniModPipeline.Readme;
 using MaksymShostak.OniModPipeline.Serialization;
 using MaksymShostak.OniModPipeline.SourceControl;
 using MaksymShostak.OniModPipeline.WorkshopContent;
@@ -220,6 +221,7 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
     private readonly TimeProvider timeProvider;
     private readonly Func<byte[]> entropySource;
     private readonly Func<Guid> transientSuffixFactory;
+    private readonly ReadmeReleaseValidator readmeValidator;
 
     internal ReleaseCandidatePreparer(
         IReleaseModBuilder modBuilder,
@@ -232,7 +234,8 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
         IReleaseCandidateFileSystem fileSystem,
         TimeProvider timeProvider,
         Func<byte[]> entropySource,
-        Func<Guid> transientSuffixFactory)
+        Func<Guid> transientSuffixFactory,
+        ReadmeReleaseValidator readmeValidator)
     {
         ArgumentNullException.ThrowIfNull(modBuilder);
         ArgumentNullException.ThrowIfNull(automatedTestRunner);
@@ -257,6 +260,7 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
         this.timeProvider = timeProvider;
         this.entropySource = entropySource;
         this.transientSuffixFactory = transientSuffixFactory;
+        this.readmeValidator = readmeValidator ?? throw new ArgumentNullException(nameof(readmeValidator));
     }
 
     internal static ReleaseCandidatePreparer CreateDefault(
@@ -280,7 +284,8 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
             new ReleaseCandidateFileSystem(),
             TimeProvider.System,
             () => RandomNumberGenerator.GetBytes(8),
-            Guid.NewGuid);
+            Guid.NewGuid,
+            new ReadmeReleaseValidator(new ReadmeSynchronizer(new InstalledBbcodeConverter(processRunner))));
     }
 
     public async Task<OperationResult<PreparedReleaseCandidate>> PrepareAsync(
@@ -302,6 +307,10 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
                     "The release preparation request was not produced from a clean contributing source set."),
                 PipelineExitCode.ReleaseNotReady);
         }
+
+        var readmeResult = await readmeValidator.ValidateAsync(request.Profile, request.InitialProvenance.WorktreeRoot, cancellationToken).ConfigureAwait(false);
+        if (!readmeResult.IsSuccess)
+            return new OperationResult<PreparedReleaseCandidate>(null, readmeResult.Diagnostics, readmeResult.ExitCode);
 
         CandidateLayout layout;
         DateTimeOffset preparedAtUtc;

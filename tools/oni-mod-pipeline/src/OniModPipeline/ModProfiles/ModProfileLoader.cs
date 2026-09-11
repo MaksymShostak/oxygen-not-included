@@ -21,9 +21,11 @@ internal sealed class ModProfileLoader
                     "workshop-listing",
                     "local-install",
                     "test-projects",
-                    "acceptance-checks"
+                    "acceptance-checks",
+                    "readme"
                 ],
                 StringComparer.Ordinal),
+            ["readme"] = new HashSet<string>(["repository-path"], StringComparer.Ordinal),
             ["mod"] = new HashSet<string>(
                 ["mod-yaml", "mod-info-yaml"],
                 StringComparer.Ordinal),
@@ -172,7 +174,14 @@ internal sealed class ModProfileLoader
                     "directory-name",
                     "local-install.directory-name")),
                 testProjects,
-                acceptanceChecks);
+                acceptanceChecks)
+            {
+                Readme = root.ContainsKey("readme")
+                    ? new ReadmeProfile(ReadRequiredString(
+                        ReadRequiredTable(root, "readme", "readme"),
+                        "repository-path", "readme.repository-path"))
+                    : null
+            };
 
             return new OperationResult<ModProfile>(
                 profile,
@@ -265,6 +274,7 @@ internal sealed class ModProfileLoader
         ValidateNestedTable(root, "build");
         ValidateNestedTable(root, "workshop-listing");
         ValidateNestedTable(root, "local-install");
+        ValidateNestedTable(root, "readme");
         ValidateTableArray(root, "package-files");
         ValidateTableArray(root, "test-projects");
         ValidateTableArray(root, "acceptance-checks");

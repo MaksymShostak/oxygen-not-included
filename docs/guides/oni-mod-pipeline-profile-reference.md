@@ -7,6 +7,52 @@ Use `oni-mod-pipeline.toml` to declare one mod's metadata sources, build contrac
 > [!NOTE]
 > Unknown keys are errors. ONI Mod Pipeline does not support executable profile hooks, implicit package discovery, machine-specific fallback properties, or arbitrary Uploader identifiers.
 
+## Optional README description
+
+Opt a mod into generated Workshop-description synchronization with:
+
+```toml
+[readme]
+repository-path = "README.md"
+```
+
+This path is relative to the Git worktree root and must identify an existing regular
+file without linked ancestors or traversal outside the worktree. Profiles without
+this table retain their existing behavior and need no converter installation.
+
+Place exactly one standalone marker pair around the description to manage:
+
+```html
+<!-- oni-mod-pipeline:workshop-description:start -->
+<!-- oni-mod-pipeline:workshop-description:end -->
+```
+
+Run `oni-mod-pipeline sync-readme --mod <mod-root>` before reviewing and committing.
+The installed `steam-community-bbcode` public CLI converts the same generated CRLF
+description bytes used by Workshop listing assembly. Synchronization replaces only
+the managed block and preserves surrounding bytes. The block uses the start marker
+line's newline convention. Invalid markers, rejected conversion, cancellation or a
+detected target change prevent replacement.
+
+Concurrency is optimistic: an unrelated editor saving between the final comparison
+and atomic replacement can still be overwritten. Do not edit the README during
+synchronization. See the [accepted concurrency decision](../specs/2026-09-11-bbcode-readme-concurrency-decision.md).
+
+`--check` reports drift with exit code 6 without writing the README. `--format json`
+includes conversion diagnostics and content hashes. Review approximate conversions;
+a successful process exit is not semantic acceptance. Synchronization does not need
+an installed game and never installs packages.
+
+Normal discovery uses `node_modules/steam-community-bbcode` at the worktree root.
+For qualification, `--converter-package <installed-package-directory>` selects a
+package installed from an exact retained tarball. It does not accept a tarball or
+download URL. Keep provisional paths out of the repository dependency lock; the
+exact registry dependency remains pending until publication.
+
+Release validation and preparation use the normal installation and check freshness
+without rewriting source. The README and root npm manifests become contributing
+release inputs.
+
 ## Locate and discover a profile
 
 The profile filename is exactly `oni-mod-pipeline.toml`. Its containing directory is the mod root, and every declared source path is resolved relative to that directory.

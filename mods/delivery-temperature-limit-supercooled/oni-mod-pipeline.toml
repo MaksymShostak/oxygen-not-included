@@ -1,5 +1,8 @@
 schema-version = 1
 
+[readme]
+repository-path = "README.md"
+
 [mod]
 mod-yaml = "mod.yaml"
 mod-info-yaml = "mod_info.yaml"

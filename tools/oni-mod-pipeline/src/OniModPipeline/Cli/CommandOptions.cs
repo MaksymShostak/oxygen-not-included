@@ -48,13 +48,16 @@ internal sealed class CommandOptions
         });
     }
 
-    internal void AddTo(Command command)
+    internal void AddTo(Command command, bool includeEnvironment = true)
     {
         ArgumentNullException.ThrowIfNull(command);
         command.Options.Add(modOption);
-        command.Options.Add(gameDirectoryOption);
-        command.Options.Add(userDataDirectoryOption);
-        command.Options.Add(artifactsDirectoryOption);
+        if (includeEnvironment)
+        {
+            command.Options.Add(gameDirectoryOption);
+            command.Options.Add(userDataDirectoryOption);
+            command.Options.Add(artifactsDirectoryOption);
+        }
         command.Options.Add(formatOption);
     }
 

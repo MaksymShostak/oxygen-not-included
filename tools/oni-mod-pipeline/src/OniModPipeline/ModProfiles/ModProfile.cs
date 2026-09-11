@@ -11,4 +11,7 @@ internal sealed record ModProfile(
     WorkshopListingProfile WorkshopListing,
     LocalInstallProfile LocalInstall,
     IReadOnlyList<TestProjectProfile> TestProjects,
-    IReadOnlyList<AcceptanceCheckProfile> AcceptanceChecks);
+    IReadOnlyList<AcceptanceCheckProfile> AcceptanceChecks)
+{
+    internal ReadmeProfile? Readme { get; init; }
+}

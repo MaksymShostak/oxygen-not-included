@@ -10,6 +10,27 @@ public sealed class ModProfileLoaderTests
     private readonly ModProfileLoader profileLoader = new();
 
     [TestMethod]
+    public void Load_WithReadmeTable_AcceptsRepositoryRelativeDeclaration()
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var result = profileLoader.Load(WriteManifest(temporaryDirectory,
+            ValidManifest + "\n[readme]\nrepository-path = \"README.md\"\n"));
+        Assert.IsTrue(result.IsSuccess, string.Join("; ", result.Diagnostics));
+        Assert.AreEqual("README.md", result.Value?.Readme?.RepositoryPath);
+    }
+
+    [TestMethod]
+    [DataRow("[readme]\nrepository-path = 42")]
+    [DataRow("[readme]\npath = \"README.md\"")]
+    [DataRow("[readme]")]
+    public void Load_WithInvalidReadmeTable_RejectsDeclaration(string table)
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var result = profileLoader.Load(WriteManifest(temporaryDirectory, ValidManifest + "\n" + table));
+        Assert.AreEqual(PipelineExitCode.InvalidInput, result.ExitCode);
+    }
+
+    [TestMethod]
     public void Load_WhenSchemaVersionIsTwo_ReturnsOnip1001()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -67,6 +88,7 @@ public sealed class ModProfileLoaderTests
         Assert.IsTrue(result.IsSuccess);
         Assert.IsNotNull(result.Value);
         Assert.AreEqual("./mod.yaml", result.Value.ModYamlPath);
+        Assert.IsNull(result.Value.Readme);
         Assert.AreEqual("Release", result.Value.Build?.Configuration);
         Assert.AreEqual(0, result.Value.Build?.MergeInputs.Count);
         Assert.AreEqual(8000, result.Value.WorkshopListing.DescriptionByteLimit);

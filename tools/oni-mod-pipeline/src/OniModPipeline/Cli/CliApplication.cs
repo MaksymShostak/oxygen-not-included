@@ -6,6 +6,7 @@ using MaksymShostak.OniModPipeline.ModProfiles;
 using MaksymShostak.OniModPipeline.ModTest;
 using MaksymShostak.OniModPipeline.Processes;
 using MaksymShostak.OniModPipeline.ReleaseCandidates;
+using MaksymShostak.OniModPipeline.Readme;
 using MaksymShostak.OniModPipeline.Serialization;
 using MaksymShostak.OniModPipeline.SourceControl;
 using MaksymShostak.OniModPipeline.WorkshopListing;
@@ -29,6 +30,7 @@ internal static class CliApplication
             "Prepare tested ONI mod release candidates for manual Workshop upload.");
         rootCommand.Subcommands.Add(CreateDiagnoseCommand(services));
         rootCommand.Subcommands.Add(CreateValidateCommand(services));
+        rootCommand.Subcommands.Add(CreateSyncReadmeCommand(services));
         rootCommand.Subcommands.Add(CreateBuildCommand(services));
         rootCommand.Subcommands.Add(CreateTestCommand(services));
         rootCommand.Subcommands.Add(CreatePrepareReleaseCommand(services));
@@ -154,6 +156,58 @@ internal static class CliApplication
                 parseResult.InvocationConfiguration.Error);
         });
         return command;
+    }
+
+    private static Command CreateSyncReadmeCommand(PipelineServices services)
+    {
+        var options = new CommandOptions();
+        var check = new Option<bool>("--check") { Description = "Report README drift without writing." };
+        var package = new Option<string?>("--converter-package") { Description = "Installed steam-community-bbcode package directory; defaults to repository node_modules." };
+        AddExplicitPathValidator(package);
+        var command = new Command("sync-readme", "Synchronize generated Workshop description GFM into the configured README block.");
+        options.AddTo(command, includeEnvironment: false);
+        command.Options.Add(check);
+        command.Options.Add(package);
+        command.SetAction(async (parseResult, cancellationToken) =>
+        {
+            var result = await SyncReadmeAsync(services, options.GetModPath(parseResult), parseResult.GetValue(package), parseResult.GetValue(check), cancellationToken).ConfigureAwait(false);
+            return DiagnosticRenderer.Render(result, options.GetOutputFormat(parseResult), parseResult.InvocationConfiguration.Output, parseResult.InvocationConfiguration.Error);
+        });
+        return command;
+    }
+
+    private static async Task<OperationResult<ReadmeSynchronization>> SyncReadmeAsync(
+        PipelineServices services, string modPath, string? packageDirectory, bool check, CancellationToken cancellationToken)
+    {
+        var located = services.ProfileLocator.Locate(modPath);
+        if (!located.IsSuccess) return ConvertFailure<string, ReadmeSynchronization>(located);
+        var loaded = services.ProfileLoader.Load(located.Value!);
+        if (!loaded.IsSuccess) return ConvertFailure<ModProfile, ReadmeSynchronization>(loaded);
+        var profile = loaded.Value!;
+        var metadata = services.MetadataReader.Read(profile);
+        if (!metadata.IsSuccess) return ConvertFailure<OniMetadata, ReadmeSynchronization>(metadata);
+        var valid = services.ProfileValidator.Validate(profile, metadata.Value!);
+        if (!valid.IsSuccess) return ConvertFailure<ModProfile, ReadmeSynchronization>(valid);
+        if (profile.Readme is null)
+            return new OperationResult<ReadmeSynchronization>(null, [DiagnosticCatalog.ReadmeSynchronizationFailed("The profile has no [readme] repository-path declaration.")], PipelineExitCode.InvalidInput);
+        var provenance = await services.GitRepositoryInspector.InspectAsync(profile.ModRoot, [profile.ManifestPath], cancellationToken).ConfigureAwait(false);
+        if (!provenance.IsSuccess) return ConvertFailure<GitProvenance, ReadmeSynchronization>(provenance);
+        var listing = await services.WorkshopListingValidator.ValidateAsync(profile, cancellationToken).ConfigureAwait(false);
+        if (!listing.IsSuccess) return ConvertFailure<WorkshopListingValidation, ReadmeSynchronization>(listing);
+        try
+        {
+            var root = provenance.Value!.WorktreeRoot;
+            var report = await new ReadmeSynchronizer(new InstalledBbcodeConverter(services.ProcessRunner)).SynchronizeAsync(
+                root, profile.Readme, listing.Value!.Description,
+                packageDirectory is null ? Path.Combine(root, "node_modules", "steam-community-bbcode") : Path.GetFullPath(packageDirectory), check, cancellationToken).ConfigureAwait(false);
+            return check && report.HasDrift
+                ? new OperationResult<ReadmeSynchronization>(report, [DiagnosticCatalog.ReadmeSynchronizationFailed("The configured README description is stale; run sync-readme before committing release inputs.")], PipelineExitCode.ReleaseNotReady)
+                : Success(report);
+        }
+        catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException or System.ComponentModel.Win32Exception or ArgumentException)
+        {
+            return new OperationResult<ReadmeSynchronization>(null, [DiagnosticCatalog.ReadmeSynchronizationFailed(exception.Message)], PipelineExitCode.InvalidInput);
+        }
     }
 
     private static Command CreateBuildCommand(PipelineServices services)
@@ -511,6 +565,13 @@ internal static class CliApplication
                 [DiagnosticCatalog.DirtyReleaseInput(
                     $"Dirty contributing paths: {dirtyPaths}.")],
                 PipelineExitCode.ReleaseNotReady);
+        }
+
+        if (forRelease && context.Profile.Readme is not null)
+        {
+            var readme = await new ReadmeReleaseValidator(new ReadmeSynchronizer(new InstalledBbcodeConverter(services.ProcessRunner)))
+                .ValidateAsync(context.Profile, provenance!.WorktreeRoot, cancellationToken).ConfigureAwait(false);
+            if (!readme.IsSuccess) return ConvertFailure<ReadmeSynchronization, ValidationReport>(readme);
         }
 
         return Success(new ValidationReport(

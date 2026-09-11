@@ -10,6 +10,21 @@ public sealed class ModProfileValidatorTests
     private readonly ModProfileValidator profileValidator = new();
 
     [TestMethod]
+    [DataRow("")]
+    [DataRow("../README.md")]
+    [DataRow("/README.md")]
+    [DataRow("C:\\README.md")]
+    [DataRow("docs//README.md")]
+    public void Validate_WithUnsafeReadmePath_RejectsProfile(string path)
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var profile = CreateValidProfile(temporaryDirectory) with { Readme = new ReadmeProfile(path) };
+        var result = profileValidator.Validate(profile, ValidMetadata);
+        Assert.AreEqual(PipelineExitCode.InvalidInput, result.ExitCode);
+        Assert.IsTrue(result.Diagnostics.Any(diagnostic => diagnostic.Evidence.Contains("readme.repository-path", StringComparison.Ordinal)));
+    }
+
+    [TestMethod]
     public void Validate_WhenProfileIsPortableAndComplete_ReturnsSuccess()
     {
         using var temporaryDirectory = new TemporaryDirectory();
