@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 from _commands import SetupError
 from _sdlc_state import validate_document
+from _sdlc_baseline import is_canonical_plan_path, require_plan_text, require_acceptance_reference
 FIELDS = {'issue': '^Change issue:[ \\t]*(#[1-9][0-9]*|none)[ \\t]*$', 'baseline': '^Accepted baseline:[ \\t]*(\\S+)[ \\t]*$', 'risk': '^Risk class:[ \\t]*(R[0-3])[ \\t]*$', 'acceptance': '^Acceptance IDs implemented:[ \\t]*([^\\r\\n]*)$', 'baseline_only': '^Baseline-only:[ \\t]*(yes|no)[ \\t]*$'}
 FIELDS.update({
     'new_functionality': r'^New functionality:[ \t]*(yes|no)[ \t]*$',
@@ -31,9 +32,15 @@ def parse_pull_request_fields(body: str) -> dict[str, str]:
         if len(matches) != 1:
             raise SetupError(f'Expected exactly one valid PR field: {key}.')
         values[key] = matches[0].group(1).strip()
+    if is_canonical_plan_path(values['baseline']):
+        matches = list(re.finditer(r'^Baseline acceptance:[ \t]*([^\r\n]+)$', body,
+                                  flags=re.MULTILINE | re.IGNORECASE))
+        if len(matches) != 1:
+            raise SetupError('Expected exactly one Baseline acceptance reference for the committed plan.')
+        values['baseline_acceptance'] = matches[0].group(1).strip()
     return values
 
-def validate_pull_request_linkage(repo_root: Path, fields: dict[str, str], repository: str, issue: dict | None, paths: list[str], baseline: dict | None, prior_baseline: dict | None, any_existing_baseline_changed: bool=False) -> list[str]:
+def validate_pull_request_linkage(repo_root: Path, fields: dict[str, str], repository: str, issue: dict | None, paths: list[str], baseline: dict | str | None, prior_baseline: dict | str | None, any_existing_baseline_changed: bool=False) -> list[str]:
     """Check metadata and baseline integrity. Human acceptance, semantic naming and program correctness remain separate reviews."""
     errors = []
     if fields['new_functionality'].lower() == 'yes' and fields['software_selection'].strip().lower() in {'', 'none', 'n/a', '-', 'pending'}:
@@ -42,7 +49,8 @@ def validate_pull_request_linkage(repo_root: Path, fields: dict[str, str], repos
     baseline_only = fields['baseline_only'].lower() == 'yes'
     issue_number = int(fields['issue'][1:]) if fields['issue'].startswith('#') else None
     required = risk in {'R2', 'R3'}
-    if required and issue is None:
+    plan_baseline = is_canonical_plan_path(fields['baseline'])
+    if required and issue is None and not plan_baseline:
         errors.append(f'{risk} requires an accepted Issue/baseline.')
     if issue_number is not None and issue is None:
         errors.append('Referenced Issue could not be read.')
@@ -60,7 +68,13 @@ def validate_pull_request_linkage(repo_root: Path, fields: dict[str, str], repos
             errors.append('Elevated-risk implementation requires accepted/implementing/verified state.')
     if any_existing_baseline_changed:
         errors.append('Previously recorded baselines are immutable; use a new version.')
-    if baseline is not None:
+    if plan_baseline:
+        try:
+            require_plan_text(baseline)
+            require_acceptance_reference(fields.get('baseline_acceptance', ''))
+        except SetupError as exc:
+            errors.append(str(exc))
+    elif baseline is not None:
         try:
             validate_document(repo_root, 'accepted-baseline.schema.json', baseline)
         except SetupError as exc:
@@ -91,15 +105,30 @@ def validate_pull_request_linkage(repo_root: Path, fields: dict[str, str], repos
     elif required:
         if baseline is None or prior_baseline != baseline:
             errors.append('R2/R3 baseline must already exist unchanged in the base revision.')
-        if any((p.startswith('docs/sdlc/baselines/') for p in paths)):
+        if any((p.startswith('docs/sdlc/baselines/') or p == fields['baseline'] for p in paths)):
             errors.append('R2/R3 implementation cannot modify baselines in the same PR.')
-        ids = re.findall('\\bAC-\\d{3,}\\b', fields['acceptance'])
-        if not ids:
-            errors.append('R2/R3 requires acceptance IDs.')
-        elif baseline is not None:
-            for criterion in ids:
-                if criterion not in baseline['issue']['body']:
-                    errors.append(f'{criterion} absent from baseline.')
+        if plan_baseline:
+            # The existing plan needs no invented AC numbering or rewritten copy.
+            # JSON identifies exact source lines; semantic relevance stays a review duty.
+            try:
+                references = json.loads(fields['acceptance'])
+                if (not isinstance(references, list) or not references
+                        or any(not isinstance(item, str) or not item.strip() for item in references)
+                        or len(set(references)) != len(references)):
+                    raise ValueError('Expected distinct nonempty source-line identifiers.')
+                source_lines = baseline.splitlines() if isinstance(baseline, str) else []
+                if any(source_lines.count(item) != 1 for item in references):
+                    raise ValueError('Each acceptance reference must identify exactly one line in the prior plan.')
+            except (ValueError, TypeError) as exc:
+                errors.append(f'Invalid plan acceptance references: {exc}')
+        else:
+            ids = re.findall('\\bAC-\\d{3,}\\b', fields['acceptance'])
+            if not ids:
+                errors.append('R2/R3 requires acceptance IDs.')
+            elif baseline is not None:
+                for criterion in ids:
+                    if criterion not in baseline['issue']['body']:
+                        errors.append(f'{criterion} absent from baseline.')
     return errors
 
 def gh_api(path: str) -> object:
@@ -109,15 +138,16 @@ def gh_api(path: str) -> object:
     result = subprocess.run(['gh', 'api', path], check=True, text=True, stdout=subprocess.PIPE)
     return json.loads(result.stdout)
 
-def fetch_baseline_at_revision(repository: str, path: str, ref: str) -> dict:
+def fetch_baseline_at_revision(repository: str, path: str, ref: str) -> dict | str:
     """Read a contained baseline blob at a specific revision without executing candidate code."""
-    if not BASELINE_PATH.fullmatch(path):
+    if not BASELINE_PATH.fullmatch(path) and not is_canonical_plan_path(path):
         raise SetupError('Invalid baseline path.')
     from urllib.parse import quote
     value = gh_api(f"repos/{repository}/contents/{quote(path, safe='/')}?ref={quote(ref, safe='')}")
     if not isinstance(value, dict) or value.get('type') != 'file' or value.get('encoding') != 'base64':
         raise SetupError('Expected a regular base64-encoded GitHub content file.')
-    return json.loads(base64.b64decode(value['content']).decode('utf-8'))
+    content = base64.b64decode(value['content']).decode('utf-8')
+    return require_plan_text(content) if is_canonical_plan_path(path) else json.loads(content)
 
 def main() -> int:
     """Validate a complete changed-file listing and detect movement during reads. This is not an atomic merge-time transaction."""
