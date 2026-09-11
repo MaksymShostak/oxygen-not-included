@@ -20,10 +20,9 @@ Universal Ontology now contains the unrelated, user-owned untracked file docs/sp
 
 ## Accepted sequence and authority
 
-The user requested two stages:
+The user requested the following SDLC adoption:
 
-1. Embed the working Universal Ontology SDLC into ONI, with adjustments, in this worktree; verify and merge it into main.
-2. Create a separate worktree from the newly merged main and start the Steam Community BBCode implementation. Keep its AGPL-3.0-only module inside an explicit subpackage/licensing boundary.
+Embed the working Universal Ontology SDLC into ONI, with adjustments, in this worktree; verify and merge it into main.
 
 The user explicitly prioritised a consolidated, proportionate bootstrap: land the already-working, non-conflicting SDLC components together, then resolve real ONI edge cases. Do not repeat the prolonged Universal Ontology adoption, invent a distribution framework, or run a synthetic adoption pilot.
 
@@ -42,10 +41,10 @@ The user requested switching conversations so this work proceeds in an ONI-roote
 
 - ONI already owns a .NET 10 toolchain and ONI Mod Pipeline. global.json selects SDK 10.0.400, latestPatch, no prereleases, Microsoft.Testing.Platform.
 - The pipeline is tools/oni-mod-pipeline/OniModPipeline.slnx. Its tests are tools/oni-mod-pipeline/tests/OniModPipeline.Tests. Use existing commands and contracts; read the getting-started and development guides before executing lifecycle commands.
-- The root has no package.json, .venv, .codex or .agents directory at the starting commit. The new converter will require Node tooling; keep the mod pipeline and its package identities intact.
+- The root has no package.json, .venv, .codex or .agents directory at the starting commit. Keep the mod pipeline and its package identities intact.
 - ONI has existing Issue Forms and a lower-case .github/pull_request_template.md. Merge conventions and keep one discoverable PR template. No tracked Actions workflows were found at discovery.
-- .gitignore currently ignores packages/ for NuGet. Do not silently place the future converter there without adjusting that rule. The converter location is not yet fixed.
-- Root LICENSE is MIT with an ONI/Klei notice. Preserve it. The converter plan explicitly specifies AGPL-3.0-only for the new module.
+- .gitignore currently ignores packages/ for NuGet.
+- Root LICENSE is MIT with an ONI/Klei notice. Preserve it.
 - No custom core.hooksPath or active non-sample .git/hooks files were found before worktree creation. Recheck before changing shared Git configuration: linked worktrees share repository configuration by default.
 - Universal Ontology scripts/sdlc.py uses _repository.derive_repo_from_script(__file__). Its scripts/runRepositoryPython.js selects its own repository root and .venv. Calling those source scripts by absolute path would operate on Universal Ontology, not ONI. Copy/adapt the needed controls into the consuming repository.
 - scripts/set_up_sdlc.py and scripts/set_up_agent_skills.py reuse the proven configuration transaction utilities inside scripts/set_up_mcp_servers.py. Resolve this real dependency deliberately; do not accidentally install or configure ontology/AWS/MCP services. Avoid a speculative rewrite merely to remove an internal import.
@@ -75,7 +74,7 @@ The reference SDLC PR linkage workflow uses pull_request_target with read-only p
 
 Reuse existing passing preservation tests for imported controls; do not manufacture RED for already-working code. Use test-first checks for changed executable behavior. Keep source hashes and record ONI-specific adaptations.
 
-Use affected scopes: SDLC edits run control/setup tests; converter-only edits run converter checks; mod/pipeline edits run the relevant existing .NET/pipeline checks. Broad integration changes can widen coverage. Do not run every ontology, every gameplay scenario or an expensive security scan merely because the source SDLC had those commands.
+Use affected scopes: SDLC edits run control/setup tests; mod/pipeline edits run the relevant existing .NET/pipeline checks. Broad integration changes can widen coverage. Do not run every ontology, every gameplay scenario or an expensive security scan merely because the source SDLC had those commands.
 
 Native Codex Security remains the security workflow. The installed 0.1.23 plugin's Windows scan-directory artifact access defect has a qualified, narrow procedure in docs/sdlc/codex-security.md; use its bounded review/troubleshooting budgets, native inventory checks and explicit host-artifact authority. Do not repeat old diagnostic scans or call old Universal Ontology evidence an ONI pass.
 
@@ -84,5 +83,3 @@ DCG 0.14.1 and the custom hard-reset pack are already installed on this host. Us
 ## Next action
 
 Proceed with the consolidated bootstrap under the user's pre-approvals. Do not stop for another generic configuration manifest approval. Draft the concrete adaptation, implement it in this worktree, run appropriate existing/control/integration checks, resolve actual failures, and deliver through a reviewed signed commit/PR/merge. Ask only for a genuinely missing authority or decision.
-
-Keep the converter implementation separate until the bootstrap has merged. Its committed plan is docs/plans/2026-09-08-steam-community-bbcode-implementation-plan-v2.md (SHA256 d639468a9e1a11b79139371a659b28b6c09a9f9b76128f2c13ac2da7b65e6ac4 at discovery). Reuse its existing research and regression corpus; substantively refresh rather than repeat it. The planned public API triggers the current R2 baseline requirement: make the accepted plan/baseline concrete before implementation without duplicating it into unnecessary documents.
