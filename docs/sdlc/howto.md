@@ -38,8 +38,8 @@ Never substitute a source repository's hook acceptance for this worktree's evide
 ## Start and verify actual work
 
 R0/R1 can use an accepted task/PR brief. Ordinary R2/R3 work needs a previously
-accepted baseline. A public converter API therefore requires its accepted baseline
-before implementation. Reuse the committed converter plan rather than duplicate it.
+accepted baseline. Reuse the previously committed accepted baseline rather than
+duplicating it for implementation.
 
 ```text
 npm run sdlc -- --help
