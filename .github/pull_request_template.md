@@ -7,6 +7,10 @@ Baseline-only: no
 New functionality: select yes/no
 Software selection: none
 
+<!-- For an accepted committed plan, add exactly one Baseline acceptance: field
+with the owner decision reference. Acceptance IDs implemented is a JSON array of
+distinct exact lines from that unchanged prior plan. Otherwise omit this field. -->
+
 ## Why
 
 Describe the accepted task or Issue, the player/contributor problem, intended
@@ -24,6 +28,10 @@ Summarize the focused implementation.
   were exercised, or the exact missing evidence is recorded below.
 
 Manual scenarios and evidence:
+
+State the required final checks, representative consumer outcome and material
+rerun triggers in this brief. Use focused checks during editing and one complete
+assurance pass on the frozen change; retain failures with their original scope.
 
 ## Principles, review and security
 
