@@ -2,6 +2,11 @@ namespace MaksymShostak.OniModPipeline.Diagnostics;
 
 internal static class DiagnosticCatalog
 {
+    internal static Diagnostic ReadmeSynchronizationFailed(string evidence) => new(
+        DiagnosticIds.ReadmeSynchronizationFailed, DiagnosticSeverity.Error,
+        "README synchronization could not be accepted.", evidence,
+        "Check the installed converter, profile path, marker pair and conversion diagnostics; preserve owner edits and rerun sync-readme.");
+
     internal static Diagnostic UnsupportedSchemaVersion(
         int schemaVersion,
         string profilePath)
@@ -529,6 +534,7 @@ internal static class DiagnosticIds
     internal const string InvalidWorkshopListing = "ONIP1006";
     internal const string ProfileNotFoundOrAmbiguous = "ONIP1007";
     internal const string DeclaredInputMissing = "ONIP1008";
+    internal const string ReadmeSynchronizationFailed = "ONIP1009";
     internal const string MissingDotnetSdk = "ONIP2001";
     internal const string AmbiguousGameInstallation = "ONIP2002";
     internal const string MissingGameAssembly = "ONIP2003";

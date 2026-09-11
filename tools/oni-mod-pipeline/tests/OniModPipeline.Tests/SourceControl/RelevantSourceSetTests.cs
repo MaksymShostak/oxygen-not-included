@@ -8,6 +8,17 @@ namespace MaksymShostak.OniModPipeline.Tests.SourceControl;
 public sealed class RelevantSourceSetTests
 {
     [TestMethod]
+    public void Create_WithReadme_IncludesDocumentationAndNpmDeclarations()
+    {
+        using var directory = new TemporaryDirectory();
+        var profile = CreateProfileFixture(directory) with { Readme = new ReadmeProfile("README.md") };
+        foreach (var path in new[] { "README.md", "package.json", "package-lock.json" }) WriteFile(directory.GetPath(path));
+        var result = RelevantSourceSet.Create(profile, directory.Path, ["README.md", "package.json", "package-lock.json"], null);
+        Assert.IsTrue(result.IsSuccess);
+        foreach (var path in new[] { "README.md", "package.json", "package-lock.json" })
+            CollectionAssert.Contains(result.Value!.WorktreeRelativePaths.ToArray(), path);
+    }
+    [TestMethod]
     public void Create_WhenProfileDeclaresBuildTestsAndAssets_IncludesInputsButExcludesBuildDirectories()
     {
         using var temporaryDirectory = new TemporaryDirectory();

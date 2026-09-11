@@ -46,6 +46,12 @@ internal sealed class ModProfileValidator
         ValidateEvidenceProfiles(profile, diagnostics);
         ValidateBuildProfile(profile, diagnostics);
         ValidateLocalInstall(profile.LocalInstall, diagnostics);
+        if (profile.Readme is not null &&
+            !TryNormalizeRelativePath(profile.Readme.RepositoryPath, out _, out var readmePathError))
+        {
+            diagnostics.Add(DiagnosticCatalog.InvalidProfileSemantics(
+                "readme.repository-path", readmePathError));
+        }
 
         return diagnostics.Count == 0
             ? new OperationResult<ModProfile>(profile, [], PipelineExitCode.Success)

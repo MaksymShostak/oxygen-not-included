@@ -8,6 +8,40 @@ namespace MaksymShostak.OniModPipeline.Tests.Cli;
 public sealed class ValidateCommandTests
 {
     [TestMethod]
+    public async Task Validate_ForReleaseRejectsStaleReadmeWithoutWriting()
+    {
+        using var fixture = new CliCommandFixture(sourceIsDirty: false);
+        File.AppendAllText(Path.Combine(fixture.ModRoot, "oni-mod-pipeline.toml"), "\n[readme]\nrepository-path = \"README.md\"\n");
+        File.WriteAllText(Path.Combine(fixture.WorktreeRoot, "README.md"), "<!-- oni-mod-pipeline:workshop-description:start -->\nold\n<!-- oni-mod-pipeline:workshop-description:end -->\n");
+        File.WriteAllText(Path.Combine(fixture.WorktreeRoot, "package.json"), "{}");
+        File.WriteAllText(Path.Combine(fixture.WorktreeRoot, "package-lock.json"), "{}");
+        var package = Path.Combine(fixture.WorktreeRoot, "node_modules", "steam-community-bbcode");
+        Directory.CreateDirectory(package);
+        File.WriteAllText(Path.Combine(package, "package.json"), "{\"name\":\"steam-community-bbcode\",\"bin\":\"cli.js\"}");
+        File.WriteAllText(Path.Combine(package, "cli.js"), "// controlled process fixture");
+        var runner = new ReadmeValidationRunner(fixture.ProcessRunner);
+        var services = fixture.Services with { ProcessRunner = runner, GitRepositoryInspector = new GitRepositoryInspector(runner) };
+        var before = SourceSnapshot.CaptureTree(fixture.RootPath);
+        var invocation = await DiagnoseCommandTests.InvokeAsync(CliApplication.CreateRootCommand(services), fixture.CreateArguments("validate", "--for-release"));
+        Assert.AreEqual(6, invocation.ExitCode);
+        StringAssert.Contains(invocation.StandardError, "stale");
+        Assert.AreEqual(0, before.ChangedPathsComparedWith(SourceSnapshot.CaptureTree(fixture.RootPath)).Count);
+        Assert.IsFalse(Directory.Exists(fixture.ArtifactsDirectory));
+    }
+
+    private sealed class ReadmeValidationRunner(MaksymShostak.OniModPipeline.Processes.IExternalProcessRunner inner) : MaksymShostak.OniModPipeline.Processes.IExternalProcessRunner
+    {
+        public async Task<MaksymShostak.OniModPipeline.Processes.ProcessResult> RunAsync(MaksymShostak.OniModPipeline.Processes.ProcessRequest request, CancellationToken cancellationToken)
+        {
+            if (request.FileName == "node")
+                return new(0, "{\"value\":\"# Updated\\n\",\"diagnostics\":[]}", "");
+            var result = await inner.RunAsync(request, cancellationToken);
+            return request.Arguments.SequenceEqual(new[] { "ls-files", "-z" })
+                ? result with { StandardOutput = result.StandardOutput + "README.md\0package.json\0package-lock.json\0" }
+                : result;
+        }
+    }
+    [TestMethod]
     public async Task Validate_WhenDevelopmentInputIsDirty_SucceedsWithoutForRelease()
     {
         using var fixture = new CliCommandFixture(sourceIsDirty: true);

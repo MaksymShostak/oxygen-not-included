@@ -55,6 +55,12 @@ internal sealed record RelevantSourceSet(
             builder.AddDeclaredFile(profile.ModRoot, profile.WorkshopListing.Description);
             builder.AddDeclaredFile(profile.ModRoot, profile.WorkshopListing.ChangeNotes);
             builder.AddDeclaredFile(profile.ModRoot, profile.WorkshopListing.Preview);
+            if (profile.Readme is not null)
+            {
+                builder.AddDeclaredFile(worktreeRoot, profile.Readme.RepositoryPath);
+                builder.AddDeclaredFile(worktreeRoot, "package.json");
+                builder.AddDeclaredFile(worktreeRoot, "package-lock.json");
+            }
 
             foreach (var testProject in profile.TestProjects)
             {

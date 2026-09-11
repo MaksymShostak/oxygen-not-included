@@ -11,53 +11,87 @@
 ![The Aquatic Planet Pack](docs/badges/Dlc5Yes.png)
 
 
-Tired of Nisbet carrying a 95°C chunk of hot Igneous Rock straight from a volcano and storing it in a Storage Bin right next to your pristine Sleet Wheat farm, melting all the ice? Are your Duplicants cooking your base from the inside out because they keep bringing boiling dirt to fertilize your crops? 
+<!-- oni-mod-pipeline:workshop-description:start -->
+Tired of Nisbet hauling a 95 °C chunk of Igneous Rock into the Storage Bin beside your carefully chilled Sleet Wheat? Have your Duplicants discovered that "Raw Minerals" and "portable space heater" are apparently the same storage category?
 
-**Delivery Temperature Limit (Supercooled)** is here to put Duplicant thermal ignorance in check. It allows you to specify a safe temperature range for materials delivered to storage and other buildings, keeping your hot zones hot and your cold zones frost-bite fresh.
+**Delivery Temperature Limit (Supercooled)** lets you set a safe temperature range for materials delivered to storage, buildings, and - optionally - construction.
 
----
+Hot rock stays with the hot rock. Cold supplies stay cold. Duplicants remain free to make entirely different mistakes.
 
-## 🚀 Key Features
+***
 
-*   **Thermal Filtering:** Set minimum and maximum temperature limits on storage lockers, storage tiles, refrigerators, and other delivery targets.
-*   **Intelligent Routing:** Duplicants will ignore containers if the material's temperature lies outside your set limits. No more melting ice in storage!
-*   **Construction Limits (Optional):** Enable material temperature limits for blueprints to keep hot materials away from insulated structures or cryogenic chambers.
-*   **Clean UI Integration:** Tap into the standard building settings to set your ranges. 
-    *   *UI Hint:* Type a value in one field, and the min/max auto-populates. Hit the `Del` key to wipe the fields and disable the limit entirely.
+# Compatibility & Localisation
 
----
+![](https://raw.githubusercontent.com/MaksymShostak/oxygen-not-included/main/docs/badges/VanillaYes.png) ![](https://raw.githubusercontent.com/MaksymShostak/oxygen-not-included/main/docs/badges/Dlc1Yes.png) ![](https://raw.githubusercontent.com/MaksymShostak/oxygen-not-included/main/docs/badges/Dlc2Yes.png)
+![](https://raw.githubusercontent.com/MaksymShostak/oxygen-not-included/main/docs/badges/Dlc3Yes.png) ![](https://raw.githubusercontent.com/MaksymShostak/oxygen-not-included/main/docs/badges/Dlc4Yes.png) ![](https://raw.githubusercontent.com/MaksymShostak/oxygen-not-included/main/docs/badges/Dlc5Yes.png)
 
-## ⚡ What's New in the "Supercooled" Version?
+**Localisation:** English + 18 translated locales, selected automatically from ONI's language setting.
+Simplified & Traditional Chinese, Czech, French, German, Greek, Hungarian, Italian, Japanese, Korean, Polish, Portuguese & Brazilian Portuguese, Spanish, Thai, Turkish, Ukrainian and Vietnamese.
 
-The backend of the original mod has been completely overhauled to run as cleanly as a Thermo Regulator in a vacuum:
+**Tested with ONI build 744825.**
 
-1.  **Late-Game Performance:** Our earlier claim of “lag spikes removed” was, we admit, researched before we unlocked the Virtual Planetarium. Asteroid-wide item scans are gone. Each eligible building keeps its allowed temperature range on file, and errands are checked against the file. Cycle 1000+ mega-bases hold up.
-2.  **Storage Tiles Check the Thermometer:** Storage Tiles now support delivery temperature limits, including aboard rockets. When a limit is set, Duplicants will no longer tuck volcano-fresh cargo under the floor and stamp it “properly stored.” Many thanks to [ShyLion](https://steamcommunity.com/id/shylion) for suggesting the fix before the next mission became an orbital sauna.
-3.  **Fresh Start on Every Load:** Returning to the main menu sweeps out all background tracking. A bin in your shiny new colony will never be haunted by the temperature rules of one you abandoned.
-4.  **Smooth Controls & UI:** Fixed the camera lockup when clicking temperature boxes, and made typing or wiping values instantaneous—no more frozen input fields or locked WASD panning.
-5.  **Rock-Solid Startup & Stability:** Pre-checks game hooks on startup and during colony resource refreshes, preventing crashes to desktop and ensuring safe loading every cycle.
-6.  **Custom Mod Storage Support:** Storage containers, hoppers, and lockers introduced by other mods are automatically detected and supported out of the box.
-7.  **Fast Track Compatibility:** Seamlessly coordinates with Peter Han's [*Fast Track*](https://github.com/peterhaneve/ONIMods/tree/main/FastTrack) if installed, with zero overhead when running on the standard game engine.
-8.  **Fully Tested on Current Game Builds:** Tested and verified against the latest game updates (Build 744825+).
+***
 
----
+# What It Does
 
-## 🎓 Homage & Credits
+* **Temperature-Limited Storage:** Give supported delivery targets a minimum temperature, a maximum temperature, or both. Storage Bins, Storage Tiles, Refrigerators, and compatible storage buildings can all check the thermometer before accepting a delivery.
+* **Temperature-Aware Errands:** Materials outside a target's allowed range are excluded from its delivery errands. "It's the nearest rock" is no longer a valid defence when the nearest rock is trying to cook the Sleet Wheat.
+* **Optional Construction Limits:** Apply the same rules to construction materials so Duplicants do not carry furnace-hot building material into the cold room you have spent forty cycles cooling.
+* **Thermo Sensor-Style Controls:** Set independent **At least** and **Below** thresholds directly from the building side-screen, with °C / °F / K labels, copy-settings support, a one-click **Clear** button, and a live plain-language summary of the active range.
+* **Keyboard-Friendly UI:** Tab between fields, Enter to commit and Escape to cancel without sacrificing WASD panning or Space to pause. The camera controls have been formally released from temperature-box custody.
 
-This mod is built upon the incredible work of the ONI modding community, standing on the shoulders of giants:
-*   **Original Concept & Code:** Created as [Delivery Temperature Limit](https://steamcommunity.com/sharedfiles/filedetails/?id=2963257205) by the talented [llunak](https://steamcommunity.com/profiles/76561198116805945), who built the initial thermal delivery system.
-*   **Intermediate Maintenance:** Patched and maintained as [Delivery Temperature Limit [Fixed]](https://steamcommunity.com/sharedfiles/filedetails/?id=3479021027) by [[sd] QooLiO](https://steamcommunity.com/profiles/76561198006853888) to resolve compatibility issues and keep the mod working.
-*   **Supercooled Edition:** Maintained, refactored, and optimized by [Maksym Shostak](https://github.com/MaksymShostak).
+***
 
----
+# What Supercooled Changes
 
-## 🛠️ Mod Settings
+**Supercooled** is a maintained and substantially refactored continuation of the original Delivery Temperature Limit mod. The basic idea is unchanged; quite a lot underneath it is not.
 
-You can adjust mod settings directly in the game Options menu:
-*   **Include Temperature in "Lacks Resources" Warning:** Toggle whether the yellow "Lacks Resources" warning takes your temperature limits into account (turn off for maximum late-game performance).
-*   **Apply Limits to Construction Materials:** Toggle whether temperature limits also apply to materials delivered to build new structures (prevents using hot materials in cold-area construction).
+* **Direct Temperature Checks:** The old colony-wide inventory scanning path has been removed. Eligible targets keep their configured temperature range available for errand checks directly, reducing work in large late-game colonies. The mod no longer conducts an asteroid census every time Nisbet picks up a rock.
+* **Storage Tile Support:** Storage Tiles support the same temperature limits, including inside rockets. "Under the floor" is not a thermal exemption. Thanks to [ShyLion](https://steamcommunity.com/id/shylion) for helping prevent the next unexpected orbital sauna.
+* **Clean Colony State Between Loads:** Transient runtime tracking is cleared between colony sessions while saved temperature limits and mod settings remain intact. No haunted Storage Bins; no accidental exorcism of your actual settings.
+* **Rebuilt Temperature UI:** The side-screen now uses independent **At least** and **Below** values, external unit labels, live range summaries, warning feedback for inverted limits, dedicated clearing, and reliable keyboard handling.
+* **Safer Startup & Storage Discovery:** Defensive checks protect the mod's game hooks during startup and colony refreshes, while compatible storage targets introduced by other mods can be discovered dynamically.
+* **Fast Track Compatibility:** Integrates with Peter Han's [_Fast Track_](https://github.com/peterhaneve/ONIMods/tree/main/FastTrack) when it is present and uses the normal game path when it is not.
+* **Built-In Localisation:** English plus 18 translated locales are bundled with the mod and follow ONI's selected language automatically. Meep's interpretive-dance translation programme has been retired.
 
----
+***
+
+# Mod Options
+
+The in-game Mod Options dialog provides:
+
+* **Temperature-Aware "Lacks Resources":** Choose whether the warning also considers your temperature limits. Disable it if you prefer the lightest possible late-game warning checks.
+* **Construction Material Limits:** Choose whether temperature restrictions also apply to materials delivered to blueprints.
+* **Temperature Previews:** Preview values in Celsius, Fahrenheit, or Kelvin with automatic conversion, and reset the mod's options to their defaults in one click.
+
+***
+
+# Support & Diagnostics
+
+If something goes thermally sideways, open Mod Options and choose **Create Support Report**.
+
+Reports are generated locally and nothing is uploaded automatically. The standard report does not read _Player.log_; the clearly labelled **Extended Support Report** can include a bounded, best-effort-redacted log excerpt for harder failures.
+
+Review the report on your computer, then attach it to the GitHub bug-report form.
+
+Duplicants cannot currently be included in the diagnostic bundle, despite repeated requests from colony management.
+
+***
+
+# Credits
+
+This mod continues the incredible work begun by the ONI modding community:
+
+* **Original Concept & Code**: llunak - [_Delivery Temperature Limit_](https://steamcommunity.com/sharedfiles/filedetails/?id=2963257205)
+* **Intermediate Maintenance**: \[sd] QooLiO - [_Delivery Temperature Limit \[Fixed\]_](https://steamcommunity.com/sharedfiles/filedetails/?id=3479021027)
+
+***
+
+Developed by [Maksym Shostak](https://orcid.org/0000-0001-8017-8797).
+Free Dive into the source code on [GitHub](https://github.com/MaksymShostak/oxygen-not-included).
+
+_Delivery Temperature Limit (Supercooled) is a community mod and is not affiliated with, sponsored by, or endorsed by Klei Entertainment._
+<!-- oni-mod-pipeline:workshop-description:end -->
 
 ## Support and contributing
 

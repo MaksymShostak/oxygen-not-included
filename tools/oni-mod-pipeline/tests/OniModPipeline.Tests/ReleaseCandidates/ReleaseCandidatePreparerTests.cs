@@ -18,6 +18,36 @@ namespace MaksymShostak.OniModPipeline.Tests.ReleaseCandidates;
 [TestClass]
 public sealed class ReleaseCandidatePreparerTests
 {
+    [TestMethod]
+    public async Task Prepare_WithUnqualifiedReadme_StopsBeforeCreatingCandidate()
+    {
+        using var fixture = new PreparationFixture();
+        var request = fixture.Request with { Profile = fixture.Request.Profile with { Readme = new ReadmeProfile("README.md") } };
+        var result = await fixture.Preparer.PrepareAsync(request, CancellationToken.None);
+        Assert.AreEqual(PipelineExitCode.ReleaseNotReady, result.ExitCode);
+        Assert.IsFalse(Directory.Exists(fixture.Layout.CandidateDirectory));
+        Assert.IsTrue(result.Diagnostics.Any(diagnostic => diagnostic.Id == "ONIP1009"));
+    }
+
+    [TestMethod]
+    public async Task Prepare_WithStaleReadme_LeavesSourceAndCandidateUntouched()
+    {
+        using var fixture = new PreparationFixture();
+        var readme = Path.Combine(fixture.WorktreeRoot, "README.md");
+        var original = "<!-- oni-mod-pipeline:workshop-description:start -->\nold\n<!-- oni-mod-pipeline:workshop-description:end -->\n";
+        File.WriteAllText(readme, original);
+        var package = Path.Combine(fixture.WorktreeRoot, "node_modules", "steam-community-bbcode");
+        Directory.CreateDirectory(package);
+        File.WriteAllText(Path.Combine(package, "package.json"), "{\"name\":\"steam-community-bbcode\",\"bin\":\"cli.cjs\"}");
+        File.WriteAllText(Path.Combine(package, "cli.cjs"), "console.log(JSON.stringify({value: '# Updated description\\n', diagnostics: []}));");
+        var request = fixture.Request with { Profile = fixture.Request.Profile with { Readme = new ReadmeProfile("README.md") } };
+        var result = await fixture.Preparer.PrepareAsync(request, CancellationToken.None);
+        Assert.AreEqual(PipelineExitCode.ReleaseNotReady, result.ExitCode);
+        Assert.IsTrue(result.Diagnostics.Any(diagnostic => diagnostic.Evidence.Contains("stale", StringComparison.Ordinal)));
+        Assert.AreEqual(original, File.ReadAllText(readme));
+        Assert.IsFalse(Directory.Exists(fixture.Layout.CandidateDirectory));
+        Assert.AreEqual(0, fixture.Trace.Count);
+    }
     private const string RunId =
         "20260827T140302.1234567Z-0123456789abcdef";
 
@@ -490,7 +520,11 @@ internal sealed class PreparationFixture : IDisposable
             fileSystem,
             Clock,
             () => Convert.FromHexString("0123456789abcdef"),
-            CreateTransientGuid);
+            CreateTransientGuid,
+            new MaksymShostak.OniModPipeline.Readme.ReadmeReleaseValidator(
+                new MaksymShostak.OniModPipeline.Readme.ReadmeSynchronizer(
+                    new MaksymShostak.OniModPipeline.Readme.InstalledBbcodeConverter(
+                        new MaksymShostak.OniModPipeline.Processes.ExternalProcessRunner()))));
     }
 
     internal string WorktreeRoot { get; }

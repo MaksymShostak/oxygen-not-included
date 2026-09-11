@@ -17,6 +17,7 @@ For Delivery Temperature Limit, complete this checklist:
 - [ ] Confirm the title and static ID in `mod.yaml`.
 - [ ] Confirm `supportedContent`, `minimumSupportedBuild`, and `APIVersion` in `mod_info.yaml`.
 - [ ] Review the stable listing text in `STEAM_DESCRIPTION.bbcode`.
+- [ ] For profiles with `[readme]`, run `oni-mod-pipeline sync-readme --mod <mod-root>`, inspect the generated block and conversion diagnostics, then run it again with `--check` before committing.
 - [ ] Replace `STEAM_CHANGE_NOTES.bbcode` with the reviewed notes for this update.
 - [ ] Review `Preview.png`, mod types, and DLC compatibility declared by `oni-mod-pipeline.toml`.
 - [ ] Review the package allowlist and the expected runtime inventory.
