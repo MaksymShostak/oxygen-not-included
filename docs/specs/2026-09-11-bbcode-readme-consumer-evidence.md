@@ -1,8 +1,10 @@
 # Packaged README consumer evidence
 
-This is an interim local-tarball qualification, not registry adoption or release
-acceptance. The implementation is uncommitted on `feature/bbcode-readme-consumer`,
-based on `c4e681d719544eb5f2747bcc1b1cbac59bc6b959`.
+The initial record below describes local-tarball qualification before the
+implementation was committed. It was based on
+`c4e681d719544eb5f2747bcc1b1cbac59bc6b959`. The registry qualification update below
+records the subsequent published-package checks; full mod-release acceptance
+remains separate.
 
 ## Retained inputs and results
 
@@ -70,11 +72,40 @@ under `security-precheck/` in the local evidence directory.
 
 ## Remaining release gates
 
-Registry installation and repeat qualification remain pending; no provisional
-local archive dependency was added to the repository's npm manifest or lock.
+The registry qualification below completes the installed-package boundary. No
+provisional local archive dependency was added to the npm manifest or lock.
 The full affected verification remains unsuccessful because of the broader mod
 test failures. The current local result does not qualify a refreshed hosted RC,
 authorize publication, or establish Workshop/in-game acceptance.
 
 The accepted optimistic concurrency limitation is documented separately in
 [the owner decision](2026-09-11-bbcode-readme-concurrency-decision.md).
+
+## Registry qualification update — 11 September 2026
+
+The committed implementation is `2fc2ddd2645d7d6e15da800e26b74b5c26c652ef`.
+The standalone hosted release run `34577578709` passed its runtime matrix,
+mutation, SDLC, CodeQL and archive qualification on
+`521088ef851ef2e3da0220b135fed64d5e441ae2`.
+Owner-authenticated npm bootstrap published `steam-community-bbcode@1.0.0-rc.1`
+under `next`; no GitHub OIDC provenance is claimed for this first publication.
+
+- Registry and hosted archive SHA-256:
+  `3f32c0f0f944f02fc9001a3f6be72ec26e2d97f51c16e3c5f1e78ea3d29bd7e3`.
+- Registry and installed-lock integrity:
+  `sha512-um9+xQK5FuwZ+i6JW6SQZ/O/WudLDCGq1wa95JQR12KfprrrS3gmHcAypaUpiNuy7gXlnusvCy0+lnwD5b+AWQ==`.
+- Exact-coordinate installed JavaScript, CLI and declaration consumers passed,
+  together with native registry signatures and production audit.
+- The actual ONI `sync-readme --check` command passed against an isolated
+  registry installation, then again through normal repository package discovery:
+  no drift, no writes, no diagnostics, and the same description/README hashes
+  recorded above.
+- The owner approved the exact development dependency and native npm 12.0.2 lock
+  update. All 318 existing lock entries retained their versions.
+
+The destination retains `artifacts/registry-bootstrap-34577578709/`, including
+`bootstrap-registry-report.json` and `consumer-report.json`; ONI retains its
+isolated lock under `artifacts/registry-readme-consumer-34577578709/`.
+The dependency commit and hosted integration checks are separate from these
+observed registry results. The four broader mod-test failures above remain
+outstanding; this record does not assert Workshop or in-game acceptance.

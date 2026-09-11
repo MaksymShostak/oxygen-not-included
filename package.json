@@ -5,7 +5,10 @@
   "license": "MIT",
   "type": "module",
   "packageManager": "npm@12.0.2",
-  "engines": { "node": "24.20.0", "npm": "12.0.2" },
+  "engines": {
+    "node": "24.20.0",
+    "npm": "12.0.2"
+  },
   "scripts": {
     "setup:development": "node scripts/setUpDevelopmentEnvironment.js",
     "setup:sdlc": "node scripts/runRepositoryPython.js scripts/set_up_sdlc.py",
@@ -20,5 +23,9 @@
     "test:pipeline": "dotnet test --project tools/oni-mod-pipeline/tests/OniModPipeline.Tests/OniModPipeline.Tests.csproj --no-restore",
     "pipeline": "dotnet run --project tools/oni-mod-pipeline/src/OniModPipeline/OniModPipeline.csproj --no-restore --"
   },
-  "devDependencies": { "jest": "30.5.1", "yaml": "2.9.0" }
+  "devDependencies": {
+    "jest": "30.5.1",
+    "steam-community-bbcode": "1.0.0-rc.1",
+    "yaml": "2.9.0"
+  }
 }
