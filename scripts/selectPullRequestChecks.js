@@ -27,6 +27,7 @@ export const CHECK_INPUTS = {
     "requirements-sdlc.txt", "skills-lock.json", "jest.config.js",
     ".gitignore", ".github",
     "scripts/_commands.py", "scripts/_repository.py", "scripts/_sdlc_state.py",
+    "scripts/_sdlc_baseline.py", "scripts/_sdlc_resource_disposition.py",
     "scripts/bootstrap_github_sdlc.py", "scripts/probe_dcg_hook_protocol.py",
     "scripts/runRepositoryPython.js", "scripts/sdlc.py", "scripts/sdlc_stop_gate.py",
     "scripts/validate_sdlc_pr.py", "scripts/set_up_sdlc.py",
