@@ -14,10 +14,23 @@ namespace DeliveryTemperatureLimit
     {
         private static DeliveryTemperatureGameSession? currentGameSession;
         private static long lastIssuedGameSessionGeneration;
+        internal static readonly RuntimeFailureState RuntimeFailure = new RuntimeFailureState();
+
+        internal static void StopCurrentSessionPublications() =>
+            Volatile.Read(ref currentGameSession)?.StopAcceptingPublications();
+
+        internal static bool TryDisableRuntime()
+        {
+            if (!RuntimeFailure.TryRecordFailure()) return false;
+            StopCurrentSessionPublications();
+            return true;
+        }
 
         internal static DeliveryTemperatureGameSession EnsureGameSession(
             int gameInstanceId)
         {
+            if (RuntimeFailure.HasFailed)
+                throw new InvalidOperationException("Temperature enforcement is disabled until restart.");
             while (true)
             {
                 var observedSession = Volatile.Read(ref currentGameSession);
@@ -76,7 +89,7 @@ namespace DeliveryTemperatureLimit
             out DeliveryTemperatureGameSession session)
         {
             var observedSession = Volatile.Read(ref currentGameSession);
-            if (observedSession != null &&
+            if (!RuntimeFailure.HasFailed && observedSession != null &&
                 observedSession.IsAcceptingPublications)
             {
                 session = observedSession;

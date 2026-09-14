@@ -414,7 +414,9 @@ public sealed class IntentionalRuntimeContractTests
             source,
             @"public\s+static\s+LocString\s+[A-Za-z0-9_]+\s*=",
             RegexOptions.CultureInvariant).Count;
-        Assert.AreEqual(80, totalLocStrings, "Total LocString declarations must match the intentional localization surface.");
+        Assert.AreEqual(82, totalLocStrings, "Total LocString declarations include the two approved runtime failure warnings.");
+        StringAssert.Contains(source, "public static LocString GAMEPLAY_FAILURE =");
+        StringAssert.Contains(source, "public static LocString USER_INTERFACE_FAILURE =");
 
         AssertClassContainsLocStrings(source, "SIDESCREEN", IntentionalSideScreenFieldNames);
         AssertClassContainsLocStrings(source, "STATUS", IntentionalStatusFieldNames);
@@ -601,7 +603,7 @@ public sealed class IntentionalRuntimeContractTests
         AssertPublicMemberNamesAreIntentional(
             publicSurface,
             "STRINGS.DELIVERY_TEMPERATURE_LIMIT",
-            []);
+            ["GAMEPLAY_FAILURE", "USER_INTERFACE_FAILURE"]);
         AssertPublicMemberNamesAreIntentional(
             publicSurface,
             "STRINGS.DELIVERY_TEMPERATURE_LIMIT+SIDESCREEN",

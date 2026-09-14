@@ -269,7 +269,10 @@ public sealed class SupportReportingSourceBoundaryTests
         Assert.IsTrue(independentInstall < independentFailure);
         Assert.IsTrue(dependentInstall < dependentFailure);
         Assert.AreEqual(2, CountOccurrences(source, "catch (Exception exception)"));
-        Assert.AreEqual(2, CountOccurrences(source, "throw;"));
+        Assert.AreEqual(0, CountOccurrences(source, "throw;"),
+            "Mod startup failures must be contained rather than rethrown into ONI.");
+        StringAssert.Contains(source, "RuntimeFailureReporting.DisableGameplay(nameof(OnLoad), exception)");
+        StringAssert.Contains(source, "RuntimeFailureReporting.DisableGameplay(nameof(OnAllModsLoaded), exception)");
     }
 
     [TestMethod]

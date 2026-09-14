@@ -105,71 +105,102 @@ namespace DeliveryTemperatureLimit
 
         protected override void OnPrefabInit()
         {
-            base.OnPrefabInit();
-            Subscribe((int)GameHashes.CopySettings, CopySettingsHandler);
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
+            {
+                base.OnPrefabInit();
+                Subscribe((int)GameHashes.CopySettings, CopySettingsHandler);
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(OnPrefabInit), exception);
+            }
         }
 
         protected override void OnSpawn()
         {
-            base.OnSpawn();
-            DeliveryTemperatureConstraint canonicalConstraint =
-                CreateCanonicalConstraint();
-            lowLimit = canonicalConstraint.MinimumInclusiveKelvin;
-            highLimit = canonicalConstraint.MaximumExclusiveKelvin;
-
-            if (!DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
-                    out var gameSession))
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                // Runtime authority may have rejected this loaded game. The
-                // installed component remains inert and retains no global state.
-                registrationToken = null;
-                return;
-            }
+                base.OnSpawn();
+                DeliveryTemperatureConstraint canonicalConstraint =
+                    CreateCanonicalConstraint();
+                lowLimit = canonicalConstraint.MinimumInclusiveKelvin;
+                highLimit = canonicalConstraint.MaximumExclusiveKelvin;
 
-            registrationToken = gameSession.RegisterTemperatureLimit(
-                gameObject.GetInstanceID(),
-                GetInstanceID(),
-                this,
-                canonicalConstraint);
+                if (!DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
+                        out var gameSession))
+                {
+                    // Runtime authority may have rejected this loaded game. The
+                    // installed component remains inert and retains no global state.
+                    registrationToken = null;
+                    return;
+                }
+
+                registrationToken = gameSession.RegisterTemperatureLimit(
+                    gameObject.GetInstanceID(),
+                    GetInstanceID(),
+                    this,
+                    canonicalConstraint);
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(OnSpawn), exception);
+            }
         }
 
         protected override void OnCleanUp()
         {
-            GameSessionTemperatureLimitRegistrationToken? ownedRegistration =
-                registrationToken;
-            registrationToken = null;
-
-            if (ownedRegistration.HasValue &&
-                DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
-                    out var gameSession) &&
-                ownedRegistration.Value.GameSessionGeneration.Equals(
-                    gameSession.Generation))
+            try
             {
-                gameSession.RemoveTemperatureLimit(ownedRegistration.Value);
-            }
+                GameSessionTemperatureLimitRegistrationToken? ownedRegistration =
+                    registrationToken;
+                registrationToken = null;
 
-            base.OnCleanUp();
+                if (ownedRegistration.HasValue &&
+                    DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
+                        out var gameSession) &&
+                    ownedRegistration.Value.GameSessionGeneration.Equals(
+                        gameSession.Generation))
+                {
+                    gameSession.RemoveTemperatureLimit(ownedRegistration.Value);
+                }
+
+                base.OnCleanUp();
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(OnCleanUp), exception);
+            }
         }
 
         private void ApplySerializedLimits(
             int candidateLowLimit,
             int candidateHighLimit)
         {
-            DeliveryTemperatureConstraint canonicalConstraint =
-                DeliveryTemperatureConstraint.FromSerializedLimits(
-                    candidateLowLimit,
-                    candidateHighLimit);
-            if (lowLimit == canonicalConstraint.MinimumInclusiveKelvin &&
-                highLimit == canonicalConstraint.MaximumExclusiveKelvin)
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                // Idempotent UI/copy callbacks must not advance registry,
-                // fetch-topology, or inventory collection generations.
-                return;
-            }
+                DeliveryTemperatureConstraint canonicalConstraint =
+                    DeliveryTemperatureConstraint.FromSerializedLimits(
+                        candidateLowLimit,
+                        candidateHighLimit);
+                if (lowLimit == canonicalConstraint.MinimumInclusiveKelvin &&
+                    highLimit == canonicalConstraint.MaximumExclusiveKelvin)
+                {
+                    // Idempotent UI/copy callbacks must not advance registry,
+                    // fetch-topology, or inventory collection generations.
+                    return;
+                }
 
-            lowLimit = canonicalConstraint.MinimumInclusiveKelvin;
-            highLimit = canonicalConstraint.MaximumExclusiveKelvin;
-            PublishConstraintReplacement(canonicalConstraint);
+                lowLimit = canonicalConstraint.MinimumInclusiveKelvin;
+                highLimit = canonicalConstraint.MaximumExclusiveKelvin;
+                PublishConstraintReplacement(canonicalConstraint);
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(ApplySerializedLimits), exception);
+            }
         }
 
         private DeliveryTemperatureConstraint CreateCanonicalConstraint() =>

@@ -160,44 +160,53 @@ namespace DeliveryTemperatureLimit
             FetchChore fetchChore,
             Pickupable pickupable)
         {
-            Storage? destination = ReferenceEquals(fetchChore, null)
-                ? null
-                : fetchChore.destination;
-            if (!DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
-                    out DeliveryTemperatureGameSession gameSession) ||
-                ReferenceEquals(destination, null))
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return true;
+            try
             {
+                Storage? destination = ReferenceEquals(fetchChore, null)
+                    ? null
+                    : fetchChore.destination;
+                if (!DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
+                        out DeliveryTemperatureGameSession gameSession) ||
+                    ReferenceEquals(destination, null))
+                {
+                    return true;
+                }
+
+                int destinationGameObjectInstanceId =
+                    destination.gameObject.GetInstanceID();
+                if (!gameSession.TemperatureLimitComponents.TryGetConstraint(
+                        destinationGameObjectInstanceId,
+                        out var constraint,
+                        out _) ||
+                    !constraint.IsEnabled)
+                {
+                    return true;
+                }
+
+                if (ReferenceEquals(pickupable, null))
+                {
+                    return true;
+                }
+
+                PrimaryElement primaryElement = pickupable.PrimaryElement;
+                if (ReferenceEquals(primaryElement, null))
+                {
+                    // Preserve the characterized permissive behavior for unusual
+                    // pickup objects that do not own a PrimaryElement.
+                    return true;
+                }
+
+                // Allows owns canonical Kelvin normalization and both boundaries.
+                // Read the live direct-delivery temperature exactly once.
+                float temperatureKelvin = primaryElement.Temperature;
+                return constraint.Allows(temperatureKelvin);
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(IsPickupAllowedForFetchChore), exception);
                 return true;
             }
-
-            int destinationGameObjectInstanceId =
-                destination.gameObject.GetInstanceID();
-            if (!gameSession.TemperatureLimitComponents.TryGetConstraint(
-                    destinationGameObjectInstanceId,
-                    out var constraint,
-                    out _) ||
-                !constraint.IsEnabled)
-            {
-                return true;
-            }
-
-            if (ReferenceEquals(pickupable, null))
-            {
-                return true;
-            }
-
-            PrimaryElement primaryElement = pickupable.PrimaryElement;
-            if (ReferenceEquals(primaryElement, null))
-            {
-                // Preserve the characterized permissive behavior for unusual
-                // pickup objects that do not own a PrimaryElement.
-                return true;
-            }
-
-            // Allows owns canonical Kelvin normalization and both boundaries.
-            // Read the live direct-delivery temperature exactly once.
-            float temperatureKelvin = primaryElement.Temperature;
-            return constraint.Allows(temperatureKelvin);
         }
 
         private static int RequireUniqueOriginalSuccessReturnInstructionIndex(

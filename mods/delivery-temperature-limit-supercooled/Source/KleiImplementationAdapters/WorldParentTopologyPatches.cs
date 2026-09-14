@@ -51,64 +51,88 @@ namespace DeliveryTemperatureLimit
         internal static void RegisterWorldContainerPostfix(
             WorldContainer worldContainer)
         {
-            if (!TryCaptureValidatedWorldIdentity(
-                    worldContainer,
-                    InvalidRegisterWorldIdentityDiagnosticKey,
-                    "register",
-                    out var session,
-                    out var worldId,
-                    out var parentWorldId))
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                return;
-            }
+                if (!TryCaptureValidatedWorldIdentity(
+                        worldContainer,
+                        InvalidRegisterWorldIdentityDiagnosticKey,
+                        "register",
+                        out var session,
+                        out var worldId,
+                        out var parentWorldId))
+                {
+                    return;
+                }
 
-            session.RegisterWorld(worldId, parentWorldId);
+                session.RegisterWorld(worldId, parentWorldId);
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(RegisterWorldContainerPostfix), exception);
+            }
         }
 
         internal static void UnregisterWorldContainerPrefix(
             WorldContainer worldContainer)
         {
-            if (!TryCaptureValidatedWorldIdentity(
-                    worldContainer,
-                    InvalidUnregisterWorldIdentityDiagnosticKey,
-                    "unregister",
-                    out var session,
-                    out var worldId,
-                    out _))
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                return;
-            }
+                if (!TryCaptureValidatedWorldIdentity(
+                        worldContainer,
+                        InvalidUnregisterWorldIdentityDiagnosticKey,
+                        "unregister",
+                        out var session,
+                        out var worldId,
+                        out _))
+                {
+                    return;
+                }
 
-            WorldParentTopologyChange change = session.RemoveWorld(worldId);
-            if (!change.HasChanged)
+                WorldParentTopologyChange change = session.RemoveWorld(worldId);
+                if (!change.HasChanged)
+                {
+                    EmitDiagnosticOnce(
+                        session,
+                        UnknownUnregisterWorldIdentityDiagnosticKey,
+                        "Ignored an ONI world-unregistration callback for unknown " +
+                        "world ID " +
+                        worldId +
+                        "; no topology mapping was guessed.");
+                }
+            }
+            catch (Exception exception)
             {
-                EmitDiagnosticOnce(
-                    session,
-                    UnknownUnregisterWorldIdentityDiagnosticKey,
-                    "Ignored an ONI world-unregistration callback for unknown " +
-                    "world ID " +
-                    worldId +
-                    "; no topology mapping was guessed.");
+                RuntimeFailureReporting.DisableGameplay(nameof(UnregisterWorldContainerPrefix), exception);
             }
         }
 
         internal static void SetParentIdxPostfix(WorldContainer __instance)
         {
-            if (!TryCaptureValidatedWorldIdentity(
-                    __instance,
-                    InvalidReparentWorldIdentityDiagnosticKey,
-                    "reparent",
-                    out var session,
-                    out var worldId,
-                    out var parentWorldId))
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                return;
-            }
+                if (!TryCaptureValidatedWorldIdentity(
+                        __instance,
+                        InvalidReparentWorldIdentityDiagnosticKey,
+                        "reparent",
+                        out var session,
+                        out var worldId,
+                        out var parentWorldId))
+                {
+                    return;
+                }
 
-            // Read ParentWorldId only after SetParentIdx has completed; the session
-            // receives the resulting integer relationship and never retains or
-            // dereferences the Unity object from worker-accessible domain state.
-            session.RegisterWorld(worldId, parentWorldId);
+                // Read ParentWorldId only after SetParentIdx has completed; the session
+                // receives the resulting integer relationship and never retains or
+                // dereferences the Unity object from worker-accessible domain state.
+                session.RegisterWorld(worldId, parentWorldId);
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(SetParentIdxPostfix), exception);
+            }
         }
 
         private static bool TryCaptureValidatedWorldIdentity(

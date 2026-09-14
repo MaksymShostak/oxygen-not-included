@@ -122,158 +122,184 @@ namespace DeliveryTemperatureLimit
             out FastTrackPickupGroupingInvocation __state)
         {
             __state = FastTrackPickupGroupingInvocation.Inactive;
-            if (!DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
-                    out DeliveryTemperatureGameSession gameSession))
-            {
-                return;
-            }
-
-            ActiveTemperatureConstraintSnapshot activeConstraints =
-                gameSession.TemperatureConstraints.CaptureSnapshot();
-            if (activeConstraints.EnabledConstraintCount == 0)
-            {
-                // This is the ordinary bypass: FastTrack keeps its exact original
-                // hash, and no grouping context or composite dictionary is begun.
-                return;
-            }
-
-            WorldParentTopologySnapshot worldTopology =
-                gameSession.WorldParentTopology.CaptureSnapshot();
-            int? resolvedParentWorldId = ResolveNavigatorParentWorldId(
-                navigator,
-                worldTopology);
-            FetchTemperatureEligibilitySnapshot? eligibilitySnapshot =
-                gameSession.CurrentFetchTemperatureEligibility;
-            FastTrackPickupGroupingUpdateContext pickupGroupingContext =
-                TakeReusableThreadPickupGroupingUpdateContext();
-            bool groupingSessionHasBegun = false;
-            bool groupingKeyAllocatorHasBegun = false;
-
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
             try
             {
-                pickupGroupingContext.GroupingSession.Begin(
-                    gameSession,
-                    resolvedParentWorldId,
-                    activeConstraints,
-                    eligibilitySnapshot,
+                __state = FastTrackPickupGroupingInvocation.Inactive;
+                if (!DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
+                        out DeliveryTemperatureGameSession gameSession))
+                {
+                    return;
+                }
+
+                ActiveTemperatureConstraintSnapshot activeConstraints =
+                    gameSession.TemperatureConstraints.CaptureSnapshot();
+                if (activeConstraints.EnabledConstraintCount == 0)
+                {
+                    // This is the ordinary bypass: FastTrack keeps its exact original
+                    // hash, and no grouping context or composite dictionary is begun.
+                    return;
+                }
+
+                WorldParentTopologySnapshot worldTopology =
+                    gameSession.WorldParentTopology.CaptureSnapshot();
+                int? resolvedParentWorldId = ResolveNavigatorParentWorldId(
+                    navigator,
                     worldTopology);
-                groupingSessionHasBegun = true;
-                pickupGroupingContext.GroupingKeyAllocator.Begin(
-                    temperatureGroupingIsActive: true);
-                groupingKeyAllocatorHasBegun = true;
+                FetchTemperatureEligibilitySnapshot? eligibilitySnapshot =
+                    gameSession.CurrentFetchTemperatureEligibility;
+                FastTrackPickupGroupingUpdateContext pickupGroupingContext =
+                    TakeReusableThreadPickupGroupingUpdateContext();
+                bool groupingSessionHasBegun = false;
+                bool groupingKeyAllocatorHasBegun = false;
 
-                ThreadConfinedSessionSlot<
-                        FastTrackPickupGroupingUpdateContext>.SessionScopeToken
-                    scopeToken = ThreadConfinedSessionSlot<
-                        FastTrackPickupGroupingUpdateContext>.Enter(
-                            gameSession.Generation,
+                try
+                {
+                    pickupGroupingContext.GroupingSession.Begin(
+                        gameSession,
+                        resolvedParentWorldId,
+                        activeConstraints,
+                        eligibilitySnapshot,
+                        worldTopology);
+                    groupingSessionHasBegun = true;
+                    pickupGroupingContext.GroupingKeyAllocator.Begin(
+                        temperatureGroupingIsActive: true);
+                    groupingKeyAllocatorHasBegun = true;
+
+                    ThreadConfinedSessionSlot<
+                            FastTrackPickupGroupingUpdateContext>.SessionScopeToken
+                        scopeToken = ThreadConfinedSessionSlot<
+                            FastTrackPickupGroupingUpdateContext>.Enter(
+                                gameSession.Generation,
+                                pickupGroupingContext);
+                    __state = FastTrackPickupGroupingInvocation.Active(
+                        pickupGroupingContext,
+                        scopeToken);
+                }
+                catch (Exception originalException)
+                {
+                    Exception? cleanupException = null;
+                    if (groupingKeyAllocatorHasBegun)
+                    {
+                        cleanupException = TryDiscardAfterFailedPrefix(
+                            pickupGroupingContext.GroupingKeyAllocator.Discard,
+                            cleanupException);
+                    }
+
+                    if (groupingSessionHasBegun)
+                    {
+                        cleanupException = TryDiscardAfterFailedPrefix(
+                            pickupGroupingContext.GroupingSession.Discard,
+                            cleanupException);
+                    }
+
+                    if (cleanupException == null)
+                    {
+                        TryRetainReusableThreadPickupGroupingUpdateContext(
                             pickupGroupingContext);
-                __state = FastTrackPickupGroupingInvocation.Active(
-                    pickupGroupingContext,
-                    scopeToken);
+                        throw;
+                    }
+
+                    throw new AggregateException(
+                        "FastTrack pickup-grouping setup and its defensive cleanup " +
+                        "both failed.",
+                        originalException,
+                        cleanupException);
+                }
             }
-            catch (Exception originalException)
+            catch (Exception exception)
             {
-                Exception? cleanupException = null;
-                if (groupingKeyAllocatorHasBegun)
-                {
-                    cleanupException = TryDiscardAfterFailedPrefix(
-                        pickupGroupingContext.GroupingKeyAllocator.Discard,
-                        cleanupException);
-                }
-
-                if (groupingSessionHasBegun)
-                {
-                    cleanupException = TryDiscardAfterFailedPrefix(
-                        pickupGroupingContext.GroupingSession.Discard,
-                        cleanupException);
-                }
-
-                if (cleanupException == null)
-                {
-                    TryRetainReusableThreadPickupGroupingUpdateContext(
-                        pickupGroupingContext);
-                    throw;
-                }
-
-                throw new AggregateException(
-                    "FastTrack pickup-grouping setup and its defensive cleanup " +
-                    "both failed.",
-                    originalException,
-                    cleanupException);
+                RuntimeFailureReporting.DisableGameplay(nameof(BeforeUpdatePickupsPrefix), exception);
             }
         }
 
         internal static void BeforeUpdatePickupsPostfix(
             FastTrackPickupGroupingInvocation __state)
         {
-            if (!__state.IsActive)
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                return;
-            }
+                if (!__state.IsActive)
+                {
+                    return;
+                }
 
-            __state.GroupingSession.Complete();
-            __state.GroupingKeyAllocator.Complete();
+                __state.GroupingSession.Complete();
+                __state.GroupingKeyAllocator.Complete();
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(BeforeUpdatePickupsPostfix), exception);
+            }
         }
 
         internal static Exception? BeforeUpdatePickupsFinalizer(
             Exception? __exception,
             FastTrackPickupGroupingInvocation __state)
         {
-            if (!__state.IsActive)
+            try
             {
+                if (!__state.IsActive)
+                {
+                    return __exception;
+                }
+
+                Exception? cleanupException = null;
+                bool scopeExited = false;
+                try
+                {
+                    // Complete and Discard share an idempotent release path. This
+                    // therefore handles both a successful postfix and any exception
+                    // that bypassed or interrupted it.
+                    __state.GroupingSession.Discard();
+                }
+                catch (Exception exception)
+                {
+                    cleanupException = exception;
+                }
+
+                try
+                {
+                    __state.GroupingKeyAllocator.Discard();
+                }
+                catch (Exception exception)
+                {
+                    if (cleanupException == null)
+                    {
+                        cleanupException = exception;
+                    }
+                }
+
+                try
+                {
+                    ThreadConfinedSessionSlot<FastTrackPickupGroupingUpdateContext>
+                        .Exit(__state.ScopeToken);
+                    scopeExited = true;
+                }
+                catch (Exception exception)
+                {
+                    if (cleanupException == null)
+                    {
+                        cleanupException = exception;
+                    }
+                }
+
+                if (scopeExited)
+                {
+                    TryRetainReusableThreadPickupGroupingUpdateContext(
+                        __state.PickupGroupingContext);
+                }
+
+                // The game's/FastTrack's original exception always wins. With no
+                // original failure, mod cleanup failure disables temperature enforcement.
+                if (cleanupException != null) RuntimeFailureReporting.DisableGameplay(nameof(BeforeUpdatePickupsFinalizer), cleanupException);
                 return __exception;
             }
-
-            Exception? cleanupException = null;
-            bool scopeExited = false;
-            try
-            {
-                // Complete and Discard share an idempotent release path. This
-                // therefore handles both a successful postfix and any exception
-                // that bypassed or interrupted it.
-                __state.GroupingSession.Discard();
-            }
             catch (Exception exception)
             {
-                cleanupException = exception;
+                RuntimeFailureReporting.DisableGameplay(nameof(BeforeUpdatePickupsFinalizer), exception);
+                return __exception;
             }
-
-            try
-            {
-                __state.GroupingKeyAllocator.Discard();
-            }
-            catch (Exception exception)
-            {
-                if (cleanupException == null)
-                {
-                    cleanupException = exception;
-                }
-            }
-
-            try
-            {
-                ThreadConfinedSessionSlot<FastTrackPickupGroupingUpdateContext>
-                    .Exit(__state.ScopeToken);
-                scopeExited = true;
-            }
-            catch (Exception exception)
-            {
-                if (cleanupException == null)
-                {
-                    cleanupException = exception;
-                }
-            }
-
-            if (scopeExited)
-            {
-                TryRetainReusableThreadPickupGroupingUpdateContext(
-                    __state.PickupGroupingContext);
-            }
-
-            // The game's/FastTrack's original exception always wins. With no
-            // original failure, a lifecycle violation remains fail-closed.
-            return __exception ?? cleanupException;
         }
 
         internal static IEnumerable<CodeInstruction>

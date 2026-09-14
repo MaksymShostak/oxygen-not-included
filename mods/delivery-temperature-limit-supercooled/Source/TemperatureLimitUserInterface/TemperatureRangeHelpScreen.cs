@@ -1,5 +1,7 @@
 #nullable enable
 
+using System;
+
 using PeterHan.PLib.UI;
 using TMPro;
 using UnityEngine;
@@ -61,7 +63,7 @@ namespace DeliveryTemperatureLimit
 
             foreach (Behaviour component in GetComponents<Behaviour>())
                 if (component is ILayoutController || component is ILayoutElement)
-                    Object.DestroyImmediate(component);
+                    UnityEngine.Object.DestroyImmediate(component);
             var layout = gameObject.AddComponent<LayoutElement>();
             layout.minWidth = layout.preferredWidth = 32;
             layout.minHeight = layout.preferredHeight = 32;
@@ -121,51 +123,107 @@ namespace DeliveryTemperatureLimit
 
         internal void ToggleHelp()
         {
-            // Pointer/submit events have already been routed to this control.
-            // ScreenUpdate's topLevel argument gates raw keyboard polling only;
-            // it must not veto a later event using an earlier frame's value.
-            state.Activate();
-            ApplyVisibility(immediate: true);
+            if (!RuntimeFailureReporting.IsUserInterfaceEnabled) return;
+            try
+            {
+                // Pointer/submit events have already been routed to this control.
+                // ScreenUpdate's topLevel argument gates raw keyboard polling only;
+                // it must not veto a later event using an earlier frame's value.
+                state.Activate();
+                ApplyVisibility(immediate: true);
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableUserInterface(nameof(ToggleHelp), exception);
+            }
         }
 
         public override void OnPointerEnter(PointerEventData eventData)
         {
-            base.OnPointerEnter(eventData);
-            state.SetPointerOverTrigger(true);
-            ApplyVisibility();
+            if (!RuntimeFailureReporting.IsUserInterfaceEnabled) return;
+            try
+            {
+                base.OnPointerEnter(eventData);
+                state.SetPointerOverTrigger(true);
+                ApplyVisibility();
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableUserInterface(nameof(OnPointerEnter), exception);
+            }
         }
 
         public override void OnPointerExit(PointerEventData eventData)
         {
-            base.OnPointerExit(eventData);
-            state.SetPointerOverTrigger(false);
-            ApplyVisibility();
+            if (!RuntimeFailureReporting.IsUserInterfaceEnabled) return;
+            try
+            {
+                base.OnPointerExit(eventData);
+                state.SetPointerOverTrigger(false);
+                ApplyVisibility();
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableUserInterface(nameof(OnPointerExit), exception);
+            }
         }
 
         internal void SetPointerOverContent(bool over)
         {
-            state.SetPointerOverContent(over);
-            ApplyVisibility();
+            if (!RuntimeFailureReporting.IsUserInterfaceEnabled) return;
+            try
+            {
+                state.SetPointerOverContent(over);
+                ApplyVisibility();
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableUserInterface(nameof(SetPointerOverContent), exception);
+            }
         }
 
         public void OnSelect(BaseEventData eventData)
         {
-            state.SetFocused(true);
-            if (focusRing != null) focusRing.enabled = true;
-            ApplyVisibility();
+            if (!RuntimeFailureReporting.IsUserInterfaceEnabled) return;
+            try
+            {
+                state.SetFocused(true);
+                if (focusRing != null) focusRing.enabled = true;
+                ApplyVisibility();
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableUserInterface(nameof(OnSelect), exception);
+            }
         }
 
         public void OnDeselect(BaseEventData eventData)
         {
-            state.SetFocused(false);
-            if (focusRing != null) focusRing.enabled = false;
-            ApplyVisibility();
+            if (!RuntimeFailureReporting.IsUserInterfaceEnabled) return;
+            try
+            {
+                state.SetFocused(false);
+                if (focusRing != null) focusRing.enabled = false;
+                ApplyVisibility();
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableUserInterface(nameof(OnDeselect), exception);
+            }
         }
 
         public void OnSubmit(BaseEventData eventData)
         {
-            ActivateOnce();
-            eventData.Use();
+            if (!RuntimeFailureReporting.IsUserInterfaceEnabled) return;
+            try
+            {
+                ActivateOnce();
+                eventData.Use();
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableUserInterface(nameof(OnSubmit), exception);
+            }
         }
 
         private bool IsFocused => UnityEngine.EventSystems.EventSystem.current != null &&
@@ -217,11 +275,19 @@ namespace DeliveryTemperatureLimit
 
         public override void OnKeyDown(KButtonEvent e)
         {
-            if (e.Consumed) return;
-            if (HandleKeyboard(e.IsAction(global::Action.Escape))) e.Consumed = true;
-            if (!e.Consumed && IsHelpVisible && state.IsPointerOverContent)
+            if (!RuntimeFailureReporting.IsUserInterfaceEnabled) return;
+            try
             {
-                if (!e.TryConsume(global::Action.ZoomIn)) e.TryConsume(global::Action.ZoomOut);
+                if (e.Consumed) return;
+                if (HandleKeyboard(e.IsAction(global::Action.Escape))) e.Consumed = true;
+                if (!e.Consumed && IsHelpVisible && state.IsPointerOverContent)
+                {
+                    if (!e.TryConsume(global::Action.ZoomIn)) e.TryConsume(global::Action.ZoomOut);
+                }
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableUserInterface(nameof(OnKeyDown), exception);
             }
         }
 
@@ -246,54 +312,78 @@ namespace DeliveryTemperatureLimit
 
         public override void OnKeyUp(KButtonEvent e)
         {
-            if (captureEscapeRelease && e.IsAction(global::Action.Escape))
+            if (!RuntimeFailureReporting.IsUserInterfaceEnabled) return;
+            try
             {
-                e.Consumed = true;
-                captureEscapeRelease = false;
+                if (captureEscapeRelease && e.IsAction(global::Action.Escape))
+                {
+                    e.Consumed = true;
+                    captureEscapeRelease = false;
+                }
+                if (captureTabRelease && Input.GetKeyUp(KeyCode.Tab))
+                {
+                    e.Consumed = true;
+                    captureTabRelease = false;
+                }
+                if (captureActivationRelease && (Input.GetKeyUp(KeyCode.Return) ||
+                    Input.GetKeyUp(KeyCode.KeypadEnter) || Input.GetKeyUp(KeyCode.Space)))
+                {
+                    e.Consumed = true;
+                    captureActivationRelease = false;
+                }
             }
-            if (captureTabRelease && Input.GetKeyUp(KeyCode.Tab))
+            catch (Exception exception)
             {
-                e.Consumed = true;
-                captureTabRelease = false;
-            }
-            if (captureActivationRelease && (Input.GetKeyUp(KeyCode.Return) ||
-                Input.GetKeyUp(KeyCode.KeypadEnter) || Input.GetKeyUp(KeyCode.Space)))
-            {
-                e.Consumed = true;
-                captureActivationRelease = false;
+                RuntimeFailureReporting.DisableUserInterface(nameof(OnKeyUp), exception);
             }
         }
 
         public override void ScreenUpdate(bool topLevel)
         {
-            state.SetKeyboardLayerActive(topLevel);
-            if (!topLevel)
+            if (!RuntimeFailureReporting.IsUserInterfaceEnabled) return;
+            try
             {
-                ApplyVisibility(immediate: true);
-                return;
+                state.SetKeyboardLayerActive(topLevel);
+                if (!topLevel)
+                {
+                    ApplyVisibility(immediate: true);
+                    return;
+                }
+                if (owner == null) return;
+                // Unity focus/submit and ONI key dispatch can run in the same frame.
+                // Frame guards prevent double activation, including unbound UI keys.
+                HandleKeyboard(Input.GetKeyDown(KeyCode.Escape));
+                if (popover != null && popover.activeSelf && Input.GetMouseButtonDown(0))
+                {
+                    Canvas root = GetComponentInParent<Canvas>().rootCanvas;
+                    Camera? camera = root.renderMode == RenderMode.ScreenSpaceOverlay ? null : root.worldCamera;
+                    if (!RectTransformUtility.RectangleContainsScreenPoint((RectTransform)transform, Input.mousePosition, camera) &&
+                        !RectTransformUtility.RectangleContainsScreenPoint(viewport, Input.mousePosition, camera))
+                        DismissHelp();
+                }
             }
-            if (owner == null) return;
-            // Unity focus/submit and ONI key dispatch can run in the same frame.
-            // Frame guards prevent double activation, including unbound UI keys.
-            HandleKeyboard(Input.GetKeyDown(KeyCode.Escape));
-            if (popover != null && popover.activeSelf && Input.GetMouseButtonDown(0))
+            catch (Exception exception)
             {
-                Canvas root = GetComponentInParent<Canvas>().rootCanvas;
-                Camera? camera = root.renderMode == RenderMode.ScreenSpaceOverlay ? null : root.worldCamera;
-                if (!RectTransformUtility.RectangleContainsScreenPoint((RectTransform)transform, Input.mousePosition, camera) &&
-                    !RectTransformUtility.RectangleContainsScreenPoint(viewport, Input.mousePosition, camera))
-                    DismissHelp();
+                RuntimeFailureReporting.DisableUserInterface(nameof(ScreenUpdate), exception);
             }
         }
 
         private void LateUpdate()
         {
-            ApplyVisibility();
-            float sortKey = GetSortKey();
-            if (sortKey != lastSortKey && IsActive())
+            if (!RuntimeFailureReporting.IsUserInterfaceEnabled) return;
+            try
             {
-                lastSortKey = sortKey;
-                KScreenManager.Instance.RefreshStack();
+                ApplyVisibility();
+                float sortKey = GetSortKey();
+                if (sortKey != lastSortKey && IsActive())
+                {
+                    lastSortKey = sortKey;
+                    KScreenManager.Instance.RefreshStack();
+                }
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableUserInterface(nameof(LateUpdate), exception);
             }
         }
 
@@ -385,23 +475,43 @@ namespace DeliveryTemperatureLimit
 
         protected override void OnDisable()
         {
-            ResetHelp();
-            captureEscapeRelease = captureActivationRelease = captureTabRelease = false;
-            base.OnDisable();
+            try
+            {
+                ResetHelp();
+                captureEscapeRelease = captureActivationRelease = captureTabRelease = false;
+                base.OnDisable();
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableUserInterface(nameof(OnDisable), exception);
+            }
         }
 
         protected override void OnCleanUp()
         {
-            if (popover != null) Object.Destroy(popover);
-            if (buttonColors != null) Object.Destroy(buttonColors);
-            base.OnCleanUp();
+            try
+            {
+                if (popover != null) UnityEngine.Object.Destroy(popover);
+                if (buttonColors != null) UnityEngine.Object.Destroy(buttonColors);
+                base.OnCleanUp();
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableUserInterface(nameof(OnCleanUp), exception);
+            }
         }
     }
 
     internal sealed class TemperatureRangeHelpPointer : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
         internal TemperatureRangeHelpScreen Owner = null!;
-        public void OnPointerEnter(PointerEventData eventData) => Owner.SetPointerOverContent(true);
-        public void OnPointerExit(PointerEventData eventData) => Owner.SetPointerOverContent(false);
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            if (Owner != null) Owner.SetPointerOverContent(true);
+        }
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            if (Owner != null) Owner.SetPointerOverContent(false);
+        }
     }
 }

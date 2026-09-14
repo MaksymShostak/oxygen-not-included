@@ -150,91 +150,99 @@ namespace DeliveryTemperatureLimit
             float remainingAmount,
             float minimumRequiredAmount)
         {
-            float originalFetchableAmount = fetchableAmount;
-            if (!TemperatureStatusAvailabilityDecision.ShouldTryReplacement(
-                    originalStorageAmount,
-                    originalFetchableAmount,
-                    minimumRequiredAmount))
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                // Preserve Klei's cheap early-insufficient path before capturing a
-                // session, touching a Unity object, or querying either catalog.
-                return;
+                float originalFetchableAmount = fetchableAmount;
+                if (!TemperatureStatusAvailabilityDecision.ShouldTryReplacement(
+                        originalStorageAmount,
+                        originalFetchableAmount,
+                        minimumRequiredAmount))
+                {
+                    // Preserve Klei's cheap early-insufficient path before capturing a
+                    // session, touching a Unity object, or querying either catalog.
+                    return;
+                }
+
+                if (destinationFetchList == null ||
+                    !DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
+                        out var session))
+                {
+                    return;
+                }
+
+                if (session.TemperatureConstraints.CaptureSnapshot()
+                    .EnabledConstraintCount == 0)
+                {
+                    // Avoid Unity and concurrent-index reads for the overwhelmingly
+                    // common state in which this optional status feature is installed
+                    // but no destination currently enables a temperature constraint.
+                    return;
+                }
+
+                Storage destinationStorage = destinationFetchList.Destination;
+                if (destinationStorage == null)
+                {
+                    return;
+                }
+
+                int destinationGameObjectInstanceId =
+                    destinationStorage.gameObject.GetInstanceID();
+                if (!session.TemperatureLimitComponents.TryGetConstraint(
+                        destinationGameObjectInstanceId,
+                        out var constraint,
+                        out _))
+                {
+                    // No registered component means the destination has no delivery-
+                    // temperature semantics. Preserve the exact incoming amount.
+                    return;
+                }
+
+                if (!constraint.IsEnabled)
+                {
+                    // Disabled components remain indexed for ownership-safe updates,
+                    // but they must impose no status-path work beyond the O(1) lookup.
+                    return;
+                }
+
+                WorldParentTopologySnapshot worldTopology =
+                    session.WorldParentTopology.CaptureSnapshot();
+                if (!worldTopology.GameSessionGeneration.Equals(
+                        session.Generation) ||
+                    !worldTopology.TryResolveParentWorld(
+                        worldId,
+                        out var parentWorldId))
+                {
+                    // Missing or cross-session topology is incomplete evidence, not a
+                    // zero amount. The original Klei availability remains authoritative.
+                    return;
+                }
+
+                WorldInventoryCollectionGeneration collectionGeneration =
+                    session.CurrentWorldInventoryCollectionGeneration;
+                TemperatureConstrainedAmountAvailability availability =
+                    session.WorldResourceTemperatureAmounts
+                        .GetTemperatureConstrainedAmountAvailability(
+                            parentWorldId,
+                            resourceTag,
+                            constraint,
+                            collectionGeneration);
+
+                if (TemperatureStatusAvailabilityDecision
+                    .TryCalculateReplacementFetchable(
+                        availability,
+                        remainingAmount,
+                        out var replacementFetchableAmount))
+                {
+                    // Assignment is the only mutation. Disabled and incomplete states
+                    // return false and cannot accidentally overwrite the incoming value
+                    // with a default or unavailable out amount.
+                    fetchableAmount = replacementFetchableAmount;
+                }
             }
-
-            if (destinationFetchList == null ||
-                !DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
-                    out var session))
+            catch (Exception exception)
             {
-                return;
-            }
-
-            if (session.TemperatureConstraints.CaptureSnapshot()
-                .EnabledConstraintCount == 0)
-            {
-                // Avoid Unity and concurrent-index reads for the overwhelmingly
-                // common state in which this optional status feature is installed
-                // but no destination currently enables a temperature constraint.
-                return;
-            }
-
-            Storage destinationStorage = destinationFetchList.Destination;
-            if (destinationStorage == null)
-            {
-                return;
-            }
-
-            int destinationGameObjectInstanceId =
-                destinationStorage.gameObject.GetInstanceID();
-            if (!session.TemperatureLimitComponents.TryGetConstraint(
-                    destinationGameObjectInstanceId,
-                    out var constraint,
-                    out _))
-            {
-                // No registered component means the destination has no delivery-
-                // temperature semantics. Preserve the exact incoming amount.
-                return;
-            }
-
-            if (!constraint.IsEnabled)
-            {
-                // Disabled components remain indexed for ownership-safe updates,
-                // but they must impose no status-path work beyond the O(1) lookup.
-                return;
-            }
-
-            WorldParentTopologySnapshot worldTopology =
-                session.WorldParentTopology.CaptureSnapshot();
-            if (!worldTopology.GameSessionGeneration.Equals(
-                    session.Generation) ||
-                !worldTopology.TryResolveParentWorld(
-                    worldId,
-                    out var parentWorldId))
-            {
-                // Missing or cross-session topology is incomplete evidence, not a
-                // zero amount. The original Klei availability remains authoritative.
-                return;
-            }
-
-            WorldInventoryCollectionGeneration collectionGeneration =
-                session.CurrentWorldInventoryCollectionGeneration;
-            TemperatureConstrainedAmountAvailability availability =
-                session.WorldResourceTemperatureAmounts
-                    .GetTemperatureConstrainedAmountAvailability(
-                        parentWorldId,
-                        resourceTag,
-                        constraint,
-                        collectionGeneration);
-
-            if (TemperatureStatusAvailabilityDecision
-                .TryCalculateReplacementFetchable(
-                    availability,
-                    remainingAmount,
-                    out var replacementFetchableAmount))
-            {
-                // Assignment is the only mutation. Disabled and incomplete states
-                // return false and cannot accidentally overwrite the incoming value
-                // with a default or unavailable out amount.
-                fetchableAmount = replacementFetchableAmount;
+                RuntimeFailureReporting.DisableGameplay(nameof(ReplaceFetchableAmountWhenInventoryIsComplete), exception);
             }
         }
 

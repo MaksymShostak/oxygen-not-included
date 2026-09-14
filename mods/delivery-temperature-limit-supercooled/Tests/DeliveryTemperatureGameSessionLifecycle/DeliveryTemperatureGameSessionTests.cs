@@ -27,6 +27,23 @@ public sealed class DeliveryTemperatureGameSessionTests
     }
 
     [TestMethod]
+    public void StopCurrentSessionPublications_MakesTheSessionUnavailableWithoutReleasingInFlightState()
+    {
+        var session = EnsureTrackedGameSession(5199);
+        Assert.IsTrue(DeliveryTemperatureGameSessionHost.TryCaptureCurrent(out var captured));
+        Assert.AreSame(session, captured);
+
+        DeliveryTemperatureGameSessionHost.StopCurrentSessionPublications();
+
+        Assert.IsFalse(session.IsAcceptingPublications);
+        Assert.IsFalse(DeliveryTemperatureGameSessionHost.TryCaptureCurrent(out _));
+        // Failure containment stops new work immediately. The ordinary teardown
+        // still owns detachment and release after workers have unwound.
+        Assert.AreSame(session, DeliveryTemperatureGameSessionHost.DetachGameSession(5199));
+        DeliveryTemperatureGameSessionHost.CompleteShutdown(session);
+    }
+
+    [TestMethod]
     public void EnsureGameSession_WhenGameIdentityChanges_DetachesAndInvalidatesOldSession()
     {
         var oldSession = EnsureTrackedGameSession(5101);

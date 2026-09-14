@@ -36,108 +36,117 @@ namespace DeliveryTemperatureLimit
             bool ___firstUpdate,
             out WorldInventoryTemperatureCollectionInvocation __state)
         {
-            if (currentThreadInvocation != null)
-            {
-                throw new InvalidOperationException(
-                    "WorldInventory.Update re-entered temperature collection on " +
-                    "the same thread. A nested candidate cannot share an open " +
-                    "resource-tag builder safely.");
-            }
-
             __state = WorldInventoryTemperatureCollectionInvocation.Inactive;
-            if (__instance == null ||
-                !DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
-                    out var session))
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                return;
-            }
-
-            ActiveTemperatureConstraintSnapshot activeConstraints =
-                session.TemperatureConstraints.CaptureSnapshot();
-            if (activeConstraints.EnabledConstraintCount == 0)
-            {
-                // This is the common bypass after every constraint is disabled.
-                // The shared immutable state allocates no builder and retains no
-                // inventory object, world identity, or session reference.
-                return;
-            }
-
-            WorldContainer worldContainer = __instance.WorldContainer;
-            if (worldContainer == null || worldContainer.id < 0)
-            {
-                // An invalid Klei identity cannot be mapped to the session-owned
-                // catalog. Leave this invocation explicitly inactive; never guess
-                // a world or publish a candidate under a sentinel identity.
-                return;
-            }
-
-            WorldInventoryCollectionGeneration collectionGeneration =
-                session.CurrentWorldInventoryCollectionGeneration;
-            if (collectionGeneration.Value <= 0)
-            {
-                throw new InvalidOperationException(
-                    "An enabled temperature constraint exists without a current " +
-                    "world-inventory collection generation.");
-            }
-
-            WorldInventoryTemperaturePublicationKind publicationKind;
-            if (___firstUpdate)
-            {
-                publicationKind = WorldInventoryTemperaturePublicationKind
-                    .CompleteWorldAmounts;
-            }
-            else
-            {
-                WorldResourceTagCoverageRequirementState coverageState =
-                    session.WorldResourceTemperatureAmounts
-                        .GetWorldResourceTagCoverageRequirementState(
-                            worldContainer.id,
-                            collectionGeneration);
-                switch (coverageState)
+                if (currentThreadInvocation != null)
                 {
-                    case WorldResourceTagCoverageRequirementState
-                        .UnknownWorldOrCollectionGeneration:
-                        // World lifecycle registration has not supplied enough
-                        // identity evidence. Publishing under a guessed membership
-                        // would be worse than temporarily preserving Klei status.
-                        return;
-
-                    case WorldResourceTagCoverageRequirementState
-                        .CoverageRequired:
-                        publicationKind = WorldInventoryTemperaturePublicationKind
-                            .ResourceTagCoverageAndTemperatureSeries;
-                        break;
-
-                    case WorldResourceTagCoverageRequirementState
-                        .CoverageCurrent:
-                        publicationKind = WorldInventoryTemperaturePublicationKind
-                            .ResourceTemperatureSeries;
-                        break;
-
-                    default:
-                        throw new ArgumentOutOfRangeException(
-                            nameof(coverageState),
-                            coverageState,
-                            "Unknown world resource-tag coverage requirement " +
-                            "state.");
+                    throw new InvalidOperationException(
+                        "WorldInventory.Update re-entered temperature collection on " +
+                        "the same thread. A nested candidate cannot share an open " +
+                        "resource-tag builder safely.");
                 }
+
+                __state = WorldInventoryTemperatureCollectionInvocation.Inactive;
+                if (__instance == null ||
+                    !DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
+                        out var session))
+                {
+                    return;
+                }
+
+                ActiveTemperatureConstraintSnapshot activeConstraints =
+                    session.TemperatureConstraints.CaptureSnapshot();
+                if (activeConstraints.EnabledConstraintCount == 0)
+                {
+                    // This is the common bypass after every constraint is disabled.
+                    // The shared immutable state allocates no builder and retains no
+                    // inventory object, world identity, or session reference.
+                    return;
+                }
+
+                WorldContainer worldContainer = __instance.WorldContainer;
+                if (worldContainer == null || worldContainer.id < 0)
+                {
+                    // An invalid Klei identity cannot be mapped to the session-owned
+                    // catalog. Leave this invocation explicitly inactive; never guess
+                    // a world or publish a candidate under a sentinel identity.
+                    return;
+                }
+
+                WorldInventoryCollectionGeneration collectionGeneration =
+                    session.CurrentWorldInventoryCollectionGeneration;
+                if (collectionGeneration.Value <= 0)
+                {
+                    throw new InvalidOperationException(
+                        "An enabled temperature constraint exists without a current " +
+                        "world-inventory collection generation.");
+                }
+
+                WorldInventoryTemperaturePublicationKind publicationKind;
+                if (___firstUpdate)
+                {
+                    publicationKind = WorldInventoryTemperaturePublicationKind
+                        .CompleteWorldAmounts;
+                }
+                else
+                {
+                    WorldResourceTagCoverageRequirementState coverageState =
+                        session.WorldResourceTemperatureAmounts
+                            .GetWorldResourceTagCoverageRequirementState(
+                                worldContainer.id,
+                                collectionGeneration);
+                    switch (coverageState)
+                    {
+                        case WorldResourceTagCoverageRequirementState
+                            .UnknownWorldOrCollectionGeneration:
+                            // World lifecycle registration has not supplied enough
+                            // identity evidence. Publishing under a guessed membership
+                            // would be worse than temporarily preserving Klei status.
+                            return;
+
+                        case WorldResourceTagCoverageRequirementState
+                            .CoverageRequired:
+                            publicationKind = WorldInventoryTemperaturePublicationKind
+                                .ResourceTagCoverageAndTemperatureSeries;
+                            break;
+
+                        case WorldResourceTagCoverageRequirementState
+                            .CoverageCurrent:
+                            publicationKind = WorldInventoryTemperaturePublicationKind
+                                .ResourceTemperatureSeries;
+                            break;
+
+                        default:
+                            throw new ArgumentOutOfRangeException(
+                                nameof(coverageState),
+                                coverageState,
+                                "Unknown world resource-tag coverage requirement " +
+                                "state.");
+                    }
+                }
+
+                var builder =
+                    new CompleteWorldResourceTemperatureAmountsBuilder();
+                builder.BeginWorld(collectionGeneration);
+                var activeInvocation =
+                    WorldInventoryTemperatureCollectionInvocation.Active(
+                        session,
+                        worldContainer.id,
+                        collectionGeneration,
+                        publicationKind,
+                        builder);
+
+                // Publish thread-confined hook state only after every fallible setup
+                // operation has succeeded. Finalizer owns clearing this exact object.
+                currentThreadInvocation = activeInvocation;
+                __state = activeInvocation;
             }
-
-            var builder =
-                new CompleteWorldResourceTemperatureAmountsBuilder();
-            builder.BeginWorld(collectionGeneration);
-            var activeInvocation =
-                WorldInventoryTemperatureCollectionInvocation.Active(
-                    session,
-                    worldContainer.id,
-                    collectionGeneration,
-                    publicationKind,
-                    builder);
-
-            // Publish thread-confined hook state only after every fallible setup
-            // operation has succeeded. Finalizer owns clearing this exact object.
-            currentThreadInvocation = activeInvocation;
-            __state = activeInvocation;
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(WorldInventoryUpdatePrefix), exception);
+            }
         }
 
         internal static IEnumerable<CodeInstruction>
@@ -394,62 +403,70 @@ namespace DeliveryTemperatureLimit
         internal static void WorldInventoryUpdatePostfix(
             WorldInventoryTemperatureCollectionInvocation __state)
         {
-            if (!__state.IsActive)
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                return;
+                if (!__state.IsActive)
+                {
+                    return;
+                }
+
+                RequireCurrentThreadInvocation(__state);
+                CompleteWorldResourceTemperatureAmounts candidate =
+                    __state.Builder.Build();
+                __state.MarkCandidateBuilt();
+
+                switch (__state.PublicationKind)
+                {
+                    case WorldInventoryTemperaturePublicationKind
+                        .CompleteWorldAmounts:
+                        // Klei's first update visits every resource-tag pickup set. It
+                        // is therefore the only invocation that can replace the whole
+                        // world map without manufacturing absence for skipped tags.
+                        __state.Session.WorldResourceTemperatureAmounts
+                            .PublishCompleteWorldResourceAmounts(
+                                __state.WorldId,
+                                candidate);
+                        break;
+
+                    case WorldInventoryTemperaturePublicationKind
+                        .ResourceTagCoverageAndTemperatureSeries:
+                        WorldResourceTagCoverage resourceTagCoverage =
+                            WorldResourceTagCoverage.Create(
+                                __state.CollectionGeneration,
+                                __state.ObservedResourceTags);
+                        if (__state.Session.WorldResourceTemperatureAmounts
+                            .PublishWorldResourceTagCoverage(
+                                __state.WorldId,
+                                resourceTagCoverage))
+                        {
+                            PublishResourceTemperatureSeries(
+                                __state,
+                                candidate);
+                        }
+
+                        break;
+
+                    case WorldInventoryTemperaturePublicationKind
+                        .ResourceTemperatureSeries:
+                        PublishResourceTemperatureSeries(__state, candidate);
+                        break;
+
+                    case WorldInventoryTemperaturePublicationKind.Inactive:
+                        throw new InvalidOperationException(
+                            "An inactive WorldInventory.Update invocation reached " +
+                            "temperature publication.");
+
+                    default:
+                        throw new ArgumentOutOfRangeException(
+                            nameof(__state),
+                            __state.PublicationKind,
+                            "Unknown world-inventory temperature publication kind.");
+                }
             }
-
-            RequireCurrentThreadInvocation(__state);
-            CompleteWorldResourceTemperatureAmounts candidate =
-                __state.Builder.Build();
-            __state.MarkCandidateBuilt();
-
-            switch (__state.PublicationKind)
+            catch (Exception exception)
             {
-                case WorldInventoryTemperaturePublicationKind
-                    .CompleteWorldAmounts:
-                    // Klei's first update visits every resource-tag pickup set. It
-                    // is therefore the only invocation that can replace the whole
-                    // world map without manufacturing absence for skipped tags.
-                    __state.Session.WorldResourceTemperatureAmounts
-                        .PublishCompleteWorldResourceAmounts(
-                            __state.WorldId,
-                            candidate);
-                    break;
-
-                case WorldInventoryTemperaturePublicationKind
-                    .ResourceTagCoverageAndTemperatureSeries:
-                    WorldResourceTagCoverage resourceTagCoverage =
-                        WorldResourceTagCoverage.Create(
-                            __state.CollectionGeneration,
-                            __state.ObservedResourceTags);
-                    if (__state.Session.WorldResourceTemperatureAmounts
-                        .PublishWorldResourceTagCoverage(
-                            __state.WorldId,
-                            resourceTagCoverage))
-                    {
-                        PublishResourceTemperatureSeries(
-                            __state,
-                            candidate);
-                    }
-
-                    break;
-
-                case WorldInventoryTemperaturePublicationKind
-                    .ResourceTemperatureSeries:
-                    PublishResourceTemperatureSeries(__state, candidate);
-                    break;
-
-                case WorldInventoryTemperaturePublicationKind.Inactive:
-                    throw new InvalidOperationException(
-                        "An inactive WorldInventory.Update invocation reached " +
-                        "temperature publication.");
-
-                default:
-                    throw new ArgumentOutOfRangeException(
-                        nameof(__state),
-                        __state.PublicationKind,
-                        "Unknown world-inventory temperature publication kind.");
+                RuntimeFailureReporting.DisableGameplay(nameof(WorldInventoryUpdatePostfix), exception);
             }
         }
 
@@ -457,43 +474,59 @@ namespace DeliveryTemperatureLimit
             Exception? __exception,
             WorldInventoryTemperatureCollectionInvocation __state)
         {
-            if (!__state.IsActive)
-            {
-                return __exception;
-            }
-
             try
             {
-                RequireCurrentThreadInvocation(__state);
-                if (!__state.HasBuiltCandidate)
+                if (!__state.IsActive)
                 {
-                    // This covers failures in Klei's body, any injected hook, or
-                    // Build itself. Discard releases every partially accumulated
-                    // resource tag and makes publication impossible.
-                    __state.Builder.Discard();
+                    return __exception;
                 }
-            }
-            finally
-            {
-                if (ReferenceEquals(currentThreadInvocation, __state))
-                {
-                    currentThreadInvocation = null;
-                }
-            }
 
-            return __exception;
+                try
+                {
+                    RequireCurrentThreadInvocation(__state);
+                    if (!__state.HasBuiltCandidate)
+                    {
+                        // This covers failures in Klei's body, any injected hook, or
+                        // Build itself. Discard releases every partially accumulated
+                        // resource tag and makes publication impossible.
+                        __state.Builder.Discard();
+                    }
+                }
+                finally
+                {
+                    if (ReferenceEquals(currentThreadInvocation, __state))
+                    {
+                        currentThreadInvocation = null;
+                    }
+                }
+
+                return __exception;
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(WorldInventoryUpdateFinalizer), exception);
+                return __exception;
+            }
         }
 
         private static void BeginResourceTagEnumeration(Tag resourceTag)
         {
-            WorldInventoryTemperatureCollectionInvocation? invocation =
-                currentThreadInvocation;
-            if (invocation == null)
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                return;
-            }
+                WorldInventoryTemperatureCollectionInvocation? invocation =
+                    currentThreadInvocation;
+                if (invocation == null)
+                {
+                    return;
+                }
 
-            invocation.Builder.BeginResourceTag(resourceTag);
+                invocation.Builder.BeginResourceTag(resourceTag);
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(BeginResourceTagEnumeration), exception);
+            }
         }
 
         private static bool ShouldObserveResourceTagCoverage()
@@ -512,49 +545,74 @@ namespace DeliveryTemperatureLimit
         private static void ObserveResourceTagForCoverage(
             ref KeyValuePair<Tag, HashSet<Pickupable>> inventoryEntry)
         {
-            WorldInventoryTemperatureCollectionInvocation? invocation =
-                currentThreadInvocation;
-            if (invocation == null ||
-                invocation.PublicationKind !=
-                    WorldInventoryTemperaturePublicationKind
-                        .ResourceTagCoverageAndTemperatureSeries)
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                throw new InvalidOperationException(
-                    "Resource-tag coverage observation ran without the exact " +
-                    "incremental coverage-collection invocation.");
-            }
+                WorldInventoryTemperatureCollectionInvocation? invocation =
+                    currentThreadInvocation;
+                if (invocation == null ||
+                    invocation.PublicationKind !=
+                        WorldInventoryTemperaturePublicationKind
+                            .ResourceTagCoverageAndTemperatureSeries)
+                {
+                    throw new InvalidOperationException(
+                        "Resource-tag coverage observation ran without the exact " +
+                        "incremental coverage-collection invocation.");
+                }
 
-            invocation.ObserveResourceTag(inventoryEntry.Key);
+                invocation.ObserveResourceTag(inventoryEntry.Key);
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(ObserveResourceTagForCoverage), exception);
+            }
         }
 
         private static float RecordFilteredPickupTemperatureAmount(
             Pickupable pickupable,
             float originalTotalAmount)
         {
-            WorldInventoryTemperatureCollectionInvocation? invocation =
-                currentThreadInvocation;
-            if (invocation != null &&
-                pickupable != null &&
-                pickupable.PrimaryElement != null)
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return originalTotalAmount;
+            try
             {
-                invocation.Builder.AddTemperatureAmount(
-                    pickupable.PrimaryElement.Temperature,
-                    originalTotalAmount);
-            }
+                WorldInventoryTemperatureCollectionInvocation? invocation =
+                    currentThreadInvocation;
+                if (invocation != null &&
+                    pickupable != null &&
+                    pickupable.PrimaryElement != null)
+                {
+                    invocation.Builder.AddTemperatureAmount(
+                        pickupable.PrimaryElement.Temperature,
+                        originalTotalAmount);
+                }
 
-            return originalTotalAmount;
+                return originalTotalAmount;
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(RecordFilteredPickupTemperatureAmount), exception);
+                return originalTotalAmount;
+            }
         }
 
         private static void CompleteResourceTagEnumeration()
         {
-            WorldInventoryTemperatureCollectionInvocation? invocation =
-                currentThreadInvocation;
-            if (invocation == null)
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                return;
-            }
+                WorldInventoryTemperatureCollectionInvocation? invocation =
+                    currentThreadInvocation;
+                if (invocation == null)
+                {
+                    return;
+                }
 
-            invocation.Builder.CompleteResourceTag();
+                invocation.Builder.CompleteResourceTag();
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(CompleteResourceTagEnumeration), exception);
+            }
         }
 
         private static void PublishResourceTemperatureSeries(

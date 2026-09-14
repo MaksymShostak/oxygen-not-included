@@ -1,5 +1,7 @@
 #nullable enable
 
+using System;
+
 using System.Collections;
 using TMPro;
 using UnityEngine;
@@ -22,30 +24,57 @@ namespace DeliveryTemperatureLimit
 
         protected override void OnSpawn()
         {
-            base.OnSpawn();
-            inputField = GetComponent<TMP_InputField>();
-            inputField.onFocus += OnInputFocus;
-            inputField.onEndEdit.AddListener(OnInputEndEdit);
+            if (!RuntimeFailureReporting.IsUserInterfaceEnabled) return;
+            try
+            {
+                base.OnSpawn();
+                inputField = GetComponent<TMP_InputField>();
+                if (inputField == null)
+                    throw new InvalidOperationException("Temperature input field is unavailable.");
+                inputField.onFocus += OnInputFocus;
+                inputField.onEndEdit.AddListener(OnInputEndEdit);
+            }
+            catch (Exception exception)
+            {
+                isEditing = false;
+                RuntimeFailureReporting.DisableUserInterface(nameof(OnSpawn), exception);
+            }
         }
 
         private void OnInputFocus()
         {
-            CancelPendingRelease();
-            // TMP invokes onFocus before isFocused becomes true. Use the focus
-            // notification so the screen stack is ordered before key dispatch.
-            isEditing = true;
+            if (!RuntimeFailureReporting.IsUserInterfaceEnabled) return;
+            try
+            {
+                CancelPendingRelease();
+                // TMP invokes onFocus before isFocused becomes true. Use the focus
+                // notification so the screen stack is ordered before key dispatch.
+                isEditing = true;
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableUserInterface(nameof(OnInputFocus), exception);
+            }
         }
 
         private void OnInputEndEdit(string text)
         {
-            CancelPendingRelease();
-            if (isActiveAndEnabled && gameObject.activeInHierarchy)
+            if (!RuntimeFailureReporting.IsUserInterfaceEnabled) return;
+            try
             {
-                pendingRelease = StartCoroutine(ReleaseAfterEditFrame());
+                CancelPendingRelease();
+                if (isActiveAndEnabled && gameObject.activeInHierarchy)
+                {
+                    pendingRelease = StartCoroutine(ReleaseAfterEditFrame());
+                }
+                else
+                {
+                    ReleaseInputCapture();
+                }
             }
-            else
+            catch (Exception exception)
             {
-                ReleaseInputCapture();
+                RuntimeFailureReporting.DisableUserInterface(nameof(OnInputEndEdit), exception);
             }
         }
 
@@ -53,56 +82,97 @@ namespace DeliveryTemperatureLimit
         {
             // Enter/Escape must not also activate a game action in this frame.
             yield return new WaitForEndOfFrame();
-            pendingRelease = null;
-            isEditing = false;
+            try
+            {
+                pendingRelease = null;
+                isEditing = false;
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableUserInterface(nameof(ReleaseAfterEditFrame), exception);
+            }
         }
 
         private void CancelPendingRelease()
         {
             if (pendingRelease != null)
             {
-                StopCoroutine(pendingRelease);
+                Coroutine release = pendingRelease;
                 pendingRelease = null;
+                StopCoroutine(release);
             }
         }
 
         private void ReleaseInputCapture()
         {
-            CancelPendingRelease();
             isEditing = false;
+            CancelPendingRelease();
         }
 
         public override void OnKeyDown(KButtonEvent e)
         {
-            if (isEditing)
+            if (!RuntimeFailureReporting.IsUserInterfaceEnabled) return;
+            try
             {
-                e.Consumed = true;
+                if (isEditing)
+                {
+                    e.Consumed = true;
+                }
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableUserInterface(nameof(OnKeyDown), exception);
             }
         }
 
         public override void OnKeyUp(KButtonEvent e)
         {
-            if (isEditing)
+            if (!RuntimeFailureReporting.IsUserInterfaceEnabled) return;
+            try
             {
-                e.Consumed = true;
+                if (isEditing)
+                {
+                    e.Consumed = true;
+                }
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableUserInterface(nameof(OnKeyUp), exception);
             }
         }
 
         protected override void OnDisable()
         {
-            ReleaseInputCapture();
-            base.OnDisable();
+            try
+            {
+                try { ReleaseInputCapture(); }
+                finally { base.OnDisable(); }
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableUserInterface(nameof(OnDisable), exception);
+            }
         }
 
         protected override void OnCleanUp()
         {
-            if (inputField != null)
+            try
             {
-                inputField.onFocus -= OnInputFocus;
-                inputField.onEndEdit.RemoveListener(OnInputEndEdit);
+                try
+                {
+                    ReleaseInputCapture();
+                    if (inputField != null)
+                    {
+                        inputField.onFocus -= OnInputFocus;
+                        inputField.onEndEdit.RemoveListener(OnInputEndEdit);
+                    }
+                }
+                finally { base.OnCleanUp(); }
             }
-            ReleaseInputCapture();
-            base.OnCleanUp();
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableUserInterface(nameof(OnCleanUp), exception);
+            }
         }
     }
 }

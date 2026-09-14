@@ -75,87 +75,127 @@ namespace DeliveryTemperatureLimit
         internal static void MaterialSelectionPanelPrefabInitializationPostfix(
             MaterialSelectionPanel __instance)
         {
-            if (!DeliveryTemperatureLimitOptions.Instance.UnderConstructionLimit ||
-                __instance == null ||
-                !IsSupportedBlueprintMaterialSelectionPanel(__instance))
+            if (!RuntimeFailureReporting.IsUserInterfaceEnabled) return;
+            try
             {
-                return;
-            }
+                if (!DeliveryTemperatureLimitOptions.Instance.UnderConstructionLimit ||
+                    __instance == null ||
+                    !IsSupportedBlueprintMaterialSelectionPanel(__instance))
+                {
+                    return;
+                }
 
-            // All build-menu panel instances represent the same not-yet-created
-            // target. The singleton lives on the first suitable panel object and
-            // is copied into each construction site only at instantiation.
-            if (currentBlueprintTemperatureLimit == null)
+                // All build-menu panel instances represent the same not-yet-created
+                // target. The singleton lives on the first suitable panel object and
+                // is copied into each construction site only at instantiation.
+                if (currentBlueprintTemperatureLimit == null)
+                {
+                    currentBlueprintTemperatureLimit =
+                        __instance.gameObject.AddOrGet<TemperatureLimit>();
+                }
+
+                ResetConstructionMaterialTemperatureLimitToDefaultsIfOwned(
+                    currentBlueprintTemperatureLimit);
+                _ = __instance.gameObject.AddOrGet<TemperatureLimitWidget>();
+            }
+            catch (Exception exception)
             {
-                currentBlueprintTemperatureLimit =
-                    __instance.gameObject.AddOrGet<TemperatureLimit>();
+                RuntimeFailureReporting.DisableUserInterface(nameof(MaterialSelectionPanelPrefabInitializationPostfix), exception);
             }
-
-            ResetConstructionMaterialTemperatureLimitToDefaultsIfOwned(
-                currentBlueprintTemperatureLimit);
-            _ = __instance.gameObject.AddOrGet<TemperatureLimitWidget>();
         }
 
         internal static void MaterialSelectionPanelConfigurationPostfix(
             MaterialSelectionPanel __instance)
         {
-            if (!DeliveryTemperatureLimitOptions.Instance.UnderConstructionLimit ||
-                __instance == null)
+            if (!RuntimeFailureReporting.IsUserInterfaceEnabled) return;
+            try
             {
-                return;
-            }
+                if (!DeliveryTemperatureLimitOptions.Instance.UnderConstructionLimit ||
+                    __instance == null)
+                {
+                    return;
+                }
 
-            TemperatureLimitWidget? widget =
-                __instance.GetComponent<TemperatureLimitWidget>();
-            widget?.SetTarget(currentBlueprintTemperatureLimit);
+                TemperatureLimitWidget? widget =
+                    __instance.GetComponent<TemperatureLimitWidget>();
+                widget?.SetTarget(currentBlueprintTemperatureLimit);
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableUserInterface(nameof(MaterialSelectionPanelConfigurationPostfix), exception);
+            }
         }
 
         internal static void BuildingDefinitionInstantiationPostfix(
             GameObject? __result)
         {
-            if (!DeliveryTemperatureLimitOptions.Instance.UnderConstructionLimit ||
-                __result == null ||
-                currentBlueprintTemperatureLimit == null)
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                // MoveThisHere may deliberately replace Instantiate with a null
-                // result; no component lookup is safe or useful in that case.
-                return;
-            }
+                if (!DeliveryTemperatureLimitOptions.Instance.UnderConstructionLimit ||
+                    __result == null ||
+                    currentBlueprintTemperatureLimit == null)
+                {
+                    // MoveThisHere may deliberately replace Instantiate with a null
+                    // result; no component lookup is safe or useful in that case.
+                    return;
+                }
 
-            __result.AddOrGet<TemperatureLimit>().CopySettings(
-                currentBlueprintTemperatureLimit);
+                __result.AddOrGet<TemperatureLimit>().CopySettings(
+                    currentBlueprintTemperatureLimit);
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(BuildingDefinitionInstantiationPostfix), exception);
+            }
         }
 
         internal static void BuildingDefinitionPostProcessingPostfix(
             BuildingDef __instance)
         {
-            if (!DeliveryTemperatureLimitOptions.Instance.UnderConstructionLimit ||
-                __instance == null ||
-                __instance.BuildingUnderConstruction == null)
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                return;
-            }
+                if (!DeliveryTemperatureLimitOptions.Instance.UnderConstructionLimit ||
+                    __instance == null ||
+                    __instance.BuildingUnderConstruction == null)
+                {
+                    return;
+                }
 
-            // Every under-construction prefab needs the serialized component so
-            // an existing save can load a blueprint configured by an earlier run.
-            _ = __instance.BuildingUnderConstruction.gameObject
-                .AddOrGet<TemperatureLimit>();
+                // Every under-construction prefab needs the serialized component so
+                // an existing save can load a blueprint configured by an earlier run.
+                _ = __instance.BuildingUnderConstruction.gameObject
+                    .AddOrGet<TemperatureLimit>();
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(BuildingDefinitionPostProcessingPostfix), exception);
+            }
         }
 
         internal static void
             ResetConstructionMaterialTemperatureLimitToDefaultsIfOwned(
                 TemperatureLimit? candidateTemperatureLimit)
         {
-            if (candidateTemperatureLimit == null ||
-                candidateTemperatureLimit != currentBlueprintTemperatureLimit)
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                return;
-            }
+                if (candidateTemperatureLimit == null ||
+                    candidateTemperatureLimit != currentBlueprintTemperatureLimit)
+                {
+                    return;
+                }
 
-            candidateTemperatureLimit.SetLowLimit(
-                DeliveryTemperatureLimitOptions.Instance.MinConstructionTemperature);
-            candidateTemperatureLimit.SetHighLimit(
-                DeliveryTemperatureLimitOptions.Instance.MaxConstructionTemperature);
+                candidateTemperatureLimit.SetLowLimit(
+                    DeliveryTemperatureLimitOptions.Instance.MinConstructionTemperature);
+                candidateTemperatureLimit.SetHighLimit(
+                    DeliveryTemperatureLimitOptions.Instance.MaxConstructionTemperature);
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(ResetConstructionMaterialTemperatureLimitToDefaultsIfOwned), exception);
+            }
         }
 
         private static bool IsSupportedBlueprintMaterialSelectionPanel(

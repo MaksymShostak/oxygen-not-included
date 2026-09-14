@@ -150,7 +150,14 @@ public sealed class TemperatureRangeHelpTests
             "PeterHan.PLib.UI.PUIElements.CreateUI");
     }
 
-    private static void AssertRoutedEventOpensHelp(string method)
+    [TestMethod]
+    public void DisabledHelp_IgnoresRoutedClickAndHover()
+    {
+        AssertRoutedEventOpensHelp("OnPointerEnter", enabled: false);
+        AssertRoutedEventOpensHelp("OnSubmit", enabled: false);
+    }
+
+    private static void AssertRoutedEventOpensHelp(string method, bool enabled = true)
     {
         using var help = new HelpState();
         var instructions = Read("TemperatureRangeHelpScreen", method);
@@ -188,6 +195,8 @@ public sealed class TemperatureRangeHelpTests
                 case "call": case "callvirt":
                     switch (instruction.ResolvedOperand)
                     {
+                        case "DeliveryTemperatureLimit.RuntimeFailureReporting.get_IsUserInterfaceEnabled":
+                            stack.Push(enabled); break;
                         case "KScreen.OnPointerEnter": stack.Pop(); stack.Pop(); break;
                         case "DeliveryTemperatureLimit.TemperatureRangeHelpState.Activate":
                             ((HelpState)stack.Pop()).Call("Activate"); break;
@@ -200,8 +209,14 @@ public sealed class TemperatureRangeHelpTests
                     }
                     break;
                 case "ret":
-                    Assert.IsTrue(presented, "A pointer event delivered to the help control must request visible help.");
+                    Assert.AreEqual(enabled, presented, "Only an enabled help control may request visible help.");
                     return;
+                case "leave": case "leave.s":
+                    int destination = instructions[index + 1].Offset + Convert.ToInt32(instruction.Operand);
+                    index = instructions.ToList().FindIndex(item => item.Offset == destination) - 1;
+                    Assert.IsTrue(index >= 0);
+                    stack.Clear();
+                    break;
                 case "nop": break;
                 default: Assert.Fail("Unsupported event instruction: " + instruction); break;
             }

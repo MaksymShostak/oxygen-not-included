@@ -349,78 +349,96 @@ namespace DeliveryTemperatureLimit
             Pickupable pickupable,
             Storage? destination)
         {
-            if (!DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
-                    out var session) ||
-                ReferenceEquals(destination, null))
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return true;
+            try
             {
+                if (!DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
+                        out var session) ||
+                    ReferenceEquals(destination, null))
+                {
+                    return true;
+                }
+
+                int destinationGameObjectInstanceId =
+                    destination.gameObject.GetInstanceID();
+                if (!session.TemperatureLimitComponents.TryGetConstraint(
+                        destinationGameObjectInstanceId,
+                        out var constraint,
+                        out _) ||
+                    !constraint.IsEnabled)
+                {
+                    return true;
+                }
+
+                if (ReferenceEquals(pickupable, null))
+                {
+                    return true;
+                }
+
+                PrimaryElement primaryElement = pickupable.PrimaryElement;
+                if (ReferenceEquals(primaryElement, null))
+                {
+                    // Preserve Klei's characterized permissive handling of pickup
+                    // objects that have no PrimaryElement.
+                    return true;
+                }
+
+                // Canonical conversion and both bounds are owned by Allows. Read the
+                // live game temperature exactly once and do not duplicate that logic.
+                float temperatureKelvin = primaryElement.Temperature;
+                return constraint.Allows(temperatureKelvin);
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(IsPickupAllowedForDestination), exception);
                 return true;
             }
-
-            int destinationGameObjectInstanceId =
-                destination.gameObject.GetInstanceID();
-            if (!session.TemperatureLimitComponents.TryGetConstraint(
-                    destinationGameObjectInstanceId,
-                    out var constraint,
-                    out _) ||
-                !constraint.IsEnabled)
-            {
-                return true;
-            }
-
-            if (ReferenceEquals(pickupable, null))
-            {
-                return true;
-            }
-
-            PrimaryElement primaryElement = pickupable.PrimaryElement;
-            if (ReferenceEquals(primaryElement, null))
-            {
-                // Preserve Klei's characterized permissive handling of pickup
-                // objects that have no PrimaryElement.
-                return true;
-            }
-
-            // Canonical conversion and both bounds are owned by Allows. Read the
-            // live game temperature exactly once and do not duplicate that logic.
-            float temperatureKelvin = primaryElement.Temperature;
-            return constraint.Allows(temperatureKelvin);
         }
 
         private static bool CanCombineFetchChores(
             FetchChore rootFetchChore,
             FetchChore candidateFetchChore)
         {
-            if (!DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
-                    out var session))
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return true;
+            try
             {
+                if (!DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
+                        out var session))
+                {
+                    return true;
+                }
+
+                int? rootDestinationInstanceId =
+                    ResolveFetchChoreDestinationInstanceId(rootFetchChore);
+                int? candidateDestinationInstanceId =
+                    ResolveFetchChoreDestinationInstanceId(candidateFetchChore);
+                if (rootDestinationInstanceId.HasValue &&
+                    candidateDestinationInstanceId.HasValue &&
+                    rootDestinationInstanceId.Value ==
+                        candidateDestinationInstanceId.Value)
+                {
+                    // The same destination identity necessarily has the same indexed
+                    // immutable constraint. Avoid two concurrent-dictionary probes.
+                    return true;
+                }
+
+                DeliveryTemperatureConstraint? rootConstraint =
+                    ResolveOptionalDestinationConstraint(
+                        session,
+                        rootDestinationInstanceId);
+                DeliveryTemperatureConstraint? candidateConstraint =
+                    ResolveOptionalDestinationConstraint(
+                        session,
+                        candidateDestinationInstanceId);
+                return FetchChoreTemperatureConstraintContainment.CanCombine(
+                    rootConstraint,
+                    candidateConstraint);
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(CanCombineFetchChores), exception);
                 return true;
             }
-
-            int? rootDestinationInstanceId =
-                ResolveFetchChoreDestinationInstanceId(rootFetchChore);
-            int? candidateDestinationInstanceId =
-                ResolveFetchChoreDestinationInstanceId(candidateFetchChore);
-            if (rootDestinationInstanceId.HasValue &&
-                candidateDestinationInstanceId.HasValue &&
-                rootDestinationInstanceId.Value ==
-                    candidateDestinationInstanceId.Value)
-            {
-                // The same destination identity necessarily has the same indexed
-                // immutable constraint. Avoid two concurrent-dictionary probes.
-                return true;
-            }
-
-            DeliveryTemperatureConstraint? rootConstraint =
-                ResolveOptionalDestinationConstraint(
-                    session,
-                    rootDestinationInstanceId);
-            DeliveryTemperatureConstraint? candidateConstraint =
-                ResolveOptionalDestinationConstraint(
-                    session,
-                    candidateDestinationInstanceId);
-            return FetchChoreTemperatureConstraintContainment.CanCombine(
-                rootConstraint,
-                candidateConstraint);
         }
 
         private static bool CanReachAndPickupTemperatureIsAllowed(

@@ -9,6 +9,9 @@ namespace STRINGS
     /// </summary>
     public static class DELIVERY_TEMPERATURE_LIMIT
     {
+        public static LocString GAMEPLAY_FAILURE = "Delivery Temperature Limit encountered an error. Temperature limits are no longer enforced until you restart the game. Your saved limits have been retained. See Player.log for details.";
+        public static LocString USER_INTERFACE_FAILURE = "Delivery Temperature Limit controls are unavailable until you restart the game. Existing temperature limits have not been changed. See Player.log for details.";
+
         public static class SIDESCREEN
         {
             public static LocString TITLE = "Delivery Temperature Limit";

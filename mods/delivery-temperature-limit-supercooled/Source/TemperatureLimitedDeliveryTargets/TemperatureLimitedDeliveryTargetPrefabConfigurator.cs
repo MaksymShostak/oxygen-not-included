@@ -33,48 +33,59 @@ namespace DeliveryTemperatureLimit
         internal static void ConfigureTemperatureLimitedDeliveryTargetPrefabsPostfix(
             Dictionary<IBuildingConfig, BuildingDef> ___configTable)
         {
-            if (___configTable == null)
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                DeliveryTemperatureSupportReporter.Record(
-                    "DTL-PREFAB-CONFIGURATION-SKIPPED",
-                    SupportDiagnosticSeverity.Error,
-                    "Delivery Temperature Limit could not read the verified " +
-                    "building configuration table.");
-                return;
-            }
-
-            int configuredCompletePrefabCount = 0;
-            foreach (KeyValuePair<IBuildingConfig, BuildingDef>
-                     buildingConfiguration in ___configTable)
-            {
-                IBuildingConfig? configuration = buildingConfiguration.Key;
-                BuildingDef? buildingDefinition = buildingConfiguration.Value;
-                if (buildingDefinition == null)
+                if (___configTable == null)
                 {
-                    continue;
+                    DeliveryTemperatureSupportReporter.Record(
+                        "DTL-PREFAB-CONFIGURATION-SKIPPED",
+                        SupportDiagnosticSeverity.Error,
+                        "Delivery Temperature Limit could not read the verified " +
+                        "building configuration table.");
+                    return;
                 }
 
-                if (TryAddTemperatureLimit(
+                int configuredCompletePrefabCount = 0;
+                foreach (KeyValuePair<IBuildingConfig, BuildingDef>
+                         buildingConfiguration in ___configTable)
+                {
+                    IBuildingConfig? configuration = buildingConfiguration.Key;
+                    BuildingDef? buildingDefinition = buildingConfiguration.Value;
+                    if (buildingDefinition == null)
+                    {
+                        continue;
+                    }
+
+                    if (TryAddTemperatureLimit(
+                            configuration,
+                            buildingDefinition.BuildingComplete))
+                    {
+                        configuredCompletePrefabCount++;
+                    }
+
+                    // Eligibility must be evaluated against the under-construction
+                    // prefab itself. Reusing BuildingComplete here silently omitted
+                    // construction-only delivery/storage components from modded defs.
+                    _ = TryAddTemperatureLimit(
                         configuration,
-                        buildingDefinition.BuildingComplete))
-                {
-                    configuredCompletePrefabCount++;
+                        buildingDefinition.BuildingUnderConstruction);
                 }
 
-                // Eligibility must be evaluated against the under-construction
-                // prefab itself. Reusing BuildingComplete here silently omitted
-                // construction-only delivery/storage components from modded defs.
-                _ = TryAddTemperatureLimit(
-                    configuration,
-                    buildingDefinition.BuildingUnderConstruction);
+                DeliveryTemperatureSupportReporter.Record(
+                    "DTL-PREFAB-CONFIGURATION-COMPLETE",
+                    SupportDiagnosticSeverity.Information,
+                    "Delivery Temperature Limit configured " +
+                    configuredCompletePrefabCount +
+                    " eligible complete-building prefab types.");
             }
-
-            DeliveryTemperatureSupportReporter.Record(
-                "DTL-PREFAB-CONFIGURATION-COMPLETE",
-                SupportDiagnosticSeverity.Information,
-                "Delivery Temperature Limit configured " +
-                configuredCompletePrefabCount +
-                " eligible complete-building prefab types.");
+            catch (Exception exception)
+            {
+                if (DeliveryTemperatureGameSessionHost.TryDisableRuntime())
+                    DeliveryTemperatureSupportReporter.Record("DTL-PREFAB-CONFIGURATION-FAILED",
+                        SupportDiagnosticSeverity.Error,
+                        "Prefab registration failed; temperature enforcement is disabled until restart.", exception);
+            }
         }
 
         internal static bool IsEligibleDeliveryTargetPrefab(

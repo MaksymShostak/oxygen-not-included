@@ -95,7 +95,10 @@ public sealed class FastTrackPickupTemperaturePatchContractTests
         StringAssert.Contains(source, "GroupingSession.Discard()");
         StringAssert.Contains(source, "GroupingKeyAllocator.Discard()");
         StringAssert.Contains(source, "SessionScopeToken");
-        StringAssert.Contains(source, "return __exception ?? cleanupException");
+        StringAssert.Contains(source, "return __exception;");
+        StringAssert.Contains(source, "RuntimeFailureReporting.DisableGameplay(nameof(BeforeUpdatePickupsFinalizer), cleanupException)");
+        Assert.IsFalse(source.Contains("return __exception ?? cleanupException", StringComparison.Ordinal),
+            "Mod cleanup failures must disable enforcement instead of becoming game exceptions.");
     }
 
     private static string ResolveProductionSourcePath(

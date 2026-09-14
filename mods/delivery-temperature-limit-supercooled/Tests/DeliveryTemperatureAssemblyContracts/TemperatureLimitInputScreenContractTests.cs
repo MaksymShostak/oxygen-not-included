@@ -118,10 +118,11 @@ public sealed class TemperatureLimitInputScreenContractTests
             // two native boundary properties. No TMP or screen routing is simulated.
             Assert.IsTrue(EvaluateCapture(instructions, editing: true), method);
             Assert.IsFalse(EvaluateCapture(instructions, editing: false), method);
+            Assert.IsFalse(EvaluateCapture(instructions, editing: true, enabled: false), method);
         }
     }
 
-    private static bool EvaluateCapture(IReadOnlyList<AssemblyInstructionContract> instructions, bool editing)
+    private static bool EvaluateCapture(IReadOnlyList<AssemblyInstructionContract> instructions, bool editing, bool enabled = true)
     {
         var stack = new Stack<object>();
         bool consumed = false;
@@ -133,7 +134,9 @@ public sealed class TemperatureLimitInputScreenContractTests
                 case "ldarg.0": case "ldarg.1": stack.Push(new object()); break;
                 case "ldc.i4.1": stack.Push(true); break;
                 case "call": case "callvirt":
-                    if (instruction.ResolvedOperand == "KScreen.get_isEditing")
+                    if (instruction.ResolvedOperand == "DeliveryTemperatureLimit.RuntimeFailureReporting.get_IsUserInterfaceEnabled")
+                        stack.Push(enabled);
+                    else if (instruction.ResolvedOperand == "KScreen.get_isEditing")
                     {
                         stack.Pop(); stack.Push(editing);
                     }
@@ -143,8 +146,9 @@ public sealed class TemperatureLimitInputScreenContractTests
                     }
                     else Assert.Fail("Unexpected native call in key capture: " + instruction);
                     break;
-                case "brfalse": case "brfalse.s":
-                    if (!(bool)stack.Pop())
+                case "brfalse": case "brfalse.s": case "brtrue": case "brtrue.s":
+                    bool condition = (bool)stack.Pop();
+                    if (condition == instruction.Operation.StartsWith("brtrue", StringComparison.Ordinal))
                     {
                         int target = instructions[index + 1].Offset + Convert.ToInt32(instruction.Operand);
                         int targetIndex = instructions.ToList().FindIndex(item => item.Offset == target);
@@ -153,6 +157,12 @@ public sealed class TemperatureLimitInputScreenContractTests
                     }
                     break;
                 case "ret": return consumed;
+                case "leave": case "leave.s":
+                    int destination = instructions[index + 1].Offset + Convert.ToInt32(instruction.Operand);
+                    index = instructions.ToList().FindIndex(item => item.Offset == destination) - 1;
+                    Assert.IsTrue(index >= 0);
+                    stack.Clear();
+                    break;
                 case "nop": break;
                 default: Assert.Fail("Unsupported capture instruction: " + instruction); break;
             }

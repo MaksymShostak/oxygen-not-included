@@ -73,14 +73,22 @@ namespace DeliveryTemperatureLimit
 
         internal static void GlobalChoreProviderAddChorePostfix(Chore chore)
         {
-            if (chore is FetchChore &&
-                DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
-                    out var session))
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                // Klei's installed AddChore body unconditionally appends a
-                // FetchChore after the original returns successfully. A postfix
-                // invocation is therefore proof of one effective map mutation.
-                session.FetchRequestTopology.RecordEffectiveChange();
+                if (chore is FetchChore &&
+                    DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
+                        out var session))
+                {
+                    // Klei's installed AddChore body unconditionally appends a
+                    // FetchChore after the original returns successfully. A postfix
+                    // invocation is therefore proof of one effective map mutation.
+                    session.FetchRequestTopology.RecordEffectiveChange();
+                }
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(GlobalChoreProviderAddChorePostfix), exception);
             }
         }
 
@@ -90,45 +98,62 @@ namespace DeliveryTemperatureLimit
             out FetchChoreRemovalObservation __state)
         {
             __state = FetchChoreRemovalObservation.Inactive;
-            if (!(chore is FetchChore fetchChore) ||
-                ___fetchMap == null ||
-                !DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
-                    out var session))
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                return;
-            }
+                __state = FetchChoreRemovalObservation.Inactive;
+                if (!(chore is FetchChore fetchChore) ||
+                    ___fetchMap == null ||
+                    !DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
+                        out var session))
+                {
+                    return;
+                }
 
-            // RemoveChore clears provider even when List.Remove finds nothing.
-            // Version only the topology when the exact FetchChore was actually in
-            // the parent-world list immediately before Klei attempted removal.
-            UnityEngine.GameObject fetchChoreGameObject =
-                fetchChore.gameObject;
-            if (fetchChoreGameObject == null)
+                // RemoveChore clears provider even when List.Remove finds nothing.
+                // Version only the topology when the exact FetchChore was actually in
+                // the parent-world list immediately before Klei attempted removal.
+                UnityEngine.GameObject fetchChoreGameObject =
+                    fetchChore.gameObject;
+                if (fetchChoreGameObject == null)
+                {
+                    return;
+                }
+
+                int parentWorldId =
+                    fetchChoreGameObject.GetMyParentWorldId();
+                if (parentWorldId < 0 ||
+                    !___fetchMap.TryGetValue(
+                        parentWorldId,
+                        out var parentWorldFetchChores) ||
+                    !parentWorldFetchChores.Contains(fetchChore))
+                {
+                    return;
+                }
+
+                __state = FetchChoreRemovalObservation.Effective(session);
+            }
+            catch (Exception exception)
             {
-                return;
+                RuntimeFailureReporting.DisableGameplay(nameof(GlobalChoreProviderRemoveChorePrefix), exception);
             }
-
-            int parentWorldId =
-                fetchChoreGameObject.GetMyParentWorldId();
-            if (parentWorldId < 0 ||
-                !___fetchMap.TryGetValue(
-                    parentWorldId,
-                    out var parentWorldFetchChores) ||
-                !parentWorldFetchChores.Contains(fetchChore))
-            {
-                return;
-            }
-
-            __state = FetchChoreRemovalObservation.Effective(session);
         }
 
         internal static void GlobalChoreProviderRemoveChorePostfix(
             FetchChoreRemovalObservation __state)
         {
-            if (__state.IsEffective &&
-                __state.Session.IsAcceptingPublications)
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                __state.Session.FetchRequestTopology.RecordEffectiveChange();
+                if (__state.IsEffective &&
+                    __state.Session.IsAcceptingPublications)
+                {
+                    __state.Session.FetchRequestTopology.RecordEffectiveChange();
+                }
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(GlobalChoreProviderRemoveChorePostfix), exception);
             }
         }
 
@@ -137,83 +162,109 @@ namespace DeliveryTemperatureLimit
             out FetchChoreTagChangeObservation __state)
         {
             __state = FetchChoreTagChangeObservation.Inactive;
-            if (__instance == null ||
-                !DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
-                    out var session))
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                return;
-            }
+                __state = FetchChoreTagChangeObservation.Inactive;
+                if (__instance == null ||
+                    !DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
+                        out var session))
+                {
+                    return;
+                }
 
-            // Copy values, not the mutable HashSet reference. The prefix/postfix
-            // comparison must detect an in-place mutation and must not version an
-            // event whose requested-tag set is semantically identical.
-            __state = FetchChoreTagChangeObservation.Active(
-                session,
-                RequestedTagSetSnapshot.Capture(__instance.tags));
+                // Copy values, not the mutable HashSet reference. The prefix/postfix
+                // comparison must detect an in-place mutation and must not version an
+                // event whose requested-tag set is semantically identical.
+                __state = FetchChoreTagChangeObservation.Active(
+                    session,
+                    RequestedTagSetSnapshot.Capture(__instance.tags));
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(FetchChoreOnTagsChangedPrefix), exception);
+            }
         }
 
         internal static void FetchChoreOnTagsChangedPostfix(
             FetchChore __instance,
             FetchChoreTagChangeObservation __state)
         {
-            if (!__state.IsActive ||
-                !__state.Session.IsAcceptingPublications ||
-                __state.PriorRequestedTags.Matches(
-                    __instance == null ? null : __instance.tags))
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                return;
-            }
+                if (!__state.IsActive ||
+                    !__state.Session.IsAcceptingPublications ||
+                    __state.PriorRequestedTags.Matches(
+                        __instance == null ? null : __instance.tags))
+                {
+                    return;
+                }
 
-            __state.Session.FetchRequestTopology.RecordEffectiveChange();
+                __state.Session.FetchRequestTopology.RecordEffectiveChange();
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(FetchChoreOnTagsChangedPostfix), exception);
+            }
         }
 
         internal static void UpdateStorageFetchableBitsPrefix(
             out AuthoritativeFetchEligibilityBuildInvocation __state)
         {
-            if (currentThreadBuildInvocation != null)
-            {
-                throw new InvalidOperationException(
-                    "GlobalChoreProvider.UpdateStorageFetchableBits re-entered " +
-                    "temperature eligibility collection on the same thread.");
-            }
-
             __state = AuthoritativeFetchEligibilityBuildInvocation.Inactive;
-            if (!DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
-                    out var session))
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                return;
-            }
+                if (currentThreadBuildInvocation != null)
+                {
+                    throw new InvalidOperationException(
+                        "GlobalChoreProvider.UpdateStorageFetchableBits re-entered " +
+                        "temperature eligibility collection on the same thread.");
+                }
 
-            ActiveTemperatureConstraintSnapshot activeConstraints =
-                session.TemperatureConstraints.CaptureSnapshot();
-            if (activeConstraints.EnabledConstraintCount == 0)
+                __state = AuthoritativeFetchEligibilityBuildInvocation.Inactive;
+                if (!DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
+                        out var session))
+                {
+                    return;
+                }
+
+                ActiveTemperatureConstraintSnapshot activeConstraints =
+                    session.TemperatureConstraints.CaptureSnapshot();
+                if (activeConstraints.EnabledConstraintCount == 0)
+                {
+                    // The common bypass retains no game/session object and allocates no
+                    // builder or requested-tag array. The transpiled body performs only
+                    // predictable inactive branches around its optional hook points.
+                    return;
+                }
+
+                FetchRequestTopologyVersion fetchTopologyVersion =
+                    session.FetchRequestTopology.CaptureVersion();
+                WorldParentTopologySnapshot worldTopology =
+                    session.WorldParentTopology.CaptureSnapshot();
+                FetchTemperatureEligibilityBuilder builder =
+                    reusableThreadBuilder ??
+                    (reusableThreadBuilder =
+                        new FetchTemperatureEligibilityBuilder());
+                builder.Begin(
+                    session.Generation,
+                    activeConstraints,
+                    fetchTopologyVersion,
+                    worldTopology);
+
+                var invocation =
+                    AuthoritativeFetchEligibilityBuildInvocation.Active(
+                        session,
+                        builder);
+                currentThreadBuildInvocation = invocation;
+                __state = invocation;
+            }
+            catch (Exception exception)
             {
-                // The common bypass retains no game/session object and allocates no
-                // builder or requested-tag array. The transpiled body performs only
-                // predictable inactive branches around its optional hook points.
-                return;
+                RuntimeFailureReporting.DisableGameplay(nameof(UpdateStorageFetchableBitsPrefix), exception);
             }
-
-            FetchRequestTopologyVersion fetchTopologyVersion =
-                session.FetchRequestTopology.CaptureVersion();
-            WorldParentTopologySnapshot worldTopology =
-                session.WorldParentTopology.CaptureSnapshot();
-            FetchTemperatureEligibilityBuilder builder =
-                reusableThreadBuilder ??
-                (reusableThreadBuilder =
-                    new FetchTemperatureEligibilityBuilder());
-            builder.Begin(
-                session.Generation,
-                activeConstraints,
-                fetchTopologyVersion,
-                worldTopology);
-
-            var invocation =
-                AuthoritativeFetchEligibilityBuildInvocation.Active(
-                    session,
-                    builder);
-            currentThreadBuildInvocation = invocation;
-            __state = invocation;
         }
 
         internal static IEnumerable<CodeInstruction>
@@ -372,18 +423,26 @@ namespace DeliveryTemperatureLimit
         internal static void UpdateStorageFetchableBitsPostfix(
             AuthoritativeFetchEligibilityBuildInvocation __state)
         {
-            if (!__state.IsActive || !__state.IsCandidateValid)
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                return;
-            }
+                if (!__state.IsActive || !__state.IsCandidateValid)
+                {
+                    return;
+                }
 
-            RequireCurrentThreadBuildInvocation(__state);
-            FetchTemperatureEligibilitySnapshot candidate =
-                __state.Builder.Build();
-            __state.MarkCandidateBuilt();
-            if (__state.Session.TryPublishFetchTemperatureEligibility(candidate))
+                RequireCurrentThreadBuildInvocation(__state);
+                FetchTemperatureEligibilitySnapshot candidate =
+                    __state.Builder.Build();
+                __state.MarkCandidateBuilt();
+                if (__state.Session.TryPublishFetchTemperatureEligibility(candidate))
+                {
+                    __state.MarkPublicationAccepted();
+                }
+            }
+            catch (Exception exception)
             {
-                __state.MarkPublicationAccepted();
+                RuntimeFailureReporting.DisableGameplay(nameof(UpdateStorageFetchableBitsPostfix), exception);
             }
         }
 
@@ -391,137 +450,153 @@ namespace DeliveryTemperatureLimit
             Exception? __exception,
             AuthoritativeFetchEligibilityBuildInvocation __state)
         {
-            if (!__state.IsActive)
-            {
-                return __exception;
-            }
-
             try
             {
-                RequireCurrentThreadBuildInvocation(__state);
-                if (!__state.IsCandidateBuilt ||
-                    !__state.IsPublicationAccepted)
+                if (!__state.IsActive)
                 {
-                    // Discard is intentionally safe after Build. A publication can
-                    // be rejected only after normalization has completed, whereas
-                    // an original/transpiler exception leaves a partial build. One
-                    // finalizer path releases both cases without guessing progress.
-                    __state.Builder.Discard();
+                    return __exception;
                 }
-            }
-            finally
-            {
-                currentThreadBuildInvocation = null;
-            }
 
-            return __exception;
+                try
+                {
+                    RequireCurrentThreadBuildInvocation(__state);
+                    if (!__state.IsCandidateBuilt ||
+                        !__state.IsPublicationAccepted)
+                    {
+                        // Discard is intentionally safe after Build. A publication can
+                        // be rejected only after normalization has completed, whereas
+                        // an original/transpiler exception leaves a partial build. One
+                        // finalizer path releases both cases without guessing progress.
+                        __state.Builder.Discard();
+                    }
+                }
+                finally
+                {
+                    currentThreadBuildInvocation = null;
+                }
+
+                return __exception;
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(UpdateStorageFetchableBitsFinalizer), exception);
+                return __exception;
+            }
         }
 
         internal static void ClearableHasDestinationPostfix(
             Pickupable pickupable,
             ref bool __result)
         {
-            bool originalHasDestination = __result;
-            if (!originalHasDestination ||
-                !DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
-                    out var session))
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                return;
-            }
+                bool originalHasDestination = __result;
+                if (!originalHasDestination ||
+                    !DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
+                        out var session))
+                {
+                    return;
+                }
 
-            ActiveTemperatureConstraintSnapshot activeConstraints =
-                session.TemperatureConstraints.CaptureSnapshot();
-            if (activeConstraints.EnabledConstraintCount == 0)
-            {
-                // Preserve Klei's result without touching PrimaryElement, topology,
-                // the combined snapshot, or a decision bucket on the bypass path.
-                return;
-            }
+                ActiveTemperatureConstraintSnapshot activeConstraints =
+                    session.TemperatureConstraints.CaptureSnapshot();
+                if (activeConstraints.EnabledConstraintCount == 0)
+                {
+                    // Preserve Klei's result without touching PrimaryElement, topology,
+                    // the combined snapshot, or a decision bucket on the bypass path.
+                    return;
+                }
 
-            PrimaryElement? primaryElement = null;
-            if (pickupable != null)
-            {
-                // Capture the Unity-backed component property exactly once for this
-                // decision; all later temperature work uses this local reference.
-                primaryElement = pickupable.PrimaryElement;
-            }
+                PrimaryElement? primaryElement = null;
+                if (pickupable != null)
+                {
+                    // Capture the Unity-backed component property exactly once for this
+                    // decision; all later temperature work uses this local reference.
+                    primaryElement = pickupable.PrimaryElement;
+                }
 
-            if (pickupable == null || primaryElement == null)
-            {
-                __result = ClearableDestinationSweepEligibility.AllowsClearing(
-                    new ClearableDestinationSweepEligibilityInput(
-                        originalHasDestination,
-                        activeConstraints.EnabledConstraintCount,
-                        hasPrimaryElement: false,
-                        isParentWorldResolved: false,
-                        isEligibilitySnapshotCurrent: false,
-                        currentEligibilityAllowsPickup: false));
-                return;
-            }
+                if (pickupable == null || primaryElement == null)
+                {
+                    __result = ClearableDestinationSweepEligibility.AllowsClearing(
+                        new ClearableDestinationSweepEligibilityInput(
+                            originalHasDestination,
+                            activeConstraints.EnabledConstraintCount,
+                            hasPrimaryElement: false,
+                            isParentWorldResolved: false,
+                            isEligibilitySnapshotCurrent: false,
+                            currentEligibilityAllowsPickup: false));
+                    return;
+                }
 
-            WorldParentTopologySnapshot worldTopology =
-                session.WorldParentTopology.CaptureSnapshot();
-            int worldId = pickupable.GetMyWorldId();
-            int parentWorldId = -1;
-            bool isParentWorldResolved =
-                worldId >= 0 &&
-                worldTopology.TryResolveParentWorld(
-                    worldId,
-                    out parentWorldId);
-            if (!isParentWorldResolved)
-            {
+                WorldParentTopologySnapshot worldTopology =
+                    session.WorldParentTopology.CaptureSnapshot();
+                int worldId = pickupable.GetMyWorldId();
+                int parentWorldId = -1;
+                bool isParentWorldResolved =
+                    worldId >= 0 &&
+                    worldTopology.TryResolveParentWorld(
+                        worldId,
+                        out parentWorldId);
+                if (!isParentWorldResolved)
+                {
+                    __result = ClearableDestinationSweepEligibility.AllowsClearing(
+                        new ClearableDestinationSweepEligibilityInput(
+                            originalHasDestination,
+                            activeConstraints.EnabledConstraintCount,
+                            hasPrimaryElement: true,
+                            isParentWorldResolved: false,
+                            isEligibilitySnapshotCurrent: false,
+                            currentEligibilityAllowsPickup: false));
+                    return;
+                }
+
+                FetchRequestTopologyVersion currentFetchTopologyVersion =
+                    session.FetchRequestTopology.CaptureVersion();
+                FetchTemperatureEligibilitySnapshot? eligibilitySnapshot =
+                    session.CurrentFetchTemperatureEligibility;
+                bool isEligibilitySnapshotCurrent =
+                    eligibilitySnapshot != null &&
+                    eligibilitySnapshot.GameSessionGeneration.Equals(
+                        session.Generation) &&
+                    eligibilitySnapshot.ConstraintGeneration.Equals(
+                        activeConstraints.Generation) &&
+                    eligibilitySnapshot.FetchTopologyVersion.Equals(
+                        currentFetchTopologyVersion) &&
+                    eligibilitySnapshot.WorldTopologyVersion.Equals(
+                        worldTopology.Version) &&
+                    worldTopology.GameSessionGeneration.Equals(
+                        session.Generation);
+
+                bool currentEligibilityAllowsPickup = false;
+                KPrefabID? prefabIdentity = pickupable.KPrefabID;
+                if (isEligibilitySnapshotCurrent &&
+                    prefabIdentity != null &&
+                    eligibilitySnapshot!.TryGetStorageEligibility(
+                        parentWorldId,
+                        prefabIdentity.PrefabTag,
+                        out var allowedTemperatures))
+                {
+                    TemperatureDecisionBucket temperatureBucket =
+                        TemperatureDecisionBucket.FromTemperature(
+                            primaryElement.Temperature);
+                    currentEligibilityAllowsPickup =
+                        allowedTemperatures.Allows(temperatureBucket);
+                }
+
                 __result = ClearableDestinationSweepEligibility.AllowsClearing(
                     new ClearableDestinationSweepEligibilityInput(
                         originalHasDestination,
                         activeConstraints.EnabledConstraintCount,
                         hasPrimaryElement: true,
-                        isParentWorldResolved: false,
-                        isEligibilitySnapshotCurrent: false,
-                        currentEligibilityAllowsPickup: false));
-                return;
+                        isParentWorldResolved: true,
+                        isEligibilitySnapshotCurrent,
+                        currentEligibilityAllowsPickup));
             }
-
-            FetchRequestTopologyVersion currentFetchTopologyVersion =
-                session.FetchRequestTopology.CaptureVersion();
-            FetchTemperatureEligibilitySnapshot? eligibilitySnapshot =
-                session.CurrentFetchTemperatureEligibility;
-            bool isEligibilitySnapshotCurrent =
-                eligibilitySnapshot != null &&
-                eligibilitySnapshot.GameSessionGeneration.Equals(
-                    session.Generation) &&
-                eligibilitySnapshot.ConstraintGeneration.Equals(
-                    activeConstraints.Generation) &&
-                eligibilitySnapshot.FetchTopologyVersion.Equals(
-                    currentFetchTopologyVersion) &&
-                eligibilitySnapshot.WorldTopologyVersion.Equals(
-                    worldTopology.Version) &&
-                worldTopology.GameSessionGeneration.Equals(
-                    session.Generation);
-
-            bool currentEligibilityAllowsPickup = false;
-            KPrefabID? prefabIdentity = pickupable.KPrefabID;
-            if (isEligibilitySnapshotCurrent &&
-                prefabIdentity != null &&
-                eligibilitySnapshot!.TryGetStorageEligibility(
-                    parentWorldId,
-                    prefabIdentity.PrefabTag,
-                    out var allowedTemperatures))
+            catch (Exception exception)
             {
-                TemperatureDecisionBucket temperatureBucket =
-                    TemperatureDecisionBucket.FromTemperature(
-                        primaryElement.Temperature);
-                currentEligibilityAllowsPickup =
-                    allowedTemperatures.Allows(temperatureBucket);
+                RuntimeFailureReporting.DisableGameplay(nameof(ClearableHasDestinationPostfix), exception);
             }
-
-            __result = ClearableDestinationSweepEligibility.AllowsClearing(
-                new ClearableDestinationSweepEligibilityInput(
-                    originalHasDestination,
-                    activeConstraints.EnabledConstraintCount,
-                    hasPrimaryElement: true,
-                    isParentWorldResolved: true,
-                    isEligibilitySnapshotCurrent,
-                    currentEligibilityAllowsPickup));
         }
 
         private static bool IsAuthoritativeFetchEligibilityBuildActive() =>
@@ -530,66 +605,82 @@ namespace DeliveryTemperatureLimit
 
         private static void BeginParentWorldFetchMapSection(int parentWorldId)
         {
-            AuthoritativeFetchEligibilityBuildInvocation? invocation =
-                currentThreadBuildInvocation;
-            if (invocation == null || !invocation.IsCandidateValid)
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                return;
-            }
+                AuthoritativeFetchEligibilityBuildInvocation? invocation =
+                    currentThreadBuildInvocation;
+                if (invocation == null || !invocation.IsCandidateValid)
+                {
+                    return;
+                }
 
-            if (parentWorldId < 0)
+                if (parentWorldId < 0)
+                {
+                    invocation.RejectCandidate();
+                    return;
+                }
+
+                invocation.BeginParentWorldSection(parentWorldId);
+            }
+            catch (Exception exception)
             {
-                invocation.RejectCandidate();
-                return;
+                RuntimeFailureReporting.DisableGameplay(nameof(BeginParentWorldFetchMapSection), exception);
             }
-
-            invocation.BeginParentWorldSection(parentWorldId);
         }
 
         private static void RecordSelectedFetchChore(FetchChore fetchChore)
         {
-            AuthoritativeFetchEligibilityBuildInvocation? invocation =
-                currentThreadBuildInvocation;
-            if (invocation == null || !invocation.IsCandidateValid)
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                return;
-            }
+                AuthoritativeFetchEligibilityBuildInvocation? invocation =
+                    currentThreadBuildInvocation;
+                if (invocation == null || !invocation.IsCandidateValid)
+                {
+                    return;
+                }
 
-            if (fetchChore == null ||
-                !invocation.TryGetCurrentParentWorldId(
-                    out var parentWorldId) ||
-                fetchChore.tags == null ||
-                fetchChore.destination == null ||
-                fetchChore.destination.gameObject == null)
-            {
-                // Klei's selected path proved these values moments earlier, but a
-                // defensive adapter must reject the whole candidate if that proof
-                // cannot be translated. It never turns missing evidence into an
-                // unconstrained destination.
-                invocation.RejectCandidate();
-                return;
-            }
+                if (fetchChore == null ||
+                    !invocation.TryGetCurrentParentWorldId(
+                        out var parentWorldId) ||
+                    fetchChore.tags == null ||
+                    fetchChore.destination == null ||
+                    fetchChore.destination.gameObject == null)
+                {
+                    // Klei's selected path proved these values moments earlier, but a
+                    // defensive adapter must reject the whole candidate if that proof
+                    // cannot be translated. It never turns missing evidence into an
+                    // unconstrained destination.
+                    invocation.RejectCandidate();
+                    return;
+                }
 
-            var requestedTags = new Tag[fetchChore.tags.Count];
-            fetchChore.tags.CopyTo(requestedTags);
-            int destinationGameObjectInstanceId =
-                fetchChore.destination.gameObject.GetInstanceID();
-            if (invocation.Session.TemperatureLimitComponents.TryGetConstraint(
-                    destinationGameObjectInstanceId,
-                    out var destinationConstraint,
-                    out _) &&
-                destinationConstraint.IsEnabled)
-            {
-                invocation.Builder.AddTemperatureConstrainedFetchRequest(
+                var requestedTags = new Tag[fetchChore.tags.Count];
+                fetchChore.tags.CopyTo(requestedTags);
+                int destinationGameObjectInstanceId =
+                    fetchChore.destination.gameObject.GetInstanceID();
+                if (invocation.Session.TemperatureLimitComponents.TryGetConstraint(
+                        destinationGameObjectInstanceId,
+                        out var destinationConstraint,
+                        out _) &&
+                    destinationConstraint.IsEnabled)
+                {
+                    invocation.Builder.AddTemperatureConstrainedFetchRequest(
+                        parentWorldId,
+                        requestedTags,
+                        destinationConstraint);
+                    return;
+                }
+
+                invocation.Builder.AddUnconstrainedFetchRequest(
                     parentWorldId,
-                    requestedTags,
-                    destinationConstraint);
-                return;
+                    requestedTags);
             }
-
-            invocation.Builder.AddUnconstrainedFetchRequest(
-                parentWorldId,
-                requestedTags);
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(RecordSelectedFetchChore), exception);
+            }
         }
 
         private static bool MatchesParentWorldFetchMapSectionStart(

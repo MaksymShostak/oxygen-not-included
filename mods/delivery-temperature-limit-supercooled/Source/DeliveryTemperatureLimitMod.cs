@@ -17,19 +17,20 @@ namespace DeliveryTemperatureLimit
     {
         public override void OnLoad(Harmony harmony)
         {
-            base.OnLoad(harmony);
-            DeliveryTemperatureSupportReporter.Initialize(mod, assembly);
-            PUtil.InitLibrary(false);
-            Localization.RegisterForTranslation(
-                typeof(STRINGS.DELIVERY_TEMPERATURE_LIMIT));
-            new PLocalization().Register();
-            DeliveryTemperatureOptionsUiBridge.Register(this);
-
-            // These targets exist independently of the loaded-mod topology.
-            // The installer still resolves every member before it mutates
-            // Harmony, and rolls back only methods installed by this attempt.
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
             try
             {
+                base.OnLoad(harmony);
+                DeliveryTemperatureSupportReporter.Initialize(mod, assembly);
+                PUtil.InitLibrary(false);
+                Localization.RegisterForTranslation(
+                    typeof(STRINGS.DELIVERY_TEMPERATURE_LIMIT));
+                new PLocalization().Register();
+                DeliveryTemperatureOptionsUiBridge.Register(this);
+
+                // These targets exist independently of the loaded-mod topology.
+                // The installer still resolves every member before it mutates
+                // Harmony, and rolls back only methods installed by this attempt.
                 DeliveryTemperatureRuntimePatchInstaller
                     .InstallLoadedModTopologyIndependentPatches(harmony);
             }
@@ -37,10 +38,8 @@ namespace DeliveryTemperatureLimit
             {
                 DeliveryTemperatureSupportReporter.Record(
                     "DTL-PATCH-TOPOLOGY-INDEPENDENT-FAILED",
-                    SupportDiagnosticSeverity.Error,
-                    "Loaded-mod-independent patch installation failed.",
-                    exception);
-                throw;
+                    SupportDiagnosticSeverity.Error, "Mod initialization failed.", exception);
+                RuntimeFailureReporting.DisableGameplay(nameof(OnLoad), exception);
             }
         }
 
@@ -48,28 +47,25 @@ namespace DeliveryTemperatureLimit
             Harmony harmony,
             IReadOnlyList<KMod.Mod> loadedMods)
         {
-            base.OnAllModsLoaded(harmony, loadedMods);
-            DeliveryTemperatureSupportReporter.PublishLoadedMods(loadedMods);
-
-            // FastTrack must be identified from ONI's active loaded-mod graph,
-            // never from an assembly that merely happens to be loadable. This
-            // phase selects one coherent implementation family and verifies the
-            // complete selected contract before installing its first patch.
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
             try
             {
+                base.OnAllModsLoaded(harmony, loadedMods);
+                DeliveryTemperatureSupportReporter.PublishLoadedMods(loadedMods);
+
+                // FastTrack must be identified from ONI's active loaded-mod graph,
+                // never from an assembly that merely happens to be loadable. This
+                // phase selects one coherent implementation family and verifies the
+                // complete selected contract before installing its first patch.
                 DeliveryTemperatureRuntimePatchInstaller
-                    .InstallLoadedModTopologyDependentPatches(
-                        harmony,
-                        loadedMods);
+                    .InstallLoadedModTopologyDependentPatches(harmony, loadedMods);
             }
             catch (Exception exception)
             {
                 DeliveryTemperatureSupportReporter.Record(
                     "DTL-PATCH-TOPOLOGY-DEPENDENT-FAILED",
-                    SupportDiagnosticSeverity.Error,
-                    "Loaded-mod-dependent patch installation failed.",
-                    exception);
-                throw;
+                    SupportDiagnosticSeverity.Error, "Loaded-mod integration initialization failed.", exception);
+                RuntimeFailureReporting.DisableGameplay(nameof(OnAllModsLoaded), exception);
             }
         }
     }

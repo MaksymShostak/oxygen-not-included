@@ -103,144 +103,154 @@ namespace DeliveryTemperatureLimit
         {
             __state =
                 FastTrackWorldInventoryTemperatureCollectionInvocation.Inactive;
-            if (__instance == null ||
-                !DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
-                    out DeliveryTemperatureGameSession gameSession))
-            {
-                return;
-            }
-
-            ActiveTemperatureConstraintSnapshot activeConstraints =
-                gameSession.TemperatureConstraints.CaptureSnapshot();
-            if (activeConstraints.EnabledConstraintCount == 0)
-            {
-                // No session, coverage enumeration, builder, or retained game
-                // object is created in the ordinary fully-disabled path.
-                return;
-            }
-
-            if (___worldContainer == null || ___worldInventory == null)
-            {
-                // The verified FastTrack fields are authoritative. Never fall
-                // back to a global world lookup or guess a sentinel world ID.
-                return;
-            }
-
-            int worldId = ___worldContainer.id;
-            if (worldId < 0)
-            {
-                return;
-            }
-
-            WorldInventoryCollectionGeneration collectionGeneration =
-                gameSession.CurrentWorldInventoryCollectionGeneration;
-            if (collectionGeneration.Value <= 0)
-            {
-                throw new InvalidOperationException(
-                    "An enabled temperature constraint exists without a current " +
-                    "world-inventory collection generation.");
-            }
-
-            IDictionary<Tag, HashSet<Pickupable>>? worldInventoryEntries =
-                RequireVerifiedWorldInventoryFeatureBinding()
-                    .ReadWorldInventoryEntries(___worldInventory);
-            if (worldInventoryEntries == null)
-            {
-                // FastTrack itself skips this update when the backing collection
-                // is absent, so the adapter must not manufacture empty coverage.
-                return;
-            }
-
-            FastTrackWorldInventoryPublicationSession publicationSession =
-                PublicationSessionsByBackgroundInventory.GetValue(
-                    __instance,
-                    CreatePublicationSession);
-            bool publicationSessionHasBegun = false;
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
             try
             {
-                if (___firstUpdate)
-                {
-                    publicationSession.BeginCompleteWorldUpdate(
-                        gameSession.Generation,
-                        collectionGeneration);
-                    publicationSessionHasBegun = true;
-                }
-                else
-                {
-                    WorldResourceTagCoverageRequirementState coverageState =
-                        gameSession.WorldResourceTemperatureAmounts
-                            .GetWorldResourceTagCoverageRequirementState(
-                                worldId,
-                                collectionGeneration);
-                    switch (coverageState)
-                    {
-                        case WorldResourceTagCoverageRequirementState
-                            .UnknownWorldOrCollectionGeneration:
-                            EmitUnknownCoverageDiagnosticOnce(
-                                gameSession,
-                                worldId,
-                                collectionGeneration);
-                            return;
-
-                        case WorldResourceTagCoverageRequirementState
-                            .CoverageRequired:
-                            // WorldResourceTagCoverage.Create performs the one
-                            // defensive copy. Pickupable sets are never visited.
-                            publicationSession
-                                .BeginIncrementalResourceTagUpdateRequiringCoverage(
-                                    gameSession.Generation,
-                                    collectionGeneration,
-                                    worldInventoryEntries.Keys);
-                            publicationSessionHasBegun = true;
-                            break;
-
-                        case WorldResourceTagCoverageRequirementState
-                            .CoverageCurrent:
-                            if (worldInventoryEntries.Count == 0)
-                            {
-                                // Coverage already proves an empty inventory and
-                                // FastTrack has no selected tag to refresh.
-                                return;
-                            }
-
-                            publicationSession
-                                .BeginIncrementalResourceTagUpdateWithCurrentCoverage(
-                                    gameSession.Generation,
-                                    collectionGeneration);
-                            publicationSessionHasBegun = true;
-                            break;
-
-                        default:
-                            throw new ArgumentOutOfRangeException(
-                                nameof(coverageState),
-                                coverageState,
-                                "Unknown world resource-tag coverage requirement " +
-                                "state.");
-                    }
-                }
-
-                ThreadConfinedSessionSlot<
-                        FastTrackWorldInventoryPublicationSession>
-                    .SessionScopeToken sessionScopeToken =
-                        ThreadConfinedSessionSlot<
-                            FastTrackWorldInventoryPublicationSession>.Enter(
-                                gameSession.Generation,
-                                publicationSession);
                 __state =
-                    FastTrackWorldInventoryTemperatureCollectionInvocation.Active(
-                        gameSession,
-                        worldId,
-                        publicationSession,
-                        sessionScopeToken);
-            }
-            catch
-            {
-                if (publicationSessionHasBegun)
+                    FastTrackWorldInventoryTemperatureCollectionInvocation.Inactive;
+                if (__instance == null ||
+                    !DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
+                        out DeliveryTemperatureGameSession gameSession))
                 {
-                    publicationSession.Discard();
+                    return;
                 }
 
-                throw;
+                ActiveTemperatureConstraintSnapshot activeConstraints =
+                    gameSession.TemperatureConstraints.CaptureSnapshot();
+                if (activeConstraints.EnabledConstraintCount == 0)
+                {
+                    // No session, coverage enumeration, builder, or retained game
+                    // object is created in the ordinary fully-disabled path.
+                    return;
+                }
+
+                if (___worldContainer == null || ___worldInventory == null)
+                {
+                    // The verified FastTrack fields are authoritative. Never fall
+                    // back to a global world lookup or guess a sentinel world ID.
+                    return;
+                }
+
+                int worldId = ___worldContainer.id;
+                if (worldId < 0)
+                {
+                    return;
+                }
+
+                WorldInventoryCollectionGeneration collectionGeneration =
+                    gameSession.CurrentWorldInventoryCollectionGeneration;
+                if (collectionGeneration.Value <= 0)
+                {
+                    throw new InvalidOperationException(
+                        "An enabled temperature constraint exists without a current " +
+                        "world-inventory collection generation.");
+                }
+
+                IDictionary<Tag, HashSet<Pickupable>>? worldInventoryEntries =
+                    RequireVerifiedWorldInventoryFeatureBinding()
+                        .ReadWorldInventoryEntries(___worldInventory);
+                if (worldInventoryEntries == null)
+                {
+                    // FastTrack itself skips this update when the backing collection
+                    // is absent, so the adapter must not manufacture empty coverage.
+                    return;
+                }
+
+                FastTrackWorldInventoryPublicationSession publicationSession =
+                    PublicationSessionsByBackgroundInventory.GetValue(
+                        __instance,
+                        CreatePublicationSession);
+                bool publicationSessionHasBegun = false;
+                try
+                {
+                    if (___firstUpdate)
+                    {
+                        publicationSession.BeginCompleteWorldUpdate(
+                            gameSession.Generation,
+                            collectionGeneration);
+                        publicationSessionHasBegun = true;
+                    }
+                    else
+                    {
+                        WorldResourceTagCoverageRequirementState coverageState =
+                            gameSession.WorldResourceTemperatureAmounts
+                                .GetWorldResourceTagCoverageRequirementState(
+                                    worldId,
+                                    collectionGeneration);
+                        switch (coverageState)
+                        {
+                            case WorldResourceTagCoverageRequirementState
+                                .UnknownWorldOrCollectionGeneration:
+                                EmitUnknownCoverageDiagnosticOnce(
+                                    gameSession,
+                                    worldId,
+                                    collectionGeneration);
+                                return;
+
+                            case WorldResourceTagCoverageRequirementState
+                                .CoverageRequired:
+                                // WorldResourceTagCoverage.Create performs the one
+                                // defensive copy. Pickupable sets are never visited.
+                                publicationSession
+                                    .BeginIncrementalResourceTagUpdateRequiringCoverage(
+                                        gameSession.Generation,
+                                        collectionGeneration,
+                                        worldInventoryEntries.Keys);
+                                publicationSessionHasBegun = true;
+                                break;
+
+                            case WorldResourceTagCoverageRequirementState
+                                .CoverageCurrent:
+                                if (worldInventoryEntries.Count == 0)
+                                {
+                                    // Coverage already proves an empty inventory and
+                                    // FastTrack has no selected tag to refresh.
+                                    return;
+                                }
+
+                                publicationSession
+                                    .BeginIncrementalResourceTagUpdateWithCurrentCoverage(
+                                        gameSession.Generation,
+                                        collectionGeneration);
+                                publicationSessionHasBegun = true;
+                                break;
+
+                            default:
+                                throw new ArgumentOutOfRangeException(
+                                    nameof(coverageState),
+                                    coverageState,
+                                    "Unknown world resource-tag coverage requirement " +
+                                    "state.");
+                        }
+                    }
+
+                    ThreadConfinedSessionSlot<
+                            FastTrackWorldInventoryPublicationSession>
+                        .SessionScopeToken sessionScopeToken =
+                            ThreadConfinedSessionSlot<
+                                FastTrackWorldInventoryPublicationSession>.Enter(
+                                    gameSession.Generation,
+                                    publicationSession);
+                    __state =
+                        FastTrackWorldInventoryTemperatureCollectionInvocation.Active(
+                            gameSession,
+                            worldId,
+                            publicationSession,
+                            sessionScopeToken);
+                }
+                catch
+                {
+                    if (publicationSessionHasBegun)
+                    {
+                        publicationSession.Discard();
+                    }
+
+                    throw;
+                }
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(BackgroundWorldInventoryRunUpdatePrefix), exception);
             }
         }
 
@@ -497,63 +507,79 @@ namespace DeliveryTemperatureLimit
         internal static void BackgroundWorldInventoryRunUpdatePostfix(
             FastTrackWorldInventoryTemperatureCollectionInvocation __state)
         {
-            if (!__state.IsActive)
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                return;
-            }
+                if (!__state.IsActive)
+                {
+                    return;
+                }
 
-            RequireCurrentPublicationSession(__state.PublicationSession);
-            FastTrackWorldInventoryPublicationResult publicationResult =
-                __state.PublicationSession.Complete();
-            PublishResult(__state, publicationResult);
+                RequireCurrentPublicationSession(__state.PublicationSession);
+                FastTrackWorldInventoryPublicationResult publicationResult =
+                    __state.PublicationSession.Complete();
+                PublishResult(__state, publicationResult);
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(BackgroundWorldInventoryRunUpdatePostfix), exception);
+            }
         }
 
         internal static Exception? BackgroundWorldInventoryRunUpdateFinalizer(
             Exception? __exception,
             FastTrackWorldInventoryTemperatureCollectionInvocation __state)
         {
-            if (!__state.IsActive)
-            {
-                return __exception;
-            }
-
-            Exception? cleanupException = null;
             try
             {
-                RequireCurrentPublicationSession(__state.PublicationSession);
-                __state.PublicationSession.Discard();
-            }
-            catch (Exception exception)
-            {
-                cleanupException = exception;
-            }
+                if (!__state.IsActive)
+                {
+                    return __exception;
+                }
 
-            try
-            {
-                ThreadConfinedSessionSlot<
-                    FastTrackWorldInventoryPublicationSession>.Exit(
-                        __state.SessionScopeToken);
-            }
-            catch (Exception exception)
-            {
-                if (cleanupException == null)
+                Exception? cleanupException = null;
+                try
+                {
+                    RequireCurrentPublicationSession(__state.PublicationSession);
+                    __state.PublicationSession.Discard();
+                }
+                catch (Exception exception)
                 {
                     cleanupException = exception;
                 }
-            }
 
-            if (__exception != null)
+                try
+                {
+                    ThreadConfinedSessionSlot<
+                        FastTrackWorldInventoryPublicationSession>.Exit(
+                            __state.SessionScopeToken);
+                }
+                catch (Exception exception)
+                {
+                    if (cleanupException == null)
+                    {
+                        cleanupException = exception;
+                    }
+                }
+
+                if (__exception != null)
+                {
+                    // Cleanup must never replace the original FastTrack/game failure.
+                    return __exception;
+                }
+
+                if (cleanupException != null)
+                {
+                    ExceptionDispatchInfo.Capture(cleanupException).Throw();
+                }
+
+                return null;
+            }
+            catch (Exception exception)
             {
-                // Cleanup must never replace the original FastTrack/game failure.
+                RuntimeFailureReporting.DisableGameplay(nameof(BackgroundWorldInventoryRunUpdateFinalizer), exception);
                 return __exception;
             }
-
-            if (cleanupException != null)
-            {
-                ExceptionDispatchInfo.Capture(cleanupException).Throw();
-            }
-
-            return null;
         }
 
         private static FastTrackWorldInventoryPublicationSession
@@ -575,12 +601,20 @@ namespace DeliveryTemperatureLimit
             FastTrackWorldInventoryPublicationSession publicationSession,
             Tag resourceTag)
         {
-            if (publicationSession == null)
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                throw new ArgumentNullException(nameof(publicationSession));
-            }
+                if (publicationSession == null)
+                {
+                    throw new ArgumentNullException(nameof(publicationSession));
+                }
 
-            publicationSession.BeginResourceTag(resourceTag);
+                publicationSession.BeginResourceTag(resourceTag);
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(BeginResourceTagEnumeration), exception);
+            }
         }
 
         private static float RecordFilteredPickupTemperatureAmount(
@@ -588,39 +622,56 @@ namespace DeliveryTemperatureLimit
             float originalTotalAmount,
             FastTrackWorldInventoryPublicationSession publicationSession)
         {
-            if (pickupable == null)
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return originalTotalAmount;
+            try
             {
+                if (pickupable == null)
+                {
+                    return originalTotalAmount;
+                }
+
+                if (publicationSession == null)
+                {
+                    throw new ArgumentNullException(nameof(publicationSession));
+                }
+
+                // Read FastTrack's already selected Pickupable exactly once. The hook
+                // is placed after its cell/world/private-storage filters and receives
+                // the amount produced by the original TotalAmount getter.
+                PrimaryElement primaryElement = pickupable.PrimaryElement;
+                if (primaryElement != null)
+                {
+                    publicationSession.AddTemperatureAmount(
+                        primaryElement.Temperature,
+                        originalTotalAmount);
+                }
+
                 return originalTotalAmount;
             }
-
-            if (publicationSession == null)
+            catch (Exception exception)
             {
-                throw new ArgumentNullException(nameof(publicationSession));
+                RuntimeFailureReporting.DisableGameplay(nameof(RecordFilteredPickupTemperatureAmount), exception);
+                return originalTotalAmount;
             }
-
-            // Read FastTrack's already selected Pickupable exactly once. The hook
-            // is placed after its cell/world/private-storage filters and receives
-            // the amount produced by the original TotalAmount getter.
-            PrimaryElement primaryElement = pickupable.PrimaryElement;
-            if (primaryElement != null)
-            {
-                publicationSession.AddTemperatureAmount(
-                    primaryElement.Temperature,
-                    originalTotalAmount);
-            }
-
-            return originalTotalAmount;
         }
 
         private static void CompleteResourceTagEnumeration(
             FastTrackWorldInventoryPublicationSession publicationSession)
         {
-            if (publicationSession == null)
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                throw new ArgumentNullException(nameof(publicationSession));
-            }
+                if (publicationSession == null)
+                {
+                    throw new ArgumentNullException(nameof(publicationSession));
+                }
 
-            publicationSession.CompleteResourceTag();
+                publicationSession.CompleteResourceTag();
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(CompleteResourceTagEnumeration), exception);
+            }
         }
 
         private static void PublishResult(

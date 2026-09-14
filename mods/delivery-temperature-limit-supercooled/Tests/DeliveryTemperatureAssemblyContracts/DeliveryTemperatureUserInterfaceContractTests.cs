@@ -12,6 +12,33 @@ namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
 public sealed class DeliveryTemperatureUserInterfaceContractTests
 {
     [TestMethod]
+    public void TemperatureSection_InitializesBeforeBindingAnInactiveScreenTarget()
+    {
+        string managedDirectory = Environment.GetEnvironmentVariable(
+            "ONI_MANAGED_ASSEMBLY_DIRECTORY")
+            ?? throw new InvalidOperationException("The installed ONI assemblies are required.");
+        var refresh = DeliveryTemperatureAssemblyMetadataReader.ReadMethodBodies(
+                Path.Combine(managedDirectory, "Assembly-CSharp.dll"),
+                "DetailsScreen", "Refresh")
+            .Single().Instructions.ToList();
+        int setTarget = refresh.FindIndex(instruction =>
+            instruction.ResolvedOperand == "SideScreenContent.SetTarget");
+        int show = refresh.FindIndex(instruction =>
+            instruction.ResolvedOperand == "KScreen.Show");
+        Assert.IsTrue(setTarget >= 0 && show > setTarget,
+            "The game binds the target before showing the inactive side screen.");
+
+        string path = PipelineProvenanceBoundAssemblyLocator
+            .CreateForCurrentPipelineEnvironment().ResolveRequiredPipelineBuild().AssemblyPath;
+        var binding = DeliveryTemperatureAssemblyMetadataReader.ReadMethodBodies(
+                path, "DeliveryTemperatureLimit.TemperatureLimitSideScreen", "SetTarget")
+            .Single().Instructions.Where(instruction => instruction.Operation != "nop").ToList();
+        Assert.AreEqual("ldarg.0", binding[0].Operation);
+        Assert.AreEqual("KMonoBehaviour.InitializeComponent", binding[1].ResolvedOperand,
+            "Initialize through ONI's idempotent lifecycle before accessing the container or widget; Show has not run yet.");
+    }
+
+    [TestMethod]
     public void TemperatureSection_InstantiatesItsOwnNativeHeaderBeforeSettingItsTitle()
     {
         var instructions = ReadSideScreenInitialization();

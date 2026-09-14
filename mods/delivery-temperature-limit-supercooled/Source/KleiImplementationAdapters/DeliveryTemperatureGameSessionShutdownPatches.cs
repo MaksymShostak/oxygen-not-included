@@ -24,26 +24,42 @@ namespace DeliveryTemperatureLimit
             Game __instance,
             out DeliveryTemperatureGameSession? __state)
         {
-            if (__instance == null)
+            __state = null;
+            try
             {
-                throw new ArgumentNullException(nameof(__instance));
-            }
+                if (__instance == null)
+                {
+                    throw new ArgumentNullException(nameof(__instance));
+                }
 
-            // Detach first so every later hook observes no accepting session while
-            // ONI begins destroying the objects that callbacks might otherwise use.
-            __state = DeliveryTemperatureGameSessionHost.DetachGameSession(
-                __instance.GetInstanceID());
+                // Detach first so every later hook observes no accepting session while
+                // ONI begins destroying the objects that callbacks might otherwise use.
+                __state = DeliveryTemperatureGameSessionHost.DetachGameSession(
+                    __instance.GetInstanceID());
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(GameDestroyInstancesPrefix), exception);
+            }
         }
 
         internal static Exception? GameDestroyInstancesFinalizer(
             Exception? __exception,
             DeliveryTemperatureGameSession? __state)
         {
-            // A finalizer is required rather than a postfix: owned pure-domain state
-            // must be released even when ONI's destruction method throws. Returning
-            // the same reference preserves the game's original exception outcome.
-            DeliveryTemperatureGameSessionHost.CompleteShutdown(__state);
-            return __exception;
+            try
+            {
+                // A finalizer is required rather than a postfix: owned pure-domain state
+                // must be released even when ONI's destruction method throws. Returning
+                // the same reference preserves the game's original exception outcome.
+                DeliveryTemperatureGameSessionHost.CompleteShutdown(__state);
+                return __exception;
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(GameDestroyInstancesFinalizer), exception);
+                return __exception;
+            }
         }
     }
 }

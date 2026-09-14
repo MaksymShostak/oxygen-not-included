@@ -106,67 +106,76 @@ namespace DeliveryTemperatureLimit
             out PickupTemperatureGroupingInvocation __state)
         {
             __state = PickupTemperatureGroupingInvocation.Inactive;
-            if (!DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
-                    out var session))
-            {
-                return;
-            }
-
-            ActiveTemperatureConstraintSnapshot activeConstraints =
-                session.TemperatureConstraints.CaptureSnapshot();
-            if (activeConstraints.EnabledConstraintCount == 0)
-            {
-                // This is the ordinary bypass. It allocates no grouping session,
-                // reads no navigator/grid state, and leaves both transpiled hooks
-                // equivalent to Klei's original ordering and suppression.
-                return;
-            }
-
-            WorldParentTopologySnapshot worldTopology =
-                session.WorldParentTopology.CaptureSnapshot();
-            int? resolvedParentWorldId = ResolveNavigatorParentWorldId(
-                __0,
-                worldTopology);
-            FetchTemperatureEligibilitySnapshot? eligibilitySnapshot =
-                session.CurrentFetchTemperatureEligibility;
-            PickupTemperatureGroupingSession groupingSession =
-                TakeReusableThreadGroupingSession();
-
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
             try
             {
-                groupingSession.Begin(
-                    session,
-                    resolvedParentWorldId,
-                    activeConstraints,
-                    eligibilitySnapshot,
+                __state = PickupTemperatureGroupingInvocation.Inactive;
+                if (!DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
+                        out var session))
+                {
+                    return;
+                }
+
+                ActiveTemperatureConstraintSnapshot activeConstraints =
+                    session.TemperatureConstraints.CaptureSnapshot();
+                if (activeConstraints.EnabledConstraintCount == 0)
+                {
+                    // This is the ordinary bypass. It allocates no grouping session,
+                    // reads no navigator/grid state, and leaves both transpiled hooks
+                    // equivalent to Klei's original ordering and suppression.
+                    return;
+                }
+
+                WorldParentTopologySnapshot worldTopology =
+                    session.WorldParentTopology.CaptureSnapshot();
+                int? resolvedParentWorldId = ResolveNavigatorParentWorldId(
+                    __0,
                     worldTopology);
-            }
-            catch
-            {
-                groupingSession.Discard();
-                TryRetainReusableThreadGroupingSession(groupingSession);
-                throw;
-            }
+                FetchTemperatureEligibilitySnapshot? eligibilitySnapshot =
+                    session.CurrentFetchTemperatureEligibility;
+                PickupTemperatureGroupingSession groupingSession =
+                    TakeReusableThreadGroupingSession();
 
-            ThreadConfinedSessionSlot<PickupTemperatureGroupingSession>
-                .SessionScopeToken scopeToken;
-            try
-            {
-                scopeToken = ThreadConfinedSessionSlot<
-                    PickupTemperatureGroupingSession>.Enter(
-                        session.Generation,
-                        groupingSession);
-            }
-            catch
-            {
-                groupingSession.Discard();
-                TryRetainReusableThreadGroupingSession(groupingSession);
-                throw;
-            }
+                try
+                {
+                    groupingSession.Begin(
+                        session,
+                        resolvedParentWorldId,
+                        activeConstraints,
+                        eligibilitySnapshot,
+                        worldTopology);
+                }
+                catch
+                {
+                    groupingSession.Discard();
+                    TryRetainReusableThreadGroupingSession(groupingSession);
+                    throw;
+                }
 
-            __state = PickupTemperatureGroupingInvocation.Active(
-                groupingSession,
-                scopeToken);
+                ThreadConfinedSessionSlot<PickupTemperatureGroupingSession>
+                    .SessionScopeToken scopeToken;
+                try
+                {
+                    scopeToken = ThreadConfinedSessionSlot<
+                        PickupTemperatureGroupingSession>.Enter(
+                            session.Generation,
+                            groupingSession);
+                }
+                catch
+                {
+                    groupingSession.Discard();
+                    TryRetainReusableThreadGroupingSession(groupingSession);
+                    throw;
+                }
+
+                __state = PickupTemperatureGroupingInvocation.Active(
+                    groupingSession,
+                    scopeToken);
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(UpdatePickupsPrefix), exception);
+            }
         }
 
         internal static IEnumerable<CodeInstruction> UpdatePickupsTranspiler(
@@ -215,9 +224,17 @@ namespace DeliveryTemperatureLimit
         internal static void UpdatePickupsPostfix(
             PickupTemperatureGroupingInvocation __state)
         {
-            if (__state.IsActive)
+            if (DeliveryTemperatureGameSessionHost.RuntimeFailure.HasFailed) return;
+            try
             {
-                __state.GroupingSession.Complete();
+                if (__state.IsActive)
+                {
+                    __state.GroupingSession.Complete();
+                }
+            }
+            catch (Exception exception)
+            {
+                RuntimeFailureReporting.DisableGameplay(nameof(UpdatePickupsPostfix), exception);
             }
         }
 
@@ -225,47 +242,56 @@ namespace DeliveryTemperatureLimit
             Exception? __exception,
             PickupTemperatureGroupingInvocation __state)
         {
-            if (!__state.IsActive)
-            {
-                return __exception;
-            }
-
-            Exception? cleanupException = null;
-            bool scopeExited = false;
             try
             {
-                // Complete and Discard intentionally share an idempotent release
-                // path, so this also covers an exception before the postfix ran.
-                __state.GroupingSession.Discard();
-            }
-            catch (Exception exception)
-            {
-                cleanupException = exception;
-            }
+                if (!__state.IsActive)
+                {
+                    return __exception;
+                }
 
-            try
-            {
-                ThreadConfinedSessionSlot<PickupTemperatureGroupingSession>
-                    .Exit(__state.ScopeToken);
-                scopeExited = true;
-            }
-            catch (Exception exception)
-            {
-                if (cleanupException == null)
+                Exception? cleanupException = null;
+                bool scopeExited = false;
+                try
+                {
+                    // Complete and Discard intentionally share an idempotent release
+                    // path, so this also covers an exception before the postfix ran.
+                    __state.GroupingSession.Discard();
+                }
+                catch (Exception exception)
                 {
                     cleanupException = exception;
                 }
-            }
 
-            if (scopeExited)
+                try
+                {
+                    ThreadConfinedSessionSlot<PickupTemperatureGroupingSession>
+                        .Exit(__state.ScopeToken);
+                    scopeExited = true;
+                }
+                catch (Exception exception)
+                {
+                    if (cleanupException == null)
+                    {
+                        cleanupException = exception;
+                    }
+                }
+
+                if (scopeExited)
+                {
+                    TryRetainReusableThreadGroupingSession(
+                        __state.GroupingSession);
+                }
+
+                // Never replace the game's original failure with cleanup diagnostics.
+                // Mod cleanup failure disables subsequent temperature enforcement.
+                if (cleanupException != null) RuntimeFailureReporting.DisableGameplay(nameof(UpdatePickupsFinalizer), cleanupException);
+                return __exception;
+            }
+            catch (Exception exception)
             {
-                TryRetainReusableThreadGroupingSession(
-                    __state.GroupingSession);
+                RuntimeFailureReporting.DisableGameplay(nameof(UpdatePickupsFinalizer), exception);
+                return __exception;
             }
-
-            // Never replace the game's original failure with cleanup diagnostics.
-            // With no original failure, a lifecycle violation remains fail-closed.
-            return __exception ?? cleanupException;
         }
 
         internal static IEnumerable<CodeInstruction> PickupComparerTranspiler(
