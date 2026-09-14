@@ -2,15 +2,6 @@
 
 ![Oxygen Not Included Mod](https://img.shields.io/badge/Game-Oxygen_Not_Included-orange)
 
-### DLC Compatibility
-![Base Game](docs/badges/VanillaYes.png)
-![Spaced Out!](docs/badges/Dlc1Yes.png)
-![The Frosty Planet Pack](docs/badges/Dlc2Yes.png)
-![The Bionic Booster Pack](docs/badges/Dlc3Yes.png)
-![The Prehistoric Planet Pack](docs/badges/Dlc4Yes.png)
-![The Aquatic Planet Pack](docs/badges/Dlc5Yes.png)
-
-
 <!-- oni-mod-pipeline:workshop-description:start -->
 Tired of Nisbet hauling a 95 °C chunk of Igneous Rock into the Storage Bin beside your carefully chilled Sleet Wheat? Have your Duplicants discovered that "Raw Minerals" and "portable space heater" are apparently the same storage category?
 
@@ -68,9 +59,9 @@ The in-game Mod Options dialog provides:
 
 # Support & Diagnostics
 
-If something goes thermally sideways, open Mod Options and choose **Create Support Report**.
+If something goes thermally sideways, open Mod Options and choose **Report a bug**.
 
-Reports are generated locally and nothing is uploaded automatically. The standard report does not read _Player.log_; the clearly labelled **Extended Support Report** can include a bounded, best-effort-redacted log excerpt for harder failures.
+Reports are generated locally and nothing is uploaded automatically. The standard report does not read _Player.log_; the clearly labelled **Include game log (optional)** can include a bounded, best-effort-redacted log excerpt for harder failures.
 
 Review the report on your computer, then attach it to the GitHub bug-report form.
 
@@ -95,8 +86,6 @@ _Delivery Temperature Limit (Supercooled) is a community mod and is not affiliat
 
 ## Support and contributing
 
-Use the in-game mod options to create a local support report without manually finding game versions, enabled DLCs, settings, or active mods. The standard report does not read `Player.log`; the clearly labeled extended report includes a bounded, best-effort-redacted copy for harder failures. Nothing is uploaded automatically.
-
 - [Report a bug](https://github.com/MaksymShostak/oxygen-not-included/issues/new?template=temperature-limit-bug.yml)
 - [Suggest a feature](https://github.com/MaksymShostak/oxygen-not-included/issues/new?template=temperature-limit-feature.yml)
 - [Support and privacy details](SUPPORT.md)
@@ -110,7 +99,7 @@ Translations for community languages are warmly welcomed!
 
 *   **Translation Guide:** Check out the [Translation Guide](docs/guides/translating-delivery-temperature-limit-supercooled.md) for UI context, formatting tags, placeholders, and workflow guidance.
 *   **Template (`.pot`):** The master Gettext template catalog containing all current strings is located at [`mods/delivery-temperature-limit-supercooled/translations/delivery_temperature_limit.pot`](mods/delivery-temperature-limit-supercooled/translations/delivery_temperature_limit.pot).
-*   **Language Catalogs (`.po`):** Active translations (`de`, `es`, `fr`, `ko`, `pt`, `pt_BR`, `uk`, `zh`, `zh_tw`) live in the [`translations/`](mods/delivery-temperature-limit-supercooled/translations) directory. Submit new languages or updates via pull request!
+*   **Language Catalogs (`.po`):** Browse the current catalogs in the [`translations/`](mods/delivery-temperature-limit-supercooled/translations) directory. Submit new languages or updates via pull request!
 
 ---
 
@@ -163,7 +152,3 @@ oni-mod-pipeline verify-release --candidate <exact-candidate-directory>
 A successful `verify-release` reports `ready-for-upload` and regenerates the candidate's `release-summary.md` and `uploader-checklist.md`. In the ONI Uploader, select only the generated `workshop-content` directory for **Update Data** and copy the generated listing files from `workshop-listing`. Never upload `release-evidence` or use the mutable Dev/Local installation as Update Data.
 
 Read [ONI mod development workflow](docs/guides/oni-mod-development-workflow.md) for the command lifecycle, exact-path discipline, and documentation map.
-
----
-
-*Disclaimer: This is a community mod. It is not affiliated with, sponsored by, or endorsed by Klei Entertainment.*

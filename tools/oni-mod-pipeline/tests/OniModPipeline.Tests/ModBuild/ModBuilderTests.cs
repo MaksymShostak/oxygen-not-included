@@ -206,6 +206,31 @@ public sealed class ModBuilderTests
     }
 
     [TestMethod]
+    public async Task BuildAsync_WhenArtifactReleaseVersionDiffersFromMetadata_RejectsBuild()
+    {
+        using var fixture = new BuildFixture();
+        var assembly = typeof(ModBuilderTests).Assembly;
+        var artifactVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!
+            .InformationalVersion.Split('+')[0];
+        const string requestedVersion = "65534.65534";
+        Assert.AreNotEqual(requestedVersion, artifactVersion, "Fixture must contain a real version mismatch.");
+        fixture.ProcessRunner.BuildAction = request =>
+        {
+            var destination = fixture.GetPrimaryOutputPath(request);
+            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+            File.Copy(assembly.Location, destination);
+        };
+        var builder = new ModBuilder(fixture.ProcessRunner, new Utf8ArtifactWriter());
+
+        var result = await builder.BuildAsync(fixture.CreateRequest(requestedVersion), CancellationToken.None);
+
+        AssertDiagnostic(result, DiagnosticIds.BuildFailed);
+        Assert.IsTrue(result.Diagnostics.Any(diagnostic =>
+            diagnostic.Evidence.Contains("informational version", StringComparison.Ordinal)));
+        Assert.IsFalse(File.Exists(Path.Combine(fixture.RunRoot, "build-result.json")));
+    }
+
+    [TestMethod]
     public async Task BuildAsync_WhenPrimaryOutputIsManagedAssembly_RecordsTargetFrameworkMonikerFromArtifactMetadata()
     {
         using var fixture = new BuildFixture();

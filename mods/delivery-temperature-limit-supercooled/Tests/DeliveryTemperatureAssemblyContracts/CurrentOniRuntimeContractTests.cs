@@ -59,7 +59,7 @@ public sealed class CurrentOniRuntimeContractTests
     }
 
     [TestMethod]
-    public void ModMetadata_WhenInspected_DeclaresOnlyCurrentPublicOniAsMinimumBuild()
+    public void ModMetadata_MatchesSupportedOniRuntimeContract()
     {
         var metadataPath = Path.Combine(
             RequiredEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT"),
@@ -76,9 +76,8 @@ public sealed class CurrentOniRuntimeContractTests
 
         Assert.AreEqual("ALL", values["supportedContent"]);
         Assert.AreEqual(ExpectedChangeList.ToString(), values["minimumSupportedBuild"]);
-        Assert.AreEqual("2026.9.5", values["version"]);
         Assert.AreEqual("2", values["APIVersion"]);
-        Assert.HasCount(4, values);
+        // The pipeline owns metadata schema and mod release-version validation.
     }
 
     [TestMethod]

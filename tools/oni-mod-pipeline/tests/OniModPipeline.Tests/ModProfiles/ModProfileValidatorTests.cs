@@ -38,6 +38,36 @@ public sealed class ModProfileValidatorTests
     }
 
     [TestMethod]
+    [DataRow("2026.9.8")]
+    [DataRow("2027.1.0")]
+    public void Validate_WhenModReleaseAdvances_PreservesRuntimeCompatibility(string version)
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var profile = CreateValidProfile(temporaryDirectory);
+        var metadata = ValidMetadata with { Version = version };
+
+        var result = profileValidator.Validate(profile, metadata);
+
+        Assert.IsTrue(result.IsSuccess);
+        Assert.AreEqual(ValidMetadata.MinimumSupportedBuild, metadata.MinimumSupportedBuild);
+        Assert.AreEqual(ValidMetadata.ApiVersion, metadata.ApiVersion);
+    }
+
+    [TestMethod]
+    [DataRow("")]
+    [DataRow("not-a-version")]
+    [DataRow("1.2.65535")]
+    public void Validate_WhenReleaseVersionIsInvalid_ReturnsOnip1005(string version)
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var profile = CreateValidProfile(temporaryDirectory);
+
+        var result = profileValidator.Validate(profile, ValidMetadata with { Version = version });
+
+        AssertDiagnostic(result, "ONIP1005");
+    }
+
+    [TestMethod]
     [DataRow("Assets/config.json", "Assets\\config.json")]
     [DataRow("Assets/Café.txt", "Assets/Café.txt")]
     [DataRow("Assets/File.txt", "assets/file.txt")]

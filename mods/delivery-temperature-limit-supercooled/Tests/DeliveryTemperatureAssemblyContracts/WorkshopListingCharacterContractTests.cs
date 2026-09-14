@@ -5,38 +5,38 @@ using System.Globalization;
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
 
 [TestClass]
-public sealed class WorkshopListingAsciiContractTests
+public sealed class WorkshopListingCharacterContractTests
 {
     [TestMethod]
-    public void ChangeNotes_WhenInspected_IsStrictlyAscii()
+    public void ChangeNotes_WhenInspected_ContainsOnlyAsciiAndExplicitlyAllowedCharacters()
     {
         string modRoot = ResolveModRoot();
         string changeNotesPath = Path.Combine(modRoot, "STEAM_CHANGE_NOTES.bbcode");
         Assert.IsTrue(File.Exists(changeNotesPath), "STEAM_CHANGE_NOTES.bbcode must exist.");
 
         string content = File.ReadAllText(changeNotesPath);
-        var violations = FindNonAsciiTextViolations(content, allowIcons: false);
+        var violations = FindDisallowedCharacters(content, allowIcons: false);
 
         Assert.AreEqual(
             0,
             violations.Count,
-            $"STEAM_CHANGE_NOTES.bbcode contains non-ASCII characters:\n{string.Join("\n", violations)}");
+            $"STEAM_CHANGE_NOTES.bbcode contains disallowed characters:\n{string.Join("\n", violations)}");
     }
 
     [TestMethod]
-    public void WorkshopDescription_WhenInspected_ContainsOnlyAsciiTextAndAllowedIcons()
+    public void WorkshopDescription_WhenInspected_ContainsOnlyAsciiAndAllowedCharactersOrIcons()
     {
         string modRoot = ResolveModRoot();
         string descriptionPath = Path.Combine(modRoot, "STEAM_DESCRIPTION.bbcode");
         Assert.IsTrue(File.Exists(descriptionPath), "STEAM_DESCRIPTION.bbcode must exist.");
 
         string content = File.ReadAllText(descriptionPath);
-        var violations = FindNonAsciiTextViolations(content, allowIcons: true);
+        var violations = FindDisallowedCharacters(content, allowIcons: true);
 
         Assert.AreEqual(
             0,
             violations.Count,
-            $"STEAM_DESCRIPTION.bbcode contains non-ASCII text characters:\n{string.Join("\n", violations)}");
+            $"STEAM_DESCRIPTION.bbcode contains disallowed characters:\n{string.Join("\n", violations)}");
     }
 
     [TestMethod]
@@ -76,6 +76,16 @@ public sealed class WorkshopListingAsciiContractTests
         0x00B0, // ° (degree sign)
     ];
 
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public void CharacterValidation_AllowsDegreeSignsAndRejectsTypography(bool allowIcons)
+    {
+        Assert.HasCount(0, FindDisallowedCharacters("Temperature: 20\u00B0C / 68\u00B0F", allowIcons));
+        Assert.HasCount(3, FindDisallowedCharacters("\u2014\u00A0\u00E9", allowIcons));
+        Assert.HasCount(allowIcons ? 0 : 1, FindDisallowedCharacters("\u26A1", allowIcons));
+    }
+
     private static bool IsAllowedSymbolOrEmoji(int codePoint)
     {
         if (ExplicitlyAllowedCharacters.Contains(codePoint))
@@ -101,7 +111,7 @@ public sealed class WorkshopListingAsciiContractTests
         return category is UnicodeCategory.OtherSymbol or UnicodeCategory.ModifierSymbol;
     }
 
-    private static List<string> FindNonAsciiTextViolations(string text, bool allowIcons)
+    private static List<string> FindDisallowedCharacters(string text, bool allowIcons)
     {
         var violations = new List<string>();
         string[] lines = text.Split('\n');
@@ -117,7 +127,7 @@ public sealed class WorkshopListingAsciiContractTests
                     charIndex++; // Skip the trailing surrogate pair character
                 }
 
-                if (codePoint <= 127)
+                if (codePoint <= 127 || ExplicitlyAllowedCharacters.Contains(codePoint))
                 {
                     continue;
                 }
