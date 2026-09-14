@@ -1,6 +1,6 @@
 # Packaged BBCode README Consumer Implementation Plan
 
-> For agentic workers: execute the accepted slices sequentially using the repository-adapted .sdlc/skills/test-driven-development/SKILL.md. Repository procedure and the user's delegation limits take precedence over generic planning templates.
+> Historical implementation plan. Its repository SDLC procedure has been retired; use the current repository instructions for future work.
 
 **Goal:** Qualify the release candidate through a real ONI Mod Pipeline workflow that synchronizes generated Workshop description GFM into a bounded README region.
 
@@ -64,6 +64,6 @@
 - [ ] Exercise actual pipeline sync-readme using a copy of the current real mod description and a README with preserved manually maintained sections. Hash original inputs and record their source checkout separately from the isolated code revision.
 - [ ] Independently inspect expected text, headings, lists, links and images; render with GitHub's GFM surface and retain reviewable output. Do not use converter output as its own golden oracle.
 - [ ] Test path-with-spaces execution, repeatability, read-only drift detection and a deliberate unsupported/lossy input that cannot alter README contents.
-- [ ] Run native pipeline regression tests and required affected SDLC/mod checks. Obtain independent R2 review for the frozen integration and relevant process/file-write security evidence.
+- [ ] Run native pipeline regression tests and affected mod checks. Obtain review for the frozen integration and relevant process/file-write security evidence.
 - [ ] After separately authorized bootstrap, install exact registry steam-community-bbcode@1.0.0-rc.1 with native npm, retain URL/SRI, repeat real pipeline acceptance and remove all provisional transport assumptions before merge/adoption.
 - [ ] Record acceptance or specific failures. Keep npm/GitHub release publication and source retirement blocked until their separate gates are satisfied.

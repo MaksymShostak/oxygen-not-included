@@ -25,7 +25,7 @@ desktop.ini
 config.json
 lib/
 
-# Repository-local SDLC dependencies, activation, and retained run evidence
+# Local dependencies, agent settings, and retained historical evidence
 node_modules/
 .venv/
 __pycache__/
