@@ -137,14 +137,19 @@ export function runFromGitHubEnvironment(
     ) {
       throw new Error("The checkout does not match the event revision.");
     }
-    selected = selectPullRequestChecks({
-      base:
-        env.GITHUB_EVENT_NAME === "pull_request"
-          ? event.pull_request?.base?.sha
-          : event.before,
-      head: env.GITHUB_SHA,
-      scopes,
-    });
+    // A forced push can remove the previous tip from fetched history. Verify
+    // the current checkout above, then run every requested check without a diff.
+    selected =
+      env.GITHUB_EVENT_NAME === "push" && event.forced === true
+        ? Object.fromEntries(scopes.map((name) => [name, true]))
+        : selectPullRequestChecks({
+            base:
+              env.GITHUB_EVENT_NAME === "pull_request"
+                ? event.pull_request?.base?.sha
+                : event.before,
+            head: env.GITHUB_SHA,
+            scopes,
+          });
   } else {
     throw new Error(
       "PR check selection requires pull_request, a main push, or workflow_dispatch.",

@@ -76,6 +76,7 @@ describe("native Git PR check selection", () => {
     eventName = "pull_request",
     head = git(["rev-parse", "HEAD"]),
     comparisonBase = base,
+    forced = false,
     scopes = SCOPES,
     env = {},
   } = {}) {
@@ -84,6 +85,7 @@ describe("native Git PR check selection", () => {
       JSON.stringify({
         pull_request: { base: { sha: comparisonBase } },
         before: comparisonBase,
+        forced,
       }),
     );
     return spawnSync(
@@ -307,6 +309,35 @@ describe("native Git PR check selection", () => {
       scopes: ["sdlc"],
     });
   });
+
+  test.each([SCOPES, ["pipeline"], ["sdlc"]].map((scopes) => ({ scopes })))(
+    "a forced main push selects all requested scopes without its old commit ($scopes)",
+    ({ scopes }) => {
+      expectSelection(scopes, {
+        eventName: "push",
+        forced: true,
+        comparisonBase: "a".repeat(40),
+        scopes,
+      });
+    },
+  );
+
+  test("a forced push cannot bypass checkout identity verification", () => {
+    expectFailureWithoutOutputs({
+      eventName: "push",
+      forced: true,
+      head: "a".repeat(40),
+    });
+  });
+
+  test.each([false, "true"])(
+    "an unavailable main-push base still fails without forced=true (%s)",
+    (forced) => expectFailureWithoutOutputs({
+      eventName: "push",
+      forced,
+      comparisonBase: "a".repeat(40),
+    }),
+  );
 
   test("unknown scopes cannot publish a partial successful result", () => {
     expectFailureWithoutOutputs({ scopes: ["sdlc", "unknown"] });
