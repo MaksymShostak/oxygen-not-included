@@ -26,6 +26,6 @@
   "devDependencies": {
     "jest": "30.5.1",
     "steam-community-bbcode": "1.0.0-rc.1",
-    "yaml": "2.9.0"
+    "yaml": "2.9.1"
   }
 }
