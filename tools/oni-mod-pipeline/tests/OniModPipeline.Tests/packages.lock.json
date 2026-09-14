@@ -111,8 +111,8 @@
       },
       "System.CommandLine": {
         "type": "Transitive",
-        "resolved": "2.0.11",
-        "contentHash": "Pmg3/T0M37ZS3ovwPHtfBNTCdqNpnxo+tnZMg8JDHVR0qD8KwcPUKlheEiZysb1En8IyH7yDoa9QDq97Ny/vhQ=="
+        "resolved": "2.0.12",
+        "contentHash": "FpW672e6qqrTd1EfKqsvUtFZaJWlTlszUR1o8tdakXhkzKbnEZVndtpfd4K3fUPCFcIs9UmcswMyYGJP1zp/rg=="
       },
       "Tomlyn": {
         "type": "Transitive",
@@ -127,7 +127,7 @@
       "MaksymShostak.OniModPipeline": {
         "type": "Project",
         "dependencies": {
-          "System.CommandLine": "[2.0.11, )",
+          "System.CommandLine": "[2.0.12, )",
           "Tomlyn": "[2.10.1, )",
           "YamlDotNet": "[18.1.0, )"
         }
