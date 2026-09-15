@@ -460,8 +460,7 @@ public sealed class IntentionalRuntimeContractTests
         }
     }
 
-    [TestMethod]
-    public void LocalizationPotCatalog_WhenComparedWithSource_MatchesAllDeclaredLocStringsExactly()
+    private static void AssertLocalizationPotMatchesAssembly(string assemblyPath)
     {
         string sourceRoot = ResolveSourceRoot();
         string potPath = Path.GetFullPath(
@@ -477,24 +476,12 @@ public sealed class IntentionalRuntimeContractTests
             .OrderBy(key => key, StringComparer.Ordinal)
             .ToArray();
 
-        List<string> expectedKeys = [];
-        foreach (string field in IntentionalSideScreenFieldNames)
-            expectedKeys.Add($"STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.{field}");
-        foreach (string field in IntentionalStatusFieldNames)
-            expectedKeys.Add($"STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.STATUS.{field}");
-        foreach (string field in IntentionalValidationFieldNames)
-            expectedKeys.Add($"STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.VALIDATION.{field}");
-        foreach (string field in IntentionalTooltipsFieldNames)
-            expectedKeys.Add($"STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TOOLTIPS.{field}");
-        foreach (string field in IntentionalOptionsFieldNames)
-            expectedKeys.Add($"STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.{field}");
-
-        string[] sortedExpected = expectedKeys
-            .OrderBy(key => key, StringComparer.Ordinal)
-            .ToArray();
+        string[] declaredKeys = DeliveryTemperatureAssemblyMetadataReader
+            .ReadLocalizationKeys(assemblyPath).ToArray();
+        Assert.IsNotEmpty(declaredKeys);
 
         CollectionAssert.AreEquivalent(
-            sortedExpected,
+            declaredKeys,
             potContextKeys,
             "Every C# LocString must have an exact matching msgctxt in the POT template, with no orphaned keys.");
     }
@@ -554,7 +541,7 @@ public sealed class IntentionalRuntimeContractTests
             CollectionAssert.AreEquivalent(
                 potContextKeys,
                 poContextKeys,
-                $"PO catalog '{fileName}' does not match the 74 declared keys of the POT template.");
+                $"PO catalog '{fileName}' does not match the declared keys of the POT template.");
 
             Assert.IsFalse(
                 poContent.Contains("—"),
@@ -564,6 +551,7 @@ public sealed class IntentionalRuntimeContractTests
 
     internal static void AssertMergedAssembly(string assemblyPath)
     {
+        AssertLocalizationPotMatchesAssembly(assemblyPath);
         IReadOnlyList<string> publicSurface =
             DeliveryTemperatureAssemblyMetadataReader.ReadPublicSurface(
                 assemblyPath);

@@ -14,6 +14,20 @@ msgstr ""
 "X-Review-Status: Native-speaker and in-game review pending\n"
 "POT Version: 2.0\n"
 
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.GAMEPLAY_FAILURE
+#. TRANSLATORS: Delivery filtering has stopped; saved settings remain intact. Keep Player.log unchanged.
+#. Translation review: AI-generated; native-speaker and in-game review pending.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.GAMEPLAY_FAILURE"
+msgid "Delivery Temperature Limit encountered an error. Temperature limits are no longer enforced until you restart the game. Your saved limits have been retained. See Player.log for details."
+msgstr "Delivery Temperature Limit gặp lỗi. Các giới hạn nhiệt độ sẽ không được áp dụng cho đến khi bạn khởi động lại trò chơi. Các giới hạn đã lưu vẫn được giữ nguyên. Xem Player.log để biết chi tiết."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.USER_INTERFACE_FAILURE
+#. TRANSLATORS: UI controls are unavailable; existing limits are unchanged. Keep Player.log unchanged.
+#. Translation review: AI-generated; native-speaker and in-game review pending.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.USER_INTERFACE_FAILURE"
+msgid "Delivery Temperature Limit controls are unavailable until you restart the game. Existing temperature limits have not been changed. See Player.log for details."
+msgstr "Các nút điều khiển của Delivery Temperature Limit không khả dụng cho đến khi bạn khởi động lại trò chơi. Các giới hạn nhiệt độ hiện có không bị thay đổi. Xem Player.log để biết chi tiết."
+
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE"
 msgid "Delivery Temperature Limit"

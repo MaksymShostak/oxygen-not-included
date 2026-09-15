@@ -14,6 +14,20 @@ msgstr ""
 "Plural-Forms: nplurals=1; plural=0;\n"
 "POT Version: 2.0\n"
 
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.GAMEPLAY_FAILURE
+#. TRANSLATORS: Delivery filtering has stopped; saved settings remain intact. Keep Player.log unchanged.
+#. Translation review: AI-generated; native-speaker and in-game review pending.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.GAMEPLAY_FAILURE"
+msgid "Delivery Temperature Limit encountered an error. Temperature limits are no longer enforced until you restart the game. Your saved limits have been retained. See Player.log for details."
+msgstr "Delivery Temperature Limit 發生錯誤。在重新啟動遊戲之前，溫度限制將不再生效。已儲存的限制仍然保留。詳情請查看 Player.log。"
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.USER_INTERFACE_FAILURE
+#. TRANSLATORS: UI controls are unavailable; existing limits are unchanged. Keep Player.log unchanged.
+#. Translation review: AI-generated; native-speaker and in-game review pending.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.USER_INTERFACE_FAILURE"
+msgid "Delivery Temperature Limit controls are unavailable until you restart the game. Existing temperature limits have not been changed. See Player.log for details."
+msgstr "在重新啟動遊戲之前，Delivery Temperature Limit 的控制項無法使用。現有溫度限制未被變更。詳情請查看 Player.log。"
+
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE"
 msgid "Delivery Temperature Limit"

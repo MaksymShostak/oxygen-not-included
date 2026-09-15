@@ -98,6 +98,29 @@ internal static class DeliveryTemperatureAssemblyMetadataReader
         return assemblyPath;
     }
 
+    internal static IReadOnlyList<string> ReadLocalizationKeys(string assemblyPath) =>
+        Read(assemblyPath, static (_, metadata) =>
+        {
+            var keys = new List<string>();
+            foreach (var typeHandle in metadata.TypeDefinitions)
+            {
+                var typeName = GetTypeName(metadata, typeHandle);
+                if (typeName != "STRINGS.DELIVERY_TEMPERATURE_LIMIT" &&
+                    !typeName.StartsWith("STRINGS.DELIVERY_TEMPERATURE_LIMIT+", StringComparison.Ordinal))
+                    continue;
+                foreach (var fieldHandle in metadata.GetTypeDefinition(typeHandle).GetFields())
+                {
+                    var field = metadata.GetFieldDefinition(fieldHandle);
+                    var signature = metadata.GetBlobReader(field.Signature);
+                    signature.ReadSignatureHeader();
+                    if (signature.ReadSignatureTypeCode() == SignatureTypeCode.TypeHandle &&
+                        GetEntityName(metadata, signature.ReadTypeHandle()) == "LocString")
+                        keys.Add(typeName.Replace('+', '.') + "." + metadata.GetString(field.Name));
+                }
+            }
+            return keys;
+        });
+
     internal static IReadOnlyList<string> ReadPublicSurface(string assemblyPath) =>
         Read(assemblyPath, static (peReader, metadata) =>
         {

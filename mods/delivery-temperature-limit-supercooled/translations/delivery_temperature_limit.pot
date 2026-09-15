@@ -11,6 +11,18 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Poedit\n"
 
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.GAMEPLAY_FAILURE
+#. TRANSLATORS: Delivery filtering has stopped; saved settings remain intact. Keep Player.log unchanged.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.GAMEPLAY_FAILURE"
+msgid "Delivery Temperature Limit encountered an error. Temperature limits are no longer enforced until you restart the game. Your saved limits have been retained. See Player.log for details."
+msgstr ""
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.USER_INTERFACE_FAILURE
+#. TRANSLATORS: UI controls are unavailable; existing limits are unchanged. Keep Player.log unchanged.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.USER_INTERFACE_FAILURE"
+msgid "Delivery Temperature Limit controls are unavailable until you restart the game. Existing temperature limits have not been changed. See Player.log for details."
+msgstr ""
+
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE"
 msgid "Delivery Temperature Limit"

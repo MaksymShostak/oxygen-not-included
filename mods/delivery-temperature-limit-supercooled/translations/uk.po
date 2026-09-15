@@ -14,6 +14,20 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 "X-Review-Status: Native-speaker and in-game review pending\n"
 
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.GAMEPLAY_FAILURE
+#. TRANSLATORS: Delivery filtering has stopped; saved settings remain intact. Keep Player.log unchanged.
+#. Translation review: AI-generated; native-speaker and in-game review pending.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.GAMEPLAY_FAILURE"
+msgid "Delivery Temperature Limit encountered an error. Temperature limits are no longer enforced until you restart the game. Your saved limits have been retained. See Player.log for details."
+msgstr "У Delivery Temperature Limit сталася помилка. Обмеження температури не застосовуватимуться до перезапуску гри. Ваші збережені обмеження збережено. Докладні відомості дивіться у файлі Player.log."
+
+#. STRINGS.DELIVERY_TEMPERATURE_LIMIT.USER_INTERFACE_FAILURE
+#. TRANSLATORS: UI controls are unavailable; existing limits are unchanged. Keep Player.log unchanged.
+#. Translation review: AI-generated; native-speaker and in-game review pending.
+msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.USER_INTERFACE_FAILURE"
+msgid "Delivery Temperature Limit controls are unavailable until you restart the game. Existing temperature limits have not been changed. See Player.log for details."
+msgstr "Елементи керування Delivery Temperature Limit недоступні до перезапуску гри. Наявні обмеження температури не змінено. Докладні відомості дивіться у файлі Player.log."
+
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.SIDESCREEN.TITLE"
 msgid "Delivery Temperature Limit"
