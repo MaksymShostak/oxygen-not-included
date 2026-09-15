@@ -262,7 +262,7 @@ msgstr "Zahrnout herní protokol (volitelné)"
 #. TRANSLATORS: Revised Options flow; translate the current English text.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_INCLUDE_PLAYER_LOG"
 msgid "Adds recent game log entries to the local report. Logs may contain personal information; known paths are removed where possible. Review the file before attaching it on GitHub."
-msgstr "Přidá nedávné záznamy herního protokolu do místní zprávy. Protokoly mohou obsahovat osobní údaje; známé cesty se odstraňují, pokud je to možné. Před přiložením na GitHubu soubor zkontroluj."
+msgstr "Přidá nedávné záznamy herního protokolu do místní zprávy. Protokoly mohou obsahovat osobní údaje; známé cesty se odstraňují, pokud je to možné. Před přiložením na GitHubu soubor zkontrolujte."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CREATE_REPORT
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CREATE_REPORT"
@@ -284,7 +284,7 @@ msgstr "Zpráva uložena v tomto počítači."
 #. TRANSLATORS: Revised Options flow; translate the current English text.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_FAILED"
 msgid "Could not create the report. Try again. Details are in the game log."
-msgstr "Zprávu se nepodařilo vytvořit. Zkus to znovu. Podrobnosti jsou v herním protokolu."
+msgstr "Zprávu se nepodařilo vytvořit. Zkuste to znovu. Podrobnosti jsou v herním protokolu."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_OPEN_LAST_REPORT_FOLDER
 #. TRANSLATORS: Revised Options flow; translate the current English text.
@@ -444,7 +444,7 @@ msgstr "Herní protokol se nepodařilo přečíst. Zpráva obsahuje pouze údaje
 #. TRANSLATORS: Options help or bug-report flow.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.NOTICE_ISSUE_FORM"
 msgid "Send game and mod details to GitHub to fill in the bug form. You can review them before posting. The report file stays on this computer."
-msgstr "Odešli údaje o hře a modu na GitHub a předvyplň formulář chyby. Před zveřejněním je můžeš zkontrolovat. Soubor zprávy zůstává v tomto počítači."
+msgstr "Odešlete údaje o hře a modu na GitHub a předvyplňte formulář chyby. Před zveřejněním je můžete zkontrolovat. Soubor zprávy zůstává v tomto počítači."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_ISSUE_FORM_OPENED
 #. TRANSLATORS: Options help or bug-report flow.

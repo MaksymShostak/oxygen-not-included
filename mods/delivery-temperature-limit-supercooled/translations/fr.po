@@ -262,7 +262,7 @@ msgstr "Inclure le journal du jeu (facultatif)"
 #. TRANSLATORS: Revised Options flow; translate the current English text.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.TOOLTIP_INCLUDE_PLAYER_LOG"
 msgid "Adds recent game log entries to the local report. Logs may contain personal information; known paths are removed where possible. Review the file before attaching it on GitHub."
-msgstr "Ajoute les entrées récentes du journal du jeu au rapport local. Les journaux peuvent contenir des informations personnelles ; les chemins connus sont supprimés si possible. Vérifiez le fichier avant de le joindre sur GitHub."
+msgstr "Ajoute les entrées récentes du journal du jeu au rapport local. Les journaux peuvent contenir des informations personnelles ; les chemins connus sont supprimés si possible. Vérifiez le fichier avant de le joindre sur GitHub."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CREATE_REPORT
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.BUTTON_CREATE_REPORT"
@@ -278,7 +278,7 @@ msgstr "Création d’un rapport local…"
 #. TRANSLATORS: Revised Options flow; translate the current English text.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_CREATED"
 msgid "Report saved on this computer."
-msgstr "Rapport enregistré sur cet ordinateur ."
+msgstr "Rapport enregistré sur cet ordinateur."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_REPORT_FAILED
 #. TRANSLATORS: Revised Options flow; translate the current English text.

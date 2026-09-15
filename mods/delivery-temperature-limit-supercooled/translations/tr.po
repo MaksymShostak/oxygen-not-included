@@ -440,7 +440,7 @@ msgstr "Oyun günlüğü eklenmedi."
 #. TRANSLATORS: Options help or bug-report flow.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_LOG_UNAVAILABLE"
 msgid "The game log could not be read. The report contains game and mod details only."
-msgstr "Oyun günlüğü okunamadı. Rapor yalnızca oyun ve mod bilgilerini içeriyor."
+msgstr "Oyun günlüğü okunamadı. Rapor yalnızca oyun ve mod bilgilerini içerir."
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.NOTICE_ISSUE_FORM
 #. TRANSLATORS: Options help or bug-report flow.

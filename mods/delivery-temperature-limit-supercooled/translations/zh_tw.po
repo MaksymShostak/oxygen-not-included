@@ -428,7 +428,7 @@ msgstr "進階疑難排解"
 #. TRANSLATORS: Options help or bug-report flow.
 msgctxt "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_LOG_INCLUDED"
 msgid "Game log excerpt saved in this local report."
-msgstr "遊戲日誌摘錄已儲存在此本機報告中。"
+msgstr "遊戲記錄摘錄已儲存在此本機報告中。"
 
 #. STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS.STATUS_LOG_NOT_INCLUDED
 #. TRANSLATORS: Options help or bug-report flow.
