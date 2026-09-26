@@ -23,6 +23,13 @@ The mod now speaks 18 additional locales, the Options dialog has been rebuilt, t
 [*] [b]Local Support Reports:[/b] Support reports can now be generated from the Options dialog without uploading anything automatically. The standard report does not read [i]Player.log[/i]; the clearly labelled Extended report can include a bounded, best-effort-redacted excerpt for harder failures.
 [/list]
 
+[b]Fixes[/b]
+[list]
+[*] [b]Carpooling Now Checks the Thermometer:[/b] When Duplicants bundled several nearby deliveries into one trip, the temperature check only asked the first destination. A picky Storage Bin could be handed whatever a more relaxed neighbour accepted, and a bin set to accept nothing at all could still receive a delivery. Deliveries are now only bundled when every destination along the way would accept the load. This bug has been with us since the original Delivery Temperature Limit mod, quietly slipping lukewarm surprises into fussy bins for generations of colonies. It has finally been escorted to the Printing Pod for re-education. Duplicants may make the occasional extra trip; they have been told it counts as cardio.
+
+[*] [b]Blueprint Thermometer Has a Backup Plan:[/b] The build menu's temperature controls no longer depend on the game's screens loading in one particular order. If they miss their cue during start-up, they now step in the moment you pick a building instead of sitting out the whole colony. Understudies have been briefed.
+[/list]
+
 [b]Existing Colonies[/b]
 [list]
 [*] [b]Your Bins Are Safe:[/b] Existing temperature limits, construction settings, copied building settings, and saved colonies carry over unchanged. The filing cabinet survived the renovation.
