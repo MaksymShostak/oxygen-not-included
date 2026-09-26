@@ -16,6 +16,7 @@ namespace DeliveryTemperatureLimit
     {
         private static TemperatureLimit? currentBlueprintTemperatureLimit;
         private static FieldInfo? verifiedMaterialSelectionPanelField;
+        private static bool lateBlueprintWidgetAttachmentReported;
 
         internal static MethodInfo ResolveMaterialSelectionPanelPrefabInitializationTarget() =>
             HarmonyPatchContractVerifier.RequireInstanceMethod(
@@ -118,6 +119,11 @@ namespace DeliveryTemperatureLimit
 
                 TemperatureLimitWidget? widget =
                     __instance.GetComponent<TemperatureLimitWidget>();
+                if (widget == null)
+                {
+                    widget = AttachLateBlueprintWidget(__instance);
+                }
+
                 widget?.SetTarget(currentBlueprintTemperatureLimit);
             }
             catch (Exception exception)
@@ -198,6 +204,46 @@ namespace DeliveryTemperatureLimit
             }
         }
 
+        private static TemperatureLimitWidget? AttachLateBlueprintWidget(
+            MaterialSelectionPanel panel)
+        {
+            // ONI does not guarantee that the Details Screen exists when a
+            // build-menu panel runs OnPrefabInit. By the time a building is
+            // configured it does, so a build-menu panel skipped at
+            // initialization is attached here instead of silently lacking the
+            // widget.
+            if (!IsSupportedBlueprintMaterialSelectionPanel(panel))
+            {
+                return null;
+            }
+
+            if (currentBlueprintTemperatureLimit == null)
+            {
+                currentBlueprintTemperatureLimit =
+                    panel.gameObject.AddOrGet<TemperatureLimit>();
+                // Reset only the newly created singleton. Configuration runs
+                // on every building selection and must keep the player's range.
+                ResetConstructionMaterialTemperatureLimitToDefaultsIfOwned(
+                    currentBlueprintTemperatureLimit);
+            }
+
+            TemperatureLimitWidget widget =
+                panel.gameObject.AddOrGet<TemperatureLimitWidget>();
+            widget.InitializeComponent();
+            if (!lateBlueprintWidgetAttachmentReported)
+            {
+                lateBlueprintWidgetAttachmentReported = true;
+                DeliveryTemperatureSupportReporter.Record(
+                    "DTL-BLUEPRINT-WIDGET-LATE-ATTACHED",
+                    SupportDiagnosticSeverity.Warning,
+                    "Delivery Temperature Limit attached the build-menu " +
+                    "temperature editor on first configuration because the " +
+                    "Details Screen was unavailable when the panel initialized.");
+            }
+
+            return widget;
+        }
+
         private static bool IsSupportedBlueprintMaterialSelectionPanel(
             MaterialSelectionPanel candidatePanel)
         {
@@ -205,8 +251,9 @@ namespace DeliveryTemperatureLimit
             if (detailsScreen == null)
             {
                 // Until the Details Screen exists, the change-material panel
-                // cannot be distinguished from a build-menu panel. Deferring is
-                // safer than attaching blueprint state to the wrong singleton.
+                // cannot be distinguished from a build-menu panel. Rejecting is
+                // safer than attaching blueprint state to the wrong singleton;
+                // the configuration postfix retries once the screen exists.
                 return false;
             }
 

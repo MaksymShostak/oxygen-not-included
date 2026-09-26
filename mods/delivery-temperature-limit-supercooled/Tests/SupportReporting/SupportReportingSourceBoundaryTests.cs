@@ -293,6 +293,10 @@ public sealed class SupportReportingSourceBoundaryTests
                 "DTL-SIDE-SCREEN-REGISTRATION-FAILED",
                 "SupportDiagnosticSeverity.Error"),
             (
+                ["TemperatureLimitedDeliveryTargets", "ConstructionMaterialTemperatureLimit.cs"],
+                "DTL-BLUEPRINT-WIDGET-LATE-ATTACHED",
+                "SupportDiagnosticSeverity.Warning"),
+            (
                 ["RuntimePatchInstallation", "DeliveryTemperatureRuntimePatchInstaller.cs"],
                 "DTL-STATUS-COMPATIBILITY-DEGRADED",
                 "SupportDiagnosticSeverity.Error"),
