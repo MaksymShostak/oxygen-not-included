@@ -153,6 +153,40 @@ public sealed class AutomatedTestRunnerTests
     }
 
     [TestMethod]
+    public async Task RunAsync_WhenBuildIsBound_ExportsThatExactBuildAndRequiresIt()
+    {
+        using var fixture = new AutomatedTestFixture(
+            new TestProjectProfile("bound-project", "Tests/Bound.csproj", true));
+        var artifactsDirectory = Path.Combine(fixture.RepositoryRoot, "artifacts");
+        var buildResultPath = Path.Combine(
+            artifactsDirectory,
+            "release-candidates",
+            "work",
+            "build-result.json");
+        var runner = fixture.CreateRunner();
+
+        var result = await runner.RunAsync(
+            fixture.Profile,
+            fixture.ResultsRoot,
+            new BoundPipelineBuild(buildResultPath, artifactsDirectory),
+            CancellationToken.None);
+
+        Assert.AreEqual(PipelineExitCode.Success, result.ExitCode);
+        Assert.AreEqual(2, fixture.ProcessRunner.Requests.Count);
+        Assert.AreEqual(
+            0,
+            fixture.ProcessRunner.Requests[0].EnvironmentVariables.Count,
+            "Restore must not receive build-inspection variables.");
+        var environment = fixture.ProcessRunner.Requests[1].EnvironmentVariables;
+        Assert.AreEqual(5, environment.Count);
+        Assert.AreEqual(fixture.ManagedDirectory, environment["ONI_MANAGED_ASSEMBLY_DIRECTORY"]);
+        Assert.AreEqual(fixture.RepositoryRoot, environment["ONI_MOD_PIPELINE_REPOSITORY_ROOT"]);
+        Assert.AreEqual(buildResultPath, environment["ONI_MOD_PIPELINE_BUILD_RESULT_PATH"]);
+        Assert.AreEqual(artifactsDirectory, environment["ONI_MOD_PIPELINE_ARTIFACTS_DIRECTORY"]);
+        Assert.AreEqual("true", environment["ONI_MOD_PIPELINE_REQUIRE_BUILD_RESULT"]);
+    }
+
+    [TestMethod]
     public async Task RunAsync_WhenResultsRootAlreadyExists_ReturnsOnip3005WithoutDeletingIt()
     {
         using var fixture = new AutomatedTestFixture(

@@ -34,7 +34,7 @@ public sealed class RuntimeFailureBoundaryContractTests
     public void GameEntryPoint_ContainsModFailure(string typeName, string methodName)
     {
         string path = PipelineProvenanceBoundAssemblyLocator.CreateForCurrentPipelineEnvironment()
-            .ResolveRequiredPipelineBuild().AssemblyPath;
+            .ResolvePipelineBuildOrInconclusive().AssemblyPath;
         using var stream = File.OpenRead(path);
         using var pe = new PEReader(stream);
         var metadata = pe.GetMetadataReader();

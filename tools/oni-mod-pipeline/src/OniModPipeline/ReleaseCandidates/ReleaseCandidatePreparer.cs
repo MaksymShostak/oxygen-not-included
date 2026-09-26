@@ -40,11 +40,16 @@ internal interface IReleaseModBuilder
 
 internal interface IReleaseAutomatedTestRunner
 {
+    /// <summary>
+    /// Runs the declared tests against <paramref name="boundBuild"/>, the build
+    /// this preparation just produced.
+    /// </summary>
     Task<OperationResult<IReadOnlyList<AutomatedTestResult>>> RunAsync(
         ModProfile profile,
         PipelineEnvironment environment,
         string worktreeRoot,
         string resultsRoot,
+        BoundPipelineBuild? boundBuild,
         CancellationToken cancellationToken);
 }
 
@@ -419,6 +424,9 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
                 request.Environment,
                 request.InitialProvenance.WorktreeRoot,
                 stagedTestResultsDirectory,
+                new BoundPipelineBuild(
+                    Path.Combine(build.RunRoot, "build-result.json"),
+                    request.Environment.ArtifactsDirectory),
                 cancellationToken).ConfigureAwait(false);
             if (!testResult.IsSuccess)
             {
@@ -1400,12 +1408,13 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
             PipelineEnvironment environment,
             string worktreeRoot,
             string resultsRoot,
+            BoundPipelineBuild? boundBuild,
             CancellationToken cancellationToken) =>
             new AutomatedTestRunner(
                 processRunner,
                 environment.OniManagedAssemblyDirectory,
                 worktreeRoot)
-                .RunAsync(profile, resultsRoot, cancellationToken);
+                .RunAsync(profile, resultsRoot, boundBuild, cancellationToken);
     }
 
     private sealed class ReleaseWorkshopContentAssemblerAdapter(

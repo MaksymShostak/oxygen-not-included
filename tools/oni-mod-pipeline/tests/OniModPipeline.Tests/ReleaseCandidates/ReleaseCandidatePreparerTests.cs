@@ -221,6 +221,28 @@ public sealed class ReleaseCandidatePreparerTests
     }
 
     [TestMethod]
+    public async Task PrepareAsync_WhenTestsRun_BindsTheBuildThisPreparationProduced()
+    {
+        using var fixture = new PreparationFixture();
+
+        var result = await fixture.Preparer.PrepareAsync(
+            fixture.Request,
+            CancellationToken.None);
+
+        Assert.IsTrue(result.IsSuccess);
+        Assert.IsNotNull(fixture.BuiltRunRoot);
+        Assert.IsNotNull(
+            fixture.TestRunBoundBuild,
+            "Release tests must inspect the build this preparation produced.");
+        Assert.AreEqual(
+            Path.Combine(fixture.BuiltRunRoot, "build-result.json"),
+            fixture.TestRunBoundBuild.BuildResultPath);
+        Assert.AreEqual(
+            fixture.ArtifactsDirectory,
+            fixture.TestRunBoundBuild.ArtifactsDirectory);
+    }
+
+    [TestMethod]
     [DataRow(PreparationFailure.Restore)]
     [DataRow(PreparationFailure.AutomatedTest)]
     [DataRow(PreparationFailure.Listing)]
@@ -539,6 +561,8 @@ internal sealed class PreparationFixture : IDisposable
     internal ReleasePreparationRequest Request { get; }
     internal CandidateLayout Layout { get; }
     internal List<string> Trace { get; } = [];
+    internal string? BuiltRunRoot { get; set; }
+    internal BoundPipelineBuild? TestRunBoundBuild { get; set; }
     internal FixtureReleaseBuilder Builder { get; }
     internal FixtureSourceInspector SourceInspector { get; }
     internal FixedTimeProvider Clock { get; }
@@ -675,6 +699,7 @@ internal sealed class FixtureReleaseBuilder(PreparationFixture fixture) :
     {
         CallCount++;
         fixture.Trace.Add("build");
+        fixture.BuiltRunRoot = request.RunRoot;
         if (fixture.FailsAt(PreparationFailure.Restore))
         {
             return new OperationResult<BuildResult>(
@@ -771,9 +796,11 @@ internal sealed class FixtureTestRunner(PreparationFixture fixture) :
         PipelineEnvironment environment,
         string worktreeRoot,
         string resultsRoot,
+        BoundPipelineBuild? boundBuild,
         CancellationToken cancellationToken)
     {
         fixture.Trace.Add("tests");
+        fixture.TestRunBoundBuild = boundBuild;
         if (fixture.FailsAt(PreparationFailure.AutomatedTest))
         {
             return new OperationResult<IReadOnlyList<AutomatedTestResult>>(

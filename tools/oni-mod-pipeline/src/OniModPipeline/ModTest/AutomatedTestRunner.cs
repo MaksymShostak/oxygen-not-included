@@ -24,9 +24,21 @@ internal sealed class AutomatedTestRunner
         this.repositoryRoot = Path.GetFullPath(repositoryRoot);
     }
 
+    internal Task<OperationResult<IReadOnlyList<AutomatedTestResult>>> RunAsync(
+        ModProfile profile,
+        string resultsRoot,
+        CancellationToken cancellationToken) =>
+        RunAsync(profile, resultsRoot, boundBuild: null, cancellationToken);
+
+    /// <summary>
+    /// Runs every declared test project. A non-null <paramref name="boundBuild"/>
+    /// is exported to each test process together with a requirement marker, so
+    /// build-inspecting tests fail rather than skip when the binding is lost.
+    /// </summary>
     internal async Task<OperationResult<IReadOnlyList<AutomatedTestResult>>> RunAsync(
         ModProfile profile,
         string resultsRoot,
+        BoundPipelineBuild? boundBuild,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(profile);
@@ -103,11 +115,7 @@ internal sealed class AutomatedTestRunner
                         $"{testProject.Id}.trx"
                     ],
                     profile.ModRoot,
-                    new Dictionary<string, string>(StringComparer.Ordinal)
-                    {
-                        ["ONI_MANAGED_ASSEMBLY_DIRECTORY"] = managedAssemblyDirectory,
-                        ["ONI_MOD_PIPELINE_REPOSITORY_ROOT"] = repositoryRoot
-                    }),
+                    CreateTestEnvironment(boundBuild)),
                 cancellationToken).ConfigureAwait(false);
             var passed = test.ExitCode == 0 && File.Exists(trxPath);
             var automatedResult = new AutomatedTestResult(
@@ -157,6 +165,28 @@ internal sealed class AutomatedTestRunner
             results,
             [],
             PipelineExitCode.Success);
+    }
+
+    private Dictionary<string, string> CreateTestEnvironment(
+        BoundPipelineBuild? boundBuild)
+    {
+        var environment = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["ONI_MANAGED_ASSEMBLY_DIRECTORY"] = managedAssemblyDirectory,
+            ["ONI_MOD_PIPELINE_REPOSITORY_ROOT"] = repositoryRoot
+        };
+        if (boundBuild is not null)
+        {
+            environment["ONI_MOD_PIPELINE_BUILD_RESULT_PATH"] =
+                Path.GetFullPath(boundBuild.BuildResultPath);
+            environment["ONI_MOD_PIPELINE_ARTIFACTS_DIRECTORY"] =
+                Path.GetFullPath(boundBuild.ArtifactsDirectory);
+            // Exported separately from the path so a consumer can tell a run
+            // that lost its binding from a standalone run that never had one.
+            environment["ONI_MOD_PIPELINE_REQUIRE_BUILD_RESULT"] = "true";
+        }
+
+        return environment;
     }
 
     private static Diagnostic? ValidateRunInputs(ModProfile profile, string resultsRoot)

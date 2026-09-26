@@ -29,7 +29,7 @@ public sealed class DeliveryTemperatureUserInterfaceContractTests
             "The game binds the target before showing the inactive side screen.");
 
         string path = PipelineProvenanceBoundAssemblyLocator
-            .CreateForCurrentPipelineEnvironment().ResolveRequiredPipelineBuild().AssemblyPath;
+            .CreateForCurrentPipelineEnvironment().ResolvePipelineBuildOrInconclusive().AssemblyPath;
         var binding = DeliveryTemperatureAssemblyMetadataReader.ReadMethodBodies(
                 path, "DeliveryTemperatureLimit.TemperatureLimitSideScreen", "SetTarget")
             .Single().Instructions.Where(instruction => instruction.Operation != "nop").ToList();
@@ -71,7 +71,7 @@ public sealed class DeliveryTemperatureUserInterfaceContractTests
     private static List<AssemblyInstructionContract> ReadSideScreenInitialization()
     {
         string path = PipelineProvenanceBoundAssemblyLocator
-            .CreateForCurrentPipelineEnvironment().ResolveRequiredPipelineBuild().AssemblyPath;
+            .CreateForCurrentPipelineEnvironment().ResolvePipelineBuildOrInconclusive().AssemblyPath;
         return DeliveryTemperatureAssemblyMetadataReader.ReadMethodBodies(
                 path, "DeliveryTemperatureLimit.TemperatureLimitSideScreen", "OnPrefabInit")
             .Single().Instructions.ToList();

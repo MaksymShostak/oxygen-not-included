@@ -179,6 +179,20 @@ internal sealed class PipelineProvenanceBoundAssemblyLocator
     internal const string ReleaseCandidateDirectoryVariable =
         "DELIVERY_TEMPERATURE_LIMIT_RELEASE_CANDIDATE_DIRECTORY";
 
+    /// <summary>
+    /// The exact build the pipeline itself bound to this test run, such as the
+    /// build release preparation produced moments earlier.
+    /// </summary>
+    internal const string PipelineBoundBuildResultPathVariable =
+        "ONI_MOD_PIPELINE_BUILD_RESULT_PATH";
+
+    /// <summary>
+    /// Set to <c>true</c> by pipeline runs whose tests must inspect a bound
+    /// build, so a lost binding fails instead of skipping those tests.
+    /// </summary>
+    internal const string PipelineRequiresBuildResultVariable =
+        "ONI_MOD_PIPELINE_REQUIRE_BUILD_RESULT";
+
     private const string ArtifactsDirectoryVariable =
         "ONI_MOD_PIPELINE_ARTIFACTS_DIRECTORY";
     private const string RepositoryRootVariable =
@@ -201,6 +215,9 @@ internal sealed class PipelineProvenanceBoundAssemblyLocator
         RegexOptions.CultureInvariant | RegexOptions.NonBacktracking);
     private static readonly Regex CandidateRunIdPattern = new(
         "^[0-9]{8}T[0-9]{6}\\.[0-9]{7}Z-[0-9a-f]{16}$",
+        RegexOptions.CultureInvariant | RegexOptions.NonBacktracking);
+    private static readonly Regex ReleaseWorkDirectoryPattern = new(
+        "^\\.[0-9]{8}T[0-9]{6}\\.[0-9]{7}Z-[0-9a-f]{16}\\.work-[0-9a-f]{32}$",
         RegexOptions.CultureInvariant | RegexOptions.NonBacktracking);
 
     private readonly string repositoryRoot;
@@ -259,26 +276,54 @@ internal sealed class PipelineProvenanceBoundAssemblyLocator
     }
 
     /// <summary>
-    /// Returns no row only when no build evidence was supplied. A nonblank but
-    /// invalid value is resolved immediately and therefore fails discovery.
+    /// Returns no row only when no build evidence was supplied and the pipeline
+    /// does not require one. A nonblank but invalid value, or a required build
+    /// that is missing, fails discovery instead of silently skipping.
     /// </summary>
     internal IReadOnlyList<PipelineProvenanceBoundAssembly>
         ProbeExactPipelineBuildDataRows()
     {
-        string? suppliedPath = readEnvironmentVariable(BuildResultPathVariable);
-        return string.IsNullOrWhiteSpace(suppliedPath)
-            ? Array.Empty<PipelineProvenanceBoundAssembly>()
-            : [ResolveRequiredPipelineBuild()];
+        if (ReadSuppliedBuildResultPath() is not null ||
+            PipelineRequiresBuildResult())
+        {
+            return [ResolveRequiredPipelineBuild()];
+        }
+
+        return Array.Empty<PipelineProvenanceBoundAssembly>();
+    }
+
+    /// <summary>
+    /// Resolves the supplied build for a test that inspects compiled output, or
+    /// marks the calling test inconclusive when no build was supplied and the
+    /// pipeline does not require one.
+    /// </summary>
+    internal PipelineProvenanceBoundAssembly ResolvePipelineBuildOrInconclusive()
+    {
+        IReadOnlyList<PipelineProvenanceBoundAssembly> builds =
+            ProbeExactPipelineBuildDataRows();
+        if (builds.Count == 0)
+        {
+            Assert.Inconclusive(
+                $"Supply {BuildResultPathVariable}, or run through a pipeline " +
+                $"operation that binds its build, to inspect compiled output.");
+        }
+
+        return builds[0];
     }
 
     internal PipelineProvenanceBoundAssembly ResolveRequiredPipelineBuild()
     {
-        string? suppliedPath = readEnvironmentVariable(BuildResultPathVariable);
-        if (string.IsNullOrWhiteSpace(suppliedPath))
+        string? suppliedPath = ReadSuppliedBuildResultPath();
+        if (suppliedPath is null)
         {
             throw new PipelineProvenanceBindingException(
                 $"Required exact pipeline build environment variable " +
-                $"{BuildResultPathVariable} is absent or whitespace.");
+                $"{BuildResultPathVariable} or " +
+                $"{PipelineBoundBuildResultPathVariable} is absent or whitespace" +
+                (PipelineRequiresBuildResult()
+                    ? $", although {PipelineRequiresBuildResultVariable} " +
+                      "declares that this pipeline run requires a bound build."
+                    : "."));
         }
 
         try
@@ -300,6 +345,58 @@ internal sealed class PipelineProvenanceBoundAssemblyLocator
                 exception);
         }
     }
+
+    /// <summary>
+    /// Returns the single supplied build-result path, or null when neither the
+    /// manual nor the pipeline-bound variable names one. Two different paths
+    /// are ambiguous and rejected rather than ranked.
+    /// </summary>
+    private string? ReadSuppliedBuildResultPath()
+    {
+        string? manualPath = readEnvironmentVariable(BuildResultPathVariable);
+        string? pipelineBoundPath =
+            readEnvironmentVariable(PipelineBoundBuildResultPathVariable);
+        bool hasManualPath = !string.IsNullOrWhiteSpace(manualPath);
+        bool hasPipelineBoundPath = !string.IsNullOrWhiteSpace(pipelineBoundPath);
+        if (hasManualPath && hasPipelineBoundPath &&
+            !PathsEqual(
+                ToFullSuppliedPath(BuildResultPathVariable, manualPath!),
+                ToFullSuppliedPath(
+                    PipelineBoundBuildResultPathVariable,
+                    pipelineBoundPath!)))
+        {
+            throw new PipelineProvenanceBindingException(
+                $"{BuildResultPathVariable} '{manualPath}' and " +
+                $"{PipelineBoundBuildResultPathVariable} '{pipelineBoundPath}' " +
+                "name different builds; supply exactly one build.");
+        }
+
+        return hasPipelineBoundPath
+            ? pipelineBoundPath
+            : hasManualPath ? manualPath : null;
+    }
+
+    private static string ToFullSuppliedPath(string variableName, string value)
+    {
+        try
+        {
+            return Path.GetFullPath(value);
+        }
+        catch (Exception exception) when (
+            exception is ArgumentException or NotSupportedException or
+            PathTooLongException)
+        {
+            throw new PipelineProvenanceBindingException(
+                $"{variableName} '{value}' is not a valid path.",
+                exception);
+        }
+    }
+
+    private bool PipelineRequiresBuildResult() =>
+        string.Equals(
+            readEnvironmentVariable(PipelineRequiresBuildResultVariable),
+            "true",
+            StringComparison.Ordinal);
 
     /// <summary>
     /// Returns no row only when no candidate evidence was supplied. It never
@@ -394,25 +491,57 @@ internal sealed class PipelineProvenanceBoundAssemblyLocator
         string[] relativeSegments = SplitRelativePath(
             artifactsRoot,
             canonicalBuildResultPath);
-        if (relativeSegments.Length != 4 ||
-            !string.Equals(relativeSegments[0], "builds", PathComparison) ||
-            !string.Equals(relativeSegments[1], expectedStaticId, PathComparison) ||
-            !BuildRunIdPattern.IsMatch(relativeSegments[2]) ||
-            !string.Equals(
-                relativeSegments[3],
-                "build-result.json",
-                PathComparison))
+        bool isStandaloneBuild =
+            relativeSegments.Length == 4 &&
+            string.Equals(relativeSegments[0], "builds", PathComparison) &&
+            string.Equals(relativeSegments[1], expectedStaticId, PathComparison) &&
+            BuildRunIdPattern.IsMatch(relativeSegments[2]) &&
+            string.Equals(relativeSegments[3], "build-result.json", PathComparison);
+        // Release preparation builds into a transient work directory beside the
+        // candidate it is preparing, then binds that build to its test run.
+        bool isReleaseWorkBuild =
+            relativeSegments.Length == 5 &&
+            string.Equals(
+                relativeSegments[0],
+                "release-candidates",
+                PathComparison) &&
+            string.Equals(relativeSegments[1], expectedStaticId, PathComparison) &&
+            ReleaseWorkDirectoryPattern.IsMatch(relativeSegments[3]) &&
+            string.Equals(relativeSegments[4], "build-result.json", PathComparison);
+        if (!isStandaloneBuild && !isReleaseWorkBuild)
         {
             throw InvalidBuild(
                 suppliedPath,
                 "the file must use artifacts/builds/<static-id>/<pipeline-run-id>/" +
-                "build-result.json for the expected mod static ID");
+                "build-result.json, or release preparation's " +
+                "artifacts/release-candidates/<static-id>/<version>/" +
+                ".<candidate-run-id>.work-<suffix>/build-result.json, for the " +
+                "expected mod static ID");
         }
 
         using JsonDocument buildResultDocument = JsonDocument.Parse(
             File.ReadAllBytes(canonicalBuildResultPath));
         JsonElement buildResult = buildResultDocument.RootElement;
         RequireObject(buildResult, "build result", suppliedPath, isCandidate: false);
+
+        if (isReleaseWorkBuild)
+        {
+            string recordedReleaseVersion = RequireString(
+                buildResult,
+                "releaseVersion",
+                suppliedPath,
+                isCandidate: false);
+            if (!string.Equals(
+                    recordedReleaseVersion,
+                    relativeSegments[2],
+                    StringComparison.Ordinal))
+            {
+                throw InvalidBuild(
+                    suppliedPath,
+                    $"recorded releaseVersion '{recordedReleaseVersion}' does " +
+                    $"not match release version directory '{relativeSegments[2]}'");
+            }
+        }
 
         string recordedRunRoot = RequireString(
             buildResult,
@@ -1920,6 +2049,112 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
     }
 
     [TestMethod]
+    public void PipelineBoundBuild_WhenReleasePreparationBindsItsWorkBuild_ResolvesThatBuild()
+    {
+        using var fixture = new ProvenanceBindingFixture();
+        string buildResultPath = fixture.CreateValidReleaseWorkBuildResult();
+        PipelineProvenanceBoundAssemblyLocator locator = fixture.CreateLocator(
+            buildResultPath: null,
+            candidateDirectory: null,
+            pipelineBoundBuildResultPath: buildResultPath,
+            pipelineRequiresBuildResult: "true");
+
+        PipelineProvenanceBoundAssembly assembly =
+            locator.ResolveRequiredPipelineBuild();
+
+        Assert.AreEqual(
+            PipelineProvenanceBoundAssemblyKind.ExactPipelineBuild,
+            assembly.Kind);
+        Assert.AreEqual(fixture.BuildAssemblyPath, assembly.AssemblyPath);
+        Assert.HasCount(1, locator.ProbeExactPipelineBuildDataRows().ToArray());
+    }
+
+    [TestMethod]
+    public void PipelineBoundBuild_WhenManualVariableNamesAnotherBuild_RejectsAmbiguousBinding()
+    {
+        using var fixture = new ProvenanceBindingFixture();
+        string releaseWorkBuildResultPath =
+            fixture.CreateValidReleaseWorkBuildResult();
+        string manualBuildResultPath = fixture.CreateValidBuildResult();
+        PipelineProvenanceBoundAssemblyLocator locator = fixture.CreateLocator(
+            manualBuildResultPath,
+            candidateDirectory: null,
+            pipelineBoundBuildResultPath: releaseWorkBuildResultPath);
+
+        PipelineProvenanceBindingException exception =
+            Assert.ThrowsExactly<PipelineProvenanceBindingException>(
+                locator.ResolveRequiredPipelineBuild);
+        StringAssert.Contains(
+            exception.Message,
+            PipelineProvenanceBoundAssemblyLocator.BuildResultPathVariable);
+        StringAssert.Contains(
+            exception.Message,
+            PipelineProvenanceBoundAssemblyLocator
+                .PipelineBoundBuildResultPathVariable);
+    }
+
+    [TestMethod]
+    public void PipelineBoundBuild_WhenManualVariableIsNotAPath_ReportsBindingFailureNamingIt()
+    {
+        using var fixture = new ProvenanceBindingFixture();
+        string releaseWorkBuildResultPath =
+            fixture.CreateValidReleaseWorkBuildResult();
+        const string malformedPath = "C:\\builds\0\\build-result.json";
+        PipelineProvenanceBoundAssemblyLocator locator = fixture.CreateLocator(
+            malformedPath,
+            candidateDirectory: null,
+            pipelineBoundBuildResultPath: releaseWorkBuildResultPath);
+
+        PipelineProvenanceBindingException exception =
+            Assert.ThrowsExactly<PipelineProvenanceBindingException>(
+                () => locator.ProbeExactPipelineBuildDataRows().ToArray());
+        StringAssert.Contains(
+            exception.Message,
+            PipelineProvenanceBoundAssemblyLocator.BuildResultPathVariable);
+    }
+
+    [TestMethod]
+    public void BuildDataRowProbe_WhenPipelineRequiresABuildButNoneIsBound_ThrowsInsteadOfSkipping()
+    {
+        using var fixture = new ProvenanceBindingFixture();
+        PipelineProvenanceBoundAssemblyLocator locator = fixture.CreateLocator(
+            buildResultPath: null,
+            candidateDirectory: null,
+            pipelineRequiresBuildResult: "true");
+
+        PipelineProvenanceBindingException exception =
+            Assert.ThrowsExactly<PipelineProvenanceBindingException>(
+                () => locator.ProbeExactPipelineBuildDataRows().ToArray());
+        StringAssert.Contains(
+            exception.Message,
+            PipelineProvenanceBoundAssemblyLocator
+                .PipelineRequiresBuildResultVariable);
+    }
+
+    [TestMethod]
+    [DataRow("2026.8.29", ".20260830T120000.0000000Z-0123456789abcdef.work-0123456789abcdef0123456789abcdef")]
+    [DataRow("2026.8.30", ".20260830T120000.0000000Z-0123456789abcdef.staging-0123456789abcdef0123456789abcdef")]
+    [DataRow("2026.8.30", "20260830T120000.0000000Z-0123456789abcdef")]
+    public void PipelineBoundBuild_WhenReleaseWorkLocationIsNotExact_RejectsBinding(
+        string versionSegment,
+        string workDirectoryName)
+    {
+        using var fixture = new ProvenanceBindingFixture();
+        string buildResultPath = fixture.CreateValidReleaseWorkBuildResult(
+            versionSegment,
+            workDirectoryName);
+        PipelineProvenanceBoundAssemblyLocator locator = fixture.CreateLocator(
+            buildResultPath: null,
+            candidateDirectory: null,
+            pipelineBoundBuildResultPath: buildResultPath);
+
+        PipelineProvenanceBindingException exception =
+            Assert.ThrowsExactly<PipelineProvenanceBindingException>(
+                locator.ResolveRequiredPipelineBuild);
+        StringAssert.Contains(exception.Message, buildResultPath);
+    }
+
+    [TestMethod]
     [DataRow(BuildResultMutation.WrongSourceCommit)]
     [DataRow(BuildResultMutation.ChangedSourceInput)]
     [DataRow(BuildResultMutation.ChangedPrimaryOutput)]
@@ -2105,7 +2340,9 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
 
         internal PipelineProvenanceBoundAssemblyLocator CreateLocator(
             string? buildResultPath,
-            string? candidateDirectory)
+            string? candidateDirectory,
+            string? pipelineBoundBuildResultPath = null,
+            string? pipelineRequiresBuildResult = null)
         {
             var environment = new Dictionary<string, string?>(
                 StringComparer.Ordinal)
@@ -2113,7 +2350,13 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
                 [PipelineProvenanceBoundAssemblyLocator
                     .BuildResultPathVariable] = buildResultPath,
                 [PipelineProvenanceBoundAssemblyLocator
-                    .ReleaseCandidateDirectoryVariable] = candidateDirectory
+                    .ReleaseCandidateDirectoryVariable] = candidateDirectory,
+                [PipelineProvenanceBoundAssemblyLocator
+                    .PipelineBoundBuildResultPathVariable] =
+                        pipelineBoundBuildResultPath,
+                [PipelineProvenanceBoundAssemblyLocator
+                    .PipelineRequiresBuildResultVariable] =
+                        pipelineRequiresBuildResult
             };
             return new PipelineProvenanceBoundAssemblyLocator(
                 RepositoryRoot,
@@ -2127,13 +2370,30 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
                         : null);
         }
 
-        internal string CreateValidBuildResult()
-        {
-            string runRoot = Path.Combine(
+        internal string CreateValidBuildResult() =>
+            CreateValidBuildResultAt(Path.Combine(
                 ArtifactsRoot,
                 "builds",
                 ExpectedStaticId,
-                BuildRunId);
+                BuildRunId));
+
+        /// <summary>
+        /// Creates the transient build that release preparation writes beside
+        /// its candidate before running the declared tests.
+        /// </summary>
+        internal string CreateValidReleaseWorkBuildResult(
+            string versionSegment = FixtureReleaseVersion,
+            string workDirectoryName =
+                "." + CandidateRunId + ".work-0123456789abcdef0123456789abcdef") =>
+            CreateValidBuildResultAt(Path.Combine(
+                ArtifactsRoot,
+                "release-candidates",
+                ExpectedStaticId,
+                versionSegment,
+                workDirectoryName));
+
+        private string CreateValidBuildResultAt(string runRoot)
+        {
             string buildOutputDirectory = Path.Combine(runRoot, "output");
             Directory.CreateDirectory(buildOutputDirectory);
             BuildAssemblyPath = Path.Combine(
