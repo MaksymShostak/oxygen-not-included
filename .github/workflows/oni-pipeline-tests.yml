@@ -22,3 +22,5 @@ jobs:
         run: dotnet restore tools/oni-mod-pipeline/OniModPipeline.slnx --locked-mode
       - name: Test the pipeline without game installation
         run: dotnet test --project tools/oni-mod-pipeline/tests/OniModPipeline.Tests/OniModPipeline.Tests.csproj --no-restore
+      - name: Test repository Python scripts
+        run: python -m unittest discover -s tests -p "test_*.py"
