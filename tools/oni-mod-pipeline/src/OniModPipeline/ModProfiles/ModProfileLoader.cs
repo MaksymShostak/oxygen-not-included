@@ -22,10 +22,13 @@ internal sealed class ModProfileLoader
                     "local-install",
                     "test-projects",
                     "acceptance-checks",
-                    "readme"
+                    "readme",
+                    "catalogs"
                 ],
                 StringComparer.Ordinal),
             ["readme"] = new HashSet<string>(["repository-path"], StringComparer.Ordinal),
+            ["catalogs"] = new HashSet<string>(
+                ["directory", "template", "options-source", "options-context-prefix"], StringComparer.Ordinal),
             ["mod"] = new HashSet<string>(
                 ["mod-yaml", "mod-info-yaml"],
                 StringComparer.Ordinal),
@@ -62,6 +65,16 @@ internal sealed class ModProfileLoader
                 ["id", "title", "required", "setup", "action", "expected"],
                 StringComparer.Ordinal)
         };
+
+    private static CatalogsProfile ReadCatalogs(TomlTable root)
+    {
+        var table = ReadRequiredTable(root, "catalogs", "catalogs");
+        return new CatalogsProfile(
+            ReadRequiredString(table, "directory", "catalogs.directory"),
+            ReadRequiredString(table, "template", "catalogs.template"),
+            ReadRequiredString(table, "options-source", "catalogs.options-source"),
+            ReadRequiredString(table, "options-context-prefix", "catalogs.options-context-prefix"));
+    }
 
     internal OperationResult<ModProfile> Load(string manifestPath)
     {
@@ -180,7 +193,8 @@ internal sealed class ModProfileLoader
                     ? new ReadmeProfile(ReadRequiredString(
                         ReadRequiredTable(root, "readme", "readme"),
                         "repository-path", "readme.repository-path"))
-                    : null
+                    : null,
+                Catalogs = root.ContainsKey("catalogs") ? ReadCatalogs(root) : null
             };
 
             return new OperationResult<ModProfile>(

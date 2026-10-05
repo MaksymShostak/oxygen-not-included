@@ -75,6 +75,7 @@ public sealed class RelevantSourceSetTests
         WriteFile(Path.Combine(toolRoot, "src", "OniModPipeline", "OniModPipeline.csproj"));
         WriteFile(Path.Combine(toolRoot, "src", "OniModPipeline", "packages.lock.json"));
         WriteFile(Path.Combine(toolRoot, "src", "OniModPipeline", "Program.cs"));
+        WriteFile(Path.Combine(toolRoot, "src", "OniModPipeline", "Catalogs", "Python", "catalogs.py"));
         WriteFile(Path.Combine(toolRoot, "tests", "OniModPipeline.Tests", "OniModPipeline.Tests.csproj"));
         WriteFile(Path.Combine(toolRoot, "tests", "OniModPipeline.Tests", "packages.lock.json"));
         WriteFile(Path.Combine(toolRoot, "tests", "OniModPipeline.Tests", "SmokeTests.cs"));
@@ -88,6 +89,7 @@ public sealed class RelevantSourceSetTests
 
         Assert.IsTrue(result.IsSuccess);
         CollectionAssert.Contains(result.Value!.WorktreeRelativePaths.ToArray(), "global.json");
+        CollectionAssert.Contains(result.Value.WorktreeRelativePaths.ToArray(), "tools/oni-mod-pipeline/src/OniModPipeline/Catalogs/Python/catalogs.py");
         CollectionAssert.Contains(
             result.Value.WorktreeRelativePaths.ToArray(),
             "tools/oni-mod-pipeline/src/OniModPipeline/Program.cs");

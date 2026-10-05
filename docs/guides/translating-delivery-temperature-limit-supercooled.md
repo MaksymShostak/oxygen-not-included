@@ -132,37 +132,44 @@ The repository currently maintains 18 translation catalogs in `mods/delivery-tem
 
 ### Contributing Workflow
 
-From the repository root, run the maintained Python tools without `-O`:
+From the repository root, use the pipeline's catalog gate and optional inspection:
 
 ```powershell
-python -B tools/translation-catalogs/check_catalogs.py
-python -B tools/translation-catalogs/read_option_catalogs.py
+npm run pipeline -- validate --mod mods/delivery-temperature-limit-supercooled
+npm run pipeline -- inspect-catalogs --mod mods/delivery-temperature-limit-supercooled --format json
 ```
 
-The checker compares contextual keys, source text, nonempty locale translations,
-numbered-placeholder multiplicity, decoded newline counts, and Options source
-declarations. The reader prints ASCII-escaped JSON for the present entries in its
-eight-name Options selection; absent entries stay absent. Both commands locate
-repository inputs from their own file paths and also work from another directory
-when invoked with an absolute script path.
+The declared `[catalogs]` inputs are checked during `validate`, `build`, and native
+release preparation, before build or candidate artifacts are created. The gate
+compares contextual keys, source text, nonempty locale translations, numbered
+token multiplicity, decoded newline counts, and literal Options source declarations.
+`inspect-catalogs` exports all present entries under the declared Options prefix,
+including raw blocks and decoded values, without requiring the game environment.
+Absent entries stay absent. Use `--python C:\absolute\path\python.exe` to select
+an interpreter explicitly; otherwise the pipeline resolves Python from PATH.
+Python 3.10+ is required only for profiles declaring catalogs. The owned backend
+is embedded in the pipeline assembly and runs with `-I -B` and a 30-second deadline.
 
-These tools preserve the existing single-line entry extraction subset. They do
-not validate full gettext syntax, multiline/plural entries, fuzzy/obsolete flags,
-complete format-string semantics, or actual ONI localization rendering. Continue
-the in-game translation checks below. Run repository Python regression tests with
+The accepted PO subset uses single-line contextual entries and JSON-compatible
+string escapes. Metadata headers and ordinary comments are supported. Active
+multiline/plural entries, fuzzy flags, obsolete entries, and malformed syntax fail
+explicitly instead of being skipped. This does not establish full gettext
+conformance, complete format-string semantics, or actual ONI localization rendering.
+Continue the in-game translation checks below. Run Python regression tests with
 `python -B -m unittest discover -s tests -p "test_*.py"`.
 
 For an explicit local performance comparison, prepare a baseline checkout with
-the same catalog and declaration bytes, then run:
+the same owned `Catalogs/Python/catalogs.py` layout and catalog/declaration bytes:
 
 ```powershell
-python -B tools/translation-catalogs/benchmark_catalogs.py --baseline-root C:\path\to\baseline --output C:\path\to\session.json
+python -I -B tools/oni-mod-pipeline/benchmarks/benchmark_catalogs.py --baseline-root C:\path\to\baseline --output C:\path\to\session.json
 ```
 
 Each invocation records one session's raw warm/CLI samples, input/tool/runtime
 hashes and separate traced allocation observations. Run three sessions for the
-plan's acceptance campaign. Timing gates are local engineering evidence and do
-not run as CI unit-test assertions. The reader optimization remains deferred.
+an explicit acceptance campaign. Timing gates are local engineering evidence and
+do not run as CI unit-test assertions. The stricter integrated parser changes the
+operation's work; the historical checker speedup does not qualify this version.
 
 1. **Working with CAT Tools (Poedit, Crowdin, Weblate)**:
    - Load `mods/delivery-temperature-limit-supercooled/translations/delivery_temperature_limit.pot` directly into your translation tool.

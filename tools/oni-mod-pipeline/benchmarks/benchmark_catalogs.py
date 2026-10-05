@@ -23,7 +23,8 @@ import tracemalloc
 
 
 MOD_PATH = Path("mods/delivery-temperature-limit-supercooled")
-TOOL_PATH = Path("tools/translation-catalogs")
+TOOL_PATH = Path("tools/oni-mod-pipeline/src/OniModPipeline/Catalogs/Python/catalogs.py")
+PREFIX = "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS."
 
 
 def load_tool(path):
@@ -74,7 +75,7 @@ def cli_measurements(paths, cwd):
     for pair in range(20):
         for name in names if pair % 2 == 0 else reversed(names):
             start = time.perf_counter_ns()
-            result = subprocess.run([sys.executable, "-B", str(paths[name])], cwd=cwd,
+            result = subprocess.run([sys.executable, "-I", "-B", *paths[name]], cwd=cwd,
                                     capture_output=True, check=True, timeout=30)
             samples[name].append((time.perf_counter_ns() - start) / 1e9)
             output = {"stdout_sha256": hashlib.sha256(result.stdout).hexdigest(),
@@ -163,10 +164,9 @@ def main():
     """Run one bounded session and persist its raw results to operator evidence."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--baseline-root", type=Path, required=True)
-    parser.add_argument("--intermediate-dir", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    candidate_root = Path(__file__).resolve().parents[2]
+    candidate_root = Path(__file__).resolve().parents[3]
     source_root = candidate_root / MOD_PATH
     baseline_inputs = input_manifest(args.baseline_root / MOD_PATH)
     candidate_inputs = input_manifest(source_root)
@@ -178,29 +178,31 @@ def main():
                "cwd": str(Path.cwd()),
                "input_manifest": candidate_inputs, "operations": {}}
     with tempfile.TemporaryDirectory(prefix="oni-catalog-benchmark-") as temporary:
-        for filename, function, minimum_fraction, minimum_seconds in [
-                ("check_catalogs.py", "check_catalogs", 0.10, 0.0005),
-                ("read_option_catalogs.py", "read_option_catalogs", 0.05, 0.0001)]:
-            paths = {"baseline": (args.baseline_root / TOOL_PATH / filename).resolve(),
-                     "candidate": (candidate_root / TOOL_PATH / filename).resolve()}
-            if args.intermediate_dir:
-                prefix = "hoisted_" if function == "check_catalogs" else "compiled_"
-                paths["intermediate"] = (args.intermediate_dir / (prefix + filename)).resolve()
+        for function, operation, minimum_fraction, minimum_seconds in [
+                ("check_catalogs", "check", 0.10, 0.0005),
+                ("read_catalogs", "inspect", 0.05, 0.0001)]:
+            paths = {"baseline": (args.baseline_root / TOOL_PATH).resolve(),
+                     "candidate": (candidate_root / TOOL_PATH).resolve()}
             modules = {name: load_tool(path) for name, path in paths.items()}
-            argument = source_root if function == "check_catalogs" else source_root / "translations"
-            operations = {name: lambda module=module: getattr(module, function)(argument)
+            def invoke(module, root):
+                if operation == "check":
+                    return module.check_catalogs(root / "translations", "delivery_temperature_limit.pot",
+                                                 root / "Source/DeliveryTemperatureLimitStrings.cs", PREFIX)
+                return module.read_catalogs(root / "translations", PREFIX)
+            operations = {name: lambda module=module: invoke(module, source_root)
                           for name, module in modules.items()}
             observed = {name: operation() for name, operation in operations.items()}
             if any(value != observed["baseline"] for value in observed.values()):
                 raise RuntimeError(f"Operation results differ: {function}")
             warm = warm_measurements(operations)
-            # Only real entrypoints with proper root anchoring enter CLI samples.
-            cli = cli_measurements({name: paths[name] for name in ("baseline", "candidate")}, temporary)
-            memory = {name: peak_allocations(operation) for name, operation in operations.items()}
-            stress_operations = {
-                name: (lambda root, module=module: getattr(module, function)(
-                    root if function == "check_catalogs" else root / "translations"))
-                for name, module in modules.items()}
+            cli_args = {name: [str(paths[name]), operation, "--catalog-directory", str(source_root / "translations"),
+                               "--template", "delivery_temperature_limit.pot", "--options-source",
+                               str(source_root / "Source/DeliveryTemperatureLimitStrings.cs"), "--context-prefix", PREFIX]
+                        for name in paths}
+            cli = cli_measurements(cli_args, temporary)
+            memory = {name: peak_allocations(action) for name, action in operations.items()}
+            stress_operations = {name: lambda root, module=module: invoke(module, root)
+                                 for name, module in modules.items()}
             stress = stress_memory(stress_operations, source_root, Path(temporary) / function)
             results["operations"][function] = {
                 "tool_identities": {name: file_identity(path) for name, path in paths.items()},

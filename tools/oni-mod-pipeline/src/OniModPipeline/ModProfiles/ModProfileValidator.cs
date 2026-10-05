@@ -41,6 +41,16 @@ internal sealed class ModProfileValidator
 
         ValidateMetadata(metadata, diagnostics);
         ValidateDeclaredFiles(profile, diagnostics);
+        if (profile.Catalogs is { } catalogs)
+        {
+            AddDiagnostics(ContainedPathResolver.ResolveExistingDirectory(profile.ModRoot, catalogs.Directory), diagnostics);
+            AddDiagnostics(ContainedPathResolver.ResolveExistingFile(profile.ModRoot, catalogs.OptionsSource), diagnostics);
+            AddDiagnostics(ContainedPathResolver.ResolveExistingFile(profile.ModRoot, catalogs.Directory + "/" + catalogs.Template), diagnostics);
+            if (catalogs.Template.Contains('/') || catalogs.Template.Contains('\\') ||
+                !catalogs.Template.EndsWith(".pot", StringComparison.Ordinal) ||
+                !Regex.IsMatch(catalogs.OptionsContextPrefix, @"^(?:[A-Za-z_][A-Za-z0-9_]*\.)+$", RegexOptions.CultureInvariant))
+                diagnostics.Add(DiagnosticCatalog.InvalidProfileSemantics("catalogs", "Template must be a .pot filename; context prefix must consist of dotted identifiers ending in '.'."));
+        }
         ValidatePackageMappings(profile, diagnostics);
         ValidateWorkshopListing(profile.WorkshopListing, diagnostics);
         ValidateEvidenceProfiles(profile, diagnostics);

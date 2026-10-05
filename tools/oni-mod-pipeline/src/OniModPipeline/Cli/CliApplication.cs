@@ -12,6 +12,8 @@ using MaksymShostak.OniModPipeline.SourceControl;
 using MaksymShostak.OniModPipeline.WorkshopListing;
 using System.CommandLine;
 using System.Globalization;
+using System.Text.Json;
+using MaksymShostak.OniModPipeline.Catalogs;
 
 namespace MaksymShostak.OniModPipeline.Cli;
 
@@ -30,6 +32,7 @@ internal static class CliApplication
             "Prepare tested ONI mod release candidates for manual Workshop upload.");
         rootCommand.Subcommands.Add(CreateDiagnoseCommand(services));
         rootCommand.Subcommands.Add(CreateValidateCommand(services));
+        rootCommand.Subcommands.Add(CreateInspectCatalogsCommand(services));
         rootCommand.Subcommands.Add(CreateSyncReadmeCommand(services));
         rootCommand.Subcommands.Add(CreateBuildCommand(services));
         rootCommand.Subcommands.Add(CreateTestCommand(services));
@@ -139,7 +142,7 @@ internal static class CliApplication
         var command = new Command(
             "validate",
             "Validate an ONI mod profile, metadata, environment, and declared inputs.");
-        options.AddTo(command);
+        options.AddTo(command, includeCatalogs: true);
         command.Options.Add(forReleaseOption);
         command.SetAction(async (parseResult, cancellationToken) =>
         {
@@ -148,12 +151,44 @@ internal static class CliApplication
                 options.GetModPath(parseResult),
                 options.GetEnvironmentRequest(parseResult),
                 parseResult.GetValue(forReleaseOption),
+                options.GetPythonPath(parseResult),
                 cancellationToken).ConfigureAwait(false);
             return DiagnosticRenderer.Render(
                 result,
                 options.GetOutputFormat(parseResult),
                 parseResult.InvocationConfiguration.Output,
                 parseResult.InvocationConfiguration.Error);
+        });
+        return command;
+    }
+
+    private static Command CreateInspectCatalogsCommand(PipelineServices services)
+    {
+        var options = new CommandOptions();
+        var command = new Command("inspect-catalogs", "Export declared Options entries with decoded values and raw catalog blocks.");
+        options.AddTo(command, includeEnvironment: false, includeCatalogs: true);
+        command.SetAction(async (parseResult, cancellationToken) =>
+        {
+            var located = services.ProfileLocator.Locate(options.GetModPath(parseResult));
+            OperationResult<JsonElement?> result;
+            if (!located.IsSuccess) result = ConvertFailure<string, JsonElement?>(located);
+            else
+            {
+                var loaded = services.ProfileLoader.Load(located.Value!);
+                if (!loaded.IsSuccess) result = ConvertFailure<ModProfile, JsonElement?>(loaded);
+                else
+                {
+                    var metadata = services.MetadataReader.Read(loaded.Value!);
+                    if (!metadata.IsSuccess) result = ConvertFailure<OniMetadata, JsonElement?>(metadata);
+                    else
+                    {
+                        var valid = services.ProfileValidator.Validate(loaded.Value!, metadata.Value!);
+                        result = !valid.IsSuccess ? ConvertFailure<ModProfile, JsonElement?>(valid) :
+                            await new CatalogRunner(services.ProcessRunner).RunAsync(loaded.Value!, "inspect", options.GetPythonPath(parseResult), cancellationToken).ConfigureAwait(false);
+                    }
+                }
+            }
+            return DiagnosticRenderer.Render(result, options.GetOutputFormat(parseResult), parseResult.InvocationConfiguration.Output, parseResult.InvocationConfiguration.Error);
         });
         return command;
     }
@@ -234,7 +269,7 @@ internal static class CliApplication
         var command = new Command(
             "build",
             "Build an ONI mod into a new isolated artifact run.");
-        options.AddTo(command);
+        options.AddTo(command, includeCatalogs: true);
         command.Options.Add(configurationOption);
         command.SetAction(async (parseResult, cancellationToken) =>
         {
@@ -243,6 +278,7 @@ internal static class CliApplication
                 options.GetModPath(parseResult),
                 options.GetEnvironmentRequest(parseResult),
                 parseResult.GetValue(configurationOption),
+                options.GetPythonPath(parseResult),
                 cancellationToken).ConfigureAwait(false);
             return DiagnosticRenderer.Render(
                 result,
@@ -282,13 +318,14 @@ internal static class CliApplication
         var command = new Command(
             "prepare-release",
             "Prepare one immutable awaiting-acceptance ONI release candidate.");
-        options.AddTo(command);
+        options.AddTo(command, includeCatalogs: true);
         command.SetAction(async (parseResult, cancellationToken) =>
         {
             var result = await PrepareReleaseAsync(
                 services,
                 options.GetModPath(parseResult),
                 options.GetEnvironmentRequest(parseResult),
+                options.GetPythonPath(parseResult),
                 cancellationToken).ConfigureAwait(false);
             return DiagnosticRenderer.Render(
                 result,
@@ -524,6 +561,7 @@ internal static class CliApplication
         string modPath,
         EnvironmentDiscoveryRequest environmentRequest,
         bool forRelease,
+        string? pythonPath,
         CancellationToken cancellationToken)
     {
         var contextResult = await ResolveReadOnlyContextAsync(
@@ -537,6 +575,8 @@ internal static class CliApplication
         }
 
         var context = contextResult.Value!;
+        var catalogs = await new CatalogRunner(services.ProcessRunner).RunAsync(context.Profile, "check", pythonPath, cancellationToken).ConfigureAwait(false);
+        if (!catalogs.IsSuccess) return ConvertFailure<JsonElement?, ValidationReport>(catalogs);
         var listingResult = await services.WorkshopListingValidator
             .ValidateAsync(context.Profile, cancellationToken)
             .ConfigureAwait(false);
@@ -582,7 +622,7 @@ internal static class CliApplication
             context.Profile.ModRoot,
             context.Metadata.StaticId,
             context.Metadata.Version,
-            context.Environment.DotnetSdkVersion));
+            context.Environment.DotnetSdkVersion) { Catalogs = catalogs.Value });
     }
 
     private static async Task<OperationResult<string>> BuildAsync(
@@ -590,6 +630,7 @@ internal static class CliApplication
         string modPath,
         EnvironmentDiscoveryRequest environmentRequest,
         string? configuration,
+        string? pythonPath,
         CancellationToken cancellationToken)
     {
         var contextResult = await ResolveReadOnlyContextAsync(
@@ -612,6 +653,8 @@ internal static class CliApplication
             return ConvertFailure<GitProvenance, string>(provenanceResult);
         }
 
+        var catalogs = await new CatalogRunner(services.ProcessRunner).RunAsync(context.Profile, "check", pythonPath, cancellationToken).ConfigureAwait(false);
+        if (!catalogs.IsSuccess) return ConvertFailure<JsonElement?, string>(catalogs);
         var provenance = provenanceResult.Value!;
         var runRoot = CreateRunRoot(
             context.Environment.ArtifactsDirectory,
@@ -692,6 +735,7 @@ internal static class CliApplication
         PipelineServices services,
         string modPath,
         EnvironmentDiscoveryRequest environmentRequest,
+        string? pythonPath,
         CancellationToken cancellationToken)
     {
         var contextResult = await ResolveReadOnlyContextAsync(
@@ -736,7 +780,7 @@ internal static class CliApplication
                 context.Environment,
                 provenance,
                 pipelineExecutablePath,
-                TryReadGameBuildMetadata(context.Environment.GameDirectory)),
+                TryReadGameBuildMetadata(context.Environment.GameDirectory)) { PythonExecutablePath = pythonPath },
             cancellationToken).ConfigureAwait(false);
     }
 
@@ -1001,6 +1045,7 @@ internal sealed record ValidationReport(
     string Version,
     string DotnetSdkVersion) : IFormattable
 {
+    public JsonElement? Catalogs { get; init; }
     public override string ToString() =>
         ToString(null, CultureInfo.InvariantCulture);
 
@@ -1017,6 +1062,7 @@ internal sealed record ValidationReport(
                 $"Mod root: {ModRoot}",
                 $"Static ID: {StaticId}",
                 $"Version: {Version}",
-                $".NET SDK: {DotnetSdkVersion}"
+                $".NET SDK: {DotnetSdkVersion}",
+                Catalogs is { } catalogs ? $"Catalogs valid: {catalogs.GetProperty("keyCount").GetInt32()} keys; {catalogs.GetProperty("localeCount").GetInt32()} locales" : "Catalogs: not declared"
             ]);
 }

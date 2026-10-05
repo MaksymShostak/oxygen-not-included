@@ -17,6 +17,11 @@ Provide all of the following before running the tool:
 
 ONI Mod Pipeline does not download the SDK, install or update ONI, create the ONI user-data hierarchy, install the Uploader, or authenticate a Steam account.
 
+Profiles with a `[catalogs]` table also require Python 3.10+ for validation, build,
+and release preparation. Resolve it from PATH or pass an absolute `--python`
+executable path. Catalog inspection can run without game or user-data discovery:
+`oni-mod-pipeline inspect-catalogs --mod <mod-root> --format json`.
+
 ## Restore the locked tool dependencies
 
 From the repository root, restore the committed dependency closure:

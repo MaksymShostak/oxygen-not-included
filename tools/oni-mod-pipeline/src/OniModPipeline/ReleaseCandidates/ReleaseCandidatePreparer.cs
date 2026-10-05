@@ -13,6 +13,7 @@ using MaksymShostak.OniModPipeline.WorkshopListing;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using MaksymShostak.OniModPipeline.Catalogs;
 
 namespace MaksymShostak.OniModPipeline.ReleaseCandidates;
 
@@ -22,7 +23,10 @@ internal sealed record ReleasePreparationRequest(
     PipelineEnvironment Environment,
     GitProvenance InitialProvenance,
     string PipelineExecutablePath,
-    string? GameBuildMetadata);
+    string? GameBuildMetadata)
+{
+    internal string? PythonExecutablePath { get; init; }
+}
 
 internal interface IReleaseCandidatePreparer
 {
@@ -227,6 +231,7 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
     private readonly Func<byte[]> entropySource;
     private readonly Func<Guid> transientSuffixFactory;
     private readonly ReadmeReleaseValidator readmeValidator;
+    private readonly CatalogRunner catalogRunner;
 
     internal ReleaseCandidatePreparer(
         IReleaseModBuilder modBuilder,
@@ -240,7 +245,8 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
         TimeProvider timeProvider,
         Func<byte[]> entropySource,
         Func<Guid> transientSuffixFactory,
-        ReadmeReleaseValidator readmeValidator)
+        ReadmeReleaseValidator readmeValidator,
+        CatalogRunner? catalogRunner = null)
     {
         ArgumentNullException.ThrowIfNull(modBuilder);
         ArgumentNullException.ThrowIfNull(automatedTestRunner);
@@ -266,6 +272,7 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
         this.entropySource = entropySource;
         this.transientSuffixFactory = transientSuffixFactory;
         this.readmeValidator = readmeValidator ?? throw new ArgumentNullException(nameof(readmeValidator));
+        this.catalogRunner = catalogRunner ?? new CatalogRunner(new ExternalProcessRunner());
     }
 
     internal static ReleaseCandidatePreparer CreateDefault(
@@ -290,7 +297,8 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
             TimeProvider.System,
             () => RandomNumberGenerator.GetBytes(8),
             Guid.NewGuid,
-            new ReadmeReleaseValidator(new ReadmeSynchronizer(new InstalledBbcodeConverter(processRunner))));
+            new ReadmeReleaseValidator(new ReadmeSynchronizer(new InstalledBbcodeConverter(processRunner))),
+            new CatalogRunner(processRunner));
     }
 
     public async Task<OperationResult<PreparedReleaseCandidate>> PrepareAsync(
@@ -313,6 +321,9 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
                 PipelineExitCode.ReleaseNotReady);
         }
 
+        var catalogs = await catalogRunner.RunAsync(request.Profile, "check", request.PythonExecutablePath, cancellationToken).ConfigureAwait(false);
+        if (!catalogs.IsSuccess)
+            return new OperationResult<PreparedReleaseCandidate>(null, catalogs.Diagnostics, catalogs.ExitCode);
         var readmeResult = await readmeValidator.ValidateAsync(request.Profile, request.InitialProvenance.WorktreeRoot, cancellationToken).ConfigureAwait(false);
         if (!readmeResult.IsSuccess)
             return new OperationResult<PreparedReleaseCandidate>(null, readmeResult.Diagnostics, readmeResult.ExitCode);

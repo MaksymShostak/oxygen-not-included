@@ -10,6 +10,26 @@ public sealed class ModProfileLoaderTests
     private readonly ModProfileLoader profileLoader = new();
 
     [TestMethod]
+    public void LoadWithCatalogsAcceptsExactDeclaration()
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var result = profileLoader.Load(WriteManifest(temporaryDirectory, ValidManifest + "\n[catalogs]\ndirectory = \"translations\"\ntemplate = \"example.pot\"\noptions-source = \"Options.cs\"\noptions-context-prefix = \"STRINGS.EXAMPLE.OPTIONS.\"\n"));
+        Assert.IsTrue(result.IsSuccess);
+        Assert.AreEqual(new CatalogsProfile("translations", "example.pot", "Options.cs", "STRINGS.EXAMPLE.OPTIONS."), result.Value!.Catalogs);
+    }
+
+    [TestMethod]
+    [DataRow("[catalogs]")]
+    [DataRow("[catalogs]\ndirectory = 42")]
+    [DataRow("[catalogs]\nunknown = \"translations\"")]
+    public void LoadWithInvalidCatalogsRejectsDeclaration(string table)
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        Assert.AreEqual(PipelineExitCode.InvalidInput,
+            profileLoader.Load(WriteManifest(temporaryDirectory, ValidManifest + "\n" + table)).ExitCode);
+    }
+
+    [TestMethod]
     public void Load_WithReadmeTable_AcceptsRepositoryRelativeDeclaration()
     {
         using var temporaryDirectory = new TemporaryDirectory();

@@ -7,6 +7,10 @@ namespace MaksymShostak.OniModPipeline.Cli;
 internal sealed class CommandOptions
 {
     private readonly Option<string?> modOption;
+    private readonly Option<string?> pythonOption = new("--python")
+    {
+        Description = "Absolute Python 3.10+ executable for declared catalogs; defaults to Python resolved from PATH."
+    };
     private readonly Option<string?> gameDirectoryOption = new("--game-directory")
     {
         Description = "ONI installation root containing the required managed assemblies."
@@ -48,10 +52,11 @@ internal sealed class CommandOptions
         });
     }
 
-    internal void AddTo(Command command, bool includeEnvironment = true)
+    internal void AddTo(Command command, bool includeEnvironment = true, bool includeCatalogs = false)
     {
         ArgumentNullException.ThrowIfNull(command);
         command.Options.Add(modOption);
+        if (includeCatalogs) command.Options.Add(pythonOption);
         if (includeEnvironment)
         {
             command.Options.Add(gameDirectoryOption);
@@ -63,6 +68,8 @@ internal sealed class CommandOptions
 
     internal string GetModPath(ParseResult parseResult) =>
         parseResult.GetValue(modOption) ?? Directory.GetCurrentDirectory();
+
+    internal string? GetPythonPath(ParseResult parseResult) => parseResult.GetValue(pythonOption);
 
     internal string? GetOptionalModPath(ParseResult parseResult) =>
         parseResult.GetValue(modOption);

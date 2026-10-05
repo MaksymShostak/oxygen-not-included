@@ -7,6 +7,35 @@ Use `oni-mod-pipeline.toml` to declare one mod's metadata sources, build contrac
 > [!NOTE]
 > Unknown keys are errors. ONI Mod Pipeline does not support executable profile hooks, implicit package discovery, machine-specific fallback properties, or arbitrary Uploader identifiers.
 
+## Optional catalog inputs
+
+Declare the owned catalog subset with:
+
+```toml
+[catalogs]
+directory = "translations"
+template = "delivery_temperature_limit.pot"
+options-source = "Source/DeliveryTemperatureLimitStrings.cs"
+options-context-prefix = "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS."
+```
+
+Directory and source paths are relative to the mod root and must resolve inside it
+without linked ancestors. The template is a `.pot` filename inside the catalog
+directory; the context prefix consists of dotted identifiers ending in `.`.
+All `.po`/`.pot` files in the directory participate. Declared inputs contribute to
+release provenance even if they are not included by a package mapping.
+
+Validation, build, and native release preparation reject catalog failures before
+creating artifacts. Profiles without this table require no Python runtime.
+Declared catalogs require Python 3.10+ resolved from PATH, or selected by an
+absolute `--python` path on these commands and `inspect-catalogs`. Missing Python,
+timeouts, and malformed backend results block the operation.
+
+`inspect-catalogs --mod <mod-root> --format json` exports all present Options
+contexts under the configured prefix, with raw blocks and decoded values, without
+game discovery. See the [translation guide](translating-delivery-temperature-limit-supercooled.md#contributing-workflow)
+for the accepted single-line PO subset and explicit unsupported syntax.
+
 ## Optional README description
 
 Opt a mod into generated Workshop-description synchronization with:

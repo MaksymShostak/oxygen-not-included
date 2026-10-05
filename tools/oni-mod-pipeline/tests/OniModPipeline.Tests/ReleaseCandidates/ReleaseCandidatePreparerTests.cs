@@ -461,7 +461,8 @@ internal sealed class PreparationFixture : IDisposable
 
     internal PreparationFixture(
         PreparationFailure failure = PreparationFailure.None,
-        bool cleanupThrowsAfterDelete = false)
+        bool cleanupThrowsAfterDelete = false,
+        MaksymShostak.OniModPipeline.Catalogs.CatalogRunner? catalogRunner = null)
     {
         this.failure = failure;
         WorktreeRoot = temporaryDirectory.GetPath("repository");
@@ -546,7 +547,7 @@ internal sealed class PreparationFixture : IDisposable
             new MaksymShostak.OniModPipeline.Readme.ReadmeReleaseValidator(
                 new MaksymShostak.OniModPipeline.Readme.ReadmeSynchronizer(
                     new MaksymShostak.OniModPipeline.Readme.InstalledBbcodeConverter(
-                        new MaksymShostak.OniModPipeline.Processes.ExternalProcessRunner()))));
+                        new MaksymShostak.OniModPipeline.Processes.ExternalProcessRunner()))), catalogRunner);
     }
 
     internal string WorktreeRoot { get; }

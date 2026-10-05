@@ -1,5 +1,11 @@
 schema-version = 1
 
+[catalogs]
+directory = "translations"
+template = "delivery_temperature_limit.pot"
+options-source = "Source/DeliveryTemperatureLimitStrings.cs"
+options-context-prefix = "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS."
+
 [readme]
 repository-path = "README.md"
 

@@ -30,6 +30,11 @@ internal sealed record RelevantSourceSet(
             builder.AddAbsolutePath(profile.ManifestPath);
             builder.AddDeclaredFile(profile.ModRoot, profile.ModYamlPath);
             builder.AddDeclaredFile(profile.ModRoot, profile.ModInfoYamlPath);
+            if (profile.Catalogs is { } catalogs)
+            {
+                builder.AddDeclaredFileOrTree(profile.ModRoot, catalogs.Directory);
+                builder.AddDeclaredFile(profile.ModRoot, catalogs.OptionsSource);
+            }
 
             if (profile.Build is { } build)
             {
@@ -242,10 +247,8 @@ internal sealed record RelevantSourceSet(
             }
 
             foreach (var sourcePath in EnumerateRegularFiles(toolRoot)
-                .Where(path => string.Equals(
-                    Path.GetExtension(path),
-                    ".cs",
-                    StringComparison.OrdinalIgnoreCase)))
+                .Where(path => string.Equals(Path.GetExtension(path), ".cs", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(Path.GetExtension(path), ".py", StringComparison.OrdinalIgnoreCase)))
             {
                 var toolRelativePath = Path.GetRelativePath(toolRoot, sourcePath);
                 if (!HasBuildDirectorySegment(toolRelativePath))

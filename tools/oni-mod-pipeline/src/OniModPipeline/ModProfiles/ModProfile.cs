@@ -14,4 +14,5 @@ internal sealed record ModProfile(
     IReadOnlyList<AcceptanceCheckProfile> AcceptanceChecks)
 {
     internal ReadmeProfile? Readme { get; init; }
+    internal CatalogsProfile? Catalogs { get; init; }
 }
