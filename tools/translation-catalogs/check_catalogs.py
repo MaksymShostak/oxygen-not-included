@@ -10,6 +10,7 @@ import re
 
 
 CATALOG_PATTERN = re.compile(r'msgctxt (".*")\nmsgid (".*")\nmsgstr (".*")')
+PLACEHOLDER_PATTERN = re.compile(r"\{\d+\}")
 
 
 def check_catalogs(mod_root: Path) -> tuple[int, int]:
@@ -18,11 +19,20 @@ def check_catalogs(mod_root: Path) -> tuple[int, int]:
     Assertion reasons, parse errors and input enumeration retain the historical
     checker behavior. Inputs are read only; POT translations may be empty.
     """
+    # Tokens decode to immutable strings. Cache only successful values for this
+    # operation; explicit membership also handles the legitimate empty string.
+    decoded_literals = {}
+
+    def decode_literal(token):
+        if token not in decoded_literals:
+            decoded_literals[token] = json.loads(token)
+        return decoded_literals[token]
+
     catalogs = {}
     for path in (mod_root / "translations").iterdir():
         if path.suffix not in {".po", ".pot"}:
             continue
-        entries = [tuple(json.loads(part) for part in match.groups())
+        entries = [tuple(decode_literal(part) for part in match.groups())
                    for match in CATALOG_PATTERN.finditer(
                        path.read_text(encoding="utf-8-sig"))]
         assert entries, (path.name, "no entries")
@@ -33,23 +43,33 @@ def check_catalogs(mod_root: Path) -> tuple[int, int]:
     source = catalogs["delivery_temperature_limit.pot"]
     locales = [name for name in catalogs if name.endswith(".po")]
     assert locales, "no locale catalogs"
+    # Locale English equality remains a separate check before these invariants
+    # are used. Keep sorted occurrences: a set would lose token multiplicity.
+    source_placeholders = {key: sorted(PLACEHOLDER_PATTERN.findall(english))
+                           for key, (english, _) in source.items()}
+    source_newline_counts = {key: english.count("\n")
+                             for key, (english, _) in source.items()}
     for name, entries in catalogs.items():
         assert entries.keys() == source.keys(), name
+        is_locale = name.endswith(".po")
         for key, (english, translation) in entries.items():
             assert english == source[key][0], (name, key, "source text")
-            if name.endswith(".po"):
-                assert translation.strip(), (name, key, "empty translation")
-                assert sorted(re.findall(r"\{\d+\}", english)) == sorted(
-                    re.findall(r"\{\d+\}", translation)), (name, key, "placeholders")
-                assert english.count("\n") == translation.count("\n"), (
-                    name, key, "newlines")
+            # Additional POT files also require source-text equality; only the
+            # translation-specific checks are restricted to locale catalogs.
+            if not is_locale:
+                continue
+            assert translation.strip(), (name, key, "empty translation")
+            assert source_placeholders[key] == sorted(
+                PLACEHOLDER_PATTERN.findall(translation)), (name, key, "placeholders")
+            assert source_newline_counts[key] == translation.count("\n"), (
+                name, key, "newlines")
     code = (mod_root / "Source/DeliveryTemperatureLimitStrings.cs").read_text(
         encoding="utf-8-sig")
     options = code.split("public static class OPTIONS", 1)[1]
     for key, value in re.findall(
             r'public static LocString (\w+)\s*=\s*("(?:[^"\\]|\\.)*");', options):
         context = "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS." + key
-        assert source[context][0] == json.loads(value), (key, "source declaration")
+        assert source[context][0] == decode_literal(value), (key, "source declaration")
     return len(source), len(locales)
 
 

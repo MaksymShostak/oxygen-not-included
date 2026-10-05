@@ -152,6 +152,18 @@ complete format-string semantics, or actual ONI localization rendering. Continue
 the in-game translation checks below. Run repository Python regression tests with
 `python -B -m unittest discover -s tests -p "test_*.py"`.
 
+For an explicit local performance comparison, prepare a baseline checkout with
+the same catalog and declaration bytes, then run:
+
+```powershell
+python -B tools/translation-catalogs/benchmark_catalogs.py --baseline-root C:\path\to\baseline --output C:\path\to\session.json
+```
+
+Each invocation records one session's raw warm/CLI samples, input/tool/runtime
+hashes and separate traced allocation observations. Run three sessions for the
+plan's acceptance campaign. Timing gates are local engineering evidence and do
+not run as CI unit-test assertions. The reader optimization remains deferred.
+
 1. **Working with CAT Tools (Poedit, Crowdin, Weblate)**:
    - Load `mods/delivery-temperature-limit-supercooled/translations/delivery_temperature_limit.pot` directly into your translation tool.
    - The `msgctxt` field contains the unique key; the `msgid` field contains the English source string.

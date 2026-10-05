@@ -5,6 +5,7 @@ import importlib.util
 import io
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -108,6 +109,14 @@ class CatalogContractTests(unittest.TestCase):
             encoding="utf-8")
         self.assert_failure(("BUTTON_SAVE", "source declaration"))
 
+    def test_additional_template_source_text_is_checked(self):
+        (self.translations / "additional.pot").write_text(
+            catalog_entry("BUTTON_SAVE", "Wrong", ""), encoding="utf-8")
+        self.assert_failure(("additional.pot", PREFIX + "BUTTON_SAVE", "source text"))
+        (self.translations / "additional.pot").write_text(
+            catalog_entry("BUTTON_SAVE", self.english, ""), encoding="utf-8")
+        self.assertEqual(checker.check_catalogs(self.mod_root), (1, 1))
+
     def test_bom_crlf_and_ignored_non_catalog_files(self):
         path = self.translations / "uk.po"
         text = catalog_entry("BUTTON_SAVE", self.english, self.translation)
@@ -132,6 +141,7 @@ class CatalogContractTests(unittest.TestCase):
         self.assert_failure(("uk.po", PREFIX + "BUTTON_SAVE", "placeholders"))
 
     def test_malformed_literal_still_raises_json_error(self):
+        self.assertEqual(checker.check_catalogs(self.mod_root), (1, 1))
         self.write_locale('msgctxt "' + PREFIX + 'BUTTON_SAVE"\nmsgid "\\q"\nmsgstr "Value"\n')
         for operation in [lambda: checker.check_catalogs(self.mod_root),
                           lambda: reader.read_option_catalogs(self.translations)]:
@@ -170,12 +180,52 @@ class CatalogContractTests(unittest.TestCase):
         self.assertEqual(checker.check_catalogs(self.mod_root), (1, 1))
         self.assertEqual(reader.read_option_catalogs(self.translations)["uk.po"]["BUTTON_SAVE"]["en"], "Save")
 
+    def test_checker_decodes_each_successful_literal_once_per_operation(self):
+        # A spy on the real decoder diagnoses redundant work, not correctness.
+        with mock.patch.object(checker.json, "loads", wraps=json.loads) as decode:
+            self.assertEqual(checker.check_catalogs(self.mod_root), (1, 1))
+            self.assertEqual(decode.call_count, 4)
+            self.assertEqual(checker.check_catalogs(self.mod_root), (1, 1))
+            self.assertEqual(decode.call_count, 8)
+
+    def test_empty_decoded_strings_are_cache_hits(self):
+        self.write_fixture("", "Translation")
+        with mock.patch.object(checker.json, "loads", wraps=json.loads) as decode:
+            self.assertEqual(checker.check_catalogs(self.mod_root), (1, 1))
+            self.assertEqual(decode.call_count, 3)
+
     def test_import_has_no_output_or_input_reads(self):
-        for name in ["check_catalogs", "read_option_catalogs"]:
+        for name in ["check_catalogs", "read_option_catalogs", "benchmark_catalogs"]:
             with self.subTest(name=name), redirect_stdout(io.StringIO()) as output, \
                     mock.patch.object(Path, "read_text", side_effect=AssertionError("input read at import")):
                 load_tool(name)
             self.assertEqual(output.getvalue(), "")
+
+    def test_invalid_catalog_cli_exits_nonzero_without_success(self):
+        self.write_locale(catalog_entry("BUTTON_SAVE", "Wrong", "Value"))
+        layout = self.mod_root / "cli-fixture"
+        tool = layout / "tools/translation-catalogs/check_catalogs.py"
+        tool.parent.mkdir(parents=True)
+        shutil.copy2(TOOLS_ROOT / "check_catalogs.py", tool)
+        fixture_mod = layout / "mods/delivery-temperature-limit-supercooled"
+        shutil.copytree(self.translations, fixture_mod / "translations")
+        shutil.copytree(self.mod_root / "Source", fixture_mod / "Source")
+        result = subprocess.run([sys.executable, "-B", str(tool)], cwd=self.workspace.name,
+                                capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn("PASS:", result.stdout)
+        self.assertIn("source text", result.stderr)
+
+    def test_benchmark_gate_calculation_rejects_regressions(self):
+        # Synthetic numbers check the acceptance calculation, not host timing.
+        benchmark = load_tool("benchmark_catalogs")
+        warm = {"samples_seconds": {"baseline": [0.010] * 30, "candidate": [0.008] * 30}}
+        cli = {"samples_seconds": {"baseline": [0.100] * 20, "candidate": [0.106] * 20}}
+        memory = {"baseline": {"peak_bytes": 100}, "candidate": {"peak_bytes": 1048677}}
+        result = benchmark.summarize(warm, cli, memory, 0.10, 0.0005)
+        self.assertTrue(result["warm_gate"])
+        self.assertFalse(result["cli_gate"])
+        self.assertFalse(result["memory_gate"])
 
     def test_current_corpus_and_cli_from_another_working_directory(self):
         mod_root = REPO_ROOT / "mods/delivery-temperature-limit-supercooled"
