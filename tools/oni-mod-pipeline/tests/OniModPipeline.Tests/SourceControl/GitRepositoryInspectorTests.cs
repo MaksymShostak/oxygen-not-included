@@ -175,7 +175,7 @@ public sealed class GitRepositoryInspectorTests
                 workingDirectory,
                 new Dictionary<string, string>(StringComparer.Ordinal)
                 {
-                    ["GIT_CONFIG_GLOBAL"] = OperatingSystem.IsWindows() ? "NUL" : "/dev/null",
+                    ["GIT_CONFIG_GLOBAL"] = "/dev/null",
                     ["GIT_CONFIG_NOSYSTEM"] = "1"
                 }),
             CancellationToken.None);

@@ -359,9 +359,7 @@ internal sealed partial class EnvironmentDiscoveryService(
                     Path.GetFullPath(modRoot),
                     new Dictionary<string, string>(StringComparer.Ordinal)
                     {
-                        ["GIT_CONFIG_GLOBAL"] = OperatingSystem.IsWindows()
-                            ? "NUL"
-                            : "/dev/null",
+                        ["GIT_CONFIG_GLOBAL"] = "/dev/null",
                         ["GIT_CONFIG_NOSYSTEM"] = "1",
                         ["GIT_OPTIONAL_LOCKS"] = "0"
                     }),
