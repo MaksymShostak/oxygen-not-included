@@ -131,6 +131,27 @@ The repository currently maintains 18 translation catalogs in `mods/delivery-tem
 - Traditional Chinese (`zh_tw.po`)
 
 ### Contributing Workflow
+
+From the repository root, run the maintained Python tools without `-O`:
+
+```powershell
+python -B tools/translation-catalogs/check_catalogs.py
+python -B tools/translation-catalogs/read_option_catalogs.py
+```
+
+The checker compares contextual keys, source text, nonempty locale translations,
+numbered-placeholder multiplicity, decoded newline counts, and Options source
+declarations. The reader prints ASCII-escaped JSON for the present entries in its
+eight-name Options selection; absent entries stay absent. Both commands locate
+repository inputs from their own file paths and also work from another directory
+when invoked with an absolute script path.
+
+These tools preserve the existing single-line entry extraction subset. They do
+not validate full gettext syntax, multiline/plural entries, fuzzy/obsolete flags,
+complete format-string semantics, or actual ONI localization rendering. Continue
+the in-game translation checks below. Run repository Python regression tests with
+`python -B -m unittest discover -s tests -p "test_*.py"`.
+
 1. **Working with CAT Tools (Poedit, Crowdin, Weblate)**:
    - Load `mods/delivery-temperature-limit-supercooled/translations/delivery_temperature_limit.pot` directly into your translation tool.
    - The `msgctxt` field contains the unique key; the `msgid` field contains the English source string.
