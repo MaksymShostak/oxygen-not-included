@@ -1,4 +1,5 @@
 using MaksymShostak.OniModPipeline.WorkshopListing;
+using MaksymShostak.OniModPipeline.Tests.Fixtures;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -63,6 +64,19 @@ public sealed class ListingTextRendererTests
         Assert.AreEqual(1, rendered.Report.BlankLineCount);
     }
 
+
+    [TestMethod]
+    public void FindRepositoryRoot_WhenDocumentationIsAbsent_UsesToolingOwnership()
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var tooling = Directory.CreateDirectory(Path.Combine(
+            temporaryDirectory.Path, "tools", "oni-mod-pipeline"));
+        File.WriteAllText(Path.Combine(tooling.FullName, "OniModPipeline.slnx"), "<Solution />");
+        var start = Directory.CreateDirectory(Path.Combine(tooling.FullName, "tests", "bin"));
+
+        Assert.IsFalse(Directory.Exists(Path.Combine(temporaryDirectory.Path, "docs")));
+        Assert.AreEqual(temporaryDirectory.Path, FindRepositoryRoot(start));
+    }
 
     private static string ReadStructuralFixture()
     {
@@ -148,16 +162,16 @@ public sealed class ListingTextRendererTests
         }
     }
 
-    private static string FindRepositoryRoot()
+    private static string FindRepositoryRoot(DirectoryInfo? start = null)
     {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        var directory = start ?? new DirectoryInfo(AppContext.BaseDirectory);
         while (directory is not null)
         {
             if (File.Exists(Path.Combine(
                 directory.FullName,
-                "docs",
-                "plans",
-                "2026-08-27-oni-mod-pipeline-implementation.md")))
+                "tools",
+                "oni-mod-pipeline",
+                "OniModPipeline.slnx")))
             {
                 return directory.FullName;
             }
