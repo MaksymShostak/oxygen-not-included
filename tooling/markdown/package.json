@@ -11,5 +11,10 @@
   },
   "devDependencies": {
     "@hadden-industries/markdown-quality": "1.0.2"
+  },
+  "overrides": {
+    "micromark-extension-math": {
+      "katex": ">=0.18.2"
+    }
   }
 }
