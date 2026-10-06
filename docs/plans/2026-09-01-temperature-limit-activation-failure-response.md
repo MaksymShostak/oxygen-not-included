@@ -1,10 +1,13 @@
 # Temperature Limit Activation Failure Response Implementation Plan
 
-> **For agentic workers:** Execute this plan task-by-task in dependency order. Follow the repository's test-driven-development and formal review gates, and use the checkboxes (`- [ ]`) to track progress.
+> **For agentic workers:** Execute this plan task-by-task in dependency order.
+> Follow the repository's test-driven-development and formal review gates, and use the checkboxes (`- [ ]`) to track progress.
 
 **Goal:** Turn one contained activation failure into one bounded, path-redacted local standard report and one appropriate three-action warning without performing any external or control-state action until the player explicitly chooses it.
 
-**Architecture:** The activation core retains only sanitized immutable failure values. Support schema version 2 receives availability-aware settings and a generic activation snapshot. A pure one-shot response coordinator chooses verified-containment versus restart-recommended copy and delegates report creation/dialog display through ports. Thin Klei/Unity adapters write locally, show the installed three-action dialog overload, and execute folder/issue/quit actions only from callbacks.
+**Architecture:** The activation core retains only sanitized immutable failure values.
+Support schema version 2 receives availability-aware settings and a generic activation snapshot.
+A pure one-shot response coordinator chooses verified-containment versus restart-recommended copy and delegates report creation/dialog display through ports. Thin Klei/Unity adapters write locally, show the installed three-action dialog overload, and execute folder/issue/quit actions only from callbacks.
 
 **Tech Stack:** Existing support-report core and writer; Newtonsoft.Json production serialization; MSTest fakes; Klei `KMod.Manager.Dialog`; Unity `Application.OpenURL`/`Application.Quit`; existing bounded GitHub issue URL builder.
 
@@ -15,8 +18,10 @@
 - Execute after the pure activation core plan is green.
 - Automatic activation-failure reporting always uses standard privacy: it never reads `Player.log`.
 - Automatic report creation never copies to the clipboard, opens a folder/browser, exits the game, uploads data, or invokes the manual success presenter.
-- The player warning is attempted once per process failure outcome. A dialog failure is ancillary and cannot change the retained activation failure.
-- Report/presentation/action faults become bounded secondary diagnostics. They never replace the activation primary failure.
+- The player warning is attempted once per process failure outcome.
+  A dialog failure is ancillary and cannot change the retained activation failure.
+- Report/presentation/action faults become bounded secondary diagnostics.
+  They never replace the activation primary failure.
 - Preserve the existing explicitly user-invoked standard and extended support-report options unless a schema adaptation is required.
 - Direct unit tests compile only production files already linked by the approved core/support globs. Tests of Klei/Unity shells use source, installed metadata, or an exact pipeline-provenance assembly; do not add another project-file link.
 
@@ -24,17 +29,17 @@
 
 ## File and Responsibility Map
 
-| File | Responsibility |
-|---|---|
-| `SupportReporting/KleiIntegration/KleiSupportPathRedactorFactory.cs` | Shared known-root redactor construction |
-| `SupportReporting/Core/SupportGameplayActivationFailureFactory.cs` | Convert raw caught exception to bounded redacted core detail |
-| `SupportReporting/Core/SupportGameplayActivationSnapshot.cs` | Allowlisted activation/report projection |
-| `SupportReporting/Core/ActivationFailureReportResult.cs` | Available/unavailable local report result |
-| `GameplayActivation/Core/FailureResponse/ActivationFailureResponsePlan.cs` | Exact player copy/action choice |
+| File                                                                                  | Responsibility                                                                  |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `SupportReporting/KleiIntegration/KleiSupportPathRedactorFactory.cs`                  | Shared known-root redactor construction                                         |
+| `SupportReporting/Core/SupportGameplayActivationFailureFactory.cs`                    | Convert raw caught exception to bounded redacted core detail                    |
+| `SupportReporting/Core/SupportGameplayActivationSnapshot.cs`                          | Allowlisted activation/report projection                                        |
+| `SupportReporting/Core/ActivationFailureReportResult.cs`                              | Available/unavailable local report result                                       |
+| `GameplayActivation/Core/FailureResponse/ActivationFailureResponsePlan.cs`            | Exact player copy/action choice                                                 |
 | `GameplayActivation/Core/FailureResponse/GameplayActivationFailureResponseOutcome.cs` | Immutable report and warning attempt outcomes, separate from the failure record |
-| `GameplayActivation/Core/FailureResponse/ActivationFailureResponseCoordinator.cs` | Report once, warn once, no automatic actions |
-| `GameplayActivation/KleiIntegration/KleiActivationFailureReportWriter.cs` | Standard report snapshot plus atomic local write |
-| `GameplayActivation/KleiIntegration/KleiActivationFailurePresenter.cs` | Three-action Klei dialog and user callbacks |
+| `GameplayActivation/Core/FailureResponse/ActivationFailureResponseCoordinator.cs`     | Report once, warn once, no automatic actions                                    |
+| `GameplayActivation/KleiIntegration/KleiActivationFailureReportWriter.cs`             | Standard report snapshot plus atomic local write                                |
+| `GameplayActivation/KleiIntegration/KleiActivationFailurePresenter.cs`                | Three-action Klei dialog and user callbacks                                     |
 
 Response diagnostics use these unique stable IDs: `DTL-ACTIVATION-REPORT-FAILED`, `DTL-ACTIVATION-DIALOG-FAILED`, `DTL-ACTIVATION-REPORT-FOLDER-ACTION-FAILED`, `DTL-ACTIVATION-ISSUE-ACTION-FAILED`, and `DTL-ACTIVATION-QUIT-ACTION-FAILED`.
 
@@ -48,7 +53,8 @@ GameplayActivationFailureResponseOutcome ActivationFailureResponseCoordinator.Tr
     GameplayActivationFailureRecord failureRecord);
 ```
 
-The response coordinator calls the writer at most once, builds one response plan from the returned availability result and compensation status, then calls the presenter at most once. Neither response result is written back into the immutable failure record.
+The response coordinator calls the writer at most once, builds one response plan from the returned availability result and compensation status, then calls the presenter at most once.
+Neither response result is written back into the immutable failure record.
 
 ## Task 1: Produce Bounded Path-Redacted Failure Details at the Catch Boundary
 
@@ -61,7 +67,8 @@ The response coordinator calls the writer at most once, builds one response plan
 
 - [ ] Extract the existing known-root redactor construction from `KleiSupportReportSnapshotReader` without changing its current diagnostic sanitation behavior.
 
-- [ ] Test Windows and Unix path shapes in primary messages, nested inner-exception messages, mod directory, persistent-data directory, user profile, and an unrelated non-path message. Assert type names remain, paths are replaced with stable tokens, stack traces are absent, and every retained string meets the core bound.
+- [ ] Test Windows and Unix path shapes in primary messages, nested inner-exception messages, mod directory, persistent-data directory, user profile, and an unrelated non-path message.
+      Assert type names remain, paths are replaced with stable tokens, stack traces are absent, and every retained string meets the core bound.
 
 - [ ] Run:
 
@@ -138,7 +145,8 @@ internal sealed class SupportActivationSettingsSnapshot
 }
 ```
 
-- [ ] Keep the current UI display temperature unit as a separate availability-aware `temperatureLimit.displayTemperatureUnit` support fact. It is environment/display context, not one of the activation option values.
+- [ ] Keep the current UI display temperature unit as a separate availability-aware `temperatureLimit.displayTemperatureUnit` support fact.
+      It is environment/display context, not one of the activation option values.
 
 - [ ] Model activation with allowlisted values only:
 
@@ -155,7 +163,8 @@ internal sealed class SupportGameplayActivationSnapshot
 }
 ```
 
-- [ ] Replace the current independent options access in `KleiSupportReportSnapshotReader.CreateDocument` with the supplied settings result. Manual reports use the one process activation snapshot; if activation has not captured settings, publish an explicit unavailable fact rather than forcing the lazy.
+- [ ] Replace the current independent options access in `KleiSupportReportSnapshotReader.CreateDocument` with the supplied settings result.
+      Manual reports use the one process activation snapshot; if activation has not captured settings, publish an explicit unavailable fact rather than forcing the lazy.
 
 - [ ] Run the focused tests again.
 
@@ -184,7 +193,8 @@ dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatur
 
 Expected red: automatic activation failure currently has no separate report result.
 
-- [ ] Reuse `SupportReportKind.Standard` exactly; do not add a third report kind. Keep player-log inclusion limited to the explicit manual extended flow:
+- [ ] Reuse `SupportReportKind.Standard` exactly; do not add a third report kind.
+      Keep player-log inclusion limited to the explicit manual extended flow:
 
 ```csharp
 private static bool IncludesPlayerLog(SupportReportKind kind) =>
@@ -208,7 +218,8 @@ internal sealed class ActivationFailureReportResult
 
 `ActivationFailureReportState` has exactly `Available` and `Unavailable`; an available result requires nonblank report ID/final path, while an unavailable result requires its stable failure diagnostic ID and never invents a path.
 
-- [ ] `KleiActivationFailureReportWriter.TryWrite` must catch its own report failures, record a bounded ancillary diagnostic, and return an unavailable result containing a safe issue URL. It must not call `SupportReportPlayerPresenter.PresentSuccess` or `PresentFailure`.
+- [ ] `KleiActivationFailureReportWriter.TryWrite` must catch its own report failures, record a bounded ancillary diagnostic, and return an unavailable result containing a safe issue URL.
+      It must not call `SupportReportPlayerPresenter.PresentSuccess` or `PresentFailure`.
 
 - [ ] Refactor `SupportReportJsonFileWriter` to delegate only the rooted-directory-independent create-new/write/flush/atomic-move/owned-temp cleanup mechanics to `AtomicSupportReportFileStore`; keep Unity path resolution and Newtonsoft serialization in the Klei integration layer.
 
@@ -228,9 +239,11 @@ Expected green: automatic creation is local-only and returns a complete availabi
 - Create: `mods/delivery-temperature-limit-supercooled/Source/GameplayActivation/Core/FailureResponse/ActivationFailureResponseCoordinator.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/GameplayActivation/Core/FailureResponse/ActivationFailureResponseCoordinatorTests.cs`
 
-- [ ] Test `NotRequired` and `VerifiedComplete` select `Continue Without Limits`; `Incomplete` and `VerificationUnavailable` select `Exit Game` plus restart recommendation. Assert the five response diagnostic IDs above are ordinally unique from every activation-core ID.
+- [ ] Test `NotRequired` and `VerifiedComplete` select `Continue Without Limits`; `Incomplete` and `VerificationUnavailable` select `Exit Game` plus restart recommendation.
+      Assert the five response diagnostic IDs above are ordinally unique from every activation-core ID.
 
-- [ ] Test report-available and report-unavailable copy, stable diagnostic ID inclusion, report ID or unavailable marker, exact three action labels, writer throw containment, presenter throw containment, repeated response call, and concurrent response calls. Assert the immutable `GameplayActivationFailureResponseOutcome` records report availability and warning attempted/displayed/unavailable facts without mutating or being inserted into `GameplayActivationFailureRecord`.
+- [ ] Test report-available and report-unavailable copy, stable diagnostic ID inclusion, report ID or unavailable marker, exact three action labels, writer throw containment, presenter throw containment, repeated response call, and concurrent response calls.
+      Assert the immutable `GameplayActivationFailureResponseOutcome` records report availability and warning attempted/displayed/unavailable facts without mutating or being inserted into `GameplayActivationFailureRecord`.
 
 - [ ] Assert fake clipboard/folder/browser/quit actions remain at zero during response coordination.
 
@@ -263,7 +276,8 @@ Secondary: Open Report Folder
 Third: Report Issue
 ```
 
-- [ ] Make the continue callback a true no-op. The pure coordinator calls the report writer once, derives one plan, attempts the presenter once, and marks response attempted even if either ancillary port throws.
+- [ ] Make the continue callback a true no-op.
+      The pure coordinator calls the report writer once, derives one plan, attempts the presenter once, and marks response attempted even if either ancillary port throws.
 
 - [ ] Run the focused tests again.
 
@@ -278,7 +292,8 @@ Expected green: copy/action selection is precise and one-shot.
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureAssemblyContracts/KleiActivationFailurePresentationContractTests.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/GameplayActivation/KleiIntegration/KleiActivationFailurePresenterSourceContractTests.cs`
 
-- [ ] Add an installed-assembly reflection test that selects exactly one `KMod.Manager.Dialog` overload with title/body plus three string/action pairs. Assert every callback parameter accepts `System.Action` and the method returns `void`.
+- [ ] Add an installed-assembly reflection test that selects exactly one `KMod.Manager.Dialog` overload with title/body plus three string/action pairs.
+      Assert every callback parameter accepts `System.Action` and the method returns `void`.
 
 - [ ] Add a source/IL test asserting presentation contains one dialog call, no action invocation before that call, no clipboard reference, and exactly one `Application.Quit` call site behind the primary callback for restart-recommended plans.
 
@@ -307,7 +322,8 @@ KMod.Manager.Dialog(
 
 - [ ] Map actions only inside callbacks: no-op continue; `Application.Quit()` for exit; `Application.OpenURL` with the known report-directory URI for folder; `Application.OpenURL` with the bounded GitHub issue URL for issue.
 
-- [ ] Catch every action exception, record a bounded ancillary diagnostic, and return. Do not redisplay the warning or alter activation state.
+- [ ] Catch every action exception, record a bounded ancillary diagnostic, and return.
+      Do not redisplay the warning or alter activation state.
 
 - [ ] Run the focused tests again.
 
@@ -322,7 +338,8 @@ Expected green: metadata and source boundaries prove the three explicit user act
 - Modify: `mods/delivery-temperature-limit-supercooled/Tests/SupportReporting/SupportJsonReportSizeLimiterTests.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/GameplayActivation/Core/FailureResponse/ActivationFailureMessageAcceptanceTests.cs`
 
-- [ ] Add maximum-count/message/total-JSON tests for activation primary/secondary failures and external-integration outcomes. Prove deterministic truncation retains the primary failure, compensation status, stable diagnostic ID, and report availability.
+- [ ] Add maximum-count/message/total-JSON tests for activation primary/secondary failures and external-integration outcomes.
+      Prove deterministic truncation retains the primary failure, compensation status, stable diagnostic ID, and report availability.
 
 - [ ] Add path-shaped sentinel strings and assert they are absent from serialized JSON, issue URLs, and player copy.
 
@@ -352,7 +369,8 @@ Expected: all focused and complete tests pass with zero skipped/inconclusive; no
 
 - [ ] State `Implementation complete; /review pending` for this milestone and ask the user to invoke built-in `/review` over the activation-failure support schema, atomic local store, response core, Klei/Unity shells, and their tests. Resolve or explicitly defer every confirmed P0-P2 finding and rerun the affected focused/full gates.
 
-- [ ] Show `git status --short` and `git diff --stat`. Stage only this plan's intended files after separating user-owned pre-existing edits.
+- [ ] Show `git status --short` and `git diff --stat`.
+      Stage only this plan's intended files after separating user-owned pre-existing edits.
 
 - [ ] If and only if the user explicitly authorizes this exact staged snapshot, load `committing-to-git` and create:
 

@@ -8,35 +8,38 @@
 - **Privacy model:** Local generation, allowlisted collection, explicit extended-log action, user-reviewed upload, no telemetry
 - **Development model:** Focused TDD followed by the repository-local ONI Mod Pipeline gates
 
-> **Runtime-activation supersession:** The approved
-> [Lifecycle-Contained Activation Design](2026-08-31-temperature-limit-lifecycle-contained-activation-design.md)
-> supersedes this document's lifecycle exception propagation, Harmony
-> installation, settings-capture, and report-schema assumptions. The manual
-> support flows and community-health decisions here remain in force. Report
-> schema version 1 is the implemented historical baseline; the activation work
-> advances new reports to the availability-aware version 2 contract defined by
-> the superseding specification.
+> **Runtime-activation supersession:** The approved [Lifecycle-Contained Activation Design](2026-08-31-temperature-limit-lifecycle-contained-activation-design.md) supersedes this document's lifecycle exception propagation, Harmony installation, settings-capture, and report-schema assumptions.
+> The manual support flows and community-health decisions here remain in force.
+> Report schema version 1 is the implemented historical baseline; the activation work advances new reports to the availability-aware version 2 contract defined by the superseding specification.
 
 ## 1. Decision
 
 Implement one low-friction support-reporting subsystem and a matching GitHub community-health surface.
 
-The normal player path is an in-game action in the existing PLib options screen. It creates one self-contained JSON support report, copies a compact summary, opens the report directory, and opens a prefilled GitHub bug form. The player supplies only the observed behavior, the action or situation that triggered it, and the expected behavior; attaching the generated file and submitting the issue remain explicit user actions.
+The normal player path is an in-game action in the existing PLib options screen.
+It creates one self-contained JSON support report, copies a compact summary, opens the report directory, and opens a prefilled GitHub bug form.
+The player supplies only the observed behavior, the action or situation that triggered it, and the expected behavior; attaching the generated file and submitting the issue remain explicit user actions.
 
 Two actions are exposed:
 
-1. **Create Support Report** collects an allowlisted environment, configuration, loaded-mod, runtime-patch, compatibility, and mod-diagnostic snapshot. It does not read `Player.log`.
-2. **Create Extended Support Report** collects the same snapshot and embeds a size-capped, path-redacted copy of the current `Player.log`. Its label and tooltip state that game logs can contain personal paths or unrelated mod output and should be reviewed before upload.
+1. **Create Support Report** collects an allowlisted environment, configuration, loaded-mod, runtime-patch, compatibility, and mod-diagnostic snapshot.
+   It does not read `Player.log`.
+2. **Create Extended Support Report** collects the same snapshot and embeds a size-capped, path-redacted copy of the current `Player.log`.
+   Its label and tooltip state that game logs can contain personal paths or unrelated mod output and should be reviewed before upload.
 
-Nothing is uploaded automatically. The mod never requests a GitHub token, never calls a reporting backend, and never creates an issue on the player's behalf.
+Nothing is uploaded automatically.
+The mod never requests a GitHub token, never calls a reporting backend, and never creates an issue on the player's behalf.
 
-The repository gains a concise `CONTRIBUTING.md`, a player-focused `SUPPORT.md`, bug and feature issue forms, an issue-template configuration, and a pull-request template. These documents and forms describe the real automated path and are published together with it.
+The repository gains a concise `CONTRIBUTING.md`, a player-focused `SUPPORT.md`, bug and feature issue forms, an issue-template configuration, and a pull-request template.
+These documents and forms describe the real automated path and are published together with it.
 
 ## 2. Evidence behind the design
 
-GitHub treats contribution guidelines and support resources as separate discoverable community-health files, and its current issue-form schema supports structured fields, URL-prefilled field identifiers, and direct uploads of `.json`, `.log`, `.txt`, and `.zip` files. The form schema remains public preview, so the support documentation and bug form retain an ordinary attachment fallback.
+GitHub treats contribution guidelines and support resources as separate discoverable community-health files, and its current issue-form schema supports structured fields, URL-prefilled field identifiers, and direct uploads of `.json`, `.log`, `.txt`, and `.zip` files.
+The form schema remains public preview, so the support documentation and bug form retain an ordinary attachment fallback.
 
-The interaction follows established modding patterns: HugsLib gathers RimWorld runtime data in game, SMAPI turns Stardew logs into a structured shareable artifact, and Godot exposes product-generated system information. Current Klei guidance confirms that ONI's current `Player.log` is useful and must be preserved before a relaunch, while its platform-specific locations illustrate the work the mod should automate.
+The interaction follows established modding patterns: HugsLib gathers RimWorld runtime data in game, SMAPI turns Stardew logs into a structured shareable artifact, and Godot exposes product-generated system information.
+Current Klei guidance confirms that ONI's current `Player.log` is useful and must be preserved before a relaunch, while its platform-specific locations illustrate the work the mod should automate.
 
 Relevant sources:
 
@@ -94,30 +97,43 @@ This implementation will not:
 
 ### 5.2 Extended report
 
-The extended action follows the same flow but also locates the current log through Unity's console-log path, with validated platform fallbacks only when necessary. It reads at most the most recent 6 MiB of raw log data, replaces known user-profile and ONI-data path prefixes with stable placeholders, and embeds the result with explicit truncation and redaction metadata.
+The extended action follows the same flow but also locates the current log through Unity's console-log path, with validated platform fallbacks only when necessary.
+It reads at most the most recent 6 MiB of raw log data, replaces known user-profile and ONI-data path prefixes with stable placeholders, and embeds the result with explicit truncation and redaction metadata.
 
-The action's tooltip is the consent boundary. It explains that `Player.log` includes output from the game and other mods and that automatic redaction cannot guarantee removal of every sensitive value. The resulting file remains local for inspection before upload.
+The action's tooltip is the consent boundary.
+It explains that `Player.log` includes output from the game and other mods and that automatic redaction cannot guarantee removal of every sensitive value.
+The resulting file remains local for inspection before upload.
 
 ### 5.3 Partial failures
 
-Report creation is successful when the JSON file is durably written. Clipboard, directory reveal, browser launch, and the final success notification are separate best-effort presentation steps. A failure in any presentation step is recorded without deleting the report, reclassifying generation as failed, or throwing through the PLib action.
+Report creation is successful when the JSON file is durably written.
+Clipboard, directory reveal, browser launch, and the final success notification are separate best-effort presentation steps.
+A failure in any presentation step is recorded without deleting the report, reclassifying generation as failed, or throwing through the PLib action.
 
-If report creation itself fails, the player sees a concise in-game error and the full exception is emitted to `Player.log`. The support page provides the direct GitHub form and Klei's log-location fallback.
+If report creation itself fails, the player sees a concise in-game error and the full exception is emitted to `Player.log`.
+The support page provides the direct GitHub form and Klei's log-location fallback.
 
-If the mod assembly never loads, no in-mod automation can run. The form therefore keeps its attachment optional and accepts a directly attached `.log` or `.txt` file. A standalone collector is considered only if real reports show this failure mode is common enough to justify signing, distribution, and cross-platform maintenance.
+If the mod assembly never loads, no in-mod automation can run.
+The form therefore keeps its attachment optional and accepts a directly attached `.log` or `.txt` file.
+A standalone collector is considered only if real reports show this failure mode is common enough to justify signing, distribution, and cross-platform maintenance.
 
 ## 6. Architecture
 
 ### 6.1 Public facade
 
-An internal `DeliveryTemperatureSupportReporter` is the single entry point. It owns early initialization, loaded-mod snapshot publication, runtime-patch snapshot publication, bounded diagnostic recording, and the two explicit report actions. Callers do not know file formats, paths, redaction rules, or GitHub query details.
+An internal `DeliveryTemperatureSupportReporter` is the single entry point.
+It owns early initialization, loaded-mod snapshot publication, runtime-patch snapshot publication, bounded diagnostic recording, and the two explicit report actions.
+Callers do not know file formats, paths, redaction rules, or GitHub query details.
 
-`DeliveryTemperatureLimitOptions` gains exactly two public read-only `System.Action<object>` properties because PLib 4.24 maps that exact public option-property type to action buttons. The ignored argument is PLib presentation context, not persisted state:
+`DeliveryTemperatureLimitOptions` gains exactly two public read-only `System.Action<object>` properties because PLib 4.24 maps that exact public option-property type to action buttons.
+The ignored argument is PLib presentation context, not persisted state:
 
 - `CreateSupportReport`
 - `CreateExtendedSupportReport`
 
-They are not marked with `JsonProperty`, cannot be deserialized, and do not change persisted option keys. Their addition is an intentional public member-surface change and is added to the existing merged-assembly contract test. No new public type is introduced.
+They are not marked with `JsonProperty`, cannot be deserialized, and do not change persisted option keys.
+Their addition is an intentional public member-surface change and is added to the existing merged-assembly contract test.
+No new public type is introduced.
 
 ### 6.2 Pure support-reporting core
 
@@ -133,55 +149,47 @@ They are not marked with `JsonProperty`, cannot be deserialized, and do not chan
 - issue-form URL construction and URL-length enforcement; and
 - stable UTC/report-ID file naming.
 
-The core accepts already-observed facts. It never reads the game, filesystem, clipboard, browser, or operating system directly.
+The core accepts already-observed facts.
+It never reads the game, filesystem, clipboard, browser, or operating system directly.
 
 ### 6.3 ONI and operating-system adapter
 
-`Source/SupportReporting/KleiIntegration` adapts the current game process to the pure core. It reads:
+`Source/SupportReporting/KleiIntegration` adapts the current game process to the pure core.
+It reads:
 
 - `KleiVersion` build and branch;
 - Unity/game version, platform, architecture, locale, persistent-data path, and console-log path where available;
 - active DLC/content identifiers;
 - mod static ID, package/assembly versions, title, active state, and loaded-mod order through supported `KMod` members;
-- the already captured availability-aware activation settings outcome (the
-  version 1 implementation reads `DeliveryTemperatureLimitOptions.Instance`
-  directly, but the superseding activation design removes that repeated
-  access);
+- the already captured availability-aware activation settings outcome (the version 1 implementation reads `DeliveryTemperatureLimitOptions.Instance` directly, but the superseding activation design removes that repeated access);
 - the existing runtime patch plan and generic declared-integration snapshots; and
 - the bounded mod diagnostic recorder.
 
-It serializes the completed document with the game-provided Newtonsoft.Json reference, writes UTF-8 without a BOM to a unique temporary file in the destination directory, and atomically promotes that file to its final unique name. It never overwrites an existing report.
+It serializes the completed document with the game-provided Newtonsoft.Json reference, writes UTF-8 without a BOM to a unique temporary file in the destination directory, and atomically promotes that file to its final unique name.
+It never overwrites an existing report.
 
-The adapter also owns clipboard, directory reveal, GitHub URL opening, and visible player notification. These operations sit behind narrow interfaces in tests so a failed presentation step can be exercised without launching external applications.
+The adapter also owns clipboard, directory reveal, GitHub URL opening, and visible player notification.
+These operations sit behind narrow interfaces in tests so a failed presentation step can be exercised without launching external applications.
 
 ### 6.4 Runtime integration
 
 The superseding lifecycle-contained activation design owns runtime integration.
-`DeliveryTemperatureLimitMod.OnLoad` performs contained framework and
-diagnostic initialization without gameplay Harmony mutation.
-`OnAllModsLoaded` publishes the sanitized support snapshot, then performs one
-completely prepared gameplay activation attempt. A managed activation
-exception caught at either Klei lifecycle boundary is not deliberately
-rethrown. On success, the runtime owner publishes a read-only support snapshot
-from the already verified plan and declared-integration outcomes. On failure, reporting
-consumes the immutable activation failure and settings outcomes without a
-second Harmony/external-mod inspection or options-singleton access.
+`DeliveryTemperatureLimitMod.OnLoad` performs contained framework and diagnostic initialization without gameplay Harmony mutation.
+`OnAllModsLoaded` publishes the sanitized support snapshot, then performs one completely prepared gameplay activation attempt.
+A managed activation exception caught at either Klei lifecycle boundary is not deliberately rethrown.
+On success, the runtime owner publishes a read-only support snapshot from the already verified plan and declared-integration outcomes.
+On failure, reporting consumes the immutable activation failure and settings outcomes without a second Harmony/external-mod inspection or options-singleton access.
 
-Existing noteworthy `Debug.Log*` sites are routed through a small diagnostic method that preserves their current log output and additionally stores a bounded structured event. This first version records integration and compatibility milestones/failures, not every domain exception.
+Existing noteworthy `Debug.Log*` sites are routed through a small diagnostic method that preserves their current log output and additionally stores a bounded structured event.
+This first version records integration and compatibility milestones/failures, not every domain exception.
 
 ## 7. Report schema version 1 and approved version 2 evolution
 
-Version 1 below records the implemented manual-report baseline. The
-superseding activation design advances all newly generated reports to schema
-version 2, makes activation settings availability-aware, and records gameplay
-activation, patch-compensation, and optional activation-failure outcomes. An
-automatically generated activation-failure artifact remains a standard report
-without `Player.log`; no third report kind is added. Existing version 1 files
-remain valid historical artifacts and are not rewritten. Version 2 also
-replaces the singular version-1 FastTrack projection with the generic bounded
-`runtime.externalModIntegrations` collection defined by the superseding
-specification, so later declared integrations do not require another schema
-shape.
+Version 1 below records the implemented manual-report baseline.
+The superseding activation design advances all newly generated reports to schema version 2, makes activation settings availability-aware, and records gameplay activation, patch-compensation, and optional activation-failure outcomes.
+An automatically generated activation-failure artifact remains a standard report without `Player.log`; no third report kind is added.
+Existing version 1 files remain valid historical artifacts and are not rewritten.
+Version 2 also replaces the singular version-1 FastTrack projection with the generic bounded `runtime.externalModIntegrations` collection defined by the superseding specification, so later declared integrations do not require another schema shape.
 
 The JSON root contains:
 
@@ -198,9 +206,16 @@ The JSON root contains:
 - `generation`: included/unavailable facts and nonfatal collection warnings; and
 - `privacy`: explicit included, excluded, redacted, and potentially sensitive categories.
 
-The report uses explicit `unavailable` states instead of empty strings or empty collections where absence has diagnostic meaning. A successfully captured empty DLC list means that no DLC is active; a null or failed DLC read remains unavailable and is never presented as `none`. Lists have deterministic order. It retains at most 128 distinct diagnostic entries, caps each stored diagnostic message at 2,048 characters, and retains at most 512 active-mod entries while recording any omitted count. A standard report targets well below 1 MiB. An extended report reads at most the most recent 6 MiB of raw `Player.log` data and must keep the final JSON below 12 MiB, safely below GitHub's current 25 MiB JSON upload limit; if redaction/JSON expansion would cross 12 MiB, the log content is shortened again and the additional truncation is disclosed.
+The report uses explicit `unavailable` states instead of empty strings or empty collections where absence has diagnostic meaning.
+A successfully captured empty DLC list means that no DLC is active; a null or failed DLC read remains unavailable and is never presented as `none`.
+Lists have deterministic order.
+It retains at most 128 distinct diagnostic entries, caps each stored diagnostic message at 2,048 characters, and retains at most 512 active-mod entries while recording any omitted count.
+A standard report targets well below 1 MiB.
+An extended report reads at most the most recent 6 MiB of raw `Player.log` data and must keep the final JSON below 12 MiB, safely below GitHub's current 25 MiB JSON upload limit; if redaction/JSON expansion would cross 12 MiB, the log content is shortened again and the additional truncation is disclosed.
 
-The compact URL/clipboard summary contains only the report ID, report filename, ONI build/branch, Temperature Limit version, platform, DLC IDs or their explicit unavailable state, bounded declared-integration states, and whether `Player.log` is included. It does not contain the active-mod list or raw diagnostics. The URL builder percent-encodes every value and keeps the complete issue URL at or below 1,800 characters, shortening only the human-readable diagnostic summary and recording that shortening in the generated report.
+The compact URL/clipboard summary contains only the report ID, report filename, ONI build/branch, Temperature Limit version, platform, DLC IDs or their explicit unavailable state, bounded declared-integration states, and whether `Player.log` is included.
+It does not contain the active-mod list or raw diagnostics.
+The URL builder percent-encodes every value and keeps the complete issue URL at or below 1,800 characters, shortening only the human-readable diagnostic summary and recording that shortening in the generated report.
 
 ## 8. Privacy and security invariants
 
@@ -218,9 +233,14 @@ The standard report excludes:
 - full game logs; and
 - other mods' configuration contents.
 
-The extended report may contain arbitrary text originally written to `Player.log`. Known user-profile, persistent-data, and discovered installation-root prefixes are replaced before serialization, but the report declares that this is best effort. Redaction rules never rewrite the original log.
+The extended report may contain arbitrary text originally written to `Player.log`.
+Known user-profile, persistent-data, and discovered installation-root prefixes are replaced before serialization, but the report declares that this is best effort.
+Redaction rules never rewrite the original log.
 
-All generation is local. There is no HTTP client in the reporting subsystem. The only network-adjacent operation is opening a fixed HTTPS GitHub issue-form URL in the player's browser. URL construction permits only the fixed repository/template origin and encoded diagnostic-field data.
+All generation is local.
+There is no HTTP client in the reporting subsystem.
+The only network-adjacent operation is opening a fixed HTTPS GitHub issue-form URL in the player's browser.
+URL construction permits only the fixed repository/template origin and encoded diagnostic-field data.
 
 ## 9. Community-health files
 
@@ -249,7 +269,8 @@ The root support guide contains:
 
 ### 9.3 `.github/ISSUE_TEMPLATE/temperature-limit-bug.yml`
 
-The form has no forced title prefix and applies the existing `bug` label. Its fields are:
+The form has no forced title prefix and applies the existing `bug` label.
+Its fields are:
 
 1. introductory Markdown linking `SUPPORT.md` and explaining the in-game action;
 2. required `observed` textarea;
@@ -259,7 +280,8 @@ The form has no forced title prefix and applies the existing `bug` label. Its fi
 6. optional `files` upload accepting `.json,.log,.txt,.zip,.png,.jpg,.jpeg`; and
 7. optional `context` textarea.
 
-The attachment remains optional for pre-load failures. No duplicate-search attestation, version dropdown, manually entered mod list, severity, acceptance criteria, or implementation proposal is required.
+The attachment remains optional for pre-load failures.
+No duplicate-search attestation, version dropdown, manually entered mod list, severity, acceptance criteria, or implementation proposal is required.
 
 ### 9.4 `.github/ISSUE_TEMPLATE/temperature-limit-feature.yml`
 
@@ -281,45 +303,54 @@ The exact setting is:
 blank_issues_enabled: false
 ```
 
-This routes external reporters through the two structured forms. GitHub still permits repository maintainers to open blank issues. No contact link is added because no separately maintained support destination has been verified.
+This routes external reporters through the two structured forms.
+GitHub still permits repository maintainers to open blank issues.
+No contact link is added because no separately maintained support destination has been verified.
 
 ### 9.6 `.github/pull_request_template.md`
 
-The template asks for a linked issue, purpose, change summary, automated verification, manual ONI scenarios, compatibility/performance/persistence/localization/UI impact, screenshots where relevant, and known limitations. It does not require irrelevant sections to be fabricated; contributors mark them not applicable.
+The template asks for a linked issue, purpose, change summary, automated verification, manual ONI scenarios, compatibility/performance/persistence/localization/UI impact, screenshots where relevant, and known limitations.
+It does not require irrelevant sections to be fabricated; contributors mark them not applicable.
 
 ### 9.7 Existing public documentation
 
-`README.md` gains a short Support and Contributing section linking the new files/forms. `STEAM_DESCRIPTION.bbcode` gains a concise support section telling players where the in-game actions are and linking the GitHub bug form. Release notes and version metadata remain unchanged until a separately authorized release.
+`README.md` gains a short Support and Contributing section linking the new files/forms.
+`STEAM_DESCRIPTION.bbcode` gains a concise support section telling players where the in-game actions are and linking the GitHub bug form.
+Release notes and version metadata remain unchanged until a separately authorized release.
 
 ## 10. GitHub repository metadata
 
-The repository is currently a public fork with Issues enabled, Discussions disabled, Wiki enabled, an empty description, an empty homepage, and no topics. The minimal proposed public metadata change is:
+The repository is currently a public fork with Issues enabled, Discussions disabled, Wiki enabled, an empty description, an empty homepage, and no topics.
+The minimal proposed public metadata change is:
 
 - **Description:** `Optimized Oxygen Not Included mod for setting minimum and maximum temperatures on materials delivered to storage, buildings, and construction.`
 - **Topics:** `c-sharp`, `dotnet`, `game-mod`, `harmony`, `oni-mod`, `oxygen-not-included`, `plib`, `steam-workshop`, `temperature-control`, `unity`
 - **Homepage:** leave empty until the exact current Supercooled Workshop item URL is authoritatively verified; do not guess from a collection or predecessor item.
 - **Repository features:** make no changes to Issues, Discussions, Wiki, visibility, default branch, or fork relationship.
 
-The authenticated GitHub connector does not expose repository metadata mutation. After approval, use the GitHub CLI only for this exact `description` and topic update, then read the metadata back for verification. No other remote state changes are authorized by this design.
+The authenticated GitHub connector does not expose repository metadata mutation.
+After approval, use the GitHub CLI only for this exact `description` and topic update, then read the metadata back for verification.
+No other remote state changes are authorized by this design.
 
 ## 11. Configuration and policy approval dossier
 
 Before implementation, the user must explicitly approve these exact changes because they affect build/test or repository policy:
 
-| File or remote setting | Exact proposed change | Behavioral or pipeline impact | Defensive limit |
-| --- | --- | --- | --- |
-| `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureLimit.csproj` | Add an explicit `UnityEngine.IMGUIModule` reference to the game-managed `UnityEngine.IMGUIModule.dll` with `<Private>false</Private>` immediately after the existing `UnityEngine.CoreModule` reference. | Compiles the clipboard presentation step against the game-provided `GUIUtility` assembly. | No copied game assembly, package, property, lockfile, or pipeline-profile change. |
-| `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj` | Add exactly `<Compile Include="..\Source\SupportReporting\Core\**\*.cs" Link="Production\SupportReporting\Core\%(RecursiveDir)%(Filename)%(Extension)" />` to the existing first `ItemGroup`. | Compiles the same pure reporting core into the existing required test project. | No package/reference/property change; no second test project; no Unity/Klei adapter files linked. |
-| `CONTRIBUTING.md` | Create the contributor guide described in section 9.1. | GitHub surfaces repository contribution rules to issue/PR authors. | Do not duplicate internal agent instructions or promise nonexistent automation/response times. |
-| `SUPPORT.md` | Create the player support/privacy/fallback guide described in section 9.2. | GitHub surfaces a dedicated support route. | No external support channel is invented. |
-| `.github/ISSUE_TEMPLATE/temperature-limit-bug.yml` | Create the exact seven-element bug form described in section 9.3 with existing label `bug`. | Standardizes high-signal bug reports and accepts generated JSON/log attachments. | Only three human narrative fields required; upload optional. |
-| `.github/ISSUE_TEMPLATE/temperature-limit-feature.yml` | Create the five-field feature form described in section 9.4 with existing label `enhancement`. | Captures player needs without requiring maintainer design work. | No mandatory diagnostics or technical proposal. |
-| `.github/ISSUE_TEMPLATE/config.yml` | Create with only `blank_issues_enabled: false`. | Routes external users through issue forms. | No contact links or other template settings. |
-| `.github/pull_request_template.md` | Create the PR evidence checklist described in section 9.6. | Standardizes contributor verification and impact reporting. | No automatic gate or CI change. |
-| GitHub repository description | Set exactly the description in section 10. | Populates the repository About/search summary. | No rename or other repository setting. |
-| GitHub repository topics | Set exactly the ten topics in section 10. | Improves GitHub discovery and classification. | No homepage or feature-flag change. |
+| File or remote setting                                                                    | Exact proposed change                                                                                                                                                                                    | Behavioral or pipeline impact                                                             | Defensive limit                                                                                   |
+| ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureLimit.csproj`      | Add an explicit `UnityEngine.IMGUIModule` reference to the game-managed `UnityEngine.IMGUIModule.dll` with `<Private>false</Private>` immediately after the existing `UnityEngine.CoreModule` reference. | Compiles the clipboard presentation step against the game-provided `GUIUtility` assembly. | No copied game assembly, package, property, lockfile, or pipeline-profile change.                 |
+| `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj` | Add exactly `<Compile Include="..\Source\SupportReporting\Core\**\*.cs" Link="Production\SupportReporting\Core\%(RecursiveDir)%(Filename)%(Extension)" />` to the existing first `ItemGroup`.            | Compiles the same pure reporting core into the existing required test project.            | No package/reference/property change; no second test project; no Unity/Klei adapter files linked. |
+| `CONTRIBUTING.md`                                                                         | Create the contributor guide described in section 9.1.                                                                                                                                                   | GitHub surfaces repository contribution rules to issue/PR authors.                        | Do not duplicate internal agent instructions or promise nonexistent automation/response times.    |
+| `SUPPORT.md`                                                                              | Create the player support/privacy/fallback guide described in section 9.2.                                                                                                                               | GitHub surfaces a dedicated support route.                                                | No external support channel is invented.                                                          |
+| `.github/ISSUE_TEMPLATE/temperature-limit-bug.yml`                                        | Create the exact seven-element bug form described in section 9.3 with existing label `bug`.                                                                                                              | Standardizes high-signal bug reports and accepts generated JSON/log attachments.          | Only three human narrative fields required; upload optional.                                      |
+| `.github/ISSUE_TEMPLATE/temperature-limit-feature.yml`                                    | Create the five-field feature form described in section 9.4 with existing label `enhancement`.                                                                                                           | Captures player needs without requiring maintainer design work.                           | No mandatory diagnostics or technical proposal.                                                   |
+| `.github/ISSUE_TEMPLATE/config.yml`                                                       | Create with only `blank_issues_enabled: false`.                                                                                                                                                          | Routes external users through issue forms.                                                | No contact links or other template settings.                                                      |
+| `.github/pull_request_template.md`                                                        | Create the PR evidence checklist described in section 9.6.                                                                                                                                               | Standardizes contributor verification and impact reporting.                               | No automatic gate or CI change.                                                                   |
+| GitHub repository description                                                             | Set exactly the description in section 10.                                                                                                                                                               | Populates the repository About/search summary.                                            | No rename or other repository setting.                                                            |
+| GitHub repository topics                                                                  | Set exactly the ten topics in section 10.                                                                                                                                                                | Improves GitHub discovery and classification.                                             | No homepage or feature-flag change.                                                               |
 
-The implementation also updates the existing intentional public-surface test for the two PLib `Action<object>` properties, plus normal source/tests/README/Workshop-description text. Those are not configuration changes but remain limited to this design.
+The implementation also updates the existing intentional public-surface test for the two PLib `Action<object>` properties, plus normal source/tests/README/Workshop-description text.
+Those are not configuration changes but remain limited to this design.
 
 Apart from the exact non-copy-local `UnityEngine.IMGUIModule` reference above, no further change is approved or planned for `Source/DeliveryTemperatureLimit.csproj`, either lockfile, `global.json`, `oni-mod-pipeline.toml`, `mod.yaml`, `mod_info.yaml`, CI, deployment, or release configuration.
 
@@ -349,7 +380,8 @@ oni-mod-pipeline build
 oni-mod-pipeline test
 ```
 
-The exact new build result is inspected. A local Dev install and manual ONI check verify that both action buttons render, the standard and extended files are created, the log warning is clear, clipboard/folder/browser behavior is usable, the prefilled issue form is correct, and no issue is submitted during testing.
+The exact new build result is inspected.
+A local Dev install and manual ONI check verify that both action buttons render, the standard and extended files are created, the log warning is clear, clipboard/folder/browser behavior is usable, the prefilled issue form is correct, and no issue is submitted during testing.
 
 The manual test also checks a missing/unreadable log, browser launch failure where practicable, a non-ASCII profile path fixture in automated tests, FastTrack absent/present snapshots, and a larger active-mod list.
 
@@ -377,7 +409,8 @@ The work is complete when:
 
 ### 14.1 One large `CONTRIBUTING.md`
 
-Rejected because it conflates player support, issue reporting, contributor workflow, and maintainer design work. GitHub provides separate surfaced files and structured forms for these responsibilities.
+Rejected because it conflates player support, issue reporting, contributor workflow, and maintainer design work.
+GitHub provides separate surfaced files and structured forms for these responsibilities.
 
 ### 14.2 A ZIP containing several report files
 
@@ -389,7 +422,8 @@ Rejected because it requires credentials or a hosted service, removes the user's
 
 ### 14.4 Full `Player.log` in every report
 
-Rejected because standard environment and mod-owned facts should be private-by-default and small. The full game log is optional and explicitly requested through the extended action.
+Rejected because standard environment and mod-owned facts should be private-by-default and small.
+The full game log is optional and explicitly requested through the extended action.
 
 ### 14.5 Standalone collector in the first release
 
@@ -401,4 +435,6 @@ Rejected because the process already knows these facts, manual fields become sta
 
 ## 15. Final decision
 
-Build a local-only, allowlisted, one-file support reporter behind two explicit PLib action buttons; publish a minimal player issue form and separate contributor/support guidance; dogfood the same contracts; and set only the exact GitHub description and topics stated above. Preserve the existing runtime, packaging, pipeline, release, and repository-feature configuration except for the approved non-copy-local clipboard assembly reference. No open product-design decision remains; the approved implementation remains subject to the repository's formal review gate before completion or remote metadata mutation.
+Build a local-only, allowlisted, one-file support reporter behind two explicit PLib action buttons; publish a minimal player issue form and separate contributor/support guidance; dogfood the same contracts; and set only the exact GitHub description and topics stated above.
+Preserve the existing runtime, packaging, pipeline, release, and repository-feature configuration except for the approved non-copy-local clipboard assembly reference.
+No open product-design decision remains; the approved implementation remains subject to the repository's formal review gate before completion or remote metadata mutation.

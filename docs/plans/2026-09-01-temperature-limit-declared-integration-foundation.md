@@ -1,10 +1,14 @@
 # Temperature Limit Declared Integration Foundation Implementation Plan
 
-> **For agentic workers:** Execute this plan task-by-task in dependency order. Follow the repository's test-driven-development and formal review gates, and use the checkboxes (`- [ ]`) to track progress.
+> **For agentic workers:** Execute this plan task-by-task in dependency order.
+> Follow the repository's test-driven-development and formal review gates, and use the checkboxes (`- [ ]`) to track progress.
 
 **Goal:** Replace FastTrack-shaped selection and reporting with a provider-neutral, compile-time-declared capability model while preserving every currently verified Klei/FastTrack behavior.
 
-**Architecture:** Pure immutable identifiers, declarations, contributions, outcomes, and a deterministic selector live under `GameplayActivation/Core/ExternalModIntegration`. Klei and FastTrack preparation produce complete contributions containing resolved patch bindings plus exact authority requirements. `DeliveryTemperatureRuntimePatchPlan` consumes only the selected generic map. Schema version 2 projects the same generic outcomes without provider-name branches.
+**Architecture:** Pure immutable identifiers, declarations, contributions, outcomes, and a deterministic selector live under `GameplayActivation/Core/ExternalModIntegration`.
+Klei and FastTrack preparation produce complete contributions containing resolved patch bindings plus exact authority requirements.
+`DeliveryTemperatureRuntimePatchPlan` consumes only the selected generic map.
+Schema version 2 projects the same generic outcomes without provider-name branches.
 
 **Tech Stack:** C# 8-compatible production source; MSTest; BCL reflection; existing Harmony contract binding types; repository-owned content-addressed FastTrack `0.18.4.0` and `0.18.5.0` inert binary fixtures; Newtonsoft.Json through the production build only.
 
@@ -16,7 +20,8 @@
 - Use authoritative tools to execute and validate their own formats; write repository code only for project-specific policy and cross-artifact invariants those tools cannot know.
 - Preserve all existing compatibility states and structural checks in `FastTrackCompatibilityInspector`.
 - Match FastTrack only when one active Klei mod has exact static ID `PeterHan.FastTrack` and that same mod supplies exactly one loaded assembly with simple name `FastTrack`.
-- Catalog order controls deterministic inspection/report order only. It never breaks an ownership conflict.
+- Catalog order controls deterministic inspection/report order only.
+  It never breaks an ownership conflict.
 - Do not scan `AppDomain` for adapter types or accept assemblies based only on simple name.
 - Do not add Blueprints Expanded to the production catalog.
 - Configuration edits are limited to the already approved test-project linked-source item and the separately approved fixture-copy/Git-binary changes executed by `docs/plans/2026-09-01-fasttrack-compatibility-evidence-catalog.md`.
@@ -25,29 +30,29 @@
 
 ## File and Responsibility Map
 
-| File | Responsibility |
-|---|---|
-| `Source/GameplayActivation/Core/ExternalModIntegration/ValidatedIntegrationIdentifier.cs` | One shared lowercase-ASCII-kebab validator |
-| `.../DeclaredModIntegrationId.cs` | Stable integration identity value |
-| `.../RuntimeCapabilityId.cs` | Stable capability identity value and owned constants |
-| `.../RuntimePatchGroupId.cs` | Provider-neutral stable audit identity for one concrete prepared patch group |
-| `.../ExternalModIntegrationStates.cs` | The four exact state dimensions from the spec |
-| `.../RuntimeAuthorityImplementationIdentity.cs` | Origin-qualified identity for a Klei baseline or declared external implementation |
-| `.../RuntimeCapabilityDefinition.cs` | Criticality, Klei baseline, optional atomic bundle |
-| `.../RuntimeAuthorityRequirement.cs` | Exact target, permitted owner, and required replacement evidence |
-| `.../ActiveHarmonyPrefixDescriptor.cs` | Provider-neutral copied prefix authority evidence |
-| `.../PreparedRuntimeAuthorityContribution.cs` | One immutable provider contribution with resolved bindings |
-| `.../PreparedRuntimeAuthorityInspection.cs` | One inspector's immutable generic outcome plus contributions |
-| `.../ExternalModIntegrationOutcome.cs` | Bounded sanitized generic diagnostic projection |
-| `.../DeclaredModIntegrationDescriptor.cs` | Exact static-ID/assembly contract and declared capabilities |
-| `.../DeclaredModIntegrationCatalog.cs` | Explicit ordered declaration set with uniqueness checks |
-| `.../RuntimePatchCapabilitySelector.cs` | Deterministic per-capability selection and bundle validation |
-| `Source/GameplayActivation/Core/ExternalModIntegration/LoadedModInspectionContext.cs` | Short-lived copied authoritative topology facts; no retained Klei object |
-| `Source/GameplayActivation/Core/ExternalModIntegration/DeclaredExternalModIntegrationPreparation.cs` | Executes only catalog-declared inspectors |
-| `Source/GameplayActivation/Core/ExternalModIntegration/DeclaredIntegrationPreparationResult.cs` | Immutable ordered contributions and external integration outcomes |
-| `Source/FastTrackCompatibility/FeatureContractVerification/FastTrackRuntimeAuthorityIntegrationInspector.cs` | Projects the existing FastTrack deep module into generic contributions/outcomes |
-| `Source/RuntimePatchInstallation/DeliveryTemperatureRuntimePatchPlan.cs` | Consumes the generic selection and exposes generic authority verification |
-| `Source/SupportReporting/Core/SupportReportDocument.cs` | Schema-v2 generic external-integration snapshots |
+| File                                                                                                         | Responsibility                                                                    |
+| ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| `Source/GameplayActivation/Core/ExternalModIntegration/ValidatedIntegrationIdentifier.cs`                    | One shared lowercase-ASCII-kebab validator                                        |
+| `.../DeclaredModIntegrationId.cs`                                                                            | Stable integration identity value                                                 |
+| `.../RuntimeCapabilityId.cs`                                                                                 | Stable capability identity value and owned constants                              |
+| `.../RuntimePatchGroupId.cs`                                                                                 | Provider-neutral stable audit identity for one concrete prepared patch group      |
+| `.../ExternalModIntegrationStates.cs`                                                                        | The four exact state dimensions from the spec                                     |
+| `.../RuntimeAuthorityImplementationIdentity.cs`                                                              | Origin-qualified identity for a Klei baseline or declared external implementation |
+| `.../RuntimeCapabilityDefinition.cs`                                                                         | Criticality, Klei baseline, optional atomic bundle                                |
+| `.../RuntimeAuthorityRequirement.cs`                                                                         | Exact target, permitted owner, and required replacement evidence                  |
+| `.../ActiveHarmonyPrefixDescriptor.cs`                                                                       | Provider-neutral copied prefix authority evidence                                 |
+| `.../PreparedRuntimeAuthorityContribution.cs`                                                                | One immutable provider contribution with resolved bindings                        |
+| `.../PreparedRuntimeAuthorityInspection.cs`                                                                  | One inspector's immutable generic outcome plus contributions                      |
+| `.../ExternalModIntegrationOutcome.cs`                                                                       | Bounded sanitized generic diagnostic projection                                   |
+| `.../DeclaredModIntegrationDescriptor.cs`                                                                    | Exact static-ID/assembly contract and declared capabilities                       |
+| `.../DeclaredModIntegrationCatalog.cs`                                                                       | Explicit ordered declaration set with uniqueness checks                           |
+| `.../RuntimePatchCapabilitySelector.cs`                                                                      | Deterministic per-capability selection and bundle validation                      |
+| `Source/GameplayActivation/Core/ExternalModIntegration/LoadedModInspectionContext.cs`                        | Short-lived copied authoritative topology facts; no retained Klei object          |
+| `Source/GameplayActivation/Core/ExternalModIntegration/DeclaredExternalModIntegrationPreparation.cs`         | Executes only catalog-declared inspectors                                         |
+| `Source/GameplayActivation/Core/ExternalModIntegration/DeclaredIntegrationPreparationResult.cs`              | Immutable ordered contributions and external integration outcomes                 |
+| `Source/FastTrackCompatibility/FeatureContractVerification/FastTrackRuntimeAuthorityIntegrationInspector.cs` | Projects the existing FastTrack deep module into generic contributions/outcomes   |
+| `Source/RuntimePatchInstallation/DeliveryTemperatureRuntimePatchPlan.cs`                                     | Consumes the generic selection and exposes generic authority verification         |
+| `Source/SupportReporting/Core/SupportReportDocument.cs`                                                      | Schema-v2 generic external-integration snapshots                                  |
 
 ## Cross-Task Interfaces
 
@@ -68,7 +73,8 @@ DeliveryTemperatureRuntimePatchPlan DeliveryTemperatureRuntimePatchPlan.Create(
     RuntimePatchCapabilitySelection capabilitySelection);
 ```
 
-The preparation result feeds the selector; the selection feeds the runtime plan; the same generic outcomes feed `SupportRuntimeSnapshot`. No later task unwraps a provider-specific result.
+The preparation result feeds the selector; the selection feeds the runtime plan; the same generic outcomes feed `SupportRuntimeSnapshot`.
+No later task unwraps a provider-specific result.
 
 ## Task 1: Link the Pure Production Directory into the Existing Test Project
 
@@ -115,7 +121,8 @@ Expected green: all `LinkedProductionSourceBoundaryContractTests` pass.
 - Create: `mods/delivery-temperature-limit-supercooled/Source/GameplayActivation/Core/ExternalModIntegration/ExternalModIntegrationStates.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/GameplayActivation/ExternalModIntegration/IntegrationIdentifierTests.cs`
 
-- [x] Write parameterized tests covering empty, whitespace, uppercase, underscore, period, leading/trailing hyphen, repeated hyphen, more than 64 characters, valid single segment, and valid multi-segment values. Assert ordinal equality and hash behavior for the integration, capability, and patch-group identity values.
+- [x] Write parameterized tests covering empty, whitespace, uppercase, underscore, period, leading/trailing hyphen, repeated hyphen, more than 64 characters, valid single segment, and valid multi-segment values.
+      Assert ordinal equality and hash behavior for the integration, capability, and patch-group identity values.
 
 - [x] Run:
 
@@ -125,7 +132,8 @@ dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatur
 
 Expected red: the identity types do not exist.
 
-- [x] Implement one validator used by both values. Its acceptance rule must be explicit rather than culture-sensitive:
+- [x] Implement one validator used by both values.
+      Its acceptance rule must be explicit rather than culture-sensitive:
 
 ```csharp
 internal static string RequireKebabCase(string value, string parameterName)
@@ -178,7 +186,8 @@ internal static readonly RuntimeCapabilityId TemperatureStatusAvailability =
     new RuntimeCapabilityId("temperature-status-availability");
 ```
 
-- [x] Define the exact enums approved by the spec: `DeclaredModMatchState`, `RuntimeAuthorityObservation`, `IntegrationContractState`, and `IntegrationCapabilityDisposition`, without Boolean aliases. Add `ExternalModIntegrationCategory` with only `ExclusiveRuntimeAuthority` and `AdditiveInteroperability`; built-in Klei baselines are capability candidates, not external-mod categories.
+- [x] Define the exact enums approved by the spec: `DeclaredModMatchState`, `RuntimeAuthorityObservation`, `IntegrationContractState`, and `IntegrationCapabilityDisposition`, without Boolean aliases.
+      Add `ExternalModIntegrationCategory` with only `ExclusiveRuntimeAuthority` and `AdditiveInteroperability`; built-in Klei baselines are capability candidates, not external-mod categories.
 
 - [x] Run the focused tests again.
 
@@ -198,7 +207,9 @@ Expected green: all identifier and state tests pass.
 - Create: `mods/delivery-temperature-limit-supercooled/Source/GameplayActivation/Core/ExternalModIntegration/DeclaredModIntegrationDescriptor.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/GameplayActivation/ExternalModIntegration/DeclaredIntegrationModelTests.cs`
 
-- [x] Test defensive copying, non-null elements, bounded display names and diagnostics, required upstream evidence reference, exact accepted static IDs/assembly names, duplicate patch identities, invalid owner evidence, and category ordering. Model each declaration as a `DeclaredModIntegrationCapability` that assigns one capability to exactly one category; reject duplicate capability IDs even when they attempt to cross category boundaries. Prove that changing an input list after construction does not mutate the object.
+- [x] Test defensive copying, non-null elements, bounded display names and diagnostics, required upstream evidence reference, exact accepted static IDs/assembly names, duplicate patch identities, invalid owner evidence, and category ordering.
+      Model each declaration as a `DeclaredModIntegrationCapability` that assigns one capability to exactly one category; reject duplicate capability IDs even when they attempt to cross category boundaries.
+      Prove that changing an input list after construction does not mutate the object.
 
 - [x] Run:
 
@@ -242,9 +253,13 @@ internal sealed class RuntimeAuthorityRequirement
 }
 ```
 
-- [x] Make `PreparedRuntimeAuthorityContribution` carry one origin-qualified `RuntimeAuthorityImplementationIdentity`, one capability ID, one or more stable `RuntimePatchGroupId` audit values, one authority observation, immutable verified `HarmonyPatchContractBinding` values, exact `RuntimeAuthorityRequirement` values, and a stable bounded diagnostic code/message. It must reject `DoesNotOwn` plus non-empty bindings and reject `OwnsCompatible` without a complete contribution. A `RuntimeCapabilityDefinition` accepts a Klei baseline only when its implementation identity is the built-in Klei origin and every authority requirement is `KleiOriginal`.
+- [x] Make `PreparedRuntimeAuthorityContribution` carry one origin-qualified `RuntimeAuthorityImplementationIdentity`, one capability ID, one or more stable `RuntimePatchGroupId` audit values, one authority observation, immutable verified `HarmonyPatchContractBinding` values, exact `RuntimeAuthorityRequirement` values, and a stable bounded diagnostic code/message.
+      It must reject `DoesNotOwn` plus non-empty bindings and reject `OwnsCompatible` without a complete contribution.
+      A `RuntimeCapabilityDefinition` accepts a Klei baseline only when its implementation identity is the built-in Klei origin and every authority requirement is `KleiOriginal`.
 
-- [x] Make `ExternalModIntegrationOutcome` contain only allowlisted scalar facts and immutable capability outcome values. Each capability outcome retains its exact declared category, and the outcome rejects a capability category outside its declared category set. Do not retain `Assembly`, `KMod.Mod`, `Harmony`, exception, stack trace, or filesystem path objects.
+- [x] Make `ExternalModIntegrationOutcome` contain only allowlisted scalar facts and immutable capability outcome values.
+      Each capability outcome retains its exact declared category, and the outcome rejects a capability category outside its declared category set.
+      Do not retain `Assembly`, `KMod.Mod`, `Harmony`, exception, stack trace, or filesystem path objects.
 
 - [x] Run the focused tests again.
 
@@ -264,7 +279,8 @@ Expected green: all model invariants pass.
 
 - [x] Add selector tests for Klei fallback, one compatible owner, incompatible required owner, unavailable required ownership, explicitly diagnosed optional omission both with and without an external owner, two compatible owners, two claimed owners where one is incompatible, undefined exclusive-runtime outcome rejection, additive-only outcome preservation without a runtime definition, an atomic bundle with one mixed member, a colliding textual ID across Klei and external origins, and a valid all-Klei/all-external bundle.
 
-- [x] Add a synthetic second authority named `synthetic-runtime-authority` that owns `pickup-temperature-grouping`. Assert selection succeeds without a selector source branch or FastTrack type.
+- [x] Add a synthetic second authority named `synthetic-runtime-authority` that owns `pickup-temperature-grouping`.
+      Assert selection succeeds without a selector source branch or FastTrack type.
 
 - [x] Run:
 
@@ -301,11 +317,14 @@ foreach (RuntimeCapabilityDefinition definition in definitions)
 ValidateAtomicBundles(definitions, selected);
 ```
 
-- [x] Ensure `FindClaims` treats `OwnsCompatible`, `OwnsIncompatible`, and `OwnershipUnavailable` as ownership claims. Never choose Klei after an external integration claims a required capability but cannot prove a compatible contribution.
+- [x] Ensure `FindClaims` treats `OwnsCompatible`, `OwnsIncompatible`, and `OwnershipUnavailable` as ownership claims.
+      Never choose Klei after an external integration claims a required capability but cannot prove a compatible contribution.
 
 - [x] Ensure the selector never consults catalog position or loaded-mod order when more than one integration claims one exclusive capability.
 
-- [x] Represent selection and omission with distinct `RuntimeCapabilitySelectionEntry` factories. A selected entry requires one compatible contribution for the same capability. An omitted optional entry is `Unavailable` and requires a validated stable diagnostic code and bounded message, including when neither a Klei baseline nor an external claim exists; do not fabricate an external-mod outcome for that case.
+- [x] Represent selection and omission with distinct `RuntimeCapabilitySelectionEntry` factories.
+      A selected entry requires one compatible contribution for the same capability.
+      An omitted optional entry is `Unavailable` and requires a validated stable diagnostic code and bounded message, including when neither a Klei baseline nor an external claim exists; do not fabricate an external-mod outcome for that case.
 
 - [x] Run the focused tests again.
 
@@ -322,7 +341,11 @@ Expected green: every deterministic selection and bundle case passes.
 - Create: `mods/delivery-temperature-limit-supercooled/Source/GameplayActivation/Core/ExternalModIntegration/DeclaredIntegrationPreparationResult.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/RuntimePatchInstallation/DeclaredExternalModIntegrationPreparationTests.cs`
 
-- [x] Test exact static-ID match, assembly tied to the same active mod entry, inactive mod ignored, duplicate matching active entries ambiguous, duplicate same-name assemblies ambiguous, unknown mod ignored, runtime inspector exception converted to its declaration's inspection-unavailable outcome, and additive inspector exception isolated from runtime selection. Prove that one integration declaring both categories invokes both inspectors, validates each category's complete ordered capability subset and exact state matrix, and merges them into one deterministic outcome. A matched additive capability can be compatible and `Ready` but never `Selected`. Conflicting additive assembly facts or diagnostic code/message pairs—whether capability-scoped or integration-scoped—must become an unavailable additive category while preserving the valid runtime contribution. Reserve the preparation-owned additive-conflict diagnostic code so its fallback merge cannot collide with provider output.
+- [x] Test exact static-ID match, assembly tied to the same active mod entry, inactive mod ignored, duplicate matching active entries ambiguous, duplicate same-name assemblies ambiguous, unknown mod ignored, runtime inspector exception converted to its declaration's inspection-unavailable outcome, and additive inspector exception isolated from runtime selection.
+      Prove that one integration declaring both categories invokes both inspectors, validates each category's complete ordered capability subset and exact state matrix, and merges them into one deterministic outcome.
+      A matched additive capability can be compatible and `Ready` but never `Selected`.
+      Conflicting additive assembly facts or diagnostic code/message pairs—whether capability-scoped or integration-scoped—must become an unavailable additive category while preserving the valid runtime contribution.
+      Reserve the preparation-owned additive-conflict diagnostic code so its fallback merge cannot collide with provider output.
 
 - [x] Run:
 
@@ -356,9 +379,12 @@ internal interface IAdditiveInteroperabilityInspector
 
 - [x] Do not add `IModCompatibilityProvider`, runtime type scanning, `Assembly.Load`, or provider lookup by class name.
 
-- [x] Emit an unavailable `PreparedRuntimeAuthorityContribution` for every runtime-authority capability whose exact identity or inspector cannot be evaluated. Require every non-`DoesNotOwn` runtime outcome to have one matching contribution with the same authority observation, so selection cannot silently fall back to Klei after an unavailable external owner.
+- [x] Emit an unavailable `PreparedRuntimeAuthorityContribution` for every runtime-authority capability whose exact identity or inspector cannot be evaluated.
+      Require every non-`DoesNotOwn` runtime outcome to have one matching contribution with the same authority observation, so selection cannot silently fall back to Klei after an unavailable external owner.
 
-- [x] Build `LoadedModInspectionContext` from immutable `LoadedModCandidate` values containing active state, exact static ID, and BCL `Assembly` references plus copied active-Harmony descriptors. A thin runtime adapter creates those values only from the `IReadOnlyList<KMod.Mod>` received by `OnAllModsLoaded`. Keep the context short-lived and absent from support-document types.
+- [x] Build `LoadedModInspectionContext` from immutable `LoadedModCandidate` values containing active state, exact static ID, and BCL `Assembly` references plus copied active-Harmony descriptors.
+      A thin runtime adapter creates those values only from the `IReadOnlyList<KMod.Mod>` received by `OnAllModsLoaded`.
+      Keep the context short-lived and absent from support-document types.
 
 - [x] Run the focused tests again.
 
@@ -368,18 +394,13 @@ Expected green: only declared, exact identities are inspected and additive fault
 
 - [x] Run the focused Task 1-5 tests and the complete test project.
 
-- [x] Run `git diff --check`, show `git status --short` and `git diff --stat`,
-and confirm that the user-owned untracked `AGENTS.md` remains untouched and
-excluded.
+- [x] Run `git diff --check`, show `git status --short` and `git diff --stat`, and confirm that the user-owned untracked `AGENTS.md` remains untouched and excluded.
 
-- [x] State `Implementation complete; /review pending` and run built-in
-uncommitted review over only the provider-neutral identity, model, catalog,
-selector, loaded-mod preparation, approved linked-source item, and associated
-tests. Resolve or explicitly defer every confirmed P0-P2 finding and rerun all
-affected tests.
+- [x] State `Implementation complete; /review pending` and run built-in uncommitted review over only the provider-neutral identity, model, catalog, selector, loaded-mod preparation, approved linked-source item, and associated tests.
+      Resolve or explicitly defer every confirmed P0-P2 finding and rerun all affected tests.
 
-- [x] Stage only Tasks 1-5 and their tests. Load `committing-to-git`, verify the
-exact staged snapshot, and create the user-pre-authorized signed commit:
+- [x] Stage only Tasks 1-5 and their tests.
+      Load `committing-to-git`, verify the exact staged snapshot, and create the user-pre-authorized signed commit:
 
 ```text
 refactor(temperature-limit): introduce declared integration selection core
@@ -393,9 +414,8 @@ provider adapters can contribute complete runtime authority evidence through
 one narrow boundary.
 ```
 
-- [x] Do not push. Complete
-`docs/plans/2026-09-01-fasttrack-compatibility-evidence-catalog.md` before
-starting Task 6.
+- [x] Do not push.
+      Complete `docs/plans/2026-09-01-fasttrack-compatibility-evidence-catalog.md` before starting Task 6.
 
 ## Task 6: Project Existing FastTrack Verification Through the Generic Boundary
 
@@ -417,28 +437,22 @@ starting Task 6.
 - Modify: `mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/FastTrackLoadedGameInspectionInput.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackRuntimeAuthorityIntegrationInspectorTests.cs`
 
-- [x] Require the FastTrack compatibility evidence plan to be complete: both
-  admitted content-addressed fixtures pass their static matrix, the production
-  supported-build catalog contains their exact version-plus-DLL-SHA-256
-  identities, and `FastTrackCompatibilityInspector` fails closed for every
-  other active build.
+- [x] Require the FastTrack compatibility evidence plan to be complete: both admitted content-addressed fixtures pass their static matrix, the production supported-build catalog contains their exact version-plus-DLL-SHA-256 identities, and `FastTrackCompatibilityInspector` fails closed for every other active build.
 
-- [x] Add projection tests for all existing FastTrack feature states. Assert this exact mapping:
+- [x] Add projection tests for all existing FastTrack feature states.
+      Assert this exact mapping:
 
-| Existing feature state | Authority | Contract | Required disposition | Optional disposition |
-|---|---|---|---|---|
-| `ModNotLoaded` | `DoesNotOwn` | `NotEvaluated` | `NotApplicable` | `NotApplicable` |
-| `ReplacementInactive` | `DoesNotOwn` | `NotEvaluated` | `NotApplicable` | `NotApplicable` |
-| `Ready` | `OwnsCompatible` | `Compatible` | `Selected` | `Selected` |
-| `Incompatible` | `OwnsIncompatible` | `Incompatible` | `ActivationBlocking` | `Unavailable` |
+| Existing feature state | Authority          | Contract       | Required disposition | Optional disposition |
+| ---------------------- | ------------------ | -------------- | -------------------- | -------------------- |
+| `ModNotLoaded`         | `DoesNotOwn`       | `NotEvaluated` | `NotApplicable`      | `NotApplicable`      |
+| `ReplacementInactive`  | `DoesNotOwn`       | `NotEvaluated` | `NotApplicable`      | `NotApplicable`      |
+| `Ready`                | `OwnsCompatible`   | `Compatible`   | `Selected`           | `Selected`           |
+| `Incompatible`         | `OwnsIncompatible` | `Incompatible` | `ActivationBlocking` | `Unavailable`        |
 
 - [x] Assert an exact active mod with static ID `PeterHan.FastTrack` but no same-entry `FastTrack` assembly is `Matched` with inspection unavailable; a `FastTrack` assembly supplied by a different mod does not satisfy identity.
 
-- [x] Reuse the evidence plan's exact packaged static ID
-  `PeterHan.FastTrack`. Do not reacquire a historical archive or introduce a
-  network dependency; the content-addressed DLL fixtures and independent
-  supported-build expectation matrix are the repository-owned evidence
-  boundary.
+- [x] Reuse the evidence plan's exact packaged static ID `PeterHan.FastTrack`.
+      Do not reacquire a historical archive or introduce a network dependency; the content-addressed DLL fixtures and independent supported-build expectation matrix are the repository-owned evidence boundary.
 
 - [x] Run:
 
@@ -448,17 +462,15 @@ dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatur
 
 Expected red: no generic FastTrack adapter exists.
 
-- [x] Implement the adapter by invoking the catalog-backed
-`FastTrackCompatibilityInspector` once, then projecting each feature. Inject
-the narrow `IFastTrackRuntimeAuthorityContributionBuilder` so linked tests can
-supply resolved BCL-only bindings without compiling game adapters; the
-production builder remains in `RuntimePatchInstallation`. Reuse all current
-verified members, file identity state, failure codes, and bounded structural
-messages.
+- [x] Implement the adapter by invoking the catalog-backed `FastTrackCompatibilityInspector` once, then projecting each feature.
+      Inject the narrow `IFastTrackRuntimeAuthorityContributionBuilder` so linked tests can supply resolved BCL-only bindings without compiling game adapters; the production builder remains in `RuntimePatchInstallation`.
+      Reuse all current verified members, file identity state, failure codes, and bounded structural messages.
 
-- [x] Replace the provider-folder `ActiveHarmonyPatchDescriptor` with the core `ActiveHarmonyPrefixDescriptor` everywhere, then delete the old file. The new name reflects that selected-authority proof intentionally inspects skipping prefixes; it remains a BCL-only immutable copy rather than concrete Harmony metadata.
+- [x] Replace the provider-folder `ActiveHarmonyPatchDescriptor` with the core `ActiveHarmonyPrefixDescriptor` everywhere, then delete the old file.
+      The new name reflects that selected-authority proof intentionally inspects skipping prefixes; it remains a BCL-only immutable copy rather than concrete Harmony metadata.
 
-- [x] Move FastTrack patch binding preparation behind this adapter or an adapter-owned builder so each `Ready` contribution is already complete. Do not let the generic selector call `GetFeature(FastTrackFeature...)`.
+- [x] Move FastTrack patch binding preparation behind this adapter or an adapter-owned builder so each `Ready` contribution is already complete.
+      Do not let the generic selector call `GetFeature(FastTrackFeature...)`.
 
 - [x] Construct the one production descriptor with:
 
@@ -499,7 +511,8 @@ Expected green: legacy structural coverage remains green and generic outcomes pr
 - Modify: `mods/delivery-temperature-limit-supercooled/Tests/RuntimePatchInstallation/DeliveryTemperatureRuntimePatchPlanTests.cs`
 - Modify: `mods/delivery-temperature-limit-supercooled/Tests/FastTrackCompatibility/FastTrackCoherentActivationContractTests.cs`
 
-- [x] Rewrite plan tests first so `Create` receives a `RuntimePatchCapabilitySelection`. Preserve Klei-only, each independent FastTrack-ready feature, status-only degradation, required incompatibility, selected-authority change, an unknown noninterfering mod, and an undeclared skipping-prefix owner that must fail generic authority proof without creating an integration outcome.
+- [x] Rewrite plan tests first so `Create` receives a `RuntimePatchCapabilitySelection`.
+      Preserve Klei-only, each independent FastTrack-ready feature, status-only degradation, required incompatibility, selected-authority change, an unknown noninterfering mod, and an undeclared skipping-prefix owner that must fail generic authority proof without creating an integration outcome.
 
 - [x] Run:
 
@@ -517,9 +530,13 @@ internal static DeliveryTemperatureRuntimePatchPlan Create(
     RuntimePatchCapabilitySelection capabilitySelection)
 ```
 
-- [x] Store only immutable selected generic contributions, ordered verified bindings, stable generic patch-group audit IDs, exact generic authority requirements, generic outcomes, and the optional status diagnostic. Remove the `fastTrackCompatibility` field and all `FastTrackFeature`/`FastTrackCompatibilityReport` access. Delete the now-unused provider-named patch-group enum; leave its existing conditional test-project link unchanged so this plan introduces no additional configuration delta.
+- [x] Store only immutable selected generic contributions, ordered verified bindings, stable generic patch-group audit IDs, exact generic authority requirements, generic outcomes, and the optional status diagnostic.
+      Remove the `fastTrackCompatibility` field and all `FastTrackFeature`/`FastTrackCompatibilityReport` access.
+      Delete the now-unused provider-named patch-group enum; leave its existing conditional test-project link unchanged so this plan introduces no additional configuration delta.
 
-- [x] Replace `VerifyFastTrackAuthority` and `VerifyKleiAuthorityForMatchingTargets` branches with one generic loop over exact `RuntimeAuthorityRequirement` values. For `ExactOwnedReplacement`, require the exact target, method, owner, and permitted-owner set. For `KleiOriginal`, reject every unpermitted Boolean skipping prefix.
+- [x] Replace `VerifyFastTrackAuthority` and `VerifyKleiAuthorityForMatchingTargets` branches with one generic loop over exact `RuntimeAuthorityRequirement` values.
+      For `ExactOwnedReplacement`, require the exact target, method, owner, and permitted-owner set.
+      For `KleiOriginal`, reject every unpermitted Boolean skipping prefix.
 
 - [x] Run the focused tests again.
 
@@ -536,7 +553,8 @@ Expected green: all previous topology semantics pass through generic selection.
 - Modify: `mods/delivery-temperature-limit-supercooled/Tests/SupportReporting/SupportReportSummaryRendererTests.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/SupportReporting/SupportJsonReportSizeLimiterTests.cs`
 
-- [x] Change JSON contract tests first. Require `schemaVersion: 2`, `runtime.externalModIntegrations`, zero/one/multiple integration arrays, deterministic order, bounded capability arrays, and absence of `runtime.fastTrack` anywhere in JSON.
+- [x] Change JSON contract tests first.
+      Require `schemaVersion: 2`, `runtime.externalModIntegrations`, zero/one/multiple integration arrays, deterministic order, bounded capability arrays, and absence of `runtime.fastTrack` anywhere in JSON.
 
 - [x] Run:
 
@@ -574,7 +592,8 @@ internal sealed class SupportExternalModCapabilitySnapshot
 }
 ```
 
-- [x] Enforce existing collection/message/JSON limits at construction and final serialization. Render summaries by display name and generic capability state; do not add `if (IntegrationId == "fast-track")`.
+- [x] Enforce existing collection/message/JSON limits at construction and final serialization.
+      Render summaries by display name and generic capability state; do not add `if (IntegrationId == "fast-track")`.
 
 - [x] Run the focused tests again.
 
@@ -592,9 +611,11 @@ Expected green: schema-v2 projection is deterministic, bounded, and provider-neu
 
 - [x] Add a compiled/source boundary asserting `GameplayActivation/Core`, `RuntimePatchCapabilitySelector`, and `DeliveryTemperatureRuntimePatchPlan` contain none of these tokens: `FastTrackCompatibilityReport`, `FastTrackFeature`, `PeterHan.FastTrack`, `BlueprintsV2`, `KMod.Mod`, `HarmonyLib`, `UnityEngine`.
 
-- [x] Add the synthetic runtime-authority and synthetic additive inspectors. Prove the former supplies a capability without selector/schema edits and the latter reports `Ready`, `Unavailable`, and contained throw outcomes while contributing zero Harmony bindings.
+- [x] Add the synthetic runtime-authority and synthetic additive inspectors.
+      Prove the former supplies a capability without selector/schema edits and the latter reports `Ready`, `Unavailable`, and contained throw outcomes while contributing zero Harmony bindings.
 
-- [x] Add a BCL-only declared static-method protocol verifier that receives an explicit endpoint type and exact method descriptors; it never scans arbitrary assemblies. With reflection-emitted top-level public static fixtures, verify exact getter/setter/ID names, return types, parameter types, static/public/top-level requirements, missing member, overload ambiguity, renamed parameter type, wrong by-reference shape, and changed return type.
+- [x] Add a BCL-only declared static-method protocol verifier that receives an explicit endpoint type and exact method descriptors; it never scans arbitrary assemblies.
+      With reflection-emitted top-level public static fixtures, verify exact getter/setter/ID names, return types, parameter types, static/public/top-level requirements, missing member, overload ambiguity, renamed parameter type, wrong by-reference shape, and changed return type.
 
 - [x] Assert the production catalog contains exactly `fast-track` at this milestone and does not contain `blueprints-expanded`.
 
@@ -619,20 +640,16 @@ Expected: all tests pass; zero skipped/inconclusive; no whitespace errors.
 
 - [x] Run the forbidden-configuration check from the program plan.
 
-Expected: only the approved test-project linked-source item, exact FastTrack
-fixture-copy wildcard, and scoped fixture DLL Git attribute differ among
-configuration files.
+Expected: only the approved test-project linked-source item, exact FastTrack fixture-copy wildcard, and scoped fixture DLL Git attribute differ among configuration files.
 
-- [x] State `Implementation complete; /review pending` for this milestone and
-run built-in uncommitted review over the declared-integration, runtime-plan,
-FastTrack-adapter, schema-v2, approved configuration, and associated test
-changes. Exclude the user-owned untracked `AGENTS.md`. Resolve or explicitly
-defer every confirmed P0-P2 finding and rerun the affected focused/full gates.
+- [x] State `Implementation complete; /review pending` for this milestone and run built-in uncommitted review over the declared-integration, runtime-plan, FastTrack-adapter, schema-v2, approved configuration, and associated test changes.
+      Exclude the user-owned untracked `AGENTS.md`.
+      Resolve or explicitly defer every confirmed P0-P2 finding and rerun the affected focused/full gates.
 
-- [x] Show `git status --short` and `git diff --stat`. Stage only this plan's intended files after separating pre-existing user-owned changes.
+- [x] Show `git status --short` and `git diff --stat`.
+      Stage only this plan's intended files after separating pre-existing user-owned changes.
 
-- [x] Confirm the staged snapshot is covered by the user's pre-authorization,
-load `committing-to-git`, and create:
+- [x] Confirm the staged snapshot is covered by the user's pre-authorization, load `committing-to-git`, and create:
 
 ```text
 refactor(temperature-limit): generalize external mod integration selection

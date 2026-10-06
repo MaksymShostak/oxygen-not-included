@@ -1,10 +1,13 @@
 # Temperature Limit Pure Activation Core Implementation Plan
 
-> **For agentic workers:** Execute this plan task-by-task in dependency order. Follow the repository's test-driven-development and formal review gates, and use the checkboxes (`- [ ]`) to track progress.
+> **For agentic workers:** Execute this plan task-by-task in dependency order.
+> Follow the repository's test-driven-development and formal review gates, and use the checkboxes (`- [ ]`) to track progress.
 
 **Goal:** Implement and exhaustively test the framework-independent one-attempt state machine that makes the complete selected gameplay patch set active or leaves every Temperature Limit callback inert.
 
-**Architecture:** A fresh-instance `GameplayActivationCoordinator` owns preparation, complete baseline observation, ordered registration, post-registration audit, reverse-order compensation, immutable failure publication, and idempotency. A separate `GameplayActivationGate` publishes the state through volatile primitive reads. Concrete Harmony, Klei, Unity, disk, and UI work remain behind ports or outside this directory.
+**Architecture:** A fresh-instance `GameplayActivationCoordinator` owns preparation, complete baseline observation, ordered registration, post-registration audit, reverse-order compensation, immutable failure publication, and idempotency.
+A separate `GameplayActivationGate` publishes the state through volatile primitive reads.
+Concrete Harmony, Klei, Unity, disk, and UI work remain behind ports or outside this directory.
 
 **Tech Stack:** C# 8-compatible BCL; `System.Reflection`; immutable defensive copies; MSTest fakes; linked production source from the existing test project.
 
@@ -15,33 +18,35 @@
 - Execute after the declared-integration foundation plan is green.
 - Production files under `GameplayActivation/Core` may reference only BCL types, the existing pure Harmony contract binding/patch-kind types, and the provider-neutral integration values from the preceding plan.
 - Do not reference Klei, Unity, PLib, `HarmonyLib`, `DeliveryTemperatureLimitOptions`, concrete reporters, or concrete presenters.
-- Do not add a production reset API. Every test creates fresh gate/coordinator/fake instances.
+- Do not add a production reset API.
+  Every test creates fresh gate/coordinator/fake instances.
 - Never call a port while holding the coordinator's synchronization lock.
-- The primary activation failure is immutable once captured. Compensation and response failures are secondary evidence only.
+- The primary activation failure is immutable once captured.
+  Compensation and response failures are secondary evidence only.
 
 ---
 
 ## File and Responsibility Map
 
-| File | Responsibility |
-|---|---|
-| `GameplayActivationState.cs` | Exact six-state process model |
-| `PatchCompensationStatus.cs` | Exact four-way compensation classification |
-| `GameplayActivationFailureStage.cs` | Stable activation boundary classification |
-| `ActivationSettingsSnapshot.cs` | One immutable settings snapshot |
-| `SettingsSnapshotResult.cs` | Available/unavailable result without lazy retry |
-| `GameplayPatchRegistrationIdentity.cs` | Exact target, patch method, kind, owner identity |
-| `GameplayPatchObservation.cs` | Availability-aware registry observation |
-| `GameplayPatchAttemptJournal.cs` | Append-before-call ordered identities |
-| `PreparedGameplayActivation.cs` | Immutable settings, selection, outcomes, ordered registrations |
-| `GameplayActivationFailureRecord.cs` | Sanitized primary detail, secondary details, failed identity, compensation |
-| `GameplayActivationOutcome.cs` | Terminal/idempotent/re-entry request result |
-| `IGameplayActivationPreparation.cs` | Complete cold preparation port |
-| `IGameplayPatchRegistry.cs` | Register, observe, and remove exact identity port |
-| `IGameplayActivationFailureFactory.cs` | Converts exceptions into bounded path-redacted details |
-| `IGameplayActivationClock.cs` | Deterministic UTC occurrence time port |
-| `GameplayActivationGate.cs` | Volatile read-mostly process state |
-| `GameplayActivationCoordinator.cs` | The only state-transition and compensation policy owner |
+| File                                   | Responsibility                                                             |
+| -------------------------------------- | -------------------------------------------------------------------------- |
+| `GameplayActivationState.cs`           | Exact six-state process model                                              |
+| `PatchCompensationStatus.cs`           | Exact four-way compensation classification                                 |
+| `GameplayActivationFailureStage.cs`    | Stable activation boundary classification                                  |
+| `ActivationSettingsSnapshot.cs`        | One immutable settings snapshot                                            |
+| `SettingsSnapshotResult.cs`            | Available/unavailable result without lazy retry                            |
+| `GameplayPatchRegistrationIdentity.cs` | Exact target, patch method, kind, owner identity                           |
+| `GameplayPatchObservation.cs`          | Availability-aware registry observation                                    |
+| `GameplayPatchAttemptJournal.cs`       | Append-before-call ordered identities                                      |
+| `PreparedGameplayActivation.cs`        | Immutable settings, selection, outcomes, ordered registrations             |
+| `GameplayActivationFailureRecord.cs`   | Sanitized primary detail, secondary details, failed identity, compensation |
+| `GameplayActivationOutcome.cs`         | Terminal/idempotent/re-entry request result                                |
+| `IGameplayActivationPreparation.cs`    | Complete cold preparation port                                             |
+| `IGameplayPatchRegistry.cs`            | Register, observe, and remove exact identity port                          |
+| `IGameplayActivationFailureFactory.cs` | Converts exceptions into bounded path-redacted details                     |
+| `IGameplayActivationClock.cs`          | Deterministic UTC occurrence time port                                     |
+| `GameplayActivationGate.cs`            | Volatile read-mostly process state                                         |
+| `GameplayActivationCoordinator.cs`     | The only state-transition and compensation policy owner                    |
 
 ## Cross-Task Interfaces
 
@@ -61,28 +66,29 @@ bool GameplayActivationCoordinator.TryGetTerminalOutcome(
     out GameplayActivationOutcome outcome);
 ```
 
-The coordinator is constructed once with its gate, failure factory, and clock. Preparation and registry instances belong to one attempt; no port is retained after a failed terminal outcome.
+The coordinator is constructed once with its gate, failure factory, and clock.
+Preparation and registry instances belong to one attempt; no port is retained after a failed terminal outcome.
 
 The implementation uses this stable activation diagnostic registry and tests it for ordinal uniqueness:
 
-| Boundary | Stable diagnostic ID |
-|---|---|
-| Framework or PLib prerequisite | `DTL-ACTIVATION-INITIALIZATION-FAILED` |
-| Settings capture | `DTL-ACTIVATION-SETTINGS-UNAVAILABLE` |
-| Declared integration inspection | `DTL-ACTIVATION-INTEGRATION-INSPECTION-FAILED` |
-| Capability selection/authority proof | `DTL-ACTIVATION-AUTHORITY-SELECTION-FAILED` |
-| Target/member resolution | `DTL-ACTIVATION-TARGET-RESOLUTION-FAILED` |
-| Transpiler preflight | `DTL-ACTIVATION-TRANSPILER-PREFLIGHT-FAILED` |
-| Harmony argument binding | `DTL-ACTIVATION-ARGUMENT-BINDING-FAILED` |
-| Inactive-route verification | `DTL-ACTIVATION-INACTIVE-CONTRACT-FAILED` |
-| Baseline observation | `DTL-ACTIVATION-BASELINE-FAILED` |
-| Register call | `DTL-ACTIVATION-REGISTRATION-FAILED` |
-| Per-call/final complete audit | `DTL-ACTIVATION-REGISTRATION-AUDIT-FAILED` |
-| Re-entry | `DTL-ACTIVATION-REENTRY-DETECTED` |
-| Exact-method removal fault | `DTL-ACTIVATION-COMPENSATION-REMOVE-FAILED` |
-| Known residual registration | `DTL-ACTIVATION-COMPENSATION-INCOMPLETE` |
-| Unavailable final observation | `DTL-ACTIVATION-COMPENSATION-UNVERIFIED` |
-| Last-chance loaded-mod lifecycle boundary | `DTL-ACTIVATION-LIFECYCLE-BOUNDARY-FAILED` |
+| Boundary                                  | Stable diagnostic ID                           |
+| ----------------------------------------- | ---------------------------------------------- |
+| Framework or PLib prerequisite            | `DTL-ACTIVATION-INITIALIZATION-FAILED`         |
+| Settings capture                          | `DTL-ACTIVATION-SETTINGS-UNAVAILABLE`          |
+| Declared integration inspection           | `DTL-ACTIVATION-INTEGRATION-INSPECTION-FAILED` |
+| Capability selection/authority proof      | `DTL-ACTIVATION-AUTHORITY-SELECTION-FAILED`    |
+| Target/member resolution                  | `DTL-ACTIVATION-TARGET-RESOLUTION-FAILED`      |
+| Transpiler preflight                      | `DTL-ACTIVATION-TRANSPILER-PREFLIGHT-FAILED`   |
+| Harmony argument binding                  | `DTL-ACTIVATION-ARGUMENT-BINDING-FAILED`       |
+| Inactive-route verification               | `DTL-ACTIVATION-INACTIVE-CONTRACT-FAILED`      |
+| Baseline observation                      | `DTL-ACTIVATION-BASELINE-FAILED`               |
+| Register call                             | `DTL-ACTIVATION-REGISTRATION-FAILED`           |
+| Per-call/final complete audit             | `DTL-ACTIVATION-REGISTRATION-AUDIT-FAILED`     |
+| Re-entry                                  | `DTL-ACTIVATION-REENTRY-DETECTED`              |
+| Exact-method removal fault                | `DTL-ACTIVATION-COMPENSATION-REMOVE-FAILED`    |
+| Known residual registration               | `DTL-ACTIVATION-COMPENSATION-INCOMPLETE`       |
+| Unavailable final observation             | `DTL-ACTIVATION-COMPENSATION-UNVERIFIED`       |
+| Last-chance loaded-mod lifecycle boundary | `DTL-ACTIVATION-LIFECYCLE-BOUNDARY-FAILED`     |
 
 ## Task 1: Add the Exact State, Compensation, Settings, and Failure Value Types
 
@@ -152,11 +158,14 @@ internal sealed class ActivationSettingsSnapshot
 }
 ```
 
-- [ ] Make `SettingsSnapshotResult.Available(snapshot)` and `SettingsSnapshotResult.Unavailable(detail)` mutually exclusive. An unavailable result retains no delegate that could retry option access.
+- [ ] Make `SettingsSnapshotResult.Available(snapshot)` and `SettingsSnapshotResult.Unavailable(detail)` mutually exclusive.
+      An unavailable result retains no delegate that could retry option access.
 
-- [ ] Implement `GameplayActivationFailureDetail` as bounded scalar data: stable diagnostic ID, stage, exception type name, sanitized message. Set one explicit maximum for every string and reject path-redaction tokens only in tests of the production factory later; the core does not inspect filesystem state.
+- [ ] Implement `GameplayActivationFailureDetail` as bounded scalar data: stable diagnostic ID, stage, exception type name, sanitized message.
+      Set one explicit maximum for every string and reject path-redaction tokens only in tests of the production factory later; the core does not inspect filesystem state.
 
-- [ ] Make `GameplayActivationFailureRecord` contain UTC occurrence time, terminal `Failed` state, compensation status, primary detail, optional failed registration diagnostic snapshot, attempted/compensated counts, the retained `SettingsSnapshotResult`, selected per-capability authorities and generic integration outcomes when available, and bounded secondary diagnostic details. It must retain no loaded object, mutable Harmony collection, raw path, colony identity, or exception graph.
+- [ ] Make `GameplayActivationFailureRecord` contain UTC occurrence time, terminal `Failed` state, compensation status, primary detail, optional failed registration diagnostic snapshot, attempted/compensated counts, the retained `SettingsSnapshotResult`, selected per-capability authorities and generic integration outcomes when available, and bounded secondary diagnostic details.
+      It must retain no loaded object, mutable Harmony collection, raw path, colony identity, or exception graph.
 
 - [ ] Run the focused tests again.
 
@@ -214,7 +223,10 @@ internal sealed class GameplayPatchObservation
 }
 ```
 
-- [ ] Make the journal's only append method named `RecordAttemptBeforeRegistration`. Each entry records the ordered binding index, exact identity, proved-absent baseline, whether the register call returned, the post-call observation when available, and bounded diagnostic IDs. Later facts replace the indexed immutable entry with a new immutable value; previously captured journal snapshots never change. The coordinator task must append immediately before the registry port.
+- [ ] Make the journal's only append method named `RecordAttemptBeforeRegistration`.
+      Each entry records the ordered binding index, exact identity, proved-absent baseline, whether the register call returned, the post-call observation when available, and bounded diagnostic IDs.
+      Later facts replace the indexed immutable entry with a new immutable value; previously captured journal snapshots never change.
+      The coordinator task must append immediately before the registry port.
 
 - [ ] Run the focused tests again.
 
@@ -288,11 +300,14 @@ internal bool TryGetTerminalOutcome(
     out GameplayActivationOutcome outcome)
 ```
 
-`IGameplayActivationClock.UtcNow` is read once when the primary failure becomes known. This permits framework failure to be retained before authoritative loaded-mod topology and a concrete Harmony registry exist while keeping occurrence-time tests deterministic.
+`IGameplayActivationClock.UtcNow` is read once when the primary failure becomes known.
+This permits framework failure to be retained before authoritative loaded-mod topology and a concrete Harmony registry exist while keeping occurrence-time tests deterministic.
 
-- [ ] `PreparedGameplayActivation` must contain the available settings snapshot, provider-neutral capability selection, generic integration outcomes, ordered exact registration identities, and immutable runtime plan. It may not contain a `Harmony`, `KMod.Mod`, Unity object, or reporter.
+- [ ] `PreparedGameplayActivation` must contain the available settings snapshot, provider-neutral capability selection, generic integration outcomes, ordered exact registration identities, and immutable runtime plan.
+      It may not contain a `Harmony`, `KMod.Mod`, Unity object, or reporter.
 
-- [ ] `GameplayActivationOutcome` must distinguish `Activated`, `AlreadyActive`, `Failed`, `AlreadyFailed`, and `ReentryRejected`. Only activated/already-active outcomes may expose an active plan.
+- [ ] `GameplayActivationOutcome` must distinguish `Activated`, `AlreadyActive`, `Failed`, `AlreadyFailed`, and `ReentryRejected`.
+      Only activated/already-active outcomes may expose an active plan.
 
 - [ ] Run the focused tests again.
 
@@ -307,7 +322,8 @@ Expected green: prepared data is immutable and ports are narrow.
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/GameplayActivation/Core/GameplayActivationCoordinatorSuccessTests.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/GameplayActivation/Core/GameplayActivationTestDoubles.cs`
 
-- [ ] Build deterministic fakes that record every call and can return observations per identity. Do not add test branches to production.
+- [ ] Build deterministic fakes that record every call and can return observations per identity.
+      Do not add test branches to production.
 
 - [ ] Test the exact successful trace:
 
@@ -349,9 +365,11 @@ internal sealed class GameplayActivationGate
 }
 ```
 
-- [ ] Keep `Publish` inaccessible from patch callbacks; only the coordinator/process owner receives the mutable gate instance. Patch callbacks later receive an `IsActive` read facade.
+- [ ] Keep `Publish` inaccessible from patch callbacks; only the coordinator/process owner receives the mutable gate instance.
+      Patch callbacks later receive an `IsActive` read facade.
 
-- [ ] Implement complete baseline proof before the first mutation. Every identity must observe `Absent`; any other state is a preparation failure with `NotRequired`.
+- [ ] Implement complete baseline proof before the first mutation.
+      Every identity must observe `Absent`; any other state is a preparation failure with `NotRequired`.
 
 - [ ] Implement the registration loop in this exact order:
 
@@ -373,7 +391,9 @@ for (int index = 0; index < prepared.Registrations.Count; index++)
 }
 ```
 
-- [ ] After the last per-call observation, observe every planned identity again as one complete audit. Any absent, wrong-owner, wrong-kind, duplicate, or unavailable result starts compensation. Publish the immutable runtime plan first and `Active` last under the coordinator lock only after this audit succeeds.
+- [ ] After the last per-call observation, observe every planned identity again as one complete audit.
+      Any absent, wrong-owner, wrong-kind, duplicate, or unavailable result starts compensation.
+      Publish the immutable runtime plan first and `Active` last under the coordinator lock only after this audit succeeds.
 
 - [ ] Run the focused tests again.
 
@@ -398,7 +418,8 @@ dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatur
 
 Expected red: at least the framework/prerequisite and baseline cases fail.
 
-- [ ] Add `RecordPrerequisiteFailure` that accepts one already-sanitized failure detail only while `NotStarted`, constructs an unavailable settings result using that same stable diagnostic ID because settings were never captured, publishes `Failed`, and returns the retained outcome. A second call must return the original record unchanged.
+- [ ] Add `RecordPrerequisiteFailure` that accepts one already-sanitized failure detail only while `NotStarted`, constructs an unavailable settings result using that same stable diagnostic ID because settings were never captured, publishes `Failed`, and returns the retained outcome.
+      A second call must return the original record unchanged.
 
 - [ ] Convert every exception through `IGameplayActivationFailureFactory`; never store the raw exception in the retained record.
 
@@ -420,7 +441,8 @@ Expected green: all pre-mutation failures are terminal, inert, and mutation-free
 
 - [ ] Assert binding `n` is journaled in both cases, later bindings are untouched, every journaled identity receives a reverse-order removal attempt, and the primary diagnostic remains the registration failure.
 
-- [ ] Add per-call and final-complete-audit faults: observe throws, returns absent, wrong-owner state, or exact-plus-other-owner state. Assert all enter compensation and never publish active.
+- [ ] Add per-call and final-complete-audit faults: observe throws, returns absent, wrong-owner state, or exact-plus-other-owner state.
+      Assert all enter compensation and never publish active.
 
 - [ ] Run:
 
@@ -453,7 +475,8 @@ for (int index = journal.Count - 1; index >= 0; index--)
 }
 ```
 
-- [ ] Do not throw from `TryActivate`. Return the contained failure outcome after final observation and `Failed` publication.
+- [ ] Do not throw from `TryActivate`.
+      Return the contained failure outcome after final observation and `Failed` publication.
 
 - [ ] Run the focused tests again.
 
@@ -468,18 +491,19 @@ Expected green: every before/after fault is caught by the pre-call journal and f
 
 - [ ] Test these exact matrices across multiple identities:
 
-| Removal behavior | Final observations | Expected status |
-|---|---|---|
-| all return | all absent | `VerifiedComplete` |
-| one throws before removal | one exact remains | `Incomplete` |
-| one removes then throws | all absent | `VerifiedComplete` |
-| all return | one same method under another owner | `Incomplete` |
-| all return | one same method under another kind | `Incomplete` |
-| all return | one exact plus any conflicting registration | `Incomplete` |
-| all return | one unavailable, no known present | `VerificationUnavailable` |
-| mixed | one known present and one unavailable | `Incomplete` |
+| Removal behavior          | Final observations                          | Expected status           |
+| ------------------------- | ------------------------------------------- | ------------------------- |
+| all return                | all absent                                  | `VerifiedComplete`        |
+| one throws before removal | one exact remains                           | `Incomplete`              |
+| one removes then throws   | all absent                                  | `VerifiedComplete`        |
+| all return                | one same method under another owner         | `Incomplete`              |
+| all return                | one same method under another kind          | `Incomplete`              |
+| all return                | one exact plus any conflicting registration | `Incomplete`              |
+| all return                | one unavailable, no known present           | `VerificationUnavailable` |
+| mixed                     | one known present and one unavailable       | `Incomplete`              |
 
-- [ ] Assert every final observation is attempted even after an earlier observation throws. Assert observation faults are retained as secondary details and never replace the primary registration failure.
+- [ ] Assert every final observation is attempted even after an earlier observation throws.
+      Assert observation faults are retained as secondary details and never replace the primary registration failure.
 
 - [ ] Run:
 
@@ -499,7 +523,8 @@ PatchCompensationStatus status = anyMatchingPatchMethodMayRemain
         : PatchCompensationStatus.VerifiedComplete;
 ```
 
-- [ ] Publish the final immutable failure record and `Failed` under the same lock. Clear transient mutable references after publication; retain only immutable outcome data.
+- [ ] Publish the final immutable failure record and `Failed` under the same lock.
+      Clear transient mutable references after publication; retain only immutable outcome data.
 
 - [ ] Run the focused tests again.
 
@@ -512,9 +537,11 @@ Expected green: conclusive absence can overrule a post-removal throw, while know
 - Modify: `mods/delivery-temperature-limit-supercooled/Source/GameplayActivation/Core/GameplayActivationCoordinator.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/GameplayActivation/Core/GameplayActivationCoordinatorConcurrencyTests.cs`
 
-- [ ] Add fake callbacks that re-enter during preparation, baseline observation, registration, post-registration observation, removal, and final observation. Assert one attempt, inner `ReentryRejected`, outer contained failure, and no parallel registry sequence.
+- [ ] Add fake callbacks that re-enter during preparation, baseline observation, registration, post-registration observation, removal, and final observation.
+      Assert one attempt, inner `ReentryRejected`, outer contained failure, and no parallel registry sequence.
 
-- [ ] Add a worker that reads the gate at barriers for every transition. Assert inactive for `NotStarted`, `Preparing`, `Installing`, `Compensating`, and `Failed`; active only for `Active`.
+- [ ] Add a worker that reads the gate at barriers for every transition.
+      Assert inactive for `NotStarted`, `Preparing`, `Installing`, `Compensating`, and `Failed`; active only for `Active`.
 
 - [ ] Add repeated-callback tests after `Active` and after `Failed` and assert no duplicate preparation, registration, reporting signal, or warning signal is produced by the core.
 
@@ -526,9 +553,11 @@ dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatur
 
 Expected red: re-entry is not coherently attached to the original attempt.
 
-- [ ] At entry, use a short lock only to inspect state and mark an in-progress attempt. A caller seeing `Preparing`, `Installing`, or `Compensating` sets `reentryObserved = true` under the same lock and returns `ReentryRejected` immediately.
+- [ ] At entry, use a short lock only to inspect state and mark an in-progress attempt.
+      A caller seeing `Preparing`, `Installing`, or `Compensating` sets `reentryObserved = true` under the same lock and returns `ReentryRejected` immediately.
 
-- [ ] The original attempt checks that flag after every external port call and again in the same critical section that would publish `Active`. Re-entry during compensation is retained as secondary evidence but does not start a second compensation pass.
+- [ ] The original attempt checks that flag after every external port call and again in the same critical section that would publish `Active`.
+      Re-entry during compensation is retained as secondary evidence but does not start a second compensation pass.
 
 - [ ] Run the focused tests again.
 
@@ -545,7 +574,8 @@ Expected green: no deadlock, no parallel attempt, and safe publication at every 
 
 - [ ] Test every non-`Active` gate state: the getter returns no data, the setter performs no parse/apply, no externally triggered exception escapes, and the stable ID remains available. Drive each transient state through a fresh coordinator/fake barrier rather than exposing a gate setter to production consumers.
 
-- [ ] While active, parse the complete synthetic payload before exactly one apply call. Unknown version, missing key, wrong token kind, invalid range, parser throw, and applier throw must produce no partial application and one bounded diagnostic.
+- [ ] While active, parse the complete synthetic payload before exactly one apply call.
+      Unknown version, missing key, wrong token kind, invalid range, parser throw, and applier throw must produce no partial application and one bounded diagnostic.
 
 - [ ] Run:
 
@@ -555,9 +585,11 @@ dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatur
 
 Expected red: the reusable endpoint policy does not exist.
 
-- [ ] Implement the endpoint without Harmony, Klei, Unity, Newtonsoft, or a provider name. The setter calls the atomic applier only after the parser returns a complete valid `TParsed`; both getter/setter boundaries catch `Exception`, emit one bounded diagnostic, and return an inert result.
+- [ ] Implement the endpoint without Harmony, Klei, Unity, Newtonsoft, or a provider name.
+      The setter calls the atomic applier only after the parser returns a complete valid `TParsed`; both getter/setter boundaries catch `Exception`, emit one bounded diagnostic, and return an inert result.
 
-- [ ] Keep the generic endpoint internal and do not add public top-level `Blueprints_GetData`, `Blueprints_SetData`, or `Blueprints_ID` methods in production. The reflection-emitted convention fixture from the preceding plan proves extension mechanics only.
+- [ ] Keep the generic endpoint internal and do not add public top-level `Blueprints_GetData`, `Blueprints_SetData`, or `Blueprints_ID` methods in production.
+      The reflection-emitted convention fixture from the preceding plan proves extension mechanics only.
 
 - [ ] Run the focused tests again.
 
@@ -594,9 +626,11 @@ git diff --check
 
 Expected: every activation and complete-suite test passes with zero skipped/inconclusive; no whitespace errors.
 
-- [ ] State `Implementation complete; /review pending` for this milestone and ask the user to invoke built-in `/review` over `Source/GameplayActivation/Core` plus its linked production tests and boundary-contract edits. Resolve or explicitly defer every confirmed P0-P2 finding and rerun the affected focused/full gates.
+- [ ] State `Implementation complete; /review pending` for this milestone and ask the user to invoke built-in `/review` over `Source/GameplayActivation/Core` plus its linked production tests and boundary-contract edits.
+      Resolve or explicitly defer every confirmed P0-P2 finding and rerun the affected focused/full gates.
 
-- [ ] Show `git status --short` and `git diff --stat`. Stage only this plan's intended files after separating user-owned pre-existing edits.
+- [ ] Show `git status --short` and `git diff --stat`.
+      Stage only this plan's intended files after separating user-owned pre-existing edits.
 
 - [ ] If and only if the user explicitly authorizes this exact staged snapshot, load `committing-to-git` and create:
 

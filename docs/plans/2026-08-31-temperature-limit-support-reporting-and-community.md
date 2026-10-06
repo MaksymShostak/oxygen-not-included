@@ -1,19 +1,21 @@
 # Temperature Limit Support Reporting and Community Implementation Plan
 
-> **For agentic workers:** Execute this plan task-by-task in dependency order. Follow the repository's test-driven-development and formal review gates, and use the checkboxes (`- [ ]`) to track progress.
+> **For agentic workers:** Execute this plan task-by-task in dependency order.
+> Follow the repository's test-driven-development and formal review gates, and use the checkboxes (`- [ ]`) to track progress.
 
 **Goal:** Give Temperature Limit players a local, privacy-conscious, one-file support reporter and give the repository concise issue, support, contribution, and pull-request paths that consume its output.
 
 **Architecture:** A Unity/Klei-free `SupportReporting/Core` module owns immutable report contracts, bounded diagnostics, redaction, log selection, summary rendering, file naming, and fixed-origin issue URL construction. Thin ONI adapters capture loaded game/mod facts, serialize through the already referenced Newtonsoft.Json assembly, write a unique local report, and present the folder/browser result through the existing PLib options surface. The existing runtime patch planner remains the sole owner of patch/FastTrack facts and publishes a read-only support snapshot rather than allowing the reporter to repeat compatibility inspection.
 
-**Tech Stack:** C# 8 and .NET Standard 2.1 for the game-loaded assembly; MSTest SDK 4.3.3 on .NET 10 for tests; Harmony 2; PLib 4.24 options; Newtonsoft.Json supplied by ONI; GitHub issue-form YAML; repository-local ONI Mod Pipeline.
+**Tech Stack:** C# 8 and `.NET` Standard 2.1 for the game-loaded assembly; MSTest SDK 4.3.3 on `.NET` 10 for tests; Harmony 2; PLib 4.24 options; Newtonsoft.Json supplied by ONI; GitHub issue-form YAML; repository-local ONI Mod Pipeline.
 
 **Spec:** `docs/specs/2026-08-31-temperature-limit-support-reporting-and-community-design.md`
 
 ## Global Constraints
 
 - Production and every linked production source remain C# 8-compatible and target `netstandard2.1`; tests remain `net10.0` with the existing SDK/default language version.
-- Add no package, package reference, project property, lockfile entry, test project, CI workflow, or pipeline-profile setting. The sole assembly-reference change is the approved non-copy-local `UnityEngine.IMGUIModule` game assembly required for clipboard access.
+- Add no package, package reference, project property, lockfile entry, test project, CI workflow, or pipeline-profile setting.
+  The sole assembly-reference change is the approved non-copy-local `UnityEngine.IMGUIModule` game assembly required for clipboard access.
 - The only test-project configuration change is the exact approved `SupportReporting/Core/**/*.cs` linked-compile item in Task 1.
 - Apart from the approved `UnityEngine.IMGUIModule` reference in `Source/DeliveryTemperatureLimit.csproj`, do not modify that project file, either `packages.lock.json`, `global.json`, `oni-mod-pipeline.toml`, `mod.yaml`, `mod_info.yaml`, `STEAM_CHANGE_NOTES.bbcode`, or release/version metadata.
 - Standard reports never read `Player.log`; extended reports read at most the most recent 6 MiB of raw log data and keep final JSON below 12 MiB.
@@ -21,11 +23,15 @@
 - Keep the complete prefilled issue URL at or below 1,800 characters and allow only the fixed `https://github.com/MaksymShostak/oxygen-not-included/issues/new` origin and `temperature-limit-bug.yml` template.
 - Never collect or serialize an absolute path, user/account name, Steam user ID, IP/network information, environment variables, save/save metadata, screenshot, crash dump, or third-party configuration in a standard report.
 - An extended log receives best-effort replacement of known user-profile, ONI persistent-data, and discovered installation-root prefixes before serialization; never rewrite the source log.
-- All generation remains local. Add no HTTP client, telemetry, authentication, background upload, automatic issue submission, or persistent cross-report installation identifier.
+- All generation remains local.
+  Add no HTTP client, telemetry, authentication, background upload, automatic issue submission, or persistent cross-report installation identifier.
 - Preserve the two pre-existing user-owned untracked paths, `AGENTS.md` and `mods/delivery-temperature-limit-supercooled/screenshot-guidance.md`, without staging, editing, deleting, or restoring them.
-- The user authorized the exact configuration, repository-policy, public-surface, and GitHub metadata changes in the spec. Any broader configuration or remote change stops for new exact approval.
-- The user authorized only the already-created design-spec commit. Do not commit implementation changes until the formal review gate has completed and the user separately authorizes the exact implementation commit.
-- After implementation and applicable verification, state exactly `Implementation complete; /review pending`, direct the user to `/review` → **Review uncommitted changes**, and ask the reviewer to ignore the two pre-existing untracked paths. Resolve or explicitly defer confirmed P0–P2 findings before any completion claim or implementation commit.
+- The user authorized the exact configuration, repository-policy, public-surface, and GitHub metadata changes in the spec.
+  Any broader configuration or remote change stops for new exact approval.
+- The user authorized only the already-created design-spec commit.
+  Do not commit implementation changes until the formal review gate has completed and the user separately authorizes the exact implementation commit.
+- After implementation and applicable verification, state exactly `Implementation complete; /review pending`, direct the user to `/review` → **Review uncommitted changes**, and ask the reviewer to ignore the two pre-existing untracked paths.
+  Resolve or explicitly defer confirmed P0–P2 findings before any completion claim or implementation commit.
 
 ---
 
@@ -80,6 +86,7 @@
 ### Task 1: Link and establish the pure report contract
 
 **Files:**
+
 - Modify: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj`
 - Create: `mods/delivery-temperature-limit-supercooled/Source/SupportReporting/Core/SupportReportLimits.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Source/SupportReporting/Core/SupportReportKind.cs`
@@ -87,6 +94,7 @@
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/SupportReporting/SupportReportDocumentTests.cs`
 
 **Interfaces:**
+
 - Produces: `SupportReportLimits`, `SupportReportKind`, `SupportReportFact`, `SupportReportDocument`, `SupportReportGameSnapshot`, `SupportReportTemperatureLimitSnapshot`, `SupportRuntimeSnapshot`, `SupportFastTrackSnapshot`, `SupportFastTrackFeatureSnapshot`, `SupportActiveModSnapshot`, `SupportDiagnosticSnapshot`, `SupportPlayerLogSnapshot`, `SupportGenerationSnapshot`, and `SupportPrivacySnapshot`.
 - Every produced type is `internal`; DTO properties may be public for Newtonsoft serialization because the declaring types remain internal.
 - Later tasks construct only through validating constructors/static factories; mutable public setters are forbidden.
@@ -104,7 +112,8 @@ Do not change any other XML node.
 
 - [ ] **Step 2: Write the failing contract tests**
 
-Create tests that require schema `1`, exact enum values, explicit available/unavailable facts, defensive copies, deterministic collection order, and standard-report absence of a player log. The first test has this shape:
+Create tests that require schema `1`, exact enum values, explicit available/unavailable facts, defensive copies, deterministic collection order, and standard-report absence of a player log.
+The first test has this shape:
 
 ```csharp
 [TestMethod]
@@ -200,21 +209,25 @@ internal sealed class SupportReportFact
 
 - [ ] **Step 5: Run focused tests and observe green**
 
-Run the Task 1 filter again. Expected: all `SupportReportDocumentTests` pass.
+Run the Task 1 filter again.
+Expected: all `SupportReportDocumentTests` pass.
 
 - [ ] **Step 6: Record the checkpoint without committing**
 
-Inspect only the Task 1 paths with `git diff --` and retain the passing test output. Do not stage or commit; the repository's formal `/review` gate applies to the complete implementation.
+Inspect only the Task 1 paths with `git diff --` and retain the passing test output.
+Do not stage or commit; the repository's formal `/review` gate applies to the complete implementation.
 
 ---
 
 ### Task 2: Add bounded structured diagnostics
 
 **Files:**
+
 - Create: `mods/delivery-temperature-limit-supercooled/Source/SupportReporting/Core/SupportDiagnosticBuffer.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/SupportReporting/SupportDiagnosticBufferTests.cs`
 
 **Interfaces:**
+
 - Consumes: `SupportReportLimits.MaximumDistinctDiagnostics`, `MaximumDiagnosticMessageCharacters`, and `SupportDiagnosticSnapshot`.
 - Produces:
 
@@ -264,11 +277,14 @@ Expected: compilation fails because `SupportDiagnosticBuffer` is absent.
 
 - [ ] **Step 3: Implement one lock-owned code-indexed buffer**
 
-Use one private synchronization object, `Dictionary<string, MutableDiagnostic>` for ordinal lookup, and `List<string>` for first-seen order. Validate that codes are nonblank, timestamps have offset zero, and messages are non-null. Store exception type full name and bounded exception message, never `Exception.ToString()` or a raw stack containing paths.
+Use one private synchronization object, `Dictionary<string, MutableDiagnostic>` for ordinal lookup, and `List<string>` for first-seen order.
+Validate that codes are nonblank, timestamps have offset zero, and messages are non-null.
+Store exception type full name and bounded exception message, never `Exception.ToString()` or a raw stack containing paths.
 
 - [ ] **Step 4: Run focused tests and observe green**
 
-Run the Task 2 filter. Expected: all diagnostic buffer tests pass.
+Run the Task 2 filter.
+Expected: all diagnostic buffer tests pass.
 
 - [ ] **Step 5: Record the checkpoint without committing**
 
@@ -279,6 +295,7 @@ Inspect Task 2 paths and retain the test output; do not stage or commit.
 ### Task 3: Redact known paths and build a bounded recent log excerpt
 
 **Files:**
+
 - Create: `mods/delivery-temperature-limit-supercooled/Source/SupportReporting/Core/SupportPathRedactor.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Source/SupportReporting/Core/SupportLogExcerptBuilder.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Tests/SupportReporting/SupportPathRedactorTests.cs`
@@ -314,7 +331,8 @@ internal sealed class SupportLogExcerptBuilder
 
 - [ ] **Step 1: Write failing redaction tests**
 
-Require longest-prefix-first replacement, deterministic placeholder order, ordinal/ordinal-ignore-case behavior selected by the caller, no replacement of unrelated substrings, and rejection of blank prefixes/placeholders. Include a non-ASCII profile path fixture such as `C:\Users\Максим\Documents`.
+Require longest-prefix-first replacement, deterministic placeholder order, ordinal/ordinal-ignore-case behavior selected by the caller, no replacement of unrelated substrings, and rejection of blank prefixes/placeholders.
+Include a non-ASCII profile path fixture such as `C:\Users\Максим\Documents`.
 
 - [ ] **Step 2: Write failing log-tail tests**
 
@@ -337,15 +355,20 @@ Expected: missing-type compilation failures.
 
 - [ ] **Step 4: Implement deterministic redaction**
 
-Copy and sort rules by descending `PathPrefix.Length`, then ordinal placeholder. Reject duplicate prefixes under the selected comparison. `Redact` returns content plus only the placeholders actually used; it never mutates input or reads environment state.
+Copy and sort rules by descending `PathPrefix.Length`, then ordinal placeholder.
+Reject duplicate prefixes under the selected comparison.
+`Redact` returns content plus only the placeholders actually used; it never mutates input or reads environment state.
 
 - [ ] **Step 5: Implement seekable recent-tail selection**
 
-Require a readable, seekable stream. Seek to `max(0, Length - MaximumRawPlayerLogBytes)`, read exactly the remaining bounded bytes, decode with non-throwing UTF-8, trim one leading U+FFFD only when raw-tail truncation occurred, redact, then retain the newest characters whose exact JSON-escaped UTF-8 byte count is within `MaximumEscapedPlayerLogBytes`. Count escapes for quote, backslash, control characters, and UTF-8 bytes explicitly; do not serialize repeatedly to estimate size.
+Require a readable, seekable stream.
+Seek to `max(0, Length - MaximumRawPlayerLogBytes)`, read exactly the remaining bounded bytes, decode with non-throwing UTF-8, trim one leading U+FFFD only when raw-tail truncation occurred, redact, then retain the newest characters whose exact JSON-escaped UTF-8 byte count is within `MaximumEscapedPlayerLogBytes`.
+Count escapes for quote, backslash, control characters, and UTF-8 bytes explicitly; do not serialize repeatedly to estimate size.
 
 - [ ] **Step 6: Run focused tests and observe green**
 
-Run the Task 3 filter. Expected: all redaction and excerpt tests pass.
+Run the Task 3 filter.
+Expected: all redaction and excerpt tests pass.
 
 - [ ] **Step 7: Record the checkpoint without committing**
 
@@ -356,6 +379,7 @@ Inspect Task 3 paths and retain the test output; do not stage or commit.
 ### Task 4: Render the compact summary, fixed issue URL, and safe filename
 
 **Files:**
+
 - Create: `mods/delivery-temperature-limit-supercooled/Source/SupportReporting/Core/SupportReportSummaryRenderer.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Source/SupportReporting/Core/SupportIssueUrlBuilder.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Source/SupportReporting/Core/SupportReportFileName.cs`
@@ -392,11 +416,13 @@ internal static class SupportReportFileName
 
 - [ ] **Step 1: Write failing summary tests**
 
-Assert an exact compact Markdown result containing only report ID, filename, ONI build/branch, Temperature Limit version, platform, DLC IDs, FastTrack high-level state, and `Player.log` inclusion. Assert that active mod titles and diagnostic messages never appear.
+Assert an exact compact Markdown result containing only report ID, filename, ONI build/branch, Temperature Limit version, platform, DLC IDs, FastTrack high-level state, and `Player.log` inclusion.
+Assert that active mod titles and diagnostic messages never appear.
 
 - [ ] **Step 2: Write failing URL tests**
 
-Assert exact HTTPS origin/path, query parameters `template=temperature-limit-bug.yml` and `diagnostics=<encoded summary>`, percent encoding for `&`, `#`, Unicode, and CR/LF, maximum total length 1,800, deterministic shortening, and rejection of a null summary. Parse the result with `Uri` and assert no host/path can be influenced by summary content.
+Assert exact HTTPS origin/path, query parameters `template=temperature-limit-bug.yml` and `diagnostics=<encoded summary>`, percent encoding for `&`, `#`, Unicode, and CR/LF, maximum total length 1,800, deterministic shortening, and rejection of a null summary.
+Parse the result with `Uri` and assert no host/path can be influenced by summary content.
 
 - [ ] **Step 3: Write failing filename tests**
 
@@ -410,11 +436,14 @@ Reject non-UTC timestamps and `Guid.Empty`.
 
 - [ ] **Step 4: Run all Task 4 filters and observe red**
 
-Use a single `dotnet test` filter joining the three test class names. Expected: missing-type failures.
+Use a single `dotnet test` filter joining the three test class names.
+Expected: missing-type failures.
 
 - [ ] **Step 5: Implement exact rendering and bounded URL creation**
 
-Build the query from constants only. If the encoded URL is too long, binary-search the longest summary prefix that fits, append a fixed `… [summary shortened; see attached report]` marker, and return `SummaryWasShortened = true`. Do not truncate the fixed origin, template, parameter name, or marker.
+Build the query from constants only.
+If the encoded URL is too long, binary-search the longest summary prefix that fits, append a fixed `… [summary shortened; see attached report]` marker, and return `SummaryWasShortened = true`.
+Do not truncate the fixed origin, template, parameter name, or marker.
 
 - [ ] **Step 6: Run Task 4 tests and observe green**
 
@@ -429,11 +458,13 @@ Inspect Task 4 paths and retain the test output; do not stage or commit.
 ### Task 5: Publish runtime patch and FastTrack evidence from the existing owner
 
 **Files:**
+
 - Modify: `mods/delivery-temperature-limit-supercooled/Source/RuntimePatchInstallation/DeliveryTemperatureRuntimePatchPlan.cs`
 - Modify: `mods/delivery-temperature-limit-supercooled/Source/RuntimePatchInstallation/DeliveryTemperatureRuntimePatchInstaller.cs`
 - Modify: `mods/delivery-temperature-limit-supercooled/Tests/RuntimePatchInstallation/DeliveryTemperatureRuntimePatchPlanTests.cs`
 
 **Interfaces:**
+
 - Consumes: `SupportRuntimeSnapshot`, `SupportFastTrackSnapshot`, `SupportFastTrackFeatureSnapshot` from Task 1.
 - Produces:
 
@@ -448,7 +479,8 @@ internal static SupportRuntimeSnapshot CaptureSupportReportSnapshot();
 
 - [ ] **Step 1: Write failing patch-plan snapshot tests**
 
-Extend the existing plan fixture for FastTrack absent, replacement inactive, ready `0.18.4.0`, status-only incompatible, and delivery-feature incompatible states. Assert ordered patch-group names exactly match `OrderedPatchGroups`; assembly identity/version/file version/SHA-256 and each feature state/failure code/message map from the original `FastTrackCompatibilityReport`; verified reflected `MemberInfo` objects are not serialized.
+Extend the existing plan fixture for FastTrack absent, replacement inactive, ready `0.18.4.0`, status-only incompatible, and delivery-feature incompatible states.
+Assert ordered patch-group names exactly match `OrderedPatchGroups`; assembly identity/version/file version/SHA-256 and each feature state/failure code/message map from the original `FastTrackCompatibilityReport`; verified reflected `MemberInfo` objects are not serialized.
 
 - [ ] **Step 2: Run the focused existing suite and observe red**
 
@@ -460,15 +492,21 @@ Expected: compilation fails because `CreateSupportReportSnapshot` is absent.
 
 - [ ] **Step 3: Implement the plan-owned mapping**
 
-Iterate the three exact `FastTrackFeature` enum values, map `Feature`, `State`, optional `FailureCode`, and a diagnostic-buffer-bounded `FailureMessage`, and copy ordered patch group names with `ToString()`. Reuse the report already held by the plan. Do not call Harmony, reflection discovery, file hashing, or `FastTrackCompatibilityInspector`.
+Iterate the three exact `FastTrackFeature` enum values, map `Feature`, `State`, optional `FailureCode`, and a diagnostic-buffer-bounded `FailureMessage`, and copy ordered patch group names with `ToString()`.
+Reuse the report already held by the plan.
+Do not call Harmony, reflection discovery, file hashing, or `FastTrackCompatibilityInspector`.
 
 - [ ] **Step 4: Expose installer state under the existing lock**
 
-`CaptureSupportReportSnapshot` acquires `InstallationSynchronization`. When `installedPatchPlan` is present, it returns `CreateSupportReportSnapshot(runtimeInstallerState.ToString())`. Otherwise it returns `SupportRuntimeSnapshot.Unavailable(runtimeInstallerState.ToString(), "No verified runtime patch plan was published.")`. It performs no runtime mutation.
+`CaptureSupportReportSnapshot` acquires `InstallationSynchronization`.
+When `installedPatchPlan` is present, it returns `CreateSupportReportSnapshot(runtimeInstallerState.ToString())`.
+Otherwise it returns `SupportRuntimeSnapshot.Unavailable(runtimeInstallerState.ToString(), "No verified runtime patch plan was published.")`.
+It performs no runtime mutation.
 
 - [ ] **Step 5: Run focused tests and observe green**
 
-Run the Task 5 filter. Expected: all runtime patch-plan tests pass.
+Run the Task 5 filter.
+Expected: all runtime patch-plan tests pass.
 
 - [ ] **Step 6: Record the checkpoint without committing**
 
@@ -479,6 +517,7 @@ Inspect the two source files and one test file; do not stage or commit.
 ### Task 6: Capture ONI facts, serialize one local JSON file, and present it
 
 **Files:**
+
 - Create: `mods/delivery-temperature-limit-supercooled/Source/SupportReporting/Core/SupportJsonReportSizeLimiter.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Source/SupportReporting/KleiIntegration/KleiSupportReportSnapshotReader.cs`
 - Create: `mods/delivery-temperature-limit-supercooled/Source/SupportReporting/KleiIntegration/SupportReportJsonFileWriter.cs`
@@ -503,7 +542,9 @@ internal static class DeliveryTemperatureSupportReporter
 }
 ```
 
-`KleiSupportReportSnapshotReader` accepts immutable captured current-mod/loaded-mod state and returns a `SupportReportDocument`. `SupportReportJsonFileWriter.Write` returns the final absolute path for presentation but no absolute path is placed inside the document. `SupportReportPlayerPresenter.PresentSuccess` receives the final path, compact summary, and issue URL; `PresentFailure` receives a player-safe message plus the exception for `Player.log` only.
+`KleiSupportReportSnapshotReader` accepts immutable captured current-mod/loaded-mod state and returns a `SupportReportDocument`.
+`SupportReportJsonFileWriter.Write` returns the final absolute path for presentation but no absolute path is placed inside the document.
+`SupportReportPlayerPresenter.PresentSuccess` receives the final path, compact summary, and issue URL; `PresentFailure` receives a player-safe message plus the exception for `Player.log` only.
 
 - [ ] **Step 1: Write failing source-boundary tests**
 
@@ -523,32 +564,35 @@ Expected: failures because the integration files do not exist.
 
 - [ ] **Step 3: Implement sanitized Klei/mod capture**
 
-Capture current mod identity during `Initialize`. During `PublishLoadedMods`, preserve list order and take at most 512 active entries. For every entry, store title, static ID, packaged version if present, active loaded assembly simple-name/version pairs, and a source-kind string derived from the supported label/distribution field only; never retain or hand the core a path. Record the omitted count.
+Capture current mod identity during `Initialize`.
+During `PublishLoadedMods`, preserve list order and take at most 512 active entries.
+For every entry, store title, static ID, packaged version if present, active loaded assembly simple-name/version pairs, and a source-kind string derived from the supported label/distribution field only; never retain or hand the core a path.
+Record the omitted count.
 
-Game facts come from `KleiVersion.ChangeList`, `KleiVersion.BuildBranch`, Unity application version/Unity version/platform, process architecture, current culture name, and active DLC IDs through current `DlcManager` APIs. Each optional read is isolated: an unavailable optional fact adds a generation warning instead of aborting the report.
+Game facts come from `KleiVersion.ChangeList`, `KleiVersion.BuildBranch`, Unity application version/Unity version/platform, process architecture, current culture name, and active DLC IDs through current `DlcManager` APIs.
+Each optional read is isolated: an unavailable optional fact adds a generation warning instead of aborting the report.
 
 - [ ] **Step 4: Implement standard/extended report assembly**
 
-Use a new `Guid` and `DateTimeOffset.UtcNow`. Read `DeliveryTemperatureLimitOptions.Instance`, `DeliveryTemperatureRuntimePatchInstaller.CaptureSupportReportSnapshot()`, loaded-mod snapshot, and diagnostic snapshot. For extended mode only, open `Application.consoleLogPath` read-only with shared read/write access and build rules for the user profile, persistent-data path, and discovered installation root. If the log is missing/unreadable, produce an extended document with player-log state `unavailable` and a generation warning rather than failing the entire report.
+Use a new `Guid` and `DateTimeOffset.UtcNow`.
+Read `DeliveryTemperatureLimitOptions.Instance`, `DeliveryTemperatureRuntimePatchInstaller.CaptureSupportReportSnapshot()`, loaded-mod snapshot, and diagnostic snapshot.
+For extended mode only, open `Application.consoleLogPath` read-only with shared read/write access and build rules for the user profile, persistent-data path, and discovered installation root. If the log is missing/unreadable, produce an extended document with player-log state `unavailable` and a generation warning rather than failing the entire report.
 
 - [ ] **Step 5: Implement adaptive JSON sizing and durable writing**
 
-Serialize the immutable document before opening the temporary file. If an extended
-report reaches `MaximumReportBytes`, serialize a copy with empty `Player.log`
-content and the additional-truncation warning to measure exact non-log overhead,
-then retain the newest log suffix that leaves the final UTF-8 JSON strictly below
-the limit. Mark the copied log as truncated and disclose the further shortening;
-if the empty-log document itself cannot fit, fail without writing a partial
-report. Create the fixed support directory and write the bounded JSON to a
-same-directory `<final-name>.tmp-<guid>` using `new UTF8Encoding(false)`. Flush
-the text writer, call `FileStream.Flush(flushToDisk: true)`, close, defensively
-recheck the byte length, then move to the unique final filename. On any failure,
-delete only the exact task-owned temporary file after verifying its parent is the
-fixed support directory; never overwrite or delete an existing final report.
+Serialize the immutable document before opening the temporary file.
+If an extended report reaches `MaximumReportBytes`, serialize a copy with empty `Player.log` content and the additional-truncation warning to measure exact non-log overhead, then retain the newest log suffix that leaves the final UTF-8 JSON strictly below the limit.
+Mark the copied log as truncated and disclose the further shortening; if the empty-log document itself cannot fit, fail without writing a partial report.
+Create the fixed support directory and write the bounded JSON to a same-directory `<final-name>.tmp-<guid>` using `new UTF8Encoding(false)`.
+Flush the text writer, call `FileStream.Flush(flushToDisk: true)`, close, defensively recheck the byte length, then move to the unique final filename.
+On any failure, delete only the exact task-owned temporary file after verifying its parent is the fixed support directory; never overwrite or delete an existing final report.
 
 - [ ] **Step 6: Implement player presentation**
 
-Copy the compact summary, call `Application.OpenURL(new Uri(reportDirectory).AbsoluteUri)`, then open the fixed issue URL. Show success through `KMod.Manager.Dialog(null, "Temperature Limit support report created", messageWithPathAndReviewReminder)`. Catch and record folder/browser failures separately so the existing report remains successful. On generation failure, call `KMod.Manager.Dialog` with the direct bug-form URL and log the exception through `Debug.LogError`.
+Copy the compact summary, call `Application.OpenURL(new Uri(reportDirectory).AbsoluteUri)`, then open the fixed issue URL.
+Show success through `KMod.Manager.Dialog(null, "Temperature Limit support report created", messageWithPathAndReviewReminder)`.
+Catch and record folder/browser failures separately so the existing report remains successful.
+On generation failure, call `KMod.Manager.Dialog` with the direct bug-form URL and log the exception through `Debug.LogError`.
 
 - [ ] **Step 7: Run source-boundary and all SupportReporting tests**
 
@@ -566,7 +610,8 @@ Run the repository-local pipeline build command from the mod directory:
 oni-mod-pipeline build
 ```
 
-Expected: a successful isolated build. Any incorrect assumed KMod/DLC/Unity member is corrected to the installed build's supported public member, with the same data-minimization contract and no reflection workaround unless direct API absence is proven and the spec is amended.
+Expected: a successful isolated build.
+Any incorrect assumed KMod/DLC/Unity member is corrected to the installed build's supported public member, with the same data-minimization contract and no reflection workaround unless direct API absence is proven and the spec is amended.
 
 - [ ] **Step 9: Record the checkpoint without committing**
 
@@ -577,6 +622,7 @@ Inspect Task 6 paths and retain test/build evidence; do not stage or commit.
 ### Task 7: Wire the PLib actions, early lifecycle, public surface, and noteworthy diagnostics
 
 **Files:**
+
 - Modify: `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureLimitOptions.cs`
 - Modify: `mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureLimitMod.cs`
 - Modify: `mods/delivery-temperature-limit-supercooled/Source/RuntimePatchInstallation/DeliveryTemperatureRuntimePatchInstaller.cs`
@@ -586,6 +632,7 @@ Inspect Task 6 paths and retain test/build evidence; do not stage or commit.
 - Modify: `mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureAssemblyContracts/IntentionalRuntimeContractTests.cs`
 
 **Interfaces:**
+
 - Consumes the static reporter facade from Task 6.
 - Adds exactly two public option members and no public type:
 
@@ -609,7 +656,9 @@ public Action<object> CreateExtendedSupportReport =>
 
 - [ ] **Step 1: Extend the intentional public-surface test first**
 
-Add both property/member names to the intentional arrays. Add assertions that each property is read-only `System.Action<object>` (the exact type PLib 4.24 maps to a button), has `[JsonIgnore]`, has `[Option]`, and lacks `[JsonProperty]`. Retain the exact four existing serialized option keys and defaults.
+Add both property/member names to the intentional arrays.
+Add assertions that each property is read-only `System.Action<object>` (the exact type PLib 4.24 maps to a button), has `[JsonIgnore]`, has `[Option]`, and lacks `[JsonProperty]`.
+Retain the exact four existing serialized option keys and defaults.
 
 - [ ] **Step 2: Run the intentional contract filter and observe red**
 
@@ -621,11 +670,13 @@ Expected: failure because the approved action members are absent.
 
 - [ ] **Step 3: Add the two action properties**
 
-Add only the snippet in this task. Do not remove class-level `[RestartRequired]`, change persisted properties, add a support setting, or introduce another options type.
+Add only the snippet in this task.
+Do not remove class-level `[RestartRequired]`, change persisted properties, add a support setting, or introduce another options type.
 
 - [ ] **Step 4: Initialize before risky patch work and publish mods before compatibility work**
 
-Immediately after `base.OnLoad(harmony)`, call `DeliveryTemperatureSupportReporter.Initialize(mod, assembly)`. Wrap each existing installer call with `try/catch`; record the stable code and exception, then `throw` to preserve fail-closed startup:
+Immediately after `base.OnLoad(harmony)`, call `DeliveryTemperatureSupportReporter.Initialize(mod, assembly)`.
+Wrap each existing installer call with `try/catch`; record the stable code and exception, then `throw` to preserve fail-closed startup:
 
 ```csharp
 try
@@ -657,15 +708,18 @@ Use stable codes while preserving current Unity log severity/message:
 - `DTL-GAME-LOAD-AUTHORITY-REJECTED`
 - `DTL-FASTTRACK-INVENTORY-PUBLICATION-SKIPPED`
 
-`DeliveryTemperatureSupportReporter.Record` itself mirrors the event to `Debug.Log`, `Debug.LogWarning`, or `Debug.LogError`, so replace the original call rather than logging twice. Do not route exceptions thrown only as programmer/domain guards.
+`DeliveryTemperatureSupportReporter.Record` itself mirrors the event to `Debug.Log`, `Debug.LogWarning`, or `Debug.LogError`, so replace the original call rather than logging twice.
+Do not route exceptions thrown only as programmer/domain guards.
 
 - [ ] **Step 6: Run intentional, runtime, and support tests**
 
-Run filters for `IntentionalRuntimeContractTests`, `DeliveryTemperatureRuntimePatchPlanTests`, and `SupportReporting`. Expected: all pass.
+Run filters for `IntentionalRuntimeContractTests`, `DeliveryTemperatureRuntimePatchPlanTests`, and `SupportReporting`.
+Expected: all pass.
 
 - [ ] **Step 7: Run a production build and inspect the merged public surface**
 
-Run `oni-mod-pipeline build`, then the registered test command in Task 9. Expected: the merged assembly has the same four public types and only the two newly approved option member names.
+Run `oni-mod-pipeline build`, then the registered test command in Task 9.
+Expected: the merged assembly has the same four public types and only the two newly approved option member names.
 
 - [ ] **Step 8: Record the checkpoint without committing**
 
@@ -676,6 +730,7 @@ Inspect Task 7 paths; do not stage or commit.
 ### Task 8: Publish concise community-health and player guidance
 
 **Files:**
+
 - Create: `CONTRIBUTING.md`
 - Create: `SUPPORT.md`
 - Create: `.github/ISSUE_TEMPLATE/temperature-limit-bug.yml`
@@ -686,6 +741,7 @@ Inspect Task 7 paths; do not stage or commit.
 - Modify: `mods/delivery-temperature-limit-supercooled/STEAM_DESCRIPTION.bbcode`
 
 **Interfaces:**
+
 - The bug form's `diagnostics` ID must exactly match `SupportIssueUrlBuilder`.
 - Existing remote labels `bug` and `enhancement` were verified before planning and are the only labels named by the forms.
 - Every support URL targets `MaksymShostak/oxygen-not-included`; no guessed Workshop homepage is introduced.
@@ -851,7 +907,7 @@ State any known limitation, or write `None`.
 
 Use these exact headings and content responsibilities:
 
-```markdown
+````markdown
 # Contributing
 
 Thanks for helping improve Delivery Temperature Limit (Supercooled).
@@ -891,11 +947,13 @@ Keep each change focused on one agreed player or maintainer outcome. Preserve un
 ## Prepare a pull request
 
 Link the issue, explain the player or maintainer rationale, summarize the focused change, and include fresh automated test evidence plus relevant in-game ONI evidence. Explicitly describe compatibility, performance/allocation, save/persistence, UI, localization, and documentation impact, writing `None` where a category does not apply. Release changes must follow [Preparing ONI mod releases](docs/guides/preparing-oni-mod-releases.md).
-```
+````
 
 - [ ] **Step 6: Create player-focused `SUPPORT.md`**
 
-Use exact sections: `Fastest reporting path`, `Standard versus extended reports`, `What is collected`, `What is not collected`, `If the reporter cannot run`, `Before restarting after a crash`, and `Public attachment privacy`. State the two action labels exactly, explain that files stay local until attached, list the standard exclusions from the spec, link the bug form directly, and link Klei's current log guidance. Do not direct users to a nonexistent Discord, email, discussion, or Workshop support thread.
+Use exact sections: `Fastest reporting path`, `Standard versus extended reports`, `What is collected`, `What is not collected`, `If the reporter cannot run`, `Before restarting after a crash`, and `Public attachment privacy`.
+State the two action labels exactly, explain that files stay local until attached, list the standard exclusions from the spec, link the bug form directly, and link Klei's current log guidance.
+Do not direct users to a nonexistent Discord, email, discussion, or Workshop support thread.
 
 - [ ] **Step 7: Update README and Workshop listing source**
 
@@ -912,25 +970,32 @@ Use the in-game mod options to create a local support report without manually fi
 - [Contributing](CONTRIBUTING.md)
 ```
 
-Add a matching concise `[h1]Support and bug reports[/h1]` section to `STEAM_DESCRIPTION.bbcode` that tells players to open the mod's Options, choose one of the two report actions, review the local JSON, and attach it to the full GitHub bug-form URL. Do not edit the change-notes file.
+Add a matching concise `[h1]Support and bug reports[/h1]` section to `STEAM_DESCRIPTION.bbcode` that tells players to open the mod's Options, choose one of the two report actions, review the local JSON, and attach it to the full GitHub bug-form URL.
+Do not edit the change-notes file.
 
 - [ ] **Step 8: Validate the policy files structurally**
 
-Use `rg` to verify unique field IDs and exact labels, and validate YAML with the repository's available parser or a read-only `ruby -e`/PowerShell YAML facility only if already installed. Do not add a validator dependency. Open each GitHub form through its repository URL only after files are present remotely; local verification relies on schema review and GitHub's documented field contract.
+Use `rg` to verify unique field IDs and exact labels, and validate YAML with the repository's available parser or a read-only `ruby -e`/PowerShell YAML facility only if already installed.
+Do not add a validator dependency.
+Open each GitHub form through its repository URL only after files are present remotely; local verification relies on schema review and GitHub's documented field contract.
 
 - [ ] **Step 9: Record the checkpoint without committing**
 
-Inspect all Task 8 paths. Confirm no generated report, log, save, build output, or private path was added. Do not stage or commit.
+Inspect all Task 8 paths.
+Confirm no generated report, log, save, build output, or private path was added.
+Do not stage or commit.
 
 ---
 
 ### Task 9: Run complete automated verification and enter the formal review gate
 
 **Files:**
+
 - No new intended files.
 - Inspect all task-owned source, tests, docs, and policy files.
 
 **Interfaces:**
+
 - Consumes every previous task.
 - Produces fresh validation/build/test evidence and the required user-visible review handoff.
 
@@ -940,10 +1005,8 @@ Inspect all Task 8 paths. Confirm no generated report, log, save, build output, 
 dotnet test mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj --configuration Release --filter FullyQualifiedName~SupportReporting
 ```
 
-Expected: all support-reporting core and source-boundary tests pass with zero
-warnings treated as errors. Do not treat a raw, unfiltered `dotnet test` as a
-valid standalone command: the pipeline-integration tests require repository and
-ONI managed-assembly environment variables supplied by `oni-mod-pipeline`.
+Expected: all support-reporting core and source-boundary tests pass with zero warnings treated as errors.
+Do not treat a raw, unfiltered `dotnet test` as a valid standalone command: the pipeline-integration tests require repository and ONI managed-assembly environment variables supplied by `oni-mod-pipeline`.
 Step 4 is the authoritative complete-project test run.
 
 - [ ] **Step 2: Run repository-local pipeline validation**
@@ -974,7 +1037,8 @@ Expected: exit `0`; the required `delivery-temperature-limit-regressions` projec
 
 - [ ] **Step 5: Inspect the complete diff and workspace boundaries**
 
-Run `git status --short`, `git diff --check`, and targeted `git diff -- <task paths>`. Confirm:
+Run `git status --short`, `git diff --check`, and targeted `git diff -- <task paths>`.
+Confirm:
 
 - only approved task files changed;
 - `AGENTS.md` and `screenshot-guidance.md` remain untracked and untouched;
@@ -996,23 +1060,28 @@ Do not claim completion, mutate GitHub metadata, install into ONI user data, com
 
 - [ ] **Step 7: Resolve the review result**
 
-For every confirmed P0–P2 finding, add a focused failing test when behavioral, implement the smallest correction, rerun the focused test plus all Task 9 commands, and request another `/review` if the correction is non-trivial. A finding may remain only if the user explicitly defers it. P3 findings are handled when useful and in scope; record any intentionally unaddressed P3 without calling the implementation perfect.
+For every confirmed P0–P2 finding, add a focused failing test when behavioral, implement the smallest correction, rerun the focused test plus all Task 9 commands, and request another `/review` if the correction is non-trivial.
+A finding may remain only if the user explicitly defers it.
+P3 findings are handled when useful and in scope; record any intentionally unaddressed P3 without calling the implementation perfect.
 
 ---
 
 ### Task 10: Perform approved remote metadata and manual player-flow verification after review
 
 **Files:**
+
 - No additional repository file expected.
 - External state: GitHub repository description/topics; ONI Dev mod installation only.
 
 **Interfaces:**
+
 - Consumes a review-cleared diff and the exact fresh build result from Task 9.
 - Produces verified GitHub About metadata and manual player-flow evidence.
 
 - [ ] **Step 1: Re-read GitHub metadata before mutation**
 
-The GitHub MCP server was authenticated but had no repository-metadata read/write tool and repository search did not return this fork; that unavailability and the CLI fallback were already disclosed. Recheck the current state with:
+The GitHub MCP server was authenticated but had no repository-metadata read/write tool and repository search did not return this fork; that unavailability and the CLI fallback were already disclosed.
+Recheck the current state with:
 
 ```text
 gh repo view MaksymShostak/oxygen-not-included --json description,homepageUrl,repositoryTopics,visibility,defaultBranchRef,isFork,hasIssuesEnabled,hasDiscussionsEnabled,hasWikiEnabled
@@ -1030,7 +1099,8 @@ Do not pass any homepage, feature, visibility, branch, template, merge, or fork-
 
 - [ ] **Step 3: Verify the exact remote result**
 
-Repeat the Task 10 Step 1 query. Require the exact description, exactly the ten approved topics, empty homepage, Issues enabled, Discussions disabled, Wiki unchanged, public visibility, `main`, and fork status unchanged.
+Repeat the Task 10 Step 1 query.
+Require the exact description, exactly the ten approved topics, empty homepage, Issues enabled, Discussions disabled, Wiki unchanged, public visibility, `main`, and fork status unchanged.
 
 - [ ] **Step 4: Install the exact fresh build to Dev**
 
@@ -1041,7 +1111,8 @@ $supportReportBuildResultPath = Read-Host 'Paste the exact build-result.json pat
 oni-mod-pipeline install --mod . --build-result $supportReportBuildResultPath --target dev
 ```
 
-Before running `install`, confirm that the pasted value is exactly the path printed by Task 9. Never infer a latest run.
+Before running `install`, confirm that the pasted value is exactly the path printed by Task 9.
+Never infer a latest run.
 
 - [ ] **Step 5: Execute the manual ONI matrix without submitting an issue**
 
@@ -1057,11 +1128,13 @@ Verify in the current public ONI build:
 
 - [ ] **Step 6: Re-run verification if manual testing changes code**
 
-Any code correction returns to a focused red/green cycle, all Task 9 commands, and another formal `/review` for non-trivial changes. Do not treat a manual correction as exempt from review.
+Any code correction returns to a focused red/green cycle, all Task 9 commands, and another formal `/review` for non-trivial changes.
+Do not treat a manual correction as exempt from review.
 
 - [ ] **Step 7: Request separate implementation commit authorization**
 
-After review clearance, remote verification, applicable manual evidence, and a final diff/status summary, propose the exact implementation commit message and scope through the `committing-to-git` skill. Do not create that commit until the user approves its exact message/snapshot. Do not push without a separate explicit authorization for the exact commit/ref.
+After review clearance, remote verification, applicable manual evidence, and a final diff/status summary, propose the exact implementation commit message and scope through the `committing-to-git` skill. Do not create that commit until the user approves its exact message/snapshot.
+Do not push without a separate explicit authorization for the exact commit/ref.
 
 ---
 
