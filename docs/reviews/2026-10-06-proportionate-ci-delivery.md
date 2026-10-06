@@ -11,7 +11,7 @@ The [core workflow](../../.github/workflows/oni-checks.yml) owns selection; [Cod
 
 The isolated Markdown graph pins coordinated `@hadden-industries/markdown-quality@1.0.2`, using Node `>=24.21.0 <25`.
 This corrects the fenced-code preservation refusal and the inline-code comparison false positive; it adds no third-party dependency or consumer repair.
-The public full-scope live check passes all 40 documents present before this delivery record, without exclusions for either historical review.
+The public full-scope live check passes all 41 authored Markdown documents, including this delivery record, without exclusions for either historical review.
 Code-block bodies remain intact, and repeated formatting is stable.
 
 The root README is a repository hub.
@@ -22,6 +22,9 @@ The real producer check has no drift or writes; its public converter, bounded ba
 
 Signed implementation HEAD `bbb177c7d94fdc0065f19106f0ec0a10f59bcc22` passed canonical full HISEW receipt `c0b01c19-4f21-4128-b889-36448d137b73`: 406 pipeline tests, mod validation, production build and 926 executed mod tests.
 The mod suite discovered 991 tests, with 65 not executed and no failures.
+Delivery-record HEAD `4fcfaacc1ccdc355719656db1f8dc80768713fb5` passed full receipt `60ca573c-bf34-4089-af2f-1aae8325d13b` with the same test counts.
+The first run at that HEAD remained incomplete because compiler servers outlived three successful commands.
+The owner-approved external profile repair declares child-only server-disabling settings for its four full commands; the single executed retry completed without terminated descendants or receipt problems.
 The supplemental Python suite passed 58 discovered tests with one Windows newline-name skip; the Linux control job exercises that fixture.
 Native actual-workflow mutation checks rejected ten weakened orchestration specimens.
 
@@ -34,8 +37,14 @@ Detailed receipts, complete native observations and independent-review dispositi
 
 ## Activation state and remaining limits
 
-Automatic dependency submission remains enabled pending its separate exact setting approval.
-The genuine documentation-only qualification follows publication of this delivery record.
+The owner separately approved disabling Automatic dependency submission after native graph-equivalence qualification.
+GitHub's repository settings confirm it is disabled; the dependency graph, Dependabot alerts and security updates remain enabled.
+The selective native NuGet publisher remains active for relevant input changes and scheduled/full qualification.
+
+The first [genuine documentation-only push](https://github.com/MaksymShostak/oxygen-not-included/actions/runs/37430882532) passed authored Markdown in 28 seconds, with the application, CodeQL and controlled NuGet consumers skipped.
+GitHub's then-enabled [automatic publisher](https://github.com/MaksymShostak/oxygen-not-included/actions/runs/37430880783) still launched a 42-second NuGet job.
+This activation update records the completed setting change; the required subsequent docs-only observation is retained with the external delivery evidence after publication.
+
 Hosted PR/fork, isolated language/product, project-removal and reordered-publication scenarios remain pending until genuine changes exercise them; local fixtures are not hosted evidence.
 The native latest-correlator rule and freshness checks do not provide an atomic check-and-submit guarantee.
 The earlier input-specific `ANALYSIS_TIMEOUT` has no general resolution claim.
