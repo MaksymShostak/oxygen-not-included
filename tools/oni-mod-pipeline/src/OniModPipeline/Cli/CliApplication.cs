@@ -232,7 +232,7 @@ internal static class CliApplication
         try
         {
             var root = provenance.Value!.WorktreeRoot;
-            var report = await new ReadmeSynchronizer(new InstalledBbcodeConverter(services.ProcessRunner)).SynchronizeAsync(
+            var report = await new ReadmeSynchronizer(new InstalledBbcodeConverter(services.ProcessRunner), new InstalledMarkdownCanonicalizer(services.ProcessRunner)).SynchronizeAsync(
                 root, profile.Readme, listing.Value!.Description,
                 packageDirectory is null ? Path.Combine(root, "node_modules", "steam-community-bbcode") : Path.GetFullPath(packageDirectory), check, cancellationToken).ConfigureAwait(false);
             return check && report.HasDrift
@@ -609,7 +609,7 @@ internal static class CliApplication
 
         if (forRelease && context.Profile.Readme is not null)
         {
-            var readme = await new ReadmeReleaseValidator(new ReadmeSynchronizer(new InstalledBbcodeConverter(services.ProcessRunner)))
+            var readme = await new ReadmeReleaseValidator(new ReadmeSynchronizer(new InstalledBbcodeConverter(services.ProcessRunner), new InstalledMarkdownCanonicalizer(services.ProcessRunner)))
                 .ValidateAsync(context.Profile, provenance!.WorktreeRoot, cancellationToken).ConfigureAwait(false);
             if (!readme.IsSuccess) return ConvertFailure<ReadmeSynchronization, ValidationReport>(readme);
         }

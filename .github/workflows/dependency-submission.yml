@@ -1,0 +1,67 @@
+name: NuGet dependency submission
+
+on:
+  workflow_call:
+    inputs:
+      plan:
+        required: true
+        type: string
+    outputs:
+      completion_sha:
+        value: ${{ jobs.submit.outputs.completion_sha }}
+
+permissions: {}
+
+jobs:
+  submit:
+    if: github.ref == 'refs/heads/main' && contains(fromJSON('["push","schedule","workflow_dispatch"]'), github.event_name)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    concurrency:
+      group: oni-nuget-publication
+      cancel-in-progress: false
+      queue: max
+    outputs:
+      completion_sha: ${{ steps.complete.outputs.completion_sha }}
+    env:
+      ONI_PLAN: ${{ inputs.plan }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate candidate after acquiring publication slot
+        run: |
+          python3 -c "import sys; assert sys.version_info >= (3,10); print(sys.version)"
+          python3 tools/ci/checks.py dependency-ready
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Restore all current project graphs in locked mode
+        run: |
+          dotnet restore tools/oni-mod-pipeline/src/OniModPipeline/OniModPipeline.csproj --locked-mode
+          dotnet restore tools/oni-mod-pipeline/tests/OniModPipeline.Tests/OniModPipeline.Tests.csproj --locked-mode
+          dotnet restore mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureLimit.csproj --locked-mode
+          dotnet restore mods/delivery-temperature-limit-supercooled/Tests/DeliveryTemperatureLimit.Tests.csproj --locked-mode
+      - id: freshness
+        name: Recheck complete publication inputs immediately before submission
+        run: python3 tools/ci/checks.py dependency-ready
+      - id: publication
+        name: Publish truthful candidate NuGet snapshot
+        uses: actions/component-detection-dependency-submission-action@98beaea5a1227f3db476e4c9ca959a0cacd7ac4f
+        with:
+          detectorsCategories: NuGet
+          correlator: oni-nuget
+          snapshot-sha: ${{ steps.freshness.outputs.snapshot_sha }}
+          snapshot-ref: refs/heads/main
+          token: ${{ github.token }}
+      - id: complete
+        name: Require successful selected publication
+        env:
+          ONI_CONSUMER: dependency
+          PUBLICATION_RESULT: ${{ steps.publication.outcome }}
+        run: |
+          python3 -c 'import os; assert os.environ["PUBLICATION_RESULT"] == "success"'
+          python3 tools/ci/checks.py complete

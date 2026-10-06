@@ -8,6 +8,14 @@ internal static class ReadmeDescriptionBlock
     private const string End = "<!-- oni-mod-pipeline:workshop-description:end -->";
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
 
+    internal static bool ContainsContentOffset(byte[] document, int offset)
+    {
+        var text = StrictUtf8.GetString(document);
+        var start = FindSingleStandaloneMarker(text, Start) + Start.Length;
+        var end = FindSingleStandaloneMarker(text, End);
+        return offset > start && offset < end;
+    }
+
     internal static byte[] Replace(byte[] original, string markdown)
     {
         ArgumentNullException.ThrowIfNull(original);

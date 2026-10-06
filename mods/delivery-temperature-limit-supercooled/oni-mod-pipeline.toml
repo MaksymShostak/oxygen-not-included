@@ -7,7 +7,7 @@ options-source = "Source/DeliveryTemperatureLimitStrings.cs"
 options-context-prefix = "STRINGS.DELIVERY_TEMPERATURE_LIMIT.OPTIONS."
 
 [readme]
-repository-path = "README.md"
+repository-path = "mods/delivery-temperature-limit-supercooled/README.md"
 
 [mod]
 mod-yaml = "mod.yaml"

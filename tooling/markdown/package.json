@@ -1,0 +1,15 @@
+{
+  "name": "oni-markdown-tooling",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=24.21.0 <25"
+  },
+  "scripts": {
+    "check": "markdown-quality check --root ../..",
+    "format": "markdown-quality format --root ../.."
+  },
+  "devDependencies": {
+    "@hadden-industries/markdown-quality": "1.0.2"
+  }
+}

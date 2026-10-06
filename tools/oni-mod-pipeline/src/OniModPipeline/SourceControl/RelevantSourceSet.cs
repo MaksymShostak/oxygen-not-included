@@ -65,6 +65,10 @@ internal sealed record RelevantSourceSet(
                 builder.AddDeclaredFile(worktreeRoot, profile.Readme.RepositoryPath);
                 builder.AddDeclaredFile(worktreeRoot, "package.json");
                 builder.AddDeclaredFile(worktreeRoot, "package-lock.json");
+                builder.AddDeclaredFile(worktreeRoot, ".markdown-quality.json");
+                builder.AddDeclaredFile(worktreeRoot, "tooling/markdown/package.json");
+                builder.AddDeclaredFile(worktreeRoot, "tooling/markdown/package-lock.json");
+                builder.AddDeclaredFile(worktreeRoot, ".gitignore");
             }
 
             foreach (var testProject in profile.TestProjects)

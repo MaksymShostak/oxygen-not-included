@@ -1,0 +1,180 @@
+name: ONI checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "52 16 * * 0"
+permissions:
+  contents: read
+concurrency:
+  group: oni-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}-{1}', github.run_id, github.run_attempt) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  select:
+    name: Select applicable checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      plan: ${{ steps.scope.outputs.plan }}
+      worker: ${{ steps.scope.outputs.worker }}
+      documentation: ${{ steps.scope.outputs.documentation }}
+      codeql: ${{ steps.scope.outputs.codeql }}
+      dependency: ${{ steps.scope.outputs.dependency }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Record supported control runtime
+        run: python3 -c "import sys; assert sys.version_info >= (3,10); print(sys.version)"
+      - id: scope
+        run: python3 tools/ci/checks.py select
+      - name: Test CI contracts when their controls changed
+        if: fromJSON(steps.scope.outputs.plan).checks.pipeline && fromJSON(steps.scope.outputs.plan).checks.python
+        run: python3 -m unittest discover -s tests -p test_ci_checks.py
+
+  worker:
+    needs: select
+    if: needs.select.outputs.worker == 'true'
+    name: Selected application checks
+    runs-on: windows-latest
+    timeout-minutes: 15
+    outputs:
+      completion_sha: ${{ steps.complete.outputs.completion_sha }}
+    env:
+      ONI_PLAN: ${{ needs.select.outputs.plan }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify selection against this checkout
+        run: |
+          python -c "import sys; assert sys.version_info >= (3,10); print(sys.version)"
+          python tools/ci/checks.py validate
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        if: fromJSON(env.ONI_PLAN).checks.pipeline || fromJSON(env.ONI_PLAN).checks.producer
+        with:
+          global-json-file: global.json
+      - name: Restore locked pipeline dependencies
+        if: fromJSON(env.ONI_PLAN).checks.pipeline || fromJSON(env.ONI_PLAN).checks.producer
+        run: dotnet restore tools/oni-mod-pipeline/OniModPipeline.slnx --locked-mode
+      - id: pipeline
+        name: Test the pipeline without game installation
+        if: fromJSON(env.ONI_PLAN).checks.pipeline
+        run: dotnet test --project tools/oni-mod-pipeline/tests/OniModPipeline.Tests/OniModPipeline.Tests.csproj --no-restore
+      - id: python
+        name: Test repository Python scripts
+        if: fromJSON(env.ONI_PLAN).checks.python
+        run: python -m unittest discover -s tests -p "test_*.py"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: fromJSON(env.ONI_PLAN).checks.producer
+        with:
+          node-version: 24.21.0
+      - name: Acquire public locked producer tooling without lifecycle scripts
+        if: fromJSON(env.ONI_PLAN).checks.producer
+        run: |
+          node --version
+          npm --version
+          npm ci --ignore-scripts --no-audit --no-fund --registry https://registry.npmjs.org/
+          npm --prefix tooling/markdown ci --ignore-scripts --no-audit --no-fund --registry https://registry.npmjs.org/
+      - id: producer
+        name: Check real README producer convergence without game installation
+        if: fromJSON(env.ONI_PLAN).checks.producer
+        run: npm run pipeline -- sync-readme --mod mods/delivery-temperature-limit-supercooled --check
+      - id: complete
+        name: Require successful selected steps and return tested identity
+        env:
+          ONI_CONSUMER: worker
+          ONI_STEPS: '{"pipeline":"${{ steps.pipeline.outcome }}","python":"${{ steps.python.outcome }}","producer":"${{ steps.producer.outcome }}"}'
+        run: python tools/ci/checks.py complete
+
+  documentation:
+    needs: select
+    if: needs.select.outputs.documentation == 'true'
+    name: Authored Markdown quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      completion_sha: ${{ steps.complete.outputs.completion_sha }}
+    env:
+      ONI_PLAN: ${{ needs.select.outputs.plan }}
+    steps:
+      - name: Acquire candidate data tree
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Acquire reviewed graph, policy and checker from captured PR base or trusted main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: trusted
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.21.0
+      - name: Acquire trusted public graph without candidate scripts or registry credentials
+        working-directory: trusted
+        run: |
+          node --version
+          npm --version
+          npm --prefix tooling/markdown ci --ignore-scripts --no-audit --no-fund --registry https://registry.npmjs.org/
+      - name: Use trusted policy and ignore bytes at their original paths
+        run: |
+          cp trusted/.markdown-quality.json candidate/.markdown-quality.json
+          cp trusted/.gitignore candidate/.gitignore
+      - name: Check every authored candidate Markdown document
+        working-directory: candidate
+        run: |
+          python3 ../trusted/tools/ci/checks.py validate
+          node ../trusted/tooling/markdown/check.mjs .
+      - id: complete
+        working-directory: candidate
+        env:
+          ONI_CONSUMER: documentation
+        run: python3 ../trusted/tools/ci/checks.py complete
+
+  codeql:
+    needs: select
+    if: needs.select.outputs.codeql == 'true'
+    uses: ./.github/workflows/codeql.yml
+    permissions:
+      contents: read
+      security-events: write
+    with:
+      plan: ${{ needs.select.outputs.plan }}
+
+  dependency:
+    needs: select
+    if: needs.select.outputs.dependency == 'true'
+    uses: ./.github/workflows/dependency-submission.yml
+    permissions:
+      contents: write
+    with:
+      plan: ${{ needs.select.outputs.plan }}
+
+  required:
+    name: Required ONI checks
+    if: always()
+    needs: [select, worker, documentation, codeql, dependency]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      ONI_PLAN: ${{ needs.select.outputs.plan }}
+      ONI_RESULTS: '{"worker":"${{ needs.worker.result }}","documentation":"${{ needs.documentation.result }}","codeql":"${{ needs.codeql.result }}","dependency":"${{ needs.dependency.result }}"}'
+      ONI_COMPLETIONS: '{"worker":"${{ needs.worker.outputs.completion_sha }}","documentation":"${{ needs.documentation.outputs.completion_sha }}","codeql":"${{ needs.codeql.outputs.completion_sha }}","dependency":"${{ needs.dependency.outputs.completion_sha }}"}'
+    steps:
+      - name: Require a successful selection
+        env:
+          SELECTION_RESULT: ${{ needs.select.result }}
+        run: python3 -c 'import os; assert os.environ["SELECTION_RESULT"] == "success"'
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Independently evaluate selected completion and identities
+        run: python3 tools/ci/checks.py gate

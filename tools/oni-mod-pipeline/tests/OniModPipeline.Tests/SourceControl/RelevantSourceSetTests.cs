@@ -12,10 +12,10 @@ public sealed class RelevantSourceSetTests
     {
         using var directory = new TemporaryDirectory();
         var profile = CreateProfileFixture(directory) with { Readme = new ReadmeProfile("README.md") };
-        foreach (var path in new[] { "README.md", "package.json", "package-lock.json" }) WriteFile(directory.GetPath(path));
+        foreach (var path in new[] { "README.md", "package.json", "package-lock.json", ".markdown-quality.json", "tooling/markdown/package.json", "tooling/markdown/package-lock.json", ".gitignore" }) WriteFile(directory.GetPath(path));
         var result = RelevantSourceSet.Create(profile, directory.Path, ["README.md", "package.json", "package-lock.json"], null);
         Assert.IsTrue(result.IsSuccess);
-        foreach (var path in new[] { "README.md", "package.json", "package-lock.json" })
+        foreach (var path in new[] { "README.md", "package.json", "package-lock.json", ".markdown-quality.json", "tooling/markdown/package.json", "tooling/markdown/package-lock.json", ".gitignore" })
             CollectionAssert.Contains(result.Value!.WorktreeRelativePaths.ToArray(), path);
     }
     [TestMethod]

@@ -297,7 +297,7 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
             TimeProvider.System,
             () => RandomNumberGenerator.GetBytes(8),
             Guid.NewGuid,
-            new ReadmeReleaseValidator(new ReadmeSynchronizer(new InstalledBbcodeConverter(processRunner))),
+            new ReadmeReleaseValidator(new ReadmeSynchronizer(new InstalledBbcodeConverter(processRunner), new InstalledMarkdownCanonicalizer(processRunner))),
             new CatalogRunner(processRunner));
     }
 

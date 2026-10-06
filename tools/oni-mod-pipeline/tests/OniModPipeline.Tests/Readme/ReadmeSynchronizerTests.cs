@@ -49,12 +49,25 @@ public sealed class ReadmeSynchronizerTests
         Assert.AreEqual(Original, File.ReadAllText(fixture.ReadmePath));
     }
 
+    [TestMethod]
+    public async Task Synchronize_RejectsFormatterChangesOutsideOwnershipOrRefusal()
+    {
+        using var fixture = new Fixture();
+        fixture.Canonicalizer.Transform = candidate => Encoding.UTF8.GetBytes("owner changed\n" + Encoding.UTF8.GetString(candidate));
+        await Assert.ThrowsAsync<InvalidDataException>(() => fixture.Run(false));
+        Assert.AreEqual(Original, File.ReadAllText(fixture.ReadmePath));
+        fixture.Canonicalizer.Transform = _ => throw new InvalidDataException("preservation refused");
+        await Assert.ThrowsAsync<InvalidDataException>(() => fixture.Run(false));
+        Assert.AreEqual(Original, File.ReadAllText(fixture.ReadmePath));
+    }
+
     private sealed class Fixture : IDisposable
     {
         private readonly TemporaryDirectory directory = new();
         internal string ReadmePath => directory.GetPath("README.md");
         internal RenderedListingText Description { get; } = new ListingTextRenderer().Render("[h1]Mod[/h1]\n");
         internal Runner Runner { get; } = new();
+        internal Canonicalizer Canonicalizer { get; } = new();
         internal Fixture()
         {
             File.WriteAllText(ReadmePath, Original, new UTF8Encoding(false));
@@ -63,8 +76,14 @@ public sealed class ReadmeSynchronizerTests
             File.WriteAllText(directory.GetPath("package", "cli.js"), "// bin");
         }
         internal Task<ReadmeSynchronization> Run(bool check, CancellationToken token = default) =>
-            new ReadmeSynchronizer(new InstalledBbcodeConverter(Runner)).SynchronizeAsync(directory.Path, new ReadmeProfile("README.md"), Description, directory.GetPath("package"), check, token);
+            new ReadmeSynchronizer(new InstalledBbcodeConverter(Runner), Canonicalizer).SynchronizeAsync(directory.Path, new ReadmeProfile("README.md"), Description, directory.GetPath("package"), check, token);
         public void Dispose() => directory.Dispose();
+    }
+
+    private sealed class Canonicalizer : IReadmeCanonicalizer
+    {
+        internal Func<byte[], byte[]> Transform { get; set; } = candidate => candidate;
+        public Task<byte[]> CanonicalizeAsync(string root, string path, byte[] candidate, CancellationToken token) => Task.FromResult(Transform(candidate));
     }
 
     private sealed class Runner : IExternalProcessRunner

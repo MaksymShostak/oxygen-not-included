@@ -547,7 +547,8 @@ internal sealed class PreparationFixture : IDisposable
             new MaksymShostak.OniModPipeline.Readme.ReadmeReleaseValidator(
                 new MaksymShostak.OniModPipeline.Readme.ReadmeSynchronizer(
                     new MaksymShostak.OniModPipeline.Readme.InstalledBbcodeConverter(
-                        new MaksymShostak.OniModPipeline.Processes.ExternalProcessRunner()))), catalogRunner);
+                        new MaksymShostak.OniModPipeline.Processes.ExternalProcessRunner()),
+                    new PassThroughReadmeCanonicalizer())), catalogRunner);
     }
 
     internal string WorktreeRoot { get; }

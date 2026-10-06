@@ -19,6 +19,12 @@ public sealed class ValidateCommandTests
         Directory.CreateDirectory(package);
         File.WriteAllText(Path.Combine(package, "package.json"), "{\"name\":\"steam-community-bbcode\",\"bin\":\"cli.js\"}");
         File.WriteAllText(Path.Combine(package, "cli.js"), "// controlled process fixture");
+        var markdownPackage = Path.Combine(fixture.WorktreeRoot, "tooling", "markdown", "node_modules", "@hadden-industries", "markdown-quality");
+        Directory.CreateDirectory(markdownPackage);
+        File.WriteAllText(Path.Combine(markdownPackage, "package.json"), "{\"name\":\"@hadden-industries/markdown-quality\",\"version\":\"1.0.2\",\"bin\":{\"markdown-quality\":\"cli.js\"}}");
+        File.WriteAllText(Path.Combine(markdownPackage, "cli.js"), "// controlled checker fixture");
+        foreach (var input in new[] { ".markdown-quality.json", ".gitignore", "tooling/markdown/package.json", "tooling/markdown/package-lock.json" })
+            File.WriteAllText(Path.Combine(fixture.WorktreeRoot, input), "{}");
         var runner = new ReadmeValidationRunner(fixture.ProcessRunner);
         var services = fixture.Services with { ProcessRunner = runner, GitRepositoryInspector = new GitRepositoryInspector(runner) };
         var before = SourceSnapshot.CaptureTree(fixture.RootPath);
@@ -34,10 +40,21 @@ public sealed class ValidateCommandTests
         public async Task<MaksymShostak.OniModPipeline.Processes.ProcessResult> RunAsync(MaksymShostak.OniModPipeline.Processes.ProcessRequest request, CancellationToken cancellationToken)
         {
             if (request.FileName == "node")
+            {
+                if (request.Arguments.SequenceEqual(new[] { "--version" })) return new(0, "v24.21.0", "");
+                if (request.Arguments.Contains("--files-json"))
+                {
+                    var index = request.Arguments.ToList().IndexOf("--files-json");
+                    return new(0, JsonSerializer.Serialize(new { schemaVersion = 1, operation = request.Arguments[1],
+                        package = new { name = "@hadden-industries/markdown-quality", version = "1.0.2" },
+                        exitCode = 0, outcome = "clean", errors = Array.Empty<string>(), unprocessed = Array.Empty<string>(),
+                        diagnostics = Array.Empty<string>(), selection = new { mode = "explicit", files = JsonSerializer.Deserialize<string[]>(request.Arguments[index + 1]) } }), "");
+                }
                 return new(0, "{\"value\":\"# Updated\\n\",\"diagnostics\":[]}", "");
+            }
             var result = await inner.RunAsync(request, cancellationToken);
             return request.Arguments.SequenceEqual(new[] { "ls-files", "-z" })
-                ? result with { StandardOutput = result.StandardOutput + "README.md\0package.json\0package-lock.json\0" }
+                ? result with { StandardOutput = result.StandardOutput + "README.md\0package.json\0package-lock.json\0.markdown-quality.json\0.gitignore\0tooling/markdown/package.json\0tooling/markdown/package-lock.json\0" }
                 : result;
         }
     }

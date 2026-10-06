@@ -9,7 +9,7 @@ internal sealed record ReadmeSynchronization(
     string ReadmePath, bool HasDrift, bool Changed, string DescriptionSha256,
     string ReadmeSha256, JsonElement ConversionDiagnostics, string ConverterStandardError);
 
-internal sealed class ReadmeSynchronizer(InstalledBbcodeConverter converter)
+internal sealed class ReadmeSynchronizer(InstalledBbcodeConverter converter, IReadmeCanonicalizer canonicalizer)
 {
     internal async Task<ReadmeSynchronization> SynchronizeAsync(
         string repositoryRoot, ReadmeProfile profile, RenderedListingText description,
@@ -39,7 +39,10 @@ internal sealed class ReadmeSynchronizer(InstalledBbcodeConverter converter)
             }
 
             var conversion = await converter.ConvertAsync(packageDirectory, generatedPath, cancellationToken).ConfigureAwait(false);
-            var replacement = ReadmeDescriptionBlock.Replace(original, conversion.Markdown);
+            var replacement = await canonicalizer.CanonicalizeAsync(repositoryRoot, readmePath,
+                ReadmeDescriptionBlock.Replace(original, conversion.Markdown), cancellationToken).ConfigureAwait(false);
+            if (!ReadmeDescriptionBlock.Replace(original, string.Empty).AsSpan().SequenceEqual(ReadmeDescriptionBlock.Replace(replacement, string.Empty)))
+                throw new InvalidDataException("Canonicalization would change authored bytes outside the README description block.");
             var drift = !original.AsSpan().SequenceEqual(replacement);
             if (!check && drift)
             {
