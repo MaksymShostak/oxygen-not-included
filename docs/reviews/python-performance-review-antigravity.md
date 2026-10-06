@@ -53,7 +53,7 @@ Tracked-source links identify the reviewed baseline `726117481e399fa66cf1a1d521a
 - Ran command: `Get-ChildItem -Recurse tools -Filter *.py`
 - Viewed `package.json:1-20`
 - Viewed `CONTRIBUTING.md:1-43`
-- Viewed `preparing-oni-mod-releases.md:1-100`
+- Viewed `tools/oni-mod-pipeline/manual/preparing-releases.md:1-100`
 - Ran command: `python -m cProfile -s tottime artifacts/options-ui/check_catalogs.py`
 - Ran command: `python -m cProfile -s tottime artifacts/options-ui/check_catalogs.py | Select-Object -First 35`
 - Ran command: `python -m cProfile -s tottime artifacts/options-ui/read_catalogs.py | Select-Object -First 35`

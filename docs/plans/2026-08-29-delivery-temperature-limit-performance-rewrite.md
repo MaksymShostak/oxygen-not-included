@@ -4926,7 +4926,7 @@ There is no commit for a successful Task 27 because it creates evidence only.
 
 **Files and external evidence:**
 
-- Read: `docs/guides/preparing-oni-mod-releases.md`
+- Read: `tools/oni-mod-pipeline/manual/preparing-releases.md`
 - Read: the candidate's generated build provenance, content manifest, acceptance plan, release summary, and uploader checklist.
 - Read: `mods/delivery-temperature-limit-supercooled/Tests/Fixtures/ThirdParty/FastTrack/0.18.4.0/README.md` and its statically inspected DLL only; do not load it into ONI.
 - Inspect: the exact published-baseline package, exact release candidate, four derivative save files, and `Player.log` captured after each game session.

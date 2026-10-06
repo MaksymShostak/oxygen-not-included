@@ -8,12 +8,12 @@ Please keep discussion respectful, specific, and focused on improving the mod fo
 
 - For a player-visible bug, use the [Temperature Limit bug form](https://github.com/MaksymShostak/oxygen-not-included/issues/new?template=temperature-limit-bug.yml) and the automated report flow in [SUPPORT.md](SUPPORT.md).
 - For a feature idea, use the [feature form](https://github.com/MaksymShostak/oxygen-not-included/issues/new?template=temperature-limit-feature.yml) and describe the player problem and desired experience.
-- For translations, follow the [Translation Guide](docs/guides/translating-delivery-temperature-limit-supercooled.md) and use the template at [`mods/delivery-temperature-limit-supercooled/translations/delivery_temperature_limit.pot`](mods/delivery-temperature-limit-supercooled/translations/delivery_temperature_limit.pot).
+- For translations, follow the [Translation Guide](mods/delivery-temperature-limit-supercooled/translator-handbook.md) and use the template at [`mods/delivery-temperature-limit-supercooled/translations/delivery_temperature_limit.pot`](mods/delivery-temperature-limit-supercooled/translations/delivery_temperature_limit.pot).
 - For a code or documentation change, open or link an issue before substantial work so scope and compatibility expectations are visible.
 
 ## Set up and validate a checkout
 
-Follow the existing [getting-started](docs/guides/getting-started-with-oni-mod-pipeline.md) and [development](docs/guides/developing-oni-mods.md) guides.
+Follow the existing [getting-started](tools/oni-mod-pipeline/manual/setting-up-a-checkout.md) and [development](tools/oni-mod-pipeline/manual/building-testing-and-installing-mods.md) guides.
 ONI Mod Pipeline is the repository's supported build, test, install, and release path.
 
 Run these commands from `mods/delivery-temperature-limit-supercooled`:
@@ -46,4 +46,4 @@ Discuss dependency, build, test, formatting, CI, repository-policy, release-proc
 
 Link the issue, explain the player or maintainer rationale, summarize the focused change, and include fresh automated test evidence plus relevant in-game ONI evidence.
 Explicitly describe compatibility, performance/allocation, save/persistence, UI, localization, and documentation impact, writing `None` where a category does not apply.
-Release changes must follow [Preparing ONI mod releases](docs/guides/preparing-oni-mod-releases.md).
+Release changes must follow [Preparing ONI mod releases](tools/oni-mod-pipeline/manual/preparing-releases.md).

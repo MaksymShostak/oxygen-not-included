@@ -127,6 +127,9 @@ jobs:
         run: |
           cp trusted/.markdown-quality.json candidate/.markdown-quality.json
           cp trusted/.gitignore candidate/.gitignore
+      - name: Reject em dashes in Markdown sources
+        working-directory: candidate
+        run: python3 tools/ci/check_doc_characters.py .
       - name: Check every authored candidate Markdown document
         working-directory: candidate
         run: |

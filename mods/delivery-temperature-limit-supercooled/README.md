@@ -101,4 +101,4 @@ _Delivery Temperature Limit (Supercooled) is a community mod and is not affiliat
 
 ## Repository and contributing
 
-See the [repository overview](../../README.md), [support and privacy details](../../SUPPORT.md), and [translation guide](../../docs/guides/translating-delivery-temperature-limit-supercooled.md).
+See the [repository overview](../../README.md), [support and privacy details](../../SUPPORT.md), and [translation guide](translator-handbook.md).

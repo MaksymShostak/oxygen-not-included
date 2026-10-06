@@ -233,7 +233,7 @@ mods/delivery-temperature-limit-supercooled/
     packages.lock.json
 ```
 
-Documentation delivered at Gate D lives in `README.md` and `docs/guides/oni-mod-development-workflow.md`.
+Documentation delivered at Gate D lives in `README.md` and `tools/oni-mod-pipeline/manual/development-and-release-workflow.md`.
 
 `Directory.Build.props`, both PowerShell tests, `Source/build.sh`, and `scripts/deploy_mod_locally.bat` appear in the map only as Task 19 deletions.
 Do not create replacement wrappers.
@@ -3145,7 +3145,7 @@ feat: verify upload-ready ONI release candidates
 - Delete: `mods/delivery-temperature-limit-supercooled/Tests/BuildingsEligibility.Tests.ps1`
 - Delete: `mods/delivery-temperature-limit-supercooled/Tests/ModInfoVersion.Tests.ps1`
 - Modify: `README.md`
-- Create: `docs/guides/oni-mod-development-workflow.md`
+- Create: `tools/oni-mod-pipeline/manual/development-and-release-workflow.md`
 
 **Interfaces:**
 
@@ -3220,7 +3220,7 @@ State that versions and `STEAM_CHANGE_NOTES.bbcode` are deliberate reviewed sour
 
 - [ ] **Step 5: Add the detailed generic workflow guide**
 
-`docs/guides/oni-mod-development-workflow.md` must cover:
+`tools/oni-mod-pipeline/manual/development-and-release-workflow.md` must cover:
 
 1. onboarding a new mod with schema-v1 profile examples;
 2. local diagnose/validate/build/test/install iteration;
@@ -3241,7 +3241,7 @@ Do not mention deleted scripts as alternatives.
 Run:
 
 ```text
-rg -n --hidden --glob !.git/** --glob !docs/specs/** --glob !docs/plans/** "powershell|pwsh|deploy_mod_locally|build\.sh|\.Tests\.ps1" README.md mods tools docs/guides
+rg -n --hidden --glob !.git/** --glob !docs/specs/** --glob !docs/plans/** "powershell|pwsh|deploy_mod_locally|build\.sh|\.Tests\.ps1" README.md mods tools
 ```
 
 Expected: no matches in supported workflow/source/test files.

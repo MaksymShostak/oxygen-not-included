@@ -946,7 +946,7 @@ Keep each change focused on one agreed player or maintainer outcome. Preserve un
 
 ## Prepare a pull request
 
-Link the issue, explain the player or maintainer rationale, summarize the focused change, and include fresh automated test evidence plus relevant in-game ONI evidence. Explicitly describe compatibility, performance/allocation, save/persistence, UI, localization, and documentation impact, writing `None` where a category does not apply. Release changes must follow [Preparing ONI mod releases](docs/guides/preparing-oni-mod-releases.md).
+Link the issue, explain the player or maintainer rationale, summarize the focused change, and include fresh automated test evidence plus relevant in-game ONI evidence. Explicitly describe compatibility, performance/allocation, save/persistence, UI, localization, and documentation impact, writing `None` where a category does not apply. Release changes must follow [Preparing ONI mod releases](tools/oni-mod-pipeline/manual/preparing-releases.md).
 ````
 
 - [ ] **Step 6: Create player-focused `SUPPORT.md`**

@@ -30,7 +30,7 @@ Review the extended report before attaching it.
 A standard report includes:
 
 - a new random report ID and UTC generation time;
-- the ONI build, branch, game and Unity versions, platform, process architecture, locale, and active DLC identifiers—or an explicit unavailable state when DLC discovery fails;
+- the ONI build, branch, game and Unity versions, platform, process architecture, locale, and active DLC identifiers - or an explicit unavailable state when DLC discovery fails;
 - this mod's static ID, title, package and assembly versions, and current Temperature Limit settings together with the selected temperature unit;
 - the already-verified runtime patch plan and FastTrack compatibility state;
 - sanitized active-mod titles, static IDs, declared versions, assembly names and versions, load order, and source kind, with no mod paths;

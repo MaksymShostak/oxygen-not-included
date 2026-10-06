@@ -56,7 +56,7 @@ Add Readme and Cli/SyncReadmeCommandTests.cs tests.
 
 ## Task 3: Release freshness and documented opt-in
 
-**Files:** update Cli/CliApplication.cs, ReleaseCandidates/ReleaseCandidatePreparer.cs, SourceControl/RelevantSourceSet.cs and their existing test suites; update README.md, docs/guides/oni-mod-pipeline-profile-reference.md and docs/guides/preparing-oni-mod-releases.md.
+**Files:** update Cli/CliApplication.cs, ReleaseCandidates/ReleaseCandidatePreparer.cs, SourceControl/RelevantSourceSet.cs and their existing test suites; update README.md, tools/oni-mod-pipeline/manual/profile-reference.md and tools/oni-mod-pipeline/manual/preparing-releases.md.
 Apply approved mod profile and npm declaration changes at the authorized stages.
 
 **Consumes:** read-only synchronization check and configured profile.

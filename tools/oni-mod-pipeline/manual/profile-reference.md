@@ -3,7 +3,7 @@
 Use `oni-mod-pipeline.toml` to declare one mod's metadata sources, build contract, closed runtime package, Workshop listing, managed installation name, automated tests, and human acceptance contract.
 Schema version 1 is strict and data-only.
 
-[Workflow overview](oni-mod-development-workflow.md) · [Getting started](getting-started-with-oni-mod-pipeline.md) · [Developing ONI mods](developing-oni-mods.md) · [Preparing releases](preparing-oni-mod-releases.md) · [Troubleshooting](troubleshooting-oni-mod-pipeline.md)
+[Workflow overview](development-and-release-workflow.md) · [Getting started](setting-up-a-checkout.md) · [Developing ONI mods](building-testing-and-installing-mods.md) · [Preparing releases](preparing-releases.md) · [Troubleshooting](troubleshooting.md)
 
 > [!NOTE]
 > Unknown keys are errors.
@@ -32,7 +32,7 @@ Declared catalogs require Python 3.10+ resolved from PATH, or selected by an abs
 Missing Python, timeouts, and malformed backend results block the operation.
 
 `inspect-catalogs --mod <mod-root> --format json` exports all present Options contexts under the configured prefix, with raw blocks and decoded values, without game discovery.
-See the [translation guide](translating-delivery-temperature-limit-supercooled.md#contributing-workflow) for the accepted single-line PO subset and explicit unsupported syntax.
+See the [translation guide](../../../mods/delivery-temperature-limit-supercooled/translator-handbook.md#contributing-workflow) for the accepted single-line PO subset and explicit unsupported syntax.
 
 ## Optional README description
 
@@ -63,7 +63,7 @@ Invalid markers, unknown images needing descriptions, rejected conversion or for
 
 Concurrency is optimistic: an unrelated editor saving between the final comparison and atomic replacement can still be overwritten.
 Do not edit the README during synchronization.
-See the [accepted concurrency decision](../specs/2026-09-11-bbcode-readme-concurrency-decision.md).
+See the [accepted concurrency decision](../../../docs/specs/2026-09-11-bbcode-readme-concurrency-decision.md).
 
 `--check` reports drift with exit code 6 without writing the README.
 `--format json` includes conversion diagnostics and content hashes.
@@ -160,7 +160,7 @@ expected = "The changed behavior succeeds, the control remains unchanged, and Pl
 
 </details>
 
-The repository's maintained real profile is [`mods/delivery-temperature-limit-supercooled/oni-mod-pipeline.toml`](../../mods/delivery-temperature-limit-supercooled/oni-mod-pipeline.toml).
+The repository's maintained real profile is [`mods/delivery-temperature-limit-supercooled/oni-mod-pipeline.toml`](../../../mods/delivery-temperature-limit-supercooled/oni-mod-pipeline.toml).
 
 ## Root key reference
 
@@ -375,7 +375,7 @@ ONI Mod Pipeline rejects:
 - a profile or declared input that cannot be resolved as an existing regular object of the required kind.
 
 Keep machine-specific paths out of the profile.
-Game, user-data, and artifact roots belong to command options, environment variables, or automatic discovery described in [Getting started with ONI Mod Pipeline](getting-started-with-oni-mod-pipeline.md).
+Game, user-data, and artifact roots belong to command options, environment variables, or automatic discovery described in [Getting started with ONI Mod Pipeline](setting-up-a-checkout.md).
 
 ## Validate profile changes
 

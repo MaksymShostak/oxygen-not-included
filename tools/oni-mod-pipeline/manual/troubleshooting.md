@@ -3,7 +3,7 @@
 Resolve ONI Mod Pipeline failures by following the stable diagnostic ID, exact evidence path, and bounded next action reported by the command.
 Preserve source, installations, candidates, and evidence until the failing object is understood.
 
-[Workflow overview](oni-mod-development-workflow.md) · [Getting started](getting-started-with-oni-mod-pipeline.md) · [Developing ONI mods](developing-oni-mods.md) · [Preparing releases](preparing-oni-mod-releases.md) · [Profile reference](oni-mod-pipeline-profile-reference.md)
+[Workflow overview](development-and-release-workflow.md) · [Getting started](setting-up-a-checkout.md) · [Developing ONI mods](building-testing-and-installing-mods.md) · [Preparing releases](preparing-releases.md) · [Profile reference](profile-reference.md)
 
 > [!TIP]
 > Start with the diagnostic's **Evidence** field, not with the newest artifact directory.
@@ -89,7 +89,7 @@ Do not change `global.json` merely to match an unrelated machine installation.
 ### The game installation is missing or ambiguous
 
 The selected ONI installation must contain the required managed assemblies.
-Supply the installation root—not the managed subdirectory—when overriding discovery:
+Supply the installation root - not the managed subdirectory - when overriding discovery:
 
 ```text
 oni-mod-pipeline diagnose --mod <mod-root> --game-directory <oni-installation-root>
@@ -135,7 +135,7 @@ oni-mod-pipeline validate --mod <mod-root>
 ### An unknown key is reported
 
 Schema version 1 is closed.
-Compare the exact key path with [ONI Mod Pipeline profile reference](oni-mod-pipeline-profile-reference.md).
+Compare the exact key path with [ONI Mod Pipeline profile reference](profile-reference.md).
 Correct spelling and table placement; do not assume an unknown key is ignored.
 
 ### A declared path escapes the mod root

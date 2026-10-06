@@ -2,7 +2,7 @@
 
 Set up a repository checkout so ONI Mod Pipeline can discover one mod profile, resolve the local Oxygen Not Included environment, and validate every declared input without changing source or game data.
 
-[Workflow overview](oni-mod-development-workflow.md) · [Developing ONI mods](developing-oni-mods.md) · [Preparing releases](preparing-oni-mod-releases.md) · [Profile reference](oni-mod-pipeline-profile-reference.md) · [Troubleshooting](troubleshooting-oni-mod-pipeline.md)
+[Workflow overview](development-and-release-workflow.md) · [Developing ONI mods](building-testing-and-installing-mods.md) · [Preparing releases](preparing-releases.md) · [Profile reference](profile-reference.md) · [Troubleshooting](troubleshooting.md)
 
 ## Meet the prerequisites
 
@@ -186,6 +186,6 @@ Use this checklist after initial setup:
 
 ## Continue with your task
 
-- To edit, build, test, and install repeatedly, continue to [Developing ONI mods](developing-oni-mods.md).
-- To define or review a mod profile, use [ONI Mod Pipeline profile reference](oni-mod-pipeline-profile-reference.md).
-- To resolve a failed prerequisite or discovery result, use [Troubleshooting ONI Mod Pipeline](troubleshooting-oni-mod-pipeline.md).
+- To edit, build, test, and install repeatedly, continue to [Developing ONI mods](building-testing-and-installing-mods.md).
+- To define or review a mod profile, use [ONI Mod Pipeline profile reference](profile-reference.md).
+- To resolve a failed prerequisite or discovery result, use [Troubleshooting ONI Mod Pipeline](troubleshooting.md).

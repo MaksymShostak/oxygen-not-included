@@ -2,7 +2,7 @@
 
 Use isolated development runs to validate, build, test, and install each source revision without mutating the mod tree or confusing a working build with an immutable release candidate.
 
-[Workflow overview](oni-mod-development-workflow.md) · [Getting started](getting-started-with-oni-mod-pipeline.md) · [Preparing releases](preparing-oni-mod-releases.md) · [Profile reference](oni-mod-pipeline-profile-reference.md) · [Troubleshooting](troubleshooting-oni-mod-pipeline.md)
+[Workflow overview](development-and-release-workflow.md) · [Getting started](setting-up-a-checkout.md) · [Preparing releases](preparing-releases.md) · [Profile reference](profile-reference.md) · [Troubleshooting](troubleshooting.md)
 
 > [!IMPORTANT]
 > Use explicit development build results for edit/build/test/install iteration.
@@ -81,7 +81,7 @@ oni-mod-pipeline test
 Each required project must produce one successful, parseable TRX file under that directory.
 
 For Delivery Temperature Limit, the required test project covers the C# regression contract, including eligibility behavior, source non-mutation, public-surface parity, and deterministic merged output.
-The profile—not an ad hoc shell script—defines which projects are required.
+The profile - not an ad hoc shell script - defines which projects are required.
 
 Rerun `test` whenever mod behavior, test code, test data, project dependencies, or relevant game references change.
 A successful earlier TRX file is evidence for its original run only.
@@ -176,5 +176,5 @@ Inspect the exact diff and fix the project or build target; do not accept genera
 
 ## Continue to release preparation
 
-When the change is tested and the intended version, listing, preview, dependencies, and acceptance contract have all been reviewed, continue to [Preparing ONI mod releases](preparing-oni-mod-releases.md).
+When the change is tested and the intended version, listing, preview, dependencies, and acceptance contract have all been reviewed, continue to [Preparing ONI mod releases](preparing-releases.md).
 Release preparation starts from committed source, not from a development installation or `build-result.json`.

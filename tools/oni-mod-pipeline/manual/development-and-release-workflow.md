@@ -9,13 +9,13 @@ The user-facing command is `oni-mod-pipeline`.
 
 ## Choose the documentation for your task
 
-| Task                                                 | Documentation                                                                     | Outcome                                                                                                         |
-| ---------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Configure a checkout and verify discovery            | [Getting started with ONI Mod Pipeline](getting-started-with-oni-mod-pipeline.md) | The correct SDK, profile, game installation, user-data directory, and artifact root resolve successfully.       |
-| Build, test, and install changes repeatedly          | [Developing ONI mods](developing-oni-mods.md)                                     | A specific isolated development build is tested and installed to a guarded `mods/Dev` destination.              |
-| Turn reviewed source into a Workshop-ready candidate | [Preparing ONI mod releases](preparing-oni-mod-releases.md)                       | One immutable candidate progresses from `awaiting-acceptance` to `ready-for-upload`.                            |
-| Author or review `oni-mod-pipeline.toml`             | [ONI Mod Pipeline profile reference](oni-mod-pipeline-profile-reference.md)       | The mod's build, package, listing, installation, automated-test, and acceptance contract is explicit and valid. |
-| Respond to a diagnostic or failed run                | [Troubleshooting ONI Mod Pipeline](troubleshooting-oni-mod-pipeline.md)           | The exact failing input or artifact is diagnosed without mutating or substituting evidence.                     |
+| Task                                                 | Documentation                                                     | Outcome                                                                                                         |
+| ---------------------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Configure a checkout and verify discovery            | [Getting started with ONI Mod Pipeline](setting-up-a-checkout.md) | The correct SDK, profile, game installation, user-data directory, and artifact root resolve successfully.       |
+| Build, test, and install changes repeatedly          | [Developing ONI mods](building-testing-and-installing-mods.md)    | A specific isolated development build is tested and installed to a guarded `mods/Dev` destination.              |
+| Turn reviewed source into a Workshop-ready candidate | [Preparing ONI mod releases](preparing-releases.md)               | One immutable candidate progresses from `awaiting-acceptance` to `ready-for-upload`.                            |
+| Author or review `oni-mod-pipeline.toml`             | [ONI Mod Pipeline profile reference](profile-reference.md)        | The mod's build, package, listing, installation, automated-test, and acceptance contract is explicit and valid. |
+| Respond to a diagnostic or failed run                | [Troubleshooting ONI Mod Pipeline](troubleshooting.md)            | The exact failing input or artifact is diagnosed without mutating or substituting evidence.                     |
 
 ## Understand the two artifact lifecycles
 
@@ -118,8 +118,8 @@ Listing fields come from `workshop-listing`.
 
 ## Continue with the appropriate procedure
 
-- New checkout: [Getting started with ONI Mod Pipeline](getting-started-with-oni-mod-pipeline.md)
-- Normal edit/build/test/install work: [Developing ONI mods](developing-oni-mods.md)
-- Versioned Workshop release: [Preparing ONI mod releases](preparing-oni-mod-releases.md)
-- Profile semantics: [ONI Mod Pipeline profile reference](oni-mod-pipeline-profile-reference.md)
-- Diagnostics and recovery: [Troubleshooting ONI Mod Pipeline](troubleshooting-oni-mod-pipeline.md)
+- New checkout: [Getting started with ONI Mod Pipeline](setting-up-a-checkout.md)
+- Normal edit/build/test/install work: [Developing ONI mods](building-testing-and-installing-mods.md)
+- Versioned Workshop release: [Preparing ONI mod releases](preparing-releases.md)
+- Profile semantics: [ONI Mod Pipeline profile reference](profile-reference.md)
+- Diagnostics and recovery: [Troubleshooting ONI Mod Pipeline](troubleshooting.md)

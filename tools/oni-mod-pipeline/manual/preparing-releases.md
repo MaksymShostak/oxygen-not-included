@@ -2,7 +2,7 @@
 
 Turn reviewed, committed mod source into one immutable release candidate, bind human acceptance to the exact installed bytes, and prove that the candidate is ready for a deliberate manual ONI Uploader handoff.
 
-[Workflow overview](oni-mod-development-workflow.md) · [Getting started](getting-started-with-oni-mod-pipeline.md) · [Developing ONI mods](developing-oni-mods.md) · [Profile reference](oni-mod-pipeline-profile-reference.md) · [Troubleshooting](troubleshooting-oni-mod-pipeline.md)
+[Workflow overview](development-and-release-workflow.md) · [Getting started](setting-up-a-checkout.md) · [Developing ONI mods](building-testing-and-installing-mods.md) · [Profile reference](profile-reference.md) · [Troubleshooting](troubleshooting.md)
 
 > [!WARNING]
 > A release candidate is not a mutable staging folder.
@@ -312,4 +312,4 @@ Open the candidate's generated `uploader-checklist.md` and check each item again
 | Verification           | Candidate and readiness report                       | Diagnose the named inconsistency. Preserve irreversible invalidation and create a new candidate after fixing tracked source or workflow. |
 | Uploader review        | Candidate and generated handoff documents            | Cancel without publishing, correct tracked source, and prepare a new candidate if any candidate input is wrong.                          |
 
-For diagnostic IDs, exit codes, and evidence locations, continue to [Troubleshooting ONI Mod Pipeline](troubleshooting-oni-mod-pipeline.md).
+For diagnostic IDs, exit codes, and evidence locations, continue to [Troubleshooting ONI Mod Pipeline](troubleshooting.md).

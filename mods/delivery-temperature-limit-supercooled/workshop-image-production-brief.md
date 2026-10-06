@@ -5,7 +5,7 @@ This document is the production brief for the Steam Workshop preview and screens
 ## Recommendation
 
 Replace the old four-screenshot plan.
-It had the right goal—show the gameplay benefit—but several shots were either hard to reproduce or no longer matched the mod:
+It had the right goal - show the gameplay benefit - but several shots were either hard to reproduce or no longer matched the mod:
 
 - The Workshop preview image and the screenshot carousel serve different purposes and should be designed separately.
 - A stock **Storage Bin** is a safer subject than a Smart Storage Bin or any modded building.
@@ -26,7 +26,7 @@ The strongest asset set is one square preview plus four 16:9 gameplay screenshot
 | 4          | Construction limit          | The same protection can filter materials before a blueprint is built.                  |
 | Optional 5 | Mod options                 | The two behavior toggles and construction defaults are configurable.                   |
 
-If only four carousel slots are maintained, omit the options screenshot—not the rocket or construction screenshots.
+If only four carousel slots are maintained, omit the options screenshot - not the rocket or construction screenshots.
 
 ## Asset briefs
 
@@ -57,7 +57,7 @@ Preserve a clean, unannotated master before creating the square crop.
 Frame the bin, a little of the cold-use context, and the complete side screen.
 This is the “how to use it” image.
 It should not need arrows if the controls are already prominent.
-If an annotation is necessary, use one small callout—never a giant ellipse over the interface.
+If an annotation is necessary, use one small callout - never a giant ellipse over the interface.
 
 Suggested caption: **Set the temperature range on any supported delivery target.**
 
@@ -92,7 +92,7 @@ rocket with a stock Storage Tile built into a believable compact layout.
 
 This is more valuable than a generic settings screenshot because it demonstrates a distinctive supported target and an important use case: preventing a small rocket cabin from accepting excessively hot material.
 
-Suggested caption: **Temperature limits also work on Storage Tiles—even inside rockets.**
+Suggested caption: **Temperature limits also work on Storage Tiles - even inside rockets.**
 
 ### Screenshot 4: construction-material limit
 
@@ -168,7 +168,7 @@ While paused and in Sandbox Mode:
 2. For a recognizably cold context, add a short row of Farm Tiles with Sleet Wheat behind or beside it.
    The plants are visual context; they do not need to be mature.
 3. Leave clear floor space on both sides of the bin for two Dirt piles and make sure a Duplicant can reach everything.
-4. Select the sandbox **Sprinkle** tool—not the Brush tool—then create:
+4. Select the sandbox **Sprinkle** tool - not the Brush tool - then create:
    - `200 kg` of Dirt at `-20 °C`
    - `200 kg` of Dirt at `95 °C`
 5. Put the two piles far enough apart that each can be hovered and read cleanly.
@@ -277,10 +277,10 @@ Before replacing the live assets, verify:
 
 ## Evidence used to keep this guide current
 
-- The configured Workshop preview asset is defined in [`oni-mod-pipeline.toml`](../../mods/delivery-temperature-limit-supercooled/oni-mod-pipeline.toml).
-- Current option names and restart behavior are defined in [`DeliveryTemperatureLimitOptions.cs`](../../mods/delivery-temperature-limit-supercooled/Source/DeliveryTemperatureLimitOptions.cs).
-- Storage Tile support is explicit in [`TemperatureLimitedDeliveryTargetPrefabConfigurator.cs`](../../mods/delivery-temperature-limit-supercooled/Source/TemperatureLimitedDeliveryTargets/TemperatureLimitedDeliveryTargetPrefabConfigurator.cs).
-- Construction controls are integrated with the material-selection panel in [`ConstructionMaterialTemperatureLimit.cs`](../../mods/delivery-temperature-limit-supercooled/Source/TemperatureLimitedDeliveryTargets/ConstructionMaterialTemperatureLimit.cs).
+- The configured Workshop preview asset is defined in [`oni-mod-pipeline.toml`](oni-mod-pipeline.toml).
+- Current option names and restart behavior are defined in [`DeliveryTemperatureLimitOptions.cs`](Source/DeliveryTemperatureLimitOptions.cs).
+- Storage Tile support is explicit in [`TemperatureLimitedDeliveryTargetPrefabConfigurator.cs`](Source/TemperatureLimitedDeliveryTargets/TemperatureLimitedDeliveryTargetPrefabConfigurator.cs).
+- Construction controls are integrated with the material-selection panel in [`ConstructionMaterialTemperatureLimit.cs`](Source/TemperatureLimitedDeliveryTargets/ConstructionMaterialTemperatureLimit.cs).
 - Steam's image-preview limits are documented by Valve's [ISteamUGC API](https://partner.steamgames.com/doc/api/isteamugc).
 - Sandbox and shortcut behavior can be checked against the ONI Wiki's [game settings](https://oxygennotincluded.wiki.gg/wiki/Game_Settings) and [controls](https://oxygennotincluded.wiki.gg/wiki/Controls) references.
 - Scene-specific context is documented on the ONI Wiki's [Sleet Wheat](https://oxygennotincluded.wiki.gg/wiki/Sleet_Wheat) and [Storage Tile](https://oxygennotincluded.wiki.gg/wiki/Storage_Tile) pages.
