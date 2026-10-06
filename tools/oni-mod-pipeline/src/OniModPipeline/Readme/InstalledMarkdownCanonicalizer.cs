@@ -10,7 +10,6 @@ internal sealed class InstalledMarkdownCanonicalizer(IExternalProcessRunner runn
 {
     private static readonly UTF8Encoding Utf8 = new(false, true);
     private const string PackageName = "@hadden-industries/markdown-quality";
-    private const string Version = "1.0.2";
     private const string BadgeBase = "https://raw.githubusercontent.com/MaksymShostak/oxygen-not-included/main/docs/badges/";
     private static readonly Dictionary<string, string> BadgeAlternatives = new(StringComparer.Ordinal)
     {
@@ -39,9 +38,14 @@ internal sealed class InstalledMarkdownCanonicalizer(IExternalProcessRunner runn
         if (candidate.Length > 2_097_152) throw new InvalidDataException("README exceeds the native document limit.");
         var manifestPath = ContainedPathResolver.ResolveExistingFile(repositoryRoot, "tooling/markdown/node_modules/@hadden-industries/markdown-quality/package.json");
         if (!manifestPath.IsSuccess) throw new InvalidDataException("Install the locked tooling/markdown graph before README synchronization.");
+        var lockPath = ContainedPathResolver.ResolveExistingFile(repositoryRoot, "tooling/markdown/package-lock.json");
+        if (!lockPath.IsSuccess) throw new InvalidDataException("README normalization requires the approved Markdown lockfile.");
+        using var packageLock = JsonDocument.Parse(await File.ReadAllBytesAsync(lockPath.Value!, cancellationToken).ConfigureAwait(false));
+        var version = packageLock.RootElement.GetProperty("packages").GetProperty($"node_modules/{PackageName}").GetProperty("version").GetString();
+        if (string.IsNullOrWhiteSpace(version)) throw new InvalidDataException("The locked Markdown package version is missing.");
         using var manifest = JsonDocument.Parse(await File.ReadAllBytesAsync(manifestPath.Value!, cancellationToken).ConfigureAwait(false));
         var metadata = manifest.RootElement;
-        if (metadata.GetProperty("name").GetString() != PackageName || metadata.GetProperty("version").GetString() != Version)
+        if (metadata.GetProperty("name").GetString() != PackageName || metadata.GetProperty("version").GetString() != version)
             throw new InvalidDataException("README normalization requires the approved Markdown package tuple.");
         var bin = ContainedPathResolver.ResolveExistingFile(Path.GetDirectoryName(manifestPath.Value!)!, metadata.GetProperty("bin").GetProperty("markdown-quality").GetString()!);
         if (!bin.IsSuccess) throw new InvalidDataException("The public Markdown bin is missing or unsafe.");
@@ -91,7 +95,7 @@ internal sealed class InstalledMarkdownCanonicalizer(IExternalProcessRunner runn
             var root = document.RootElement;
             if (root.GetProperty("schemaVersion").GetInt32() != 1 || root.GetProperty("operation").GetString() != mode ||
                 root.GetProperty("package").GetProperty("name").GetString() != PackageName ||
-                root.GetProperty("package").GetProperty("version").GetString() != Version ||
+                root.GetProperty("package").GetProperty("version").GetString() != version ||
                 root.GetProperty("exitCode").GetInt32() != result.ExitCode ||
                 root.GetProperty("outcome").GetString() != (result.ExitCode == 0 ? "clean" : "findings") ||
                 root.GetProperty("errors").GetArrayLength() != 0 || result.ExitCode == 0 && root.GetProperty("unprocessed").GetArrayLength() != 0 ||

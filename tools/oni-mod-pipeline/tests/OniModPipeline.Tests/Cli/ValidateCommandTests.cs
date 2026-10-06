@@ -21,10 +21,11 @@ public sealed class ValidateCommandTests
         File.WriteAllText(Path.Combine(package, "cli.js"), "// controlled process fixture");
         var markdownPackage = Path.Combine(fixture.WorktreeRoot, "tooling", "markdown", "node_modules", "@hadden-industries", "markdown-quality");
         Directory.CreateDirectory(markdownPackage);
-        File.WriteAllText(Path.Combine(markdownPackage, "package.json"), "{\"name\":\"@hadden-industries/markdown-quality\",\"version\":\"1.0.2\",\"bin\":{\"markdown-quality\":\"cli.js\"}}");
+        File.WriteAllText(Path.Combine(markdownPackage, "package.json"), "{\"name\":\"@hadden-industries/markdown-quality\",\"version\":\"1.0.3\",\"bin\":{\"markdown-quality\":\"cli.js\"}}");
         File.WriteAllText(Path.Combine(markdownPackage, "cli.js"), "// controlled checker fixture");
-        foreach (var input in new[] { ".markdown-quality.json", ".gitignore", "tooling/markdown/package.json", "tooling/markdown/package-lock.json" })
+        foreach (var input in new[] { ".markdown-quality.json", ".gitignore", "tooling/markdown/package.json" })
             File.WriteAllText(Path.Combine(fixture.WorktreeRoot, input), "{}");
+        File.WriteAllText(Path.Combine(fixture.WorktreeRoot, "tooling/markdown/package-lock.json"), JsonSerializer.Serialize(new { packages = new Dictionary<string, object> { ["node_modules/@hadden-industries/markdown-quality"] = new { version = "1.0.3" } } }));
         var runner = new ReadmeValidationRunner(fixture.ProcessRunner);
         var services = fixture.Services with { ProcessRunner = runner, GitRepositoryInspector = new GitRepositoryInspector(runner) };
         var before = SourceSnapshot.CaptureTree(fixture.RootPath);
@@ -46,7 +47,7 @@ public sealed class ValidateCommandTests
                 {
                     var index = request.Arguments.ToList().IndexOf("--files-json");
                     return new(0, JsonSerializer.Serialize(new { schemaVersion = 1, operation = request.Arguments[1],
-                        package = new { name = "@hadden-industries/markdown-quality", version = "1.0.2" },
+                        package = new { name = "@hadden-industries/markdown-quality", version = "1.0.3" },
                         exitCode = 0, outcome = "clean", errors = Array.Empty<string>(), unprocessed = Array.Empty<string>(),
                         diagnostics = Array.Empty<string>(), selection = new { mode = "explicit", files = JsonSerializer.Deserialize<string[]>(request.Arguments[index + 1]) } }), "");
                 }

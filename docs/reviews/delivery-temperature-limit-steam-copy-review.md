@@ -290,8 +290,8 @@ The issue is not that seventeen visible rows are technically wrong.
 It is that **language support is metadata**, whereas your page currently gives it the same visual weight as the actual mod behaviour.
 A prospective subscriber generally wants three things from that information:
 
-> Does my language work?  
-> Does the mod choose it automatically?  
+> Does my language work?\
+> Does the mod choose it automatically?\
 > Which variants are supported?
 
 Those can be answered in one or two lines.

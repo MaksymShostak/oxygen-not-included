@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using MaksymShostak.OniModPipeline.Processes;
 using MaksymShostak.OniModPipeline.Readme;
 using MaksymShostak.OniModPipeline.Tests.Fixtures;
@@ -46,18 +47,47 @@ public sealed class InstalledMarkdownCanonicalizerTests
         fixture.AssertOriginalAndNoTemporaryFiles();
     }
 
+    [TestMethod]
+    public async Task Canonicalize_AcceptsLockedVersionAndMatchingPublicResult()
+    {
+        using var fixture = new Fixture("1.0.4");
+        fixture.Runner.ResultVersion = "1.0.4";
+        CollectionAssert.AreEqual(Encoding.UTF8.GetBytes(Fixture.Original), await fixture.Run());
+        Assert.AreEqual(3, fixture.Runner.CheckerCalls);
+        fixture.AssertOriginalAndNoTemporaryFiles();
+    }
+
+    [TestMethod]
+    public async Task Canonicalize_RejectsInstalledVersionDifferentFromLockBeforeLaunchingChecker()
+    {
+        using var fixture = new Fixture(lockedVersion: "1.0.4", installedVersion: "1.0.3");
+        await Assert.ThrowsAsync<InvalidDataException>(fixture.Run);
+        Assert.AreEqual(0, fixture.Runner.CheckerCalls);
+        fixture.AssertOriginalAndNoTemporaryFiles();
+    }
+
+    [TestMethod]
+    public async Task Canonicalize_RejectsPublicResultFromDifferentPackageVersion()
+    {
+        using var fixture = new Fixture();
+        fixture.Runner.ResultVersion = "1.0.4";
+        await Assert.ThrowsAsync<InvalidDataException>(fixture.Run);
+        fixture.AssertOriginalAndNoTemporaryFiles();
+    }
+
     private sealed class Fixture : IDisposable
     {
         private readonly TemporaryDirectory directory = new();
-        private const string Original = "# Owner\n<!-- oni-mod-pipeline:workshop-description:start -->\n## Mod\n<!-- oni-mod-pipeline:workshop-description:end -->\n";
+        internal const string Original = "# Owner\n<!-- oni-mod-pipeline:workshop-description:start -->\n## Mod\n<!-- oni-mod-pipeline:workshop-description:end -->\n";
         internal Runner Runner { get; } = new();
         private string ReadmePath => directory.GetPath("README.md");
 
-        internal Fixture()
+        internal Fixture(string lockedVersion = "1.0.3", string? installedVersion = null)
         {
             var package = directory.GetPath("tooling", "markdown", "node_modules", "@hadden-industries", "markdown-quality");
             Directory.CreateDirectory(package);
-            File.WriteAllText(Path.Combine(package, "package.json"), "{\"name\":\"@hadden-industries/markdown-quality\",\"version\":\"1.0.2\",\"bin\":{\"markdown-quality\":\"cli.js\"}}");
+            File.WriteAllText(Path.Combine(package, "package.json"), JsonSerializer.Serialize(new { name = "@hadden-industries/markdown-quality", version = installedVersion ?? lockedVersion, bin = new Dictionary<string, string> { ["markdown-quality"] = "cli.js" } }));
+            File.WriteAllText(directory.GetPath("tooling", "markdown", "package-lock.json"), JsonSerializer.Serialize(new { packages = new Dictionary<string, object> { ["node_modules/@hadden-industries/markdown-quality"] = new { version = lockedVersion } } }));
             File.WriteAllText(Path.Combine(package, "cli.js"), "// test-only installed bin");
             File.WriteAllText(ReadmePath, Original);
         }
@@ -79,6 +109,7 @@ public sealed class InstalledMarkdownCanonicalizerTests
     {
         internal string Version { get; set; } = "v24.21.0";
         internal string Output { get; set; } = "{}";
+        internal string? ResultVersion { get; set; }
         internal int ExitCode { get; set; }
         internal int CheckerCalls { get; private set; }
         internal Action? DuringChecker { get; set; }
@@ -90,6 +121,14 @@ public sealed class InstalledMarkdownCanonicalizerTests
             CheckerCalls++;
             DuringChecker?.Invoke();
             token.ThrowIfCancellationRequested();
+            if (ResultVersion is not null)
+            {
+                var index = request.Arguments.ToList().IndexOf("--files-json");
+                return Task.FromResult(new ProcessResult(0, JsonSerializer.Serialize(new { schemaVersion = 1, operation = request.Arguments[1],
+                    package = new { name = "@hadden-industries/markdown-quality", version = ResultVersion },
+                    exitCode = 0, outcome = "clean", errors = Array.Empty<string>(), unprocessed = Array.Empty<string>(),
+                    diagnostics = Array.Empty<string>(), selection = new { mode = "explicit", files = JsonSerializer.Deserialize<string[]>(request.Arguments[index + 1]) } }), ""));
+            }
             return Task.FromResult(new ProcessResult(ExitCode, Output, ""));
         }
     }
