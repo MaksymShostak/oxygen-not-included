@@ -1,11 +1,17 @@
 """Exercise CI policy against real Git histories and deliberately broken completions."""
 
 import copy
+import contextlib
+import html
 import importlib.util
+import io
+import itertools
 import json
 import os
 from pathlib import Path
 import subprocess
+import re
+import shlex
 import sys
 import tempfile
 import unittest
@@ -313,21 +319,116 @@ class CiChecksTests(unittest.TestCase):
         with self.assertRaises(checks.CheckError):
             checks.validate(altered, plan)
 
-    def test_selected_matrix_language_requires_same_attempt_completion(self):
+    def codeql_environment(self, plan):
+        """Bind real event recomputation to independently authored job evidence."""
+        event_path = self.root / "event.json"
+        event_path.write_text("{}", encoding="utf-8")
+        environment = {**os.environ, "GITHUB_EVENT_PATH": str(event_path),
+                       "GITHUB_OUTPUT": str(self.root / "output.txt"),
+                       "GITHUB_STEP_SUMMARY": str(self.root / "summary.md"),
+                       "GITHUB_SHA": plan["revision"], "GITHUB_REF": "refs/heads/main",
+                       "GITHUB_EVENT_NAME": "workflow_dispatch", "GITHUB_REPOSITORY": "owner/oni",
+                       "GITHUB_RUN_ID": "123", "GITHUB_RUN_ATTEMPT": "2",
+                       "ONI_PLAN": json.dumps(plan), "ONI_VALIDATION_RESULT": "success"}
+        for language in ("actions", "csharp", "python"):
+            environment[f"ONI_{language.upper()}_RESULT"] = "success"
+            environment[f"ONI_{language.upper()}_RECEIPT"] = json.dumps({
+                "language": language, "revision": plan["revision"],
+                "policy_sha256": plan["policy_sha256"], "run_id": "123", "attempt": "2",
+            }, separators=(",", ":"))
+        return environment
+
+    def run_codeql(self, operation, environment):
+        return subprocess.run([sys.executable, str(SOURCE), operation], cwd=self.root,
+                              env=environment, capture_output=True, text=True, timeout=30)
+
+    def test_native_receipt_is_a_single_line_output_after_successful_analysis(self):
         plan = checks.select(self.root, "workflow_dispatch", {}, self.base, "owner/oni")
-        receipts = self.root / "receipts"
-        receipts.mkdir()
-        for language in plan["languages"]:
-            (receipts / f"{language}.json").write_text(json.dumps({
-                "language": language, "revision": self.base, "policy_sha256": plan["policy_sha256"],
-                "run_id": "123", "attempt": "2",
-            }), encoding="utf-8")
-        checks.codeql_receipts(plan, receipts, "123", "2")
-        with self.assertRaises(checks.CheckError):
-            checks.codeql_receipts(plan, receipts, "123", "3")
-        (receipts / "python.json").unlink()
-        with self.assertRaises(checks.CheckError):
-            checks.codeql_receipts(plan, receipts, "123", "2")
+        environment = self.codeql_environment(plan)
+        environment.update(ONI_LANGUAGE="python", ONI_ANALYSIS_RESULT="success")
+        result = self.run_codeql("codeql-receipt", environment)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        expected = environment["ONI_PYTHON_RECEIPT"]
+        self.assertEqual((self.root / "output.txt").read_bytes(), f"receipt={expected}\n".encode())
+        self.assertFalse((self.root / "receipts").exists())
+
+    def test_native_completion_rejects_a_previous_attempt_and_preserves_siblings(self):
+        plan = checks.select(self.root, "workflow_dispatch", {}, self.base, "owner/oni")
+        environment = self.codeql_environment(plan)
+        stale = json.loads(environment["ONI_CSHARP_RECEIPT"])
+        stale["attempt"] = "1"
+        environment["ONI_CSHARP_RECEIPT"] = json.dumps(stale)
+        result = self.run_codeql("codeql-complete", environment)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse((self.root / "output.txt").exists())
+        for language in ("actions", "csharp", "python"):
+            self.assertIn(language, result.stdout)
+        self.assertIn('"attempt": "1"', result.stdout)
+        self.assertIn("rerun the complete selected CodeQL set", result.stdout)
+
+    def test_native_completion_emits_only_the_qualified_source_revision(self):
+        plan = checks.select(self.root, "workflow_dispatch", {}, self.base, "owner/oni")
+        result = self.run_codeql("codeql-complete", self.codeql_environment(plan))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual((self.root / "output.txt").read_bytes(), f"completion_sha={self.base}\n".encode())
+
+    def test_real_python_only_selection_rejects_an_unselected_child_before_analysis(self):
+        self.write("clean.py", "print('python-only change')\n")
+        plan = self.push_plan()
+        self.assertEqual(plan["languages"], ["python"])
+        environment = self.codeql_environment(plan)
+        environment["GITHUB_EVENT_NAME"] = "push"
+        (self.root / "event.json").write_text(json.dumps({"before": self.base, "after": plan["revision"],
+            "ref": "refs/heads/main"}), encoding="utf-8")
+        child = json.loads((SOURCE.parents[2] / ".github/workflows/codeql-language.yml").read_text())
+        validation_commands = [shlex.split(command) for command in child["jobs"]["analyze"]["steps"][1]["run"].splitlines()]
+        for language in ("actions", "csharp", "python"):
+            environment["ONI_LANGUAGE"] = language
+            return_codes = []
+            for command in validation_commands:
+                result = subprocess.run([sys.executable, *command[1:]], cwd=self.root,
+                                        env=environment, capture_output=True, timeout=30)
+                return_codes.append(result.returncode)
+                if result.returncode:
+                    break
+            self.assertEqual(return_codes[0], 0)  # Authentic plan reaches the language guard.
+            self.assertEqual(return_codes[-1] == 0, language == "python")
+
+    def test_native_receipt_rejects_failure_unknown_language_and_output_injection(self):
+        plan = checks.select(self.root, "workflow_dispatch", {}, self.base, "owner/oni")
+        environment = self.codeql_environment(plan)
+        environment.update(ONI_LANGUAGE="python", ONI_ANALYSIS_RESULT="success")
+        for key, value in ([("ONI_ANALYSIS_RESULT", status) for status in ("failure", "cancelled", "skipped", "")]
+                + [("ONI_LANGUAGE", "javascript"), ("GITHUB_RUN_ID", "123\nforged=success"),
+                   ("GITHUB_RUN_ATTEMPT", "0"), ("GITHUB_RUN_ID", "1" * 4096)]):
+            with self.subTest(key=key, value=value[:40]):
+                result = self.run_codeql("codeql-receipt", {**environment, key: value})
+                self.assertNotEqual(result.returncode, 0)
+                self.assertFalse((self.root / "output.txt").exists())
+
+    def test_actual_child_validation_rejects_unselected_unknown_and_ineligible_calls(self):
+        child = json.loads((SOURCE.parents[2] / ".github/workflows/codeql-language.yml").read_text())
+        validation_script = child["jobs"]["analyze"]["steps"][1]["run"]
+        plan = checks.select(self.root, "workflow_dispatch", {}, self.base, "owner/oni")
+        environment = self.codeql_environment(plan)
+        for language, modified_plan, should_succeed in [
+            ("python", plan, True), ("javascript", plan, False),
+            ("python", {**plan, "languages": ["actions"]}, False),
+            ("python", {**plan, "eligibility": {**plan["eligibility"], "codeql": False}}, False),
+            ("python", {**plan, "revision": "f" * 40}, False),
+        ]:
+            with self.subTest(language=language, plan=modified_plan):
+                environment.update(ONI_LANGUAGE=language, ONI_PLAN=json.dumps(modified_plan))
+                results = []
+                # Run the real authored shell commands with the repository interpreter.
+                for command in validation_script.splitlines():
+                    arguments = shlex.split(command)
+                    self.assertEqual(arguments[0], "python3")
+                    results.append(subprocess.run([sys.executable, *arguments[1:]], cwd=self.root,
+                                                  env=environment, capture_output=True, timeout=30))
+                    if results[-1].returncode:
+                        break
+                self.assertEqual(all(result.returncode == 0 for result in results), should_succeed)
 
     def test_dependency_old_sha_survives_docs_but_not_new_dependency_state(self):
         remote = self.root.parent / (self.root.name + "-remote.git")
@@ -345,6 +446,321 @@ class CiChecksTests(unittest.TestCase):
         self.run_git("push", "origin", "main")
         with self.assertRaises(checks.CheckError):
             checks.dependency_ready(self.root, plan)
+
+
+class CodeqlWorkflowContractTests(unittest.TestCase):
+    """Mutate the actual authored workflows and exercise their completion wiring.
+
+    JSON flow syntax is valid YAML. The native JSON parser lets these contracts
+    run in the existing standard-library-only control job without a YAML shim.
+    These checks cannot establish GitHub's hosted expression/output semantics.
+    """
+
+    def setUp(self):
+        workflows = SOURCE.parents[2] / ".github/workflows"
+        self.parent = json.loads((workflows / "codeql.yml").read_text(encoding="utf-8"))
+        self.child = json.loads((workflows / "codeql-language.yml").read_text(encoding="utf-8"))
+
+    def assert_workflow_contract(self, parent, child):
+        """Assert accepted topology/trust invariants, rather than a whole-file snapshot."""
+        calls = ["analyze-actions", "analyze-csharp", "analyze-python"]
+        self.assertEqual(set(parent["jobs"]), {"validate", "complete", *calls})
+        self.assertEqual(set(parent["on"]), {"workflow_call"})
+        self.assertEqual(set(child["on"]), {"workflow_call"})
+        self.assertEqual(parent["permissions"], {})
+        self.assertEqual(child["permissions"], {})
+        self.assertEqual(parent["on"]["workflow_call"]["outputs"]["completion_sha"]["value"],
+                         "${{ jobs.complete.outputs.completion_sha }}")
+        self.assertEqual(parent["on"]["workflow_call"]["inputs"], {"plan": {"required": True, "type": "string"}})
+        self.assertEqual(child["on"]["workflow_call"]["inputs"],
+                         {"plan": {"required": True, "type": "string"},
+                          "language": {"required": True, "type": "string"}})
+        validation = parent["jobs"]["validate"]
+        self.assertEqual(validation["permissions"], {"contents": "read"})
+        self.assertEqual(validation["outputs"]["languages"], "${{ steps.scope.outputs.languages }}")
+        self.assertIn("python3 tools/ci/checks.py validate", validation["steps"][1]["run"])
+        self.assertIn('p["checks"]["codeql"] and p["eligibility"]["codeql"] and p["languages"]',
+                      validation["steps"][1]["run"])
+        for language in ("actions", "csharp", "python"):
+            call = parent["jobs"][f"analyze-{language}"]
+            self.assertEqual(call["needs"], "validate")
+            self.assertEqual(call["if"], f"contains(fromJSON(needs.validate.outputs.languages), '{language}')")
+            self.assertEqual(call["uses"], "./.github/workflows/codeql-language.yml")
+            self.assertEqual(call["with"], {"plan": "${{ inputs.plan }}", "language": language})
+            self.assertEqual(call["permissions"], {"contents": "read", "security-events": "write"})
+            self.assertFalse({"strategy", "secrets", "steps", "continue-on-error"} & set(call))
+        completion = parent["jobs"]["complete"]
+        self.assertEqual(completion["if"], "always()")
+        self.assertEqual(completion["needs"], ["validate", *calls])
+        self.assertEqual(completion["outputs"], {"completion_sha": "${{ steps.complete.outputs.completion_sha }}"})
+        self.assertEqual(completion["permissions"], {"contents": "read"})
+        expected_environment = {"ONI_PLAN": "${{ inputs.plan }}", "ONI_VALIDATION_RESULT": "${{ needs.validate.result }}"}
+        for language in ("actions", "csharp", "python"):
+            expected_environment[f"ONI_{language.upper()}_RESULT"] = "${{ needs.analyze-" + language + ".result }}"
+            expected_environment[f"ONI_{language.upper()}_RECEIPT"] = "${{ needs.analyze-" + language + ".outputs.receipt }}"
+        self.assertEqual(completion["env"], expected_environment)
+        self.assertEqual(completion["steps"][1]["run"], "python3 tools/ci/checks.py codeql-complete")
+        self.assertEqual(set(child["jobs"]), {"analyze"})
+        analysis = child["jobs"]["analyze"]
+        self.assertEqual(analysis["runs-on"], "ubuntu-24.04")
+        self.assertEqual(analysis["timeout-minutes"], 20)
+        self.assertEqual(analysis["permissions"], {"contents": "read", "security-events": "write"})
+        self.assertEqual(analysis["env"], {"ONI_PLAN": "${{ inputs.plan }}", "ONI_LANGUAGE": "${{ inputs.language }}"})
+        self.assertEqual(analysis["outputs"], {"receipt": "${{ steps.receipt.outputs.receipt }}"})
+        self.assertEqual(child["on"]["workflow_call"]["outputs"]["receipt"]["value"], "${{ jobs.analyze.outputs.receipt }}")
+        self.assertFalse({"strategy", "continue-on-error", "if"} & set(analysis))
+        steps = analysis["steps"]
+        self.assertEqual(len(steps), 5)
+        self.assertEqual(steps[0]["uses"], "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1")
+        self.assertIn("python3 tools/ci/checks.py validate", steps[1]["run"])
+        self.assertIn('language in ("actions","csharp","python")', steps[1]["run"])
+        self.assertIn('language in plan["languages"]', steps[1]["run"])
+        self.assertIn('plan["checks"]["codeql"] and plan["eligibility"]["codeql"]', steps[1]["run"])
+        self.assertEqual(steps[2]["uses"], "github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd")
+        self.assertEqual(steps[2]["with"], {"languages": "${{ inputs.language }}", "build-mode": "none", "tools": "linked"})
+        self.assertEqual(steps[3]["id"], "analysis")
+        self.assertEqual(steps[3]["uses"], "github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd")
+        self.assertEqual(steps[3]["with"], {"category": "/language:${{ inputs.language }}"})
+        self.assertEqual(steps[4]["id"], "receipt")
+        self.assertEqual(steps[4]["env"], {"ONI_ANALYSIS_RESULT": "${{ steps.analysis.outcome }}"})
+        self.assertEqual(steps[4]["run"], "python3 tools/ci/checks.py codeql-receipt")
+        for workflow in (parent, child):
+            serialized = json.dumps(workflow)
+            self.assertNotIn("upload-artifact", serialized)
+            self.assertNotIn("download-artifact", serialized)
+            self.assertNotIn("ONI_RECEIPTS", serialized)
+            for job in workflow["jobs"].values():
+                for step in job.get("steps", []):
+                    self.assertNotIn("continue-on-error", step)
+                    self.assertNotIn("${{", step.get("run", ""))
+                    if step.get("uses", "").startswith("actions/checkout@"):
+                        self.assertEqual(step["uses"], "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1")
+                        self.assertEqual(step["with"], {"fetch-depth": 0, "persist-credentials": False})
+
+    def test_actual_workflow_contract_and_independent_output_wiring(self):
+        self.assert_workflow_contract(self.parent, self.child)
+        for selected in (("python",), ("csharp", "python"), ("actions", "csharp", "python")):
+            plan = {"revision": "a" * 40, "policy_sha256": "b" * 64, "languages": list(selected),
+                    "checks": {"codeql": True}, "eligibility": {"codeql": True}}
+            job_evidence = {"validate": {"result": "success"}}
+            for language in ("actions", "csharp", "python"):
+                call = self.parent["jobs"][f"analyze-{language}"]
+                selected_language = re.fullmatch(r"contains\(fromJSON\(needs.validate.outputs.languages\), '([^']+)'\)",
+                                                 call["if"]).group(1)
+                is_selected = selected_language in selected
+                receipt = json.dumps({"language": call["with"]["language"], "revision": "a" * 40,
+                                      "policy_sha256": "b" * 64, "run_id": "123", "attempt": "2"}) if is_selected else ""
+                job_evidence[f"analyze-{language}"] = {"result": "success" if is_selected else "skipped", "receipt": receipt}
+            environment = {}
+            for name, expression in self.parent["jobs"]["complete"]["env"].items():
+                if name == "ONI_PLAN":
+                    continue
+                binding = re.fullmatch(r"\$\{\{ needs\.([\w-]+)\.(?:outputs\.)?(result|receipt) \}\}", expression)
+                environment[name] = job_evidence[binding.group(1)][binding.group(2)]
+            results = {language: environment[f"ONI_{language.upper()}_RESULT"] for language in ("actions", "csharp", "python")}
+            receipts = {language: environment[f"ONI_{language.upper()}_RECEIPT"] for language in ("actions", "csharp", "python")}
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(checks.complete_codeql_analysis(plan, results, receipts, "123", "2",
+                                                                environment["ONI_VALIDATION_RESULT"]), "a" * 40)
+
+    def test_workflow_mutations_detect_omitted_bindings_weakened_trust_and_archives(self):
+        mutations = [
+            ("parent", ("jobs", "complete", "needs"), ["validate", "analyze-python"]),
+            ("parent", ("jobs", "complete", "if"), "success()"),
+            ("parent", ("jobs", "complete", "env", "ONI_VALIDATION_RESULT"), "success"),
+            ("parent", ("jobs", "validate", "steps", 1, "run"), "true"),
+            ("parent", ("jobs", "complete", "steps", 1, "run"), "python3 tools/ci/checks.py complete"),
+            ("child", ("jobs", "analyze", "strategy"), {"matrix": {"language": ["actions", "csharp", "python"]}}),
+            ("child", ("jobs", "analyze", "if"), "false"),
+            ("child", ("jobs", "analyze", "steps", 0, "uses"), "unexpected/replacement@unknown"),
+            ("child", ("jobs", "analyze", "steps", 1, "run"), "python3 tools/ci/checks.py validate"),
+            ("child", ("jobs", "analyze", "steps", 2, "with", "build-mode"), "autobuild"),
+            ("child", ("jobs", "analyze", "steps", 2, "with", "tools"), "latest"),
+            ("child", ("jobs", "analyze", "steps", 3, "with", "category"), "shared"),
+            ("child", ("jobs", "analyze", "steps", 4, "env", "ONI_ANALYSIS_RESULT"), "success"),
+            ("child", ("jobs", "analyze", "steps", 4, "uses"), "actions/upload-artifact@unexpected"),
+            ("child", ("jobs", "analyze", "steps", 0, "with", "persist-credentials"), True),
+            ("child", ("jobs", "analyze", "permissions", "security-events"), "read"),
+        ]
+        for language in ("actions", "csharp", "python"):
+            mutations.extend([
+                ("parent", ("jobs", f"analyze-{language}", "if"), "always()"),
+                ("parent", ("jobs", f"analyze-{language}", "with", "language"), "unknown"),
+                ("parent", ("jobs", f"analyze-{language}", "permissions", "security-events"), "read"),
+                ("parent", ("jobs", "complete", "env", f"ONI_{language.upper()}_RESULT"), "success"),
+                ("parent", ("jobs", "complete", "env", f"ONI_{language.upper()}_RECEIPT"), "${{ needs.validate.outputs.receipt }}"),
+            ])
+        for target, path, replacement in mutations:
+            workflows = {"parent": copy.deepcopy(self.parent), "child": copy.deepcopy(self.child)}
+            container = workflows[target]
+            for key in path[:-1]:
+                container = container[key]
+            container[path[-1]] = replacement
+            with self.subTest(target=target, path=path), self.assertRaises(AssertionError):
+                self.assert_workflow_contract(workflows["parent"], workflows["child"])
+
+
+class CodeqlCompletionContractTests(unittest.TestCase):
+    """Independent wire identities exercise the full fixed-slot admission boundary."""
+
+    def setUp(self):
+        self.plan = {"revision": "a" * 40, "policy_sha256": "b" * 64,
+                     "languages": ["actions", "csharp", "python"],
+                     "checks": {"codeql": True}, "eligibility": {"codeql": True}}
+        self.results = {language: "success" for language in ("actions", "csharp", "python")}
+        self.receipts = {language: json.dumps({"language": language, "revision": "a" * 40,
+            "policy_sha256": "b" * 64, "run_id": "123", "attempt": "2"})
+            for language in ("actions", "csharp", "python")}
+        self.output = io.StringIO()
+
+    def complete(self, plan=None, results=None, receipts=None, validation_result="success"):
+        with contextlib.redirect_stdout(self.output):
+            return checks.complete_codeql_analysis(plan or self.plan, self.results if results is None else results,
+                self.receipts if receipts is None else receipts, "123", "2", validation_result)
+
+    def test_all_nonempty_language_subsets_and_receipt_arrival_orders(self):
+        for count in (1, 2, 3):
+            for selected in itertools.combinations(("actions", "csharp", "python"), count):
+                for order in itertools.permutations(selected):
+                    plan = {**self.plan, "languages": list(selected)}
+                    results = {language: "success" if language in selected else "skipped" for language in self.results}
+                    receipts = {language: self.receipts[language] for language in order}
+                    receipts.update({language: "" for language in self.receipts if language not in selected})
+                    with self.subTest(selected=selected, order=order):
+                        self.assertEqual(self.complete(plan, results, receipts), "a" * 40)
+
+    def test_every_non_successful_selected_result_and_missing_record_is_reported(self):
+        for language in ("actions", "csharp", "python"):
+            for result in ("failure", "cancelled", "skipped", "", "unknown"):
+                self.output = io.StringIO()
+                with self.subTest(language=language, result=result), self.assertRaises(checks.CheckError):
+                    self.complete(results={**self.results, language: result}, receipts={**self.receipts, language: ""})
+                report = self.output.getvalue()
+                self.assertIn("missing completion receipt", report)
+                self.assertIn("selected analysis did not succeed", report)
+                for sibling in ("actions", "csharp", "python"):
+                    self.assertIn(f"{sibling}: selected=true", report)
+        with self.assertRaises(checks.CheckError):
+            self.complete(receipts={**self.receipts, "python": ""})
+
+    def test_wrong_identity_types_keys_duplicates_and_json_values_fail(self):
+        invalid_records = ["{", "[]", "null", '"receipt"', "1", "{}", " " * 4097,
+                           "雪" * 1366, self.receipts["csharp"] + "\n", '{"language":"csharp","language":"csharp"}']
+        original = json.loads(self.receipts["csharp"])
+        for field in ("language", "revision", "policy_sha256", "run_id", "attempt"):
+            for value in (None, 123, True, [], {}, "wrong", ""):
+                invalid_records.append(json.dumps({**original, field: value}))
+            invalid_records.append(json.dumps({key: value for key, value in original.items() if key != field}))
+            invalid_records.append(self.receipts["csharp"][:-1] + f',"{field}":{json.dumps(original[field])}' + "}")
+        invalid_records.extend([json.dumps({**original, "unexpected": "field"}),
+                                json.dumps({**original, "language": "python"}),
+                                json.dumps({**original, "attempt": "1"}),
+                                json.dumps({**original, "run_id": "124"}),
+                                json.dumps({**original, "revision": "c" * 40}),
+                                json.dumps({**original, "policy_sha256": "d" * 64})])
+        for record in invalid_records:
+            with self.subTest(record=record[:100]), self.assertRaises(checks.CheckError):
+                self.complete(receipts={**self.receipts, "csharp": record})
+
+    def test_deeply_nested_receipt_reports_valid_siblings_before_rejection(self):
+        nested_receipt = "[" * 1500 + "0" + "]" * 1500
+        self.assertLess(len(nested_receipt.encode("utf-8")), checks.MAX_CODEQL_RECEIPT_BYTES)
+        decode_json = json.loads
+
+        def reject_deep_nesting(value, **options):
+            # Hosted Python versions can hit a parser recursion limit here.
+            if value == nested_receipt:
+                raise RecursionError("maximum recursion depth exceeded while decoding JSON")
+            return decode_json(value, **options)
+
+        with tempfile.TemporaryDirectory() as directory:
+            summary_path = Path(directory) / "summary.md"
+            with patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": str(summary_path)}), \
+                    patch.object(checks.json, "loads", side_effect=reject_deep_nesting):
+                with self.assertRaisesRegex(checks.CheckError, "rerun the complete selected CodeQL set"):
+                    self.complete(receipts={**self.receipts, "csharp": nested_receipt})
+            report = self.output.getvalue()
+            summary = summary_path.read_text(encoding="utf-8")
+        for sibling in ("actions", "python"):
+            self.assertIn(self.receipts[sibling], report)
+            self.assertIn(html.escape(self.receipts[sibling]), summary)
+        self.assertIn(nested_receipt, report)
+        self.assertIn("invalid=", summary)
+        token = report.splitlines()[0].removeprefix("::stop-commands::")
+        self.assertEqual(report.splitlines()[-1], f"::{token}::")
+
+    def test_unselected_slots_cannot_return_results_or_receipts(self):
+        plan = {**self.plan, "languages": ["python"]}
+        results = {"actions": "skipped", "csharp": "skipped", "python": "success"}
+        receipts = {"actions": "", "csharp": "", "python": self.receipts["python"]}
+        self.assertEqual(self.complete(plan, results, receipts), "a" * 40)
+        for language in ("actions", "csharp"):
+            for result in ("success", "failure", "cancelled", ""):
+                with self.subTest(language=language, result=result), self.assertRaises(checks.CheckError):
+                    self.complete(plan, {**results, language: result}, receipts)
+            with self.assertRaises(checks.CheckError):
+                self.complete(plan, results, {**receipts, language: self.receipts[language]})
+
+    def test_extra_missing_slots_and_unsuccessful_validator_fail(self):
+        for results, receipts in [({}, self.receipts), (self.results, {}),
+                                  ({**self.results, "javascript": "success"}, self.receipts),
+                                  (self.results, {**self.receipts, "javascript": "{}"})]:
+            with self.subTest(results=results, receipts=receipts), self.assertRaises(checks.CheckError):
+                self.complete(results=results, receipts=receipts)
+        for status in ("failure", "skipped", "cancelled", ""):
+            with self.subTest(status=status), self.assertRaises(checks.CheckError):
+                self.complete(validation_result=status)
+
+    def test_receipt_producer_rejects_untrusted_selection_and_invalid_identity_formats(self):
+        for field, value in [("revision", "A" * 40), ("revision", "a" * 39),
+                             ("policy_sha256", "B" * 64), ("policy_sha256", "b" * 63),
+                             ("eligibility", {"codeql": False}), ("checks", {"codeql": False}),
+                             ("languages", ["python"])]:
+            with self.subTest(field=field, value=value), self.assertRaises(checks.CheckError):
+                checks.create_codeql_receipt({**self.plan, field: value}, "actions", "success", "123", "2")
+        for run_id, attempt in [("", "2"), ("0", "2"), ("123", "0"), ("01", "2"),
+                                ("１２３", "2"), ("123", "2\nforged=success")]:
+            with self.subTest(run_id=run_id, attempt=attempt), self.assertRaises(checks.CheckError):
+                checks.create_codeql_receipt(self.plan, "python", "success", run_id, attempt)
+
+    def test_hostile_middle_receipt_is_protected_and_does_not_hide_siblings(self):
+        hostile = "::error::forged\n</pre><script>alert(1)</script> `$()` ' quote &"
+        with tempfile.TemporaryDirectory() as directory:
+            summary_path = Path(directory) / "summary.md"
+            with patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": str(summary_path)}):
+                with self.assertRaises(checks.CheckError):
+                    self.complete(receipts={**self.receipts, "csharp": hostile})
+            summary = summary_path.read_text(encoding="utf-8")
+            self.assertIn("&lt;script&gt;", summary)
+            self.assertNotIn("<script>", summary)
+            self.assertLessEqual(len(summary.encode("utf-8")), 16384)
+            report = self.output.getvalue()
+            token = re.search(r"^::stop-commands::([0-9a-f]{64})$", report, re.MULTILINE).group(1)
+            self.assertLess(report.index(f"::stop-commands::{token}"), report.index(hostile))
+            self.assertGreater(report.index(f"::{token}::"), report.index(hostile))
+            self.assertIn(self.receipts["actions"], report)
+            self.assertIn(self.receipts["python"], report)
+
+    def test_oversized_raw_evidence_and_escaped_summaries_are_explicitly_bounded(self):
+        with tempfile.TemporaryDirectory() as directory:
+            summary_path = Path(directory) / "summary.md"
+            with patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": str(summary_path)}):
+                with self.assertRaises(checks.CheckError):
+                    self.complete(receipts={language: "<" * 10000 for language in self.receipts})
+            self.assertLessEqual(summary_path.stat().st_size, 16384)
+            self.assertLess(len(self.output.getvalue().encode()), 16384)
+            self.assertIn("exceeds 4 KiB", self.output.getvalue())
+            self.assertIn("diagnostic excerpt", self.output.getvalue())
+
+    def test_summary_failure_preserves_rejection_and_resumes_workflow_commands(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": directory}):
+                with self.assertRaises(checks.CheckError) as raised:
+                    self.complete(receipts={**self.receipts, "csharp": "{"})
+            self.assertIn("csharp:", str(raised.exception))
+            self.assertIn("summary could not be written", str(raised.exception))
+            token = re.search(r"::stop-commands::([0-9a-f]{64})", self.output.getvalue()).group(1)
+            self.assertIn(f"::{token}::", self.output.getvalue())
 
 
 if __name__ == "__main__":

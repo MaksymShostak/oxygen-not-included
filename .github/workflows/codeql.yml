@@ -1,114 +1,131 @@
-name: CodeQL
-
-on:
-  workflow_call:
-    inputs:
-      plan:
-        required: true
-        type: string
-    outputs:
-      completion_sha:
-        value: ${{ jobs.complete.outputs.completion_sha }}
-
-permissions: {}
-
-jobs:
-  validate:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    permissions:
-      contents: read
-    outputs:
-      languages: ${{ steps.scope.outputs.languages }}
-    env:
-      ONI_PLAN: ${{ inputs.plan }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - id: scope
-        name: Independently validate selection and analysis trust
-        run: |
-          python3 -c "import sys; assert sys.version_info >= (3,10); print(sys.version)"
-          python3 tools/ci/checks.py validate
-          python3 -c 'import json,os; p=json.loads(os.environ["ONI_PLAN"]); assert p["checks"]["codeql"] and p["eligibility"]["codeql"] and p["languages"]'
-
-  analyze:
-    needs: validate
-    name: Analyze (${{ matrix.language }})
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    permissions:
-      contents: read
-      security-events: write
-    strategy:
-      fail-fast: false
-      matrix:
-        language: ${{ fromJSON(needs.validate.outputs.languages) }}
-    env:
-      ONI_PLAN: ${{ inputs.plan }}
-      ONI_LANGUAGE: ${{ matrix.language }}
-    steps:
-      - name: Check out the source revision
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Validate actual tested revision
-        run: python3 tools/ci/checks.py validate
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
-        with:
-          languages: ${{ matrix.language }}
-          build-mode: none
-          tools: linked
-      - id: analysis
-        name: Analyze and upload results
-        uses: github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
-        with:
-          category: "/language:${{ matrix.language }}"
-      - name: Record selected-language completion
-        env:
-          ONI_RECEIPTS: ${{ runner.temp }}/oni-codeql-receipt
-          ONI_ANALYSIS_RESULT: ${{ steps.analysis.outcome }}
-        run: python3 tools/ci/checks.py codeql-receipt
-      - name: Retain same-attempt completion data
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: oni-codeql-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.language }}
-          path: ${{ runner.temp }}/oni-codeql-receipt/*.json
-          if-no-files-found: error
-          retention-days: 1
-
-  complete:
-    if: always()
-    needs: [validate, analyze]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    permissions:
-      contents: read
-    outputs:
-      completion_sha: ${{ steps.complete.outputs.completion_sha }}
-    env:
-      ONI_PLAN: ${{ inputs.plan }}
-      ONI_ANALYSIS_RESULT: ${{ needs.analyze.result }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Require the validated matrix
-        env:
-          VALIDATION_RESULT: ${{ needs.validate.result }}
-        run: python3 -c 'import os; assert os.environ["VALIDATION_RESULT"] == "success"'
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          pattern: oni-codeql-${{ github.run_id }}-${{ github.run_attempt }}-*
-          path: ${{ runner.temp }}/oni-codeql-completions
-          merge-multiple: true
-      - id: complete
-        name: Verify every selected language and return tested identity
-        env:
-          ONI_RECEIPTS: ${{ runner.temp }}/oni-codeql-completions
-        run: python3 tools/ci/checks.py codeql-complete
+{
+  "name": "CodeQL",
+  "on": {
+    "workflow_call": {
+      "inputs": {
+        "plan": {
+          "required": true,
+          "type": "string"
+        }
+      },
+      "outputs": {
+        "completion_sha": {
+          "value": "${{ jobs.complete.outputs.completion_sha }}"
+        }
+      }
+    }
+  },
+  "permissions": {},
+  "jobs": {
+    "validate": {
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 5,
+      "permissions": {
+        "contents": "read"
+      },
+      "outputs": {
+        "languages": "${{ steps.scope.outputs.languages }}"
+      },
+      "env": {
+        "ONI_PLAN": "${{ inputs.plan }}"
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "with": {
+            "fetch-depth": 0,
+            "persist-credentials": false
+          }
+        },
+        {
+          "id": "scope",
+          "name": "Independently validate selection and analysis trust",
+          "run": "python3 -c \"import sys; assert sys.version_info >= (3,10); print(sys.version)\"\npython3 tools/ci/checks.py validate\npython3 -c 'import json,os; p=json.loads(os.environ[\"ONI_PLAN\"]); assert p[\"checks\"][\"codeql\"] and p[\"eligibility\"][\"codeql\"] and p[\"languages\"]'\n"
+        }
+      ]
+    },
+    "analyze-actions": {
+      "needs": "validate",
+      "if": "contains(fromJSON(needs.validate.outputs.languages), 'actions')",
+      "name": "Analyze (actions)",
+      "uses": "./.github/workflows/codeql-language.yml",
+      "permissions": {
+        "contents": "read",
+        "security-events": "write"
+      },
+      "with": {
+        "plan": "${{ inputs.plan }}",
+        "language": "actions"
+      }
+    },
+    "analyze-csharp": {
+      "needs": "validate",
+      "if": "contains(fromJSON(needs.validate.outputs.languages), 'csharp')",
+      "name": "Analyze (csharp)",
+      "uses": "./.github/workflows/codeql-language.yml",
+      "permissions": {
+        "contents": "read",
+        "security-events": "write"
+      },
+      "with": {
+        "plan": "${{ inputs.plan }}",
+        "language": "csharp"
+      }
+    },
+    "analyze-python": {
+      "needs": "validate",
+      "if": "contains(fromJSON(needs.validate.outputs.languages), 'python')",
+      "name": "Analyze (python)",
+      "uses": "./.github/workflows/codeql-language.yml",
+      "permissions": {
+        "contents": "read",
+        "security-events": "write"
+      },
+      "with": {
+        "plan": "${{ inputs.plan }}",
+        "language": "python"
+      }
+    },
+    "complete": {
+      "if": "always()",
+      "needs": [
+        "validate",
+        "analyze-actions",
+        "analyze-csharp",
+        "analyze-python"
+      ],
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 5,
+      "permissions": {
+        "contents": "read"
+      },
+      "outputs": {
+        "completion_sha": "${{ steps.complete.outputs.completion_sha }}"
+      },
+      "env": {
+        "ONI_PLAN": "${{ inputs.plan }}",
+        "ONI_VALIDATION_RESULT": "${{ needs.validate.result }}",
+        "ONI_ACTIONS_RESULT": "${{ needs.analyze-actions.result }}",
+        "ONI_ACTIONS_RECEIPT": "${{ needs.analyze-actions.outputs.receipt }}",
+        "ONI_CSHARP_RESULT": "${{ needs.analyze-csharp.result }}",
+        "ONI_CSHARP_RECEIPT": "${{ needs.analyze-csharp.outputs.receipt }}",
+        "ONI_PYTHON_RESULT": "${{ needs.analyze-python.result }}",
+        "ONI_PYTHON_RECEIPT": "${{ needs.analyze-python.outputs.receipt }}"
+      },
+      "steps": [
+        {
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "with": {
+            "fetch-depth": 0,
+            "persist-credentials": false
+          }
+        },
+        {
+          "id": "complete",
+          "name": "Verify every selected language and return tested identity",
+          "run": "python3 tools/ci/checks.py codeql-complete"
+        }
+      ]
+    }
+  }
+}

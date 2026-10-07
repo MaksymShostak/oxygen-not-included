@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import html
 import json
 import os
 from pathlib import Path
 import re
+import secrets
 import subprocess
 import threading
 
@@ -17,6 +19,8 @@ CHECKS = ("pipeline", "python", "producer", "documentation", "codeql", "dependen
 SHA = re.compile(r"[0-9a-f]{40}\Z")
 MAX_GIT_BYTES = 4 * 1024 * 1024
 MAX_PLAN_BYTES = 256 * 1024
+MAX_CODEQL_RECEIPT_BYTES = 4 * 1024
+MAX_CODEQL_COMPLETION_SUMMARY_BYTES = 16 * 1024
 DOC_ASSETS = {".md", ".txt", ".diff", ".patch", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".pdf"}
 
 
@@ -250,22 +254,132 @@ def validate(plan: dict, expected: dict) -> None:
     raise CheckError("Decision differs from independently recomputed scope or identity")
 
 
-def codeql_receipts(plan: dict, directory: Path, run_id: str, attempt: str) -> None:
-    """Same-run data proves every selected matrix member reached completion."""
-    found = []
-    for path in directory.iterdir():
-        if not path.is_file() or path.is_symlink() or path.stat().st_size > 65536:
-            raise CheckError("Unsafe or oversized analysis receipt")
-        receipt = json.loads(path.read_text(encoding="utf-8"))
-        language = receipt.get("language")
-        if language not in plan["languages"] or path.name != f"{language}.json" or receipt != {
-            "language": language, "revision": plan["revision"], "policy_sha256": plan["policy_sha256"],
-            "run_id": run_id, "attempt": attempt,
-        }:
-            raise CheckError("Analysis receipt does not match this selected attempt")
-        found.append(language)
-    if sorted(found) != sorted(plan["languages"]) or not found:
-        raise CheckError("A selected analysis language did not return completion")
+def codeql_receipt_identity(plan: dict, language: str, run_id: str, attempt: str) -> dict:
+    """Return the exact five-field identity for selected, trusted CodeQL analysis."""
+    if (not plan["checks"]["codeql"] or not plan["eligibility"]["codeql"]
+            or language not in LANGUAGES or language not in plan["languages"]):
+        raise CheckError("CodeQL language is unknown, unselected or ineligible")
+    checked_sha(plan["revision"])
+    if not isinstance(plan["policy_sha256"], str) or not re.fullmatch(r"[0-9a-f]{64}", plan["policy_sha256"]):
+        raise CheckError("CodeQL policy digest must be a complete lowercase SHA-256")
+    for value in (run_id, attempt):
+        if not isinstance(value, str) or not re.fullmatch(r"[1-9][0-9]*", value):
+            raise CheckError("CodeQL run and attempt must be positive decimal strings")
+    return {"language": language, "revision": plan["revision"], "policy_sha256": plan["policy_sha256"],
+            "run_id": run_id, "attempt": attempt}
+
+
+def create_codeql_receipt(plan: dict, language: str, analysis_result: str, run_id: str, attempt: str) -> str:
+    """Create one bounded output only after successful selected-language analysis."""
+    if analysis_result != "success":
+        raise CheckError("Selected CodeQL analysis did not succeed")
+    receipt = json.dumps(codeql_receipt_identity(plan, language, run_id, attempt), separators=(",", ":"))
+    if len(receipt.encode("utf-8")) > MAX_CODEQL_RECEIPT_BYTES:
+        raise CheckError("CodeQL receipt exceeds 4 KiB UTF-8")
+    return receipt
+
+
+def _unique_json_members(pairs: list[tuple[str, object]]) -> dict:
+    """Reject ambiguous JSON identities rather than accepting the last duplicate."""
+    members = {}
+    for name, value in pairs:
+        if name in members:
+            raise CheckError("CodeQL receipt has duplicate JSON member names")
+        members[name] = value
+    return members
+
+
+def _diagnostic_excerpt(text: str, maximum_bytes: int) -> str:
+    """Bound diagnostic display explicitly; this never makes oversized evidence valid."""
+    encoded = text.encode("utf-8", errors="replace")
+    if len(encoded) <= maximum_bytes:
+        return text
+    return (encoded[:maximum_bytes].decode("utf-8", errors="replace")
+            + f" [diagnostic excerpt: first {maximum_bytes} of {len(encoded)} UTF-8 bytes;"
+            + f" SHA-256 {hashlib.sha256(encoded).hexdigest()}]")
+
+
+def complete_codeql_analysis(plan: dict, results: dict, receipts: dict, run_id: str,
+                             attempt: str, validation_result: str) -> str:
+    """Diagnose every fixed slot, then admit only complete current-attempt evidence.
+
+    Missing/redacted outputs and mixed-attempt partial reruns fail closed. All
+    readable siblings are reported before rejection; there is no archive reader.
+    """
+    errors = []
+    observations = []
+    if validation_result != "success":
+        errors.append("CodeQL selection validation did not succeed")
+    if set(results) != set(LANGUAGES) or set(receipts) != set(LANGUAGES):
+        errors.append("Missing or unexpected CodeQL result/receipt slots")
+    if not plan["languages"] or not set(plan["languages"]) <= set(LANGUAGES):
+        errors.append("CodeQL selected language set is empty or unknown")
+    for language in LANGUAGES:
+        is_selected = language in plan["languages"]
+        result = results.get(language, "")
+        raw_receipt = receipts.get(language, "")
+        slot_errors = []
+        if is_selected:
+            if result != "success":
+                slot_errors.append("selected analysis did not succeed")
+            if not raw_receipt:
+                slot_errors.append("missing completion receipt (possibly suppressed)")
+            else:
+                try:
+                    if not isinstance(raw_receipt, str):
+                        raise CheckError("CodeQL receipt must be a string")
+                    if len(raw_receipt.encode("utf-8")) > MAX_CODEQL_RECEIPT_BYTES:
+                        raise CheckError("CodeQL receipt exceeds 4 KiB UTF-8")
+                    if "\n" in raw_receipt or "\r" in raw_receipt:
+                        raise CheckError("CodeQL receipt must be single-line JSON")
+                    receipt = json.loads(raw_receipt, object_pairs_hook=_unique_json_members)
+                    expected = codeql_receipt_identity(plan, language, run_id, attempt)
+                    if not isinstance(receipt, dict) or set(receipt) != set(expected):
+                        raise CheckError("CodeQL receipt must contain exactly the five identity fields")
+                    if any(not isinstance(value, str) for value in receipt.values()):
+                        raise CheckError("CodeQL receipt identity fields must be strings")
+                    if receipt != expected:
+                        raise CheckError("CodeQL receipt does not match selected language/source/policy/run/attempt")
+                except (CheckError, ValueError, TypeError, RecursionError) as error:
+                    slot_errors.append(str(error))
+        elif result != "skipped" or raw_receipt != "":
+            slot_errors.append("unselected analysis must be skipped without a receipt")
+        errors.extend(f"{language}: {error}" for error in slot_errors)
+        observations.append((language, is_selected, str(result), str(raw_receipt), slot_errors))
+
+    # Raw candidate text must not become runner commands or summary markup.
+    command_token = secrets.token_hex(32)
+    print(f"::stop-commands::{command_token}", flush=True)
+    try:
+        summary_lines = ["### ONI CodeQL completion", "", "<pre>"]
+        for language, is_selected, result, raw_receipt, slot_errors in observations:
+            status = f"{language}: selected={str(is_selected).lower()}; result={_diagnostic_excerpt(result, 128)}"
+            print(status)
+            print("receipt=" + (_diagnostic_excerpt(raw_receipt, MAX_CODEQL_RECEIPT_BYTES)
+                                if raw_receipt else "MISSING"))
+            for error in slot_errors:
+                print("invalid=" + error)
+            summary_lines.extend([html.escape(status), "receipt=" + _diagnostic_excerpt(
+                html.escape(raw_receipt), 2048) if raw_receipt else "receipt=MISSING"])
+            summary_lines.extend(html.escape("invalid=" + error) for error in slot_errors)
+        print("CodeQL completion: " + ("REJECTED" if errors else "accepted"))
+        summary_lines.extend(["</pre>", "", "Rejected." if errors else "Accepted.", ""])
+        summary_text = "\n".join(summary_lines)
+        if len(summary_text.encode("utf-8")) > MAX_CODEQL_COMPLETION_SUMMARY_BYTES:
+            errors.append("CodeQL completion summary exceeds 16 KiB UTF-8")
+        elif summary_path := os.environ.get("GITHUB_STEP_SUMMARY"):
+            try:
+                with open(summary_path, "a", encoding="utf-8", newline="\n") as stream:
+                    stream.write(summary_text)
+            except OSError as error:
+                # A reporting error remains visible and cannot replace prior failure.
+                print(f"CodeQL completion summary write failed: {error}")
+                errors.append("CodeQL completion summary could not be written")
+    finally:
+        print(f"::{command_token}::", flush=True)
+    if errors:
+        raise CheckError("; ".join(errors) + "; rerun the complete selected CodeQL set plus its completer")
+    return plan["revision"]
 
 
 def evaluate(plan: dict, results: dict, completions: dict) -> None:
@@ -330,19 +444,16 @@ def main() -> int:
     elif args.operation == "dependency-ready":
         emit({"observed_main": dependency_ready(root, plan), "snapshot_sha": plan["revision"]})
     elif args.operation == "codeql-receipt":
-        language = os.environ["ONI_LANGUAGE"]
-        if language not in plan["languages"] or os.environ["ONI_ANALYSIS_RESULT"] != "success":
-            raise CheckError("Selected analysis did not succeed")
-        directory = Path(os.environ["ONI_RECEIPTS"])
-        directory.mkdir(parents=True, exist_ok=True)
-        (directory / f"{language}.json").write_text(json.dumps({"language": language, "revision": plan["revision"],
-            "policy_sha256": plan["policy_sha256"], "run_id": os.environ["GITHUB_RUN_ID"],
-            "attempt": os.environ["GITHUB_RUN_ATTEMPT"]}), encoding="utf-8")
+        emit({"receipt": create_codeql_receipt(plan, os.environ["ONI_LANGUAGE"], os.environ["ONI_ANALYSIS_RESULT"],
+              os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"])})
+        return 0
     elif args.operation == "codeql-complete":
-        if os.environ["ONI_ANALYSIS_RESULT"] != "success":
-            raise CheckError("Analysis matrix did not succeed")
-        codeql_receipts(plan, Path(os.environ["ONI_RECEIPTS"]), os.environ["GITHUB_RUN_ID"], os.environ["GITHUB_RUN_ATTEMPT"])
-        emit({"completion_sha": plan["revision"]})
+        results = {language: os.environ.get(f"ONI_{language.upper()}_RESULT", "") for language in LANGUAGES}
+        receipts = {language: os.environ.get(f"ONI_{language.upper()}_RECEIPT", "") for language in LANGUAGES}
+        revision = complete_codeql_analysis(plan, results, receipts, os.environ["GITHUB_RUN_ID"],
+                                           os.environ["GITHUB_RUN_ATTEMPT"], os.environ.get("ONI_VALIDATION_RESULT", ""))
+        emit({"completion_sha": revision})
+        return 0
     elif args.operation == "complete":
         consumer = os.environ["ONI_CONSUMER"]
         if consumer == "worker":
