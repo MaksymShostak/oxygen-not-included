@@ -58,14 +58,14 @@ jobs:
       - name: Validate actual tested revision
         run: python3 tools/ci/checks.py validate
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           languages: ${{ matrix.language }}
           build-mode: none
           tools: linked
       - id: analysis
         name: Analyze and upload results
-        uses: github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           category: "/language:${{ matrix.language }}"
       - name: Record selected-language completion
@@ -74,7 +74,7 @@ jobs:
           ONI_ANALYSIS_RESULT: ${{ steps.analysis.outcome }}
         run: python3 tools/ci/checks.py codeql-receipt
       - name: Retain same-attempt completion data
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: oni-codeql-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.language }}
           path: ${{ runner.temp }}/oni-codeql-receipt/*.json
@@ -102,7 +102,7 @@ jobs:
         env:
           VALIDATION_RESULT: ${{ needs.validate.result }}
         run: python3 -c 'import os; assert os.environ["VALIDATION_RESULT"] == "success"'
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: oni-codeql-${{ github.run_id }}-${{ github.run_attempt }}-*
           path: ${{ runner.temp }}/oni-codeql-completions
