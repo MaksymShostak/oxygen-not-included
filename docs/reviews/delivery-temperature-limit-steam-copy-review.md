@@ -18,7 +18,7 @@ The original review text and exported citation markers are preserved below; thos
 
 The most important finding is that **“consistent” should not mean “the Steam description and the latest change notes contain the same feature list.”** They have different jobs.
 
-The Workshop description should be the evergreen answer to _“What does this mod do today, why would I install it, and what is special about Supercooled?”_ The change notes should answer _“What changed in this particular release, and is my existing colony safe?”_ That distinction matters here because Storage Tile support, for example, was already shipped in the 26 August 2026 release; the current Workshop page records it as part of v2026.8.26.
+The Workshop description should be the evergreen answer to *“What does this mod do today, why would I install it, and what is special about Supercooled?”* The change notes should answer *“What changed in this particular release, and is my existing colony safe?”* That distinction matters here because Storage Tile support, for example, was already shipped in the 26 August 2026 release; the current Workshop page records it as part of v2026.8.26.
 Repeating it in the next release notes as though it were newly added would actually make the documentation **less** accurate. citeturn21view0
 
 What does need to become identical is the **semantic contract**: names, behaviour, UI terminology, compatibility claims, localisation count, save behaviour and descriptions of performance changes.
@@ -48,7 +48,7 @@ The biggest copy changes I would make are:
 **Keep the opening concept.**
 Nisbet + hot Igneous Rock + Sleet Wheat is excellent ONI material.
 Sleet Wheat really is extremely temperature-sensitive, and Storage Bins and Storage Tiles are genuine game objects; Storage Tiles are particularly relevant in cramped rocket interiors.
-The scenario therefore has the important property of an ONI joke: it is ridiculous _and mechanically believable_. citeturn20search0turn20search5turn20search19
+The scenario therefore has the important property of an ONI joke: it is ridiculous *and mechanically believable*. citeturn20search0turn20search5turn20search19
 
 **Make the description substantially less repetitive.**
 UI behaviour currently appears in Key Features, Supercooled and Mod Settings.
@@ -58,7 +58,7 @@ Those repetitions create most of the divergence risk.
 
 **Let the Supercooled section become deliberately more technical.**
 Your instinct is right.
-It should explain _why this continuation exists_ and how its implementation differs, rather than giving every change a separate comedy routine.
+It should explain *why this continuation exists* and how its implementation differs, rather than giving every change a separate comedy routine.
 
 **Replace “18 languages” with “English + 18 translated locales/localisations”.**
 Your uploaded list represents 19 selectable locales in total: English plus 18 translated variants.
@@ -100,7 +100,7 @@ This reveals several specific fixes.
 
 This is one of the most important wording changes.
 
-Taken literally, **Fresh Start on Every Load** sounds alarmingly like _settings are discarded_.
+Taken literally, **Fresh Start on Every Load** sounds alarmingly like *settings are discarded*.
 The change notes then have to reassure players with “Your Bins Are Safe”.
 Both statements are technically compatible because the first means transient runtime tracking while the second means persistent save data, but users should not have to reverse-engineer that distinction.
 
@@ -226,7 +226,7 @@ Storage Tiles genuinely target tight spaces such as rocket interiors, strengthen
 
 ### Remove invented ONI-ish objects where a real one is better
 
-A few current phrases feel _adjacent_ to ONI rather than _inside_ it.
+A few current phrases feel *adjacent* to ONI rather than *inside* it.
 
 **“Cryogenic chambers”** should go.
 It sounds science-fictional but not specifically ONI.
@@ -346,7 +346,7 @@ Your current Workshop item demonstrates the distinction nicely: the Steam interf
 
 So there are really two possible localisation tiers:
 
-**Now:** keep the English Workshop description and state compactly that the _in-game mod UI_ supports English + 18 translated locales.
+**Now:** keep the English Workshop description and state compactly that the *in-game mod UI* supports English + 18 translated locales.
 
 **Later, optionally:** if your publishing workflow gains support for Steam's language-specific Workshop metadata, publish translated Workshop descriptions through that facility instead of turning the English description into a multilingual wall of text.
 Steam's API explicitly supports this model. citeturn19view0turn19view1
@@ -408,15 +408,15 @@ Right now the reader encounters **Key Features → Supercooled → Credits → S
 
 The proposed model gives each fact exactly one “home”:
 
-**What It Does** owns _behaviour_.
+**What It Does** owns *behaviour*.
 
-**What Supercooled Changes** owns _implementation/history/performance_.
+**What Supercooled Changes** owns *implementation/history/performance*.
 
-**Mod Options** owns _toggles_.
+**Mod Options** owns *toggles*.
 
-**Compatibility & Localisation** owns _environment compatibility_.
+**Compatibility & Localisation** owns *environment compatibility*.
 
-**Support** owns _diagnostics/privacy_.
+**Support** owns *diagnostics/privacy*.
 
 This should make future change-note updates much easier because you no longer have to remember that the same Clear button is described three different ways.
 

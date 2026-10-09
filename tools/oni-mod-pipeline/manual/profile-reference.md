@@ -55,7 +55,8 @@ Place exactly one standalone marker pair around the description to manage:
 
 Run `oni-mod-pipeline sync-readme --mod <mod-root>` before reviewing and committing.
 The installed `steam-community-bbcode` public CLI converts the same generated CRLF description bytes used by Workshop listing assembly.
-The pipeline labels the six known compatibility badges using image coordinates from the shared Markdown checker, then calls its public formatter and checker to produce canonical GFM.
+The README description producer supplies domain labels for the six known compatibility badges before the shared Markdown package processes the document at its final logical path.
+The package owns Markdown rules and result validation; unknown authored images require their author's alternative text.
 Section levels come directly from the BBCode source: description sections use `[h2]` beneath the README's title.
 Synchronization replaces only the managed block and preserves surrounding bytes.
 The block uses the start marker line's newline convention.
@@ -76,7 +77,7 @@ It does not accept a tarball or download URL.
 The root graph pins the public registry package `steam-community-bbcode@1.0.0-rc.1`; keep qualification overrides out of the lockfile.
 
 Release validation and preparation use the normal installation and check freshness without rewriting source.
-The configured README, root npm manifests, isolated Markdown manifests, shared Markdown policy, and `.gitignore` become contributing release inputs.
+The configured README, root npm manifests, isolated Markdown manifests and archives, document transport, shared Markdown policy, execution profile, and runtime declarations become contributing release inputs.
 
 ## Locate and discover a profile
 

@@ -21,7 +21,7 @@ Profiles with a `[catalogs]` table also require Python 3.10+ for validation, bui
 Resolve it from PATH or pass an absolute `--python` executable path.
 Catalog inspection can run without game or user-data discovery: `oni-mod-pipeline inspect-catalogs --mod <mod-root> --format json`.
 
-Profiles with a `[readme]` table also require Node.js `>=24.21.0 <25` and both locked npm dependency graphs for README synchronization and release freshness checks.
+Profiles with a `[readme]` table also require the qualified Node.js version in `.node-version` and both locked npm dependency graphs for README synchronization and release freshness checks.
 The root graph provides `steam-community-bbcode`; the isolated `tooling/markdown` graph provides the shared Markdown formatter and checker.
 Install these explicitly from the repository root:
 
@@ -30,8 +30,9 @@ npm ci --ignore-scripts
 npm ci --prefix tooling/markdown --ignore-scripts
 ```
 
-README synchronization uses these installed public CLIs and never installs or upgrades packages.
-The root repository declares Node.js `>=24.21.0`; the Markdown consumer has the narrower supported Node 24 range above.
+README synchronization uses the installed public logical-document contract and never installs or upgrades packages.
+The isolated lockfile consumes the committed core and platform archives from the producer commit paired with the shared CI workflow.
+The root repository's supported Node range and the Markdown package's supported engine range are separate from this qualified runtime.
 
 ## Restore the locked tool dependencies
 

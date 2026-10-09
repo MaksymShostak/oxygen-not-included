@@ -73,6 +73,22 @@ public sealed class ExternalProcessRunnerTests
     }
 
     [TestMethod]
+    public async Task RunAsync_TransportsLiteralStandardInputWithoutAScratchFile()
+    {
+        const string input = "雪 and shell characters & $literal\n";
+        var result = await new ExternalProcessRunner().RunAsync(CreateRequest("stdin") with { StandardInput = input }, CancellationToken.None);
+        Assert.AreEqual(0, result.ExitCode);
+        Assert.AreEqual(input, result.StandardOutput);
+    }
+
+    [TestMethod]
+    public async Task RunAsync_RejectsOutputThatExceedsTheRequestedBoundary()
+    {
+        await Assert.ThrowsAsync<InvalidDataException>(() => new ExternalProcessRunner().RunAsync(
+            CreateRequest("streams") with { OutputLimitCharacters = 8 }, CancellationToken.None));
+    }
+
+    [TestMethod]
     public async Task RunAsync_WhenArgumentContainsShellCharacters_PreservesOneLiteralArgument()
     {
         const string literalArgument = "value with spaces \"quotes\" & $dollar; semicolon";
@@ -283,11 +299,15 @@ public sealed class ExternalProcessRunnerTests
         using System.Reflection;
         using System.Text.Json;
 
+        Console.InputEncoding = new System.Text.UTF8Encoding(false);
+        Console.OutputEncoding = new System.Text.UTF8Encoding(false);
+
         return args[0] switch
         {
             "arguments" => WriteArguments(args[1..]),
             "environment" => WriteEnvironment(args[1]),
             "streams" => WriteStreams(),
+            "stdin" => await EchoInputAsync(),
             "wait-tree" => await WaitWithGrandchildAsync(args[1]),
             "grandchild" => await WaitAsGrandchildAsync(args[1]),
             _ => 64
@@ -296,6 +316,12 @@ public sealed class ExternalProcessRunnerTests
         static int WriteArguments(string[] arguments)
         {
             Console.Out.Write(JsonSerializer.Serialize(arguments));
+            return 0;
+        }
+
+        static async Task<int> EchoInputAsync()
+        {
+            Console.Out.Write(await Console.In.ReadToEndAsync());
             return 0;
         }
 

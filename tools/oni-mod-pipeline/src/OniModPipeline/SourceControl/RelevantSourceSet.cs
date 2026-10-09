@@ -66,9 +66,13 @@ internal sealed record RelevantSourceSet(
                 builder.AddDeclaredFile(worktreeRoot, "package.json");
                 builder.AddDeclaredFile(worktreeRoot, "package-lock.json");
                 builder.AddDeclaredFile(worktreeRoot, ".markdown-quality.json");
+                builder.AddDeclaredFile(worktreeRoot, ".markdown-quality-execution.json");
+                builder.AddDeclaredFile(worktreeRoot, ".node-version");
+                builder.AddDeclaredFile(worktreeRoot, ".python-version");
                 builder.AddDeclaredFile(worktreeRoot, "tooling/markdown/package.json");
                 builder.AddDeclaredFile(worktreeRoot, "tooling/markdown/package-lock.json");
-                builder.AddDeclaredFile(worktreeRoot, ".gitignore");
+                builder.AddDeclaredFile(worktreeRoot, "tooling/markdown/readme-document.mjs");
+                builder.AddDeclaredFileOrTree(worktreeRoot, "tooling/markdown/archives");
             }
 
             foreach (var testProject in profile.TestProjects)

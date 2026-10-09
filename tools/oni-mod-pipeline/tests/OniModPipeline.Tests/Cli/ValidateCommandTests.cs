@@ -23,7 +23,8 @@ public sealed class ValidateCommandTests
         Directory.CreateDirectory(markdownPackage);
         File.WriteAllText(Path.Combine(markdownPackage, "package.json"), "{\"name\":\"@hadden-industries/markdown-quality\",\"version\":\"1.0.3\",\"bin\":{\"markdown-quality\":\"cli.js\"}}");
         File.WriteAllText(Path.Combine(markdownPackage, "cli.js"), "// controlled checker fixture");
-        foreach (var input in new[] { ".markdown-quality.json", ".gitignore", "tooling/markdown/package.json" })
+        Directory.CreateDirectory(Path.Combine(fixture.WorktreeRoot, "tooling/markdown/archives"));
+        foreach (var input in new[] { ".markdown-quality.json", ".markdown-quality-execution.json", ".node-version", ".python-version", "tooling/markdown/package.json", "tooling/markdown/readme-document.mjs", "tooling/markdown/archives/core.tgz" })
             File.WriteAllText(Path.Combine(fixture.WorktreeRoot, input), "{}");
         File.WriteAllText(Path.Combine(fixture.WorktreeRoot, "tooling/markdown/package-lock.json"), JsonSerializer.Serialize(new { packages = new Dictionary<string, object> { ["node_modules/@hadden-industries/markdown-quality"] = new { version = "1.0.3" } } }));
         var runner = new ReadmeValidationRunner(fixture.ProcessRunner);
@@ -42,20 +43,23 @@ public sealed class ValidateCommandTests
         {
             if (request.FileName == "node")
             {
-                if (request.Arguments.SequenceEqual(new[] { "--version" })) return new(0, "v24.21.0", "");
-                if (request.Arguments.Contains("--files-json"))
+                if (request.StandardInput is not null)
                 {
-                    var index = request.Arguments.ToList().IndexOf("--files-json");
-                    return new(0, JsonSerializer.Serialize(new { schemaVersion = 1, operation = request.Arguments[1],
+                    using var input = JsonDocument.Parse(request.StandardInput);
+                    var document = input.RootElement;
+                    return new(0, JsonSerializer.Serialize(new { schemaVersion = 3, operation = "format",
                         package = new { name = "@hadden-industries/markdown-quality", version = "1.0.3" },
-                        exitCode = 0, outcome = "clean", errors = Array.Empty<string>(), unprocessed = Array.Empty<string>(),
-                        diagnostics = Array.Empty<string>(), selection = new { mode = "explicit", files = JsonSerializer.Deserialize<string[]>(request.Arguments[index + 1]) } }), "");
+                        exitCode = 0, document = new {
+                            path = document.GetProperty("path").GetString(),
+                            requestId = document.GetProperty("requestId").GetString(),
+                            contentBase64 = document.GetProperty("contentBase64").GetString()
+                        } }), "");
                 }
                 return new(0, "{\"value\":\"# Updated\\n\",\"diagnostics\":[]}", "");
             }
             var result = await inner.RunAsync(request, cancellationToken);
             return request.Arguments.SequenceEqual(new[] { "ls-files", "-z" })
-                ? result with { StandardOutput = result.StandardOutput + "README.md\0package.json\0package-lock.json\0.markdown-quality.json\0.gitignore\0tooling/markdown/package.json\0tooling/markdown/package-lock.json\0" }
+                ? result with { StandardOutput = result.StandardOutput + "README.md\0package.json\0package-lock.json\0.markdown-quality.json\0.markdown-quality-execution.json\0.node-version\0.python-version\0tooling/markdown/package.json\0tooling/markdown/package-lock.json\0tooling/markdown/readme-document.mjs\0tooling/markdown/archives/core.tgz\0" }
                 : result;
         }
     }

@@ -109,7 +109,7 @@ def classify(path: str) -> tuple[set[str], set[str]] | None:
         return set(CHECKS), set(LANGUAGES)
     if path.startswith(".github/actions/"):
         return {"codeql"}, {"actions"}
-    if path == ".markdown-quality.json" or path.startswith("tooling/markdown/"):
+    if path in {".markdown-quality.json", ".markdown-quality-execution.json", ".node-version", ".python-version"} or path.startswith("tooling/markdown/"):
         return {"documentation", "pipeline", "producer", "codeql"}, set(LANGUAGES)
     if path in {"package.json", "package-lock.json"}:
         return {"pipeline", "producer", "documentation", "codeql"}, {"csharp"}

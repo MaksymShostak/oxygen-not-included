@@ -14,7 +14,7 @@ public sealed class InstalledMarkdownCanonicalizerTests
     [DataRow("{}", 0)]
     [DataRow("[]", 0)]
     [DataRow("{}", 2)]
-    public async Task Canonicalize_RejectsMalformedOrRefusedOutputAndRemovesOnlyItsTemporaryFile(string output, int exitCode)
+    public async Task Canonicalize_RejectsMalformedOrRefusedOutputWithoutWritingMarkdown(string output, int exitCode)
     {
         using var fixture = new Fixture();
         fixture.Runner.Output = output;
@@ -24,15 +24,15 @@ public sealed class InstalledMarkdownCanonicalizerTests
     }
 
     [TestMethod]
-    [DataRow("v24.20.0")]
-    [DataRow("v25.0.0")]
-    [DataRow("unknown")]
-    public async Task Canonicalize_RejectsUnsupportedRuntimeBeforeLaunchingChecker(string version)
+    [DataRow("path")]
+    [DataRow("requestId")]
+    public async Task Canonicalize_RejectsResponseForAnotherDocumentOrRequest(string mismatch)
     {
         using var fixture = new Fixture();
-        fixture.Runner.Version = version;
+        fixture.Runner.ResultVersion = "1.0.3";
+        fixture.Runner.Mismatch = mismatch;
         await Assert.ThrowsAsync<InvalidDataException>(fixture.Run);
-        Assert.AreEqual(0, fixture.Runner.CheckerCalls);
+        Assert.AreEqual(1, fixture.Runner.CheckerCalls);
         fixture.AssertOriginalAndNoTemporaryFiles();
     }
 
@@ -48,12 +48,12 @@ public sealed class InstalledMarkdownCanonicalizerTests
     }
 
     [TestMethod]
-    public async Task Canonicalize_AcceptsLockedVersionAndMatchingPublicResult()
+    public async Task Canonicalize_AcceptsLockedVersionAndMatchingAdvisoryResult()
     {
         using var fixture = new Fixture("1.0.4");
         fixture.Runner.ResultVersion = "1.0.4";
         CollectionAssert.AreEqual(Encoding.UTF8.GetBytes(Fixture.Original), await fixture.Run());
-        Assert.AreEqual(3, fixture.Runner.CheckerCalls);
+        Assert.AreEqual(1, fixture.Runner.CheckerCalls);
         fixture.AssertOriginalAndNoTemporaryFiles();
     }
 
@@ -89,6 +89,7 @@ public sealed class InstalledMarkdownCanonicalizerTests
             File.WriteAllText(Path.Combine(package, "package.json"), JsonSerializer.Serialize(new { name = "@hadden-industries/markdown-quality", version = installedVersion ?? lockedVersion, bin = new Dictionary<string, string> { ["markdown-quality"] = "cli.js" } }));
             File.WriteAllText(directory.GetPath("tooling", "markdown", "package-lock.json"), JsonSerializer.Serialize(new { packages = new Dictionary<string, object> { ["node_modules/@hadden-industries/markdown-quality"] = new { version = lockedVersion } } }));
             File.WriteAllText(Path.Combine(package, "cli.js"), "// test-only installed bin");
+            File.WriteAllText(directory.GetPath("tooling", "markdown", "readme-document.mjs"), "// test-only bridge");
             File.WriteAllText(ReadmePath, Original);
         }
 
@@ -107,7 +108,7 @@ public sealed class InstalledMarkdownCanonicalizerTests
 
     private sealed class Runner : IExternalProcessRunner
     {
-        internal string Version { get; set; } = "v24.21.0";
+        internal string? Mismatch { get; set; }
         internal string Output { get; set; } = "{}";
         internal string? ResultVersion { get; set; }
         internal int ExitCode { get; set; }
@@ -116,18 +117,20 @@ public sealed class InstalledMarkdownCanonicalizerTests
 
         public Task<ProcessResult> RunAsync(ProcessRequest request, CancellationToken token)
         {
-            if (request.Arguments.SequenceEqual(new[] { "--version" }))
-                return Task.FromResult(new ProcessResult(0, Version, ""));
             CheckerCalls++;
             DuringChecker?.Invoke();
             token.ThrowIfCancellationRequested();
             if (ResultVersion is not null)
             {
-                var index = request.Arguments.ToList().IndexOf("--files-json");
-                return Task.FromResult(new ProcessResult(0, JsonSerializer.Serialize(new { schemaVersion = 1, operation = request.Arguments[1],
+                using var input = JsonDocument.Parse(request.StandardInput!);
+                var value = input.RootElement;
+                return Task.FromResult(new ProcessResult(0, JsonSerializer.Serialize(new { schemaVersion = 3, operation = "format",
                     package = new { name = "@hadden-industries/markdown-quality", version = ResultVersion },
-                    exitCode = 0, outcome = "clean", errors = Array.Empty<string>(), unprocessed = Array.Empty<string>(),
-                    diagnostics = Array.Empty<string>(), selection = new { mode = "explicit", files = JsonSerializer.Deserialize<string[]>(request.Arguments[index + 1]) } }), ""));
+                    exitCode = 0, outcome = "findings", document = new {
+                        path = Mismatch == "path" ? "other.md" : value.GetProperty("path").GetString(),
+                        requestId = Mismatch == "requestId" ? "other-request" : value.GetProperty("requestId").GetString(),
+                        contentBase64 = value.GetProperty("contentBase64").GetString()
+                    } }), ""));
             }
             return Task.FromResult(new ProcessResult(ExitCode, Output, ""));
         }

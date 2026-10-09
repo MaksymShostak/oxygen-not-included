@@ -72,7 +72,7 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         if: fromJSON(env.ONI_PLAN).checks.producer
         with:
-          node-version: 24.21.0
+          node-version-file: .node-version
       - name: Acquire public locked producer tooling without lifecycle scripts
         if: fromJSON(env.ONI_PLAN).checks.producer
         run: |
@@ -91,10 +91,23 @@ jobs:
           ONI_STEPS: '{"pipeline":"${{ steps.pipeline.outcome }}","python":"${{ steps.python.outcome }}","producer":"${{ steps.producer.outcome }}"}'
         run: python tools/ci/checks.py complete
 
-  documentation:
+  documentation_quality:
     needs: select
     if: needs.select.outputs.documentation == 'true'
-    name: Authored Markdown quality
+    permissions:
+      contents: read
+    uses: Hadden-Industries/markdown-quality/.github/workflows/markdown-quality.yml@47febbe1b6f3282814e77db7ea13eac72b4928ed
+    with:
+      trusted-repository: MaksymShostak/oxygen-not-included
+      trusted-sha: ${{ github.event.pull_request.base.sha || github.sha }}
+      candidate-repository: MaksymShostak/oxygen-not-included
+      candidate-sha: ${{ github.sha }}
+      profile: .markdown-quality-execution.json
+
+  documentation:
+    needs: [select, documentation_quality]
+    if: needs.select.outputs.documentation == 'true'
+    name: Documentation integration and character policy
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
@@ -102,44 +115,24 @@ jobs:
     env:
       ONI_PLAN: ${{ needs.select.outputs.plan }}
     steps:
-      - name: Acquire candidate data tree
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          path: candidate
           fetch-depth: 0
-          persist-credentials: false
-      - name: Acquire reviewed graph, policy and checker from captured PR base or trusted main
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          path: trusted
-          ref: ${{ github.event.pull_request.base.sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 24.21.0
-      - name: Acquire trusted public graph without candidate scripts or registry credentials
-        working-directory: trusted
+          node-version-file: .node-version
+      - name: Install locked Markdown tooling without lifecycle scripts
+        run: npm --prefix tooling/markdown ci --ignore-scripts --no-audit --no-fund
+      - name: Verify public consumer contracts and independent character policy
         run: |
-          node --version
-          npm --version
-          npm --prefix tooling/markdown ci --ignore-scripts --no-audit --no-fund --registry https://registry.npmjs.org/
-      - name: Use trusted policy and ignore bytes at their original paths
-        run: |
-          cp trusted/.markdown-quality.json candidate/.markdown-quality.json
-          cp trusted/.gitignore candidate/.gitignore
-      - name: Reject em dashes in Markdown sources
-        working-directory: candidate
-        run: python3 tools/ci/check_doc_characters.py .
-      - name: Check every authored candidate Markdown document
-        working-directory: candidate
-        run: |
-          python3 ../trusted/tools/ci/checks.py validate
-          node ../trusted/tooling/markdown/check.mjs .
+          npm --prefix tooling/markdown test
+          python3 tools/ci/check_doc_characters.py .
+          python3 tools/ci/checks.py validate
       - id: complete
-        working-directory: candidate
         env:
           ONI_CONSUMER: documentation
-        run: python3 ../trusted/tools/ci/checks.py complete
+        run: python3 tools/ci/checks.py complete
 
   codeql:
     needs: select

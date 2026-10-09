@@ -79,6 +79,16 @@ class CiChecksTests(unittest.TestCase):
         self.assertEqual({key for key, value in plan["checks"].items() if value}, {"python", "codeql"})
         self.assertEqual(plan["languages"], ["python"])
 
+    def test_shared_markdown_controls_select_qualification_and_readme_consumers(self):
+        for path in (".markdown-quality-execution.json", ".node-version", ".python-version"):
+            with self.subTest(path=path):
+                self.write(path, "updated\n")
+                plan = self.push_plan()
+                self.assertTrue(plan["checks"]["documentation"])
+                self.assertTrue(plan["checks"]["producer"])
+                self.assertTrue(plan["checks"]["pipeline"])
+                self.assertTrue(plan["checks"]["codeql"])
+
     def test_pipeline_producer_and_embedded_backend_inputs(self):
         self.write("tools/oni-mod-pipeline/src/OniModPipeline/Readme/File.cs", "new\n")
         plan = self.push_plan()

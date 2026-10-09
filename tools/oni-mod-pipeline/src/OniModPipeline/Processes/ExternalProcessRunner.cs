@@ -23,9 +23,15 @@ internal sealed class ExternalProcessRunner : IExternalProcessRunner
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
-            RedirectStandardInput = false,
+            RedirectStandardInput = request.StandardInput is not null,
             CreateNoWindow = true
         };
+        if (request.StandardInput is not null)
+        {
+            startInfo.StandardInputEncoding = new System.Text.UTF8Encoding(false, true);
+            startInfo.StandardOutputEncoding = new System.Text.UTF8Encoding(false, true);
+            startInfo.StandardErrorEncoding = new System.Text.UTF8Encoding(false, true);
+        }
 
         foreach (var argument in request.Arguments)
         {
@@ -44,15 +50,20 @@ internal sealed class ExternalProcessRunner : IExternalProcessRunner
                 $"Process '{request.FileName}' could not be started.");
         }
 
-        var standardOutputTask = process.StandardOutput.ReadToEndAsync();
-        var standardErrorTask = process.StandardError.ReadToEndAsync();
         var cancellationState = new ProcessCancellationState(process);
+        var standardOutputTask = ReadOutputAsync(process.StandardOutput);
+        var standardErrorTask = ReadOutputAsync(process.StandardError);
         using var cancellationRegistration = cancellationToken.Register(
             static state => ((ProcessCancellationState)state!).TerminateProcessTree(),
             cancellationState);
 
         try
         {
+            if (request.StandardInput is { } input)
+            {
+                await process.StandardInput.WriteAsync(input.AsMemory(), cancellationToken).ConfigureAwait(false);
+                process.StandardInput.Close();
+            }
             await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException exception)
@@ -80,9 +91,31 @@ internal sealed class ExternalProcessRunner : IExternalProcessRunner
             throw new OperationCanceledException(cancellationToken);
         }
 
-        var standardOutput = await standardOutputTask.ConfigureAwait(false);
-        var standardError = await standardErrorTask.ConfigureAwait(false);
+        await Task.WhenAll(standardOutputTask, standardErrorTask).ConfigureAwait(false);
+        var standardOutput = standardOutputTask.Result;
+        var standardError = standardErrorTask.Result;
         return new ProcessResult(process.ExitCode, standardOutput, standardError);
+
+        async Task<string> ReadOutputAsync(StreamReader reader)
+        {
+            var output = new System.Text.StringBuilder();
+            var buffer = new char[4096];
+            int count;
+            while ((count = await reader.ReadAsync(buffer).ConfigureAwait(false)) != 0)
+            {
+                if (request.OutputLimitCharacters is { } limit && output.Length > limit - count)
+                {
+                    cancellationState.TerminateProcessTree();
+                    if (cancellationState.Failure is { } failure)
+                        throw new InvalidDataException("Output overflow could not terminate the process tree.", failure);
+                    // Drain after termination so neither redirected pipe can keep the child alive.
+                    while (await reader.ReadAsync(buffer).ConfigureAwait(false) != 0) { }
+                    throw new InvalidDataException("External process output exceeded its transport limit.");
+                }
+                output.Append(buffer, 0, count);
+            }
+            return output.ToString();
+        }
     }
 
     private static async Task CompleteCancellationAsync(

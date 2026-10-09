@@ -54,7 +54,7 @@ The basic idea is unchanged; quite a lot underneath it is not.
   No haunted Storage Bins; no accidental exorcism of your actual settings.
 - **Rebuilt Temperature UI:** The side-screen now uses independent **At least** and **Below** values, external unit labels, live range summaries, warning feedback for inverted limits, dedicated clearing, and reliable keyboard handling.
 - **Safer Startup & Storage Discovery:** Defensive checks protect the mod's game hooks during startup and colony refreshes, while compatible storage targets introduced by other mods can be discovered dynamically.
-- **Fast Track Compatibility:** Integrates with Peter Han's [_Fast Track_](https://github.com/peterhaneve/ONIMods/tree/main/FastTrack) when it is present and uses the normal game path when it is not.
+- **Fast Track Compatibility:** Integrates with Peter Han's [*Fast Track*](https://github.com/peterhaneve/ONIMods/tree/main/FastTrack) when it is present and uses the normal game path when it is not.
 - **Built-In Localisation:** English plus 18 translated locales are bundled with the mod and follow ONI's selected language automatically.
   Meep's interpretive-dance translation programme has been retired.
 
@@ -76,7 +76,7 @@ The in-game Mod Options dialog provides:
 If something goes thermally sideways, open Mod Options and choose **Report a bug**.
 
 Reports are generated locally and nothing is uploaded automatically.
-The standard report does not read _Player.log_; the clearly labelled **Include game log (optional)** can include a bounded, best-effort-redacted log excerpt for harder failures.
+The standard report does not read *Player.log*; the clearly labelled **Include game log (optional)** can include a bounded, best-effort-redacted log excerpt for harder failures.
 
 Review the report on your computer, then attach it to the GitHub bug-report form.
 
@@ -88,15 +88,15 @@ Duplicants cannot currently be included in the diagnostic bundle, despite repeat
 
 This mod continues the incredible work begun by the ONI modding community:
 
-- **Original Concept & Code**: llunak - [_Delivery Temperature Limit_](https://steamcommunity.com/sharedfiles/filedetails/?id=2963257205)
-- **Intermediate Maintenance**: \[sd] QooLiO - [_Delivery Temperature Limit \[Fixed\]_](https://steamcommunity.com/sharedfiles/filedetails/?id=3479021027)
+- **Original Concept & Code**: llunak - [*Delivery Temperature Limit*](https://steamcommunity.com/sharedfiles/filedetails/?id=2963257205)
+- **Intermediate Maintenance**: \[sd] QooLiO - [*Delivery Temperature Limit \[Fixed\]*](https://steamcommunity.com/sharedfiles/filedetails/?id=3479021027)
 
 ---
 
 Developed by [Maksym Shostak](https://orcid.org/0000-0001-8017-8797).
 Free Dive into the source code on [GitHub](https://github.com/MaksymShostak/oxygen-not-included).
 
-_Delivery Temperature Limit (Supercooled) is a community mod and is not affiliated with, sponsored by, or endorsed by Klei Entertainment._
+*Delivery Temperature Limit (Supercooled) is a community mod and is not affiliated with, sponsored by, or endorsed by Klei Entertainment.*
 <!-- oni-mod-pipeline:workshop-description:end -->
 
 ## Repository and contributing

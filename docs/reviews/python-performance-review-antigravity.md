@@ -176,9 +176,9 @@ print(f'Speedup: {t_base / t_opt:.2f}x')
 
 - **Performance objective understood:** Conduct a rigorous, conservative, and evidence-driven performance review of the Python codebase within this repository, focusing on eliminating algorithmic inefficiencies, hot-loop invariants, redundant serialization, unnecessary process creation, and test/CI execution overhead while preserving strict semantic correctness, ordering, and test contracts.
 - **Strongest measured bottlenecks:**
-  1. _Translation catalog verification loop:_ In `artifacts/options-ui/check_catalogs.py`, redundant re-computation of invariant English source string metrics (`re.findall`, `sorted()`, `str.count('\n')`) across all 18 locale PO files (1,476 iterations) and repeated JSON string literal unescaping (4,737 calls to `json.loads`) dominate script execution, consuming ~32% of runtime on deserialization alone.
-  2. _Windows console initialization process overhead:_ In [`clean.py::main`](https://github.com/MaksymShostak/oxygen-not-included/blob/726117481e399fa66cf1a1d521a32f1144195abd/clean.py#L43-L51), executing `os.system("")` spawns a full `cmd.exe /c ""` shell process costing ~8.70 ms of latency purely to activate ANSI escape sequence handling.
-  3. _CI test invocation overhead:_ In [`.github/workflows/oni-pipeline-tests.yml`](https://github.com/MaksymShostak/oxygen-not-included/blob/726117481e399fa66cf1a1d521a32f1144195abd/.github/workflows/oni-pipeline-tests.yml#L25-L26), `python -m unittest discover` requires ~162 ms wall-clock time, where Python startup and module import consume ~156 ms (~96%) while actual test execution consumes only ~6 ms (~4%).
+  1. *Translation catalog verification loop:* In `artifacts/options-ui/check_catalogs.py`, redundant re-computation of invariant English source string metrics (`re.findall`, `sorted()`, `str.count('\n')`) across all 18 locale PO files (1,476 iterations) and repeated JSON string literal unescaping (4,737 calls to `json.loads`) dominate script execution, consuming ~32% of runtime on deserialization alone.
+  2. *Windows console initialization process overhead:* In [`clean.py::main`](https://github.com/MaksymShostak/oxygen-not-included/blob/726117481e399fa66cf1a1d521a32f1144195abd/clean.py#L43-L51), executing `os.system("")` spawns a full `cmd.exe /c ""` shell process costing ~8.70 ms of latency purely to activate ANSI escape sequence handling.
+  3. *CI test invocation overhead:* In [`.github/workflows/oni-pipeline-tests.yml`](https://github.com/MaksymShostak/oxygen-not-included/blob/726117481e399fa66cf1a1d521a32f1144195abd/.github/workflows/oni-pipeline-tests.yml#L25-L26), `python -m unittest discover` requires ~162 ms wall-clock time, where Python startup and module import consume ~156 ms (~96%) while actual test execution consumes only ~6 ms (~4%).
 - **Top three recommended actions:**
   1. **Hoisting invariant source assertions & precompiling regex in catalog validation** ([PERF-01](#perf-01--hoist-invariant-source-analysis-and-precompile-regex-in-translation-catalog-validation)): Precompute English source placeholder sets and newline counts once per key on the template (`delivery_temperature_limit.pot`) instead of 18 times per key, and precompile regex patterns.
   2. **Memoizing repetitive JSON string unescaping in PO parsing** ([PERF-02](#perf-02--memoize-repetitive-json-string-unescaping-during-po-catalog-parsing)): Cache unescaped `json.loads` results for identical `msgctxt` and `msgid` tokens across locales, cutting 2,952 redundant C-level deserialization invocations.
@@ -348,7 +348,7 @@ print(f'Speedup: {t_base / t_opt:.2f}x')
 
 ### Patch 1: \[PERF-01 & PERF-02\] Optimized translation catalog validation
 
-_File affected:_ `artifacts/options-ui/check_catalogs.py`
+*File affected:* `artifacts/options-ui/check_catalogs.py`
 
 ```diff
 --- a/artifacts/options-ui/check_catalogs.py
@@ -414,7 +414,7 @@ _File affected:_ `artifacts/options-ui/check_catalogs.py`
 
 ### Patch 2: \[PERF-04\] Precompiled regex and hoisted loads in catalog reader
 
-_File affected:_ `artifacts/options-ui/read_catalogs.py`
+*File affected:* `artifacts/options-ui/read_catalogs.py`
 
 ```diff
 --- a/artifacts/options-ui/read_catalogs.py
@@ -450,7 +450,7 @@ _File affected:_ `artifacts/options-ui/read_catalogs.py`
 
 ### Patch 3: \[PERF-03\] (EXPERIMENTAL) In-process Win32 console VT initialization
 
-_File affected:_ [`clean.py`](https://github.com/MaksymShostak/oxygen-not-included/blob/726117481e399fa66cf1a1d521a32f1144195abd/clean.py#L43-L47)
+*File affected:* [`clean.py`](https://github.com/MaksymShostak/oxygen-not-included/blob/726117481e399fa66cf1a1d521a32f1144195abd/clean.py#L43-L47)
 
 ```diff
 --- a/clean.py
@@ -576,13 +576,13 @@ def bench_ctypes_vt(iterations=100):
 ## Deferred hypotheses
 
 1. **Bypassing `git rev-parse --show-toplevel` when working tree is already at repo root:**
-   - _Hypothesis:_ If `.git` directory or file exists in `os.getcwd()`, [`clean.py`](https://github.com/MaksymShostak/oxygen-not-included/blob/726117481e399fa66cf1a1d521a32f1144195abd/clean.py) could skip calling `git rev-parse`, saving ~24 ms.
-   - _Evidence needed before implementation:_ [`tests/test_clean_script.py#L91`](https://github.com/MaksymShostak/oxygen-not-included/blob/726117481e399fa66cf1a1d521a32f1144195abd/tests/test_clean_script.py#L91) contractually asserts `self.assertEqual(calls[0], ["git", "rev-parse", "--show-toplevel"])`.
+   - *Hypothesis:* If `.git` directory or file exists in `os.getcwd()`, [`clean.py`](https://github.com/MaksymShostak/oxygen-not-included/blob/726117481e399fa66cf1a1d521a32f1144195abd/clean.py) could skip calling `git rev-parse`, saving ~24 ms.
+   - *Evidence needed before implementation:* [`tests/test_clean_script.py#L91`](https://github.com/MaksymShostak/oxygen-not-included/blob/726117481e399fa66cf1a1d521a32f1144195abd/tests/test_clean_script.py#L91) contractually asserts `self.assertEqual(calls[0], ["git", "rev-parse", "--show-toplevel"])`.
      Modifying this sequence breaks test contracts.
      This cannot be implemented without user authorization to update the contract test.
 2. **Replacing `unittest discover` with targeted test execution in CI workflow:**
-   - _Hypothesis:_ Changing `python -m unittest discover -s tests -p "test_*.py"` to `python -m unittest tests/test_clean_script.py` in [`.github/workflows/oni-pipeline-tests.yml`](https://github.com/MaksymShostak/oxygen-not-included/blob/726117481e399fa66cf1a1d521a32f1144195abd/.github/workflows/oni-pipeline-tests.yml#L26) saves directory discovery overhead.
-   - _Evidence needed before implementation:_ Requires explicit user approval under repository Configuration Safety rules to modify CI workflow files.
+   - *Hypothesis:* Changing `python -m unittest discover -s tests -p "test_*.py"` to `python -m unittest tests/test_clean_script.py` in [`.github/workflows/oni-pipeline-tests.yml`](https://github.com/MaksymShostak/oxygen-not-included/blob/726117481e399fa66cf1a1d521a32f1144195abd/.github/workflows/oni-pipeline-tests.yml#L26) saves directory discovery overhead.
+   - *Evidence needed before implementation:* Requires explicit user approval under repository Configuration Safety rules to modify CI workflow files.
 
 ---
 

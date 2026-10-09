@@ -9,13 +9,13 @@ It provides context, UI locations, format placeholder rules, and semantic defini
 
 ### Target Audience & Tone
 
-- **Game Tone**: Follows Klei's official _Oxygen Not Included_ tone: functional, concise, semi-industrial, and player-focused.
+- **Game Tone**: Follows Klei's official *Oxygen Not Included* tone: functional, concise, semi-industrial, and player-focused.
 - **Terminology Consistency**: Use official Klei translations for game concepts where applicable:
-  - _Deliveries / Delivery_: The logistics errand where duplicants carry materials to storage or buildings.
-  - _Colony_: Player's save game / asteroid base.
-  - _Storage / Details Panel_: The side screen inspector panel when clicking buildings.
-  - _Construction / Blueprints_: Planned buildings awaiting materials and building errands.
-  - _Units_: Formatted temperatures use $^\circ ext{C}$, $^\circ ext{F}$, or $ ext{K}$ depending on player settings.
+  - *Deliveries / Delivery*: The logistics errand where duplicants carry materials to storage or buildings.
+  - *Colony*: Player's save game / asteroid base.
+  - *Storage / Details Panel*: The side screen inspector panel when clicking buildings.
+  - *Construction / Blueprints*: Planned buildings awaiting materials and building errands.
+  - *Units*: Formatted temperatures use $^\circ ext{C}$, $^\circ ext{F}$, or $ ext{K}$ depending on player settings.
 
 ### Formatting & Tag Rules
 
@@ -45,7 +45,7 @@ It provides context, UI locations, format placeholder rules, and semantic defini
 
 ### Domain 1: In-Game Building Details Side-Screen (`SIDESCREEN`)
 
-_UI Location: Inspector details panel displayed on the right side of the screen when a building with deliverable storage is selected._
+*UI Location: Inspector details panel displayed on the right side of the screen when a building with deliverable storage is selected.*
 
 | Key (`msgctxt`)                                                            | English Source (`msgid`)                                                                                                               | UI Type & Constraints             | Placeholders & Markup                                                                                   | Precise Definition & Translator Guidance                                                                                                                                      |
 | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
