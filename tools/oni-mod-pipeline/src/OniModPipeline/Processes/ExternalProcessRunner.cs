@@ -61,8 +61,20 @@ internal sealed class ExternalProcessRunner : IExternalProcessRunner
         {
             if (request.StandardInput is { } input)
             {
-                await process.StandardInput.WriteAsync(input.AsMemory(), cancellationToken).ConfigureAwait(false);
-                process.StandardInput.Close();
+                try
+                {
+                    await process.StandardInput.WriteAsync(input.AsMemory(), cancellationToken).ConfigureAwait(false);
+                    process.StandardInput.Close();
+                }
+                catch (IOException) when (!cancellationToken.IsCancellationRequested)
+                {
+                    // A child may reject a request before reading it. Retain its exit and diagnostics.
+                    cancellationState.TerminateProcessTree();
+                }
+                catch (IOException exception) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw new OperationCanceledException("Standard input was interrupted by cancellation.", exception, cancellationToken);
+                }
             }
             await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
         }

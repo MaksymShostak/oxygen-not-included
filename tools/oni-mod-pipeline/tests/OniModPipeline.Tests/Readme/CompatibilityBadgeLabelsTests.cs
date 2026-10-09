@@ -1,4 +1,6 @@
 using MaksymShostak.OniModPipeline.Readme;
+using MaksymShostak.OniModPipeline.Processes;
+using MaksymShostak.OniModPipeline.Tests.Fixtures;
 
 namespace MaksymShostak.OniModPipeline.Tests.Readme;
 
@@ -6,22 +8,33 @@ namespace MaksymShostak.OniModPipeline.Tests.Readme;
 public sealed class CompatibilityBadgeLabelsTests
 {
     [TestMethod]
-    [DataRow("VanillaYes.png", "Base game supported")]
-    [DataRow("Dlc1Yes.png", "Spaced Out! supported")]
-    [DataRow("Dlc2Yes.png", "The Frosty Planet Pack supported")]
-    [DataRow("Dlc3Yes.png", "The Bionic Booster Pack supported")]
-    [DataRow("Dlc4Yes.png", "The Prehistoric Planet Pack supported")]
-    [DataRow("Dlc5Yes.png", "The Aquatic Planet Pack supported")]
-    public void GeneratedDescription_SuppliesTheDomainLabelBeforeCanonicalization(string file, string label)
+    public async Task GeneratedDescription_UsesBoundedStdinAtTheDomainRenderer()
     {
-        var url = "https://raw.githubusercontent.com/MaksymShostak/oxygen-not-included/main/docs/badges/" + file;
-        Assert.AreEqual($"![{label}]({url})", CompatibilityBadgeLabels.RenderGeneratedDescription($"![]({url})"));
+        using var directory = new TemporaryDirectory();
+        Directory.CreateDirectory(directory.GetPath("tooling", "markdown"));
+        File.WriteAllText(directory.GetPath("tooling", "markdown", "render-description.mjs"), "// renderer");
+        var runner = new Runner();
+        Assert.AreEqual("rendered", await CompatibilityBadgeLabels.RenderGeneratedDescriptionAsync(directory.Path, "literal", runner, CancellationToken.None));
+        Assert.AreEqual("literal", runner.Request!.StandardInput);
+        Assert.AreEqual(2_097_152, runner.Request.OutputLimitCharacters);
     }
 
     [TestMethod]
-    public void GeneratedDescription_PreservesUnknownImagesAndExistingAuthoredLabels()
+    public async Task GeneratedDescription_RefusesUnsafeMissingRenderer()
     {
-        const string text = "![](https://example.org/unknown.png) ![Owner label](https://raw.githubusercontent.com/MaksymShostak/oxygen-not-included/main/docs/badges/Dlc1Yes.png)";
-        Assert.AreEqual(text, CompatibilityBadgeLabels.RenderGeneratedDescription(text));
+        using var directory = new TemporaryDirectory();
+        var runner = new Runner();
+        await Assert.ThrowsAsync<InvalidDataException>(() => CompatibilityBadgeLabels.RenderGeneratedDescriptionAsync(directory.Path, "literal", runner, CancellationToken.None));
+        Assert.IsNull(runner.Request);
+    }
+
+    private sealed class Runner : IExternalProcessRunner
+    {
+        internal ProcessRequest? Request { get; private set; }
+        public Task<ProcessResult> RunAsync(ProcessRequest request, CancellationToken token)
+        {
+            Request = request;
+            return Task.FromResult(new ProcessResult(0, "rendered", ""));
+        }
     }
 }

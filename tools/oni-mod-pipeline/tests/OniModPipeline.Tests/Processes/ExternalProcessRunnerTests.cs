@@ -89,6 +89,23 @@ public sealed class ExternalProcessRunnerTests
     }
 
     [TestMethod]
+    public async Task RunAsync_ObservesEarlyInputRejectionAndRetainsDiagnostics()
+    {
+        var result = await new ExternalProcessRunner().RunAsync(
+            CreateRequest("reject-input") with { StandardInput = new string('x', 2_097_152) }, CancellationToken.None);
+        Assert.AreEqual(2, result.ExitCode);
+        Assert.AreEqual("request rejected", result.StandardError);
+    }
+
+    [TestMethod]
+    public async Task RunAsync_WhenCancelledDuringInput_ReportsCancellationAndCompletes()
+    {
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+        await Assert.ThrowsExactlyAsync<OperationCanceledException>(() => new ExternalProcessRunner().RunAsync(
+            CreateRequest("wait-input") with { StandardInput = new string('x', 2_097_152) }, cancellation.Token));
+    }
+
+    [TestMethod]
     public async Task RunAsync_WhenArgumentContainsShellCharacters_PreservesOneLiteralArgument()
     {
         const string literalArgument = "value with spaces \"quotes\" & $dollar; semicolon";
@@ -308,6 +325,8 @@ public sealed class ExternalProcessRunnerTests
             "environment" => WriteEnvironment(args[1]),
             "streams" => WriteStreams(),
             "stdin" => await EchoInputAsync(),
+            "reject-input" => RejectInput(),
+            "wait-input" => await WaitWithoutInputAsync(),
             "wait-tree" => await WaitWithGrandchildAsync(args[1]),
             "grandchild" => await WaitAsGrandchildAsync(args[1]),
             _ => 64
@@ -322,6 +341,18 @@ public sealed class ExternalProcessRunnerTests
         static async Task<int> EchoInputAsync()
         {
             Console.Out.Write(await Console.In.ReadToEndAsync());
+            return 0;
+        }
+
+        static int RejectInput()
+        {
+            Console.Error.Write("request rejected");
+            return 2;
+        }
+
+        static async Task<int> WaitWithoutInputAsync()
+        {
+            await Task.Delay(Timeout.InfiniteTimeSpan);
             return 0;
         }
 

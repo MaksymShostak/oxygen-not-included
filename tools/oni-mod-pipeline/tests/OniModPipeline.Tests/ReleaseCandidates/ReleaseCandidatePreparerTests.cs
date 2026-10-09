@@ -40,6 +40,9 @@ public sealed class ReleaseCandidatePreparerTests
         Directory.CreateDirectory(package);
         File.WriteAllText(Path.Combine(package, "package.json"), "{\"name\":\"steam-community-bbcode\",\"bin\":\"cli.cjs\"}");
         File.WriteAllText(Path.Combine(package, "cli.cjs"), "console.log(JSON.stringify({value: '# Updated description\\n', diagnostics: []}));");
+        var rendererDirectory = Path.Combine(fixture.WorktreeRoot, "tooling", "markdown");
+        Directory.CreateDirectory(rendererDirectory);
+        File.WriteAllText(Path.Combine(rendererDirectory, "render-description.mjs"), "process.stdin.pipe(process.stdout);");
         var request = fixture.Request with { Profile = fixture.Request.Profile with { Readme = new ReadmeProfile("README.md") } };
         var result = await fixture.Preparer.PrepareAsync(request, CancellationToken.None);
         Assert.AreEqual(PipelineExitCode.ReleaseNotReady, result.ExitCode);

@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
+import { labelCompatibilityImages } from "./compatibility-badges.mjs";
 import {
   executeQuality,
   inspectSelection,
@@ -34,6 +35,7 @@ test("ONI locks the independently qualified archives and shared workflow", () =>
     ...manifest.devDependencies,
     ...manifest.optionalDependencies,
   })) {
+    if (!spec.startsWith("file:")) continue;
     assert.equal(lock.packages[`node_modules/${name}`].resolved, spec);
     assert.equal(
       lock.packages[`node_modules/${name}`].integrity,
@@ -49,12 +51,58 @@ test("ONI locks the independently qualified archives and shared workflow", () =>
       .digest("hex"),
     "ad51a2ccb721a2b14a05e8c1a61d9a1b7b3276d55a90beadb4c9f33d49702127",
   );
+  for (const [platform, digest] of Object.entries({
+    "linux-x64":
+      "8735357f776ecb520e40008e14f0fc3bc98715d02d60e847ae52847b8d8c6575",
+    "win32-x64":
+      "1207f1c49b0f73d8d7bf5c6a74dfdc928daffd132a5adf7d2dbc488f0d2d617d",
+  }))
+    assert.equal(
+      createHash("sha256")
+        .update(
+          readFileSync(join(root, profile.toolchain.nativeArchives[platform])),
+        )
+        .digest("hex"),
+      digest,
+    );
   assert.ok(
     readFileSync(
       join(root, ".github/workflows/oni-checks.yml"),
       "utf8",
     ).includes(`markdown-quality.yml@${sourceSha}`),
   );
+});
+
+test("domain badge labels affect actual images while preserving literal code and unknown labels", () => {
+  const base =
+    "https://raw.githubusercontent.com/MaksymShostak/oxygen-not-included/main/docs/badges/";
+  const files = [
+    "VanillaYes.png",
+    "Dlc1Yes.png",
+    "Dlc2Yes.png",
+    "Dlc3Yes.png",
+    "Dlc4Yes.png",
+    "Dlc5Yes.png",
+  ];
+  const labels = [
+    "Base game supported",
+    "Spaced Out! supported",
+    "The Frosty Planet Pack supported",
+    "The Bionic Booster Pack supported",
+    "The Prehistoric Planet Pack supported",
+    "The Aquatic Planet Pack supported",
+  ];
+  for (const [index, file] of files.entries()) {
+    const url = base + file;
+    const literal = `![](${url})`;
+    const input = `${literal}\n\n\`\`\`\n${literal}\n\`\`\`\n\n\`${literal}\`\n`;
+    const output = labelCompatibilityImages(input);
+    assert.ok(output.includes(`![${labels[index]}](${url})`));
+    assert.ok(output.includes(`\`\`\`\n${literal}\n\`\`\``));
+    assert.ok(output.includes(`\`${literal}\``));
+  }
+  const unknown = `![](https://example.org/unknown.png) ![Owner label](${base}Dlc1Yes.png)\n`;
+  assert.equal(labelCompatibilityImages(unknown), unknown);
 });
 
 test("full selection accounts for tracked ONI Markdown and authored anchors", async () => {

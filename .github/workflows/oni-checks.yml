@@ -80,6 +80,7 @@ jobs:
           npm --version
           npm ci --ignore-scripts --no-audit --no-fund --registry https://registry.npmjs.org/
           npm --prefix tooling/markdown ci --ignore-scripts --no-audit --no-fund --registry https://registry.npmjs.org/
+          npm --prefix tooling/markdown test
       - id: producer
         name: Check real README producer convergence without game installation
         if: fromJSON(env.ONI_PLAN).checks.producer

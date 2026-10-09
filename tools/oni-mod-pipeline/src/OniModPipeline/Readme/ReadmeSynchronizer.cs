@@ -39,8 +39,9 @@ internal sealed class ReadmeSynchronizer(InstalledBbcodeConverter converter, IRe
             }
 
             var conversion = await converter.ConvertAsync(packageDirectory, generatedPath, cancellationToken).ConfigureAwait(false);
+            var renderedDescription = await converter.RenderDescriptionAsync(repositoryRoot, conversion.Markdown, cancellationToken).ConfigureAwait(false);
             var replacement = await canonicalizer.CanonicalizeAsync(repositoryRoot, readmePath,
-                ReadmeDescriptionBlock.Replace(original, CompatibilityBadgeLabels.RenderGeneratedDescription(conversion.Markdown)), cancellationToken).ConfigureAwait(false);
+                ReadmeDescriptionBlock.Replace(original, renderedDescription), cancellationToken).ConfigureAwait(false);
             if (!ReadmeDescriptionBlock.Replace(original, string.Empty).AsSpan().SequenceEqual(ReadmeDescriptionBlock.Replace(replacement, string.Empty)))
                 throw new InvalidDataException("Canonicalization would change authored bytes outside the README description block.");
             var drift = !original.AsSpan().SequenceEqual(replacement);

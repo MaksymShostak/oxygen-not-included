@@ -110,7 +110,10 @@ def classify(path: str) -> tuple[set[str], set[str]] | None:
     if path.startswith(".github/actions/"):
         return {"codeql"}, {"actions"}
     if path in {".markdown-quality.json", ".markdown-quality-execution.json", ".node-version", ".python-version"} or path.startswith("tooling/markdown/"):
-        return {"documentation", "pipeline", "producer", "codeql"}, set(LANGUAGES)
+        checks = {"documentation", "pipeline", "producer", "codeql"}
+        if path == ".python-version":
+            checks.add("python")
+        return checks, set(LANGUAGES)
     if path in {"package.json", "package-lock.json"}:
         return {"pipeline", "producer", "documentation", "codeql"}, {"csharp"}
     if lower in {"global.json", "nuget.config", "nuget.config.json"} or suffix in {".csproj", ".sln", ".slnx", ".props", ".targets"} or lower.endswith("/packages.lock.json") or lower.endswith("/nuget.config"):

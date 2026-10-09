@@ -8,6 +8,9 @@ internal sealed record BbcodeConversion(string Markdown, JsonElement Diagnostics
 
 internal sealed class InstalledBbcodeConverter(IExternalProcessRunner processRunner)
 {
+    internal Task<string> RenderDescriptionAsync(string root, string markdown, CancellationToken token) =>
+        CompatibilityBadgeLabels.RenderGeneratedDescriptionAsync(root, markdown, processRunner, token);
+
     internal async Task<BbcodeConversion> ConvertAsync(
         string packageDirectory, string generatedDescriptionPath, CancellationToken cancellationToken)
     {

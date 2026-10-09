@@ -24,7 +24,7 @@ public sealed class ValidateCommandTests
         File.WriteAllText(Path.Combine(markdownPackage, "package.json"), "{\"name\":\"@hadden-industries/markdown-quality\",\"version\":\"1.0.3\",\"bin\":{\"markdown-quality\":\"cli.js\"}}");
         File.WriteAllText(Path.Combine(markdownPackage, "cli.js"), "// controlled checker fixture");
         Directory.CreateDirectory(Path.Combine(fixture.WorktreeRoot, "tooling/markdown/archives"));
-        foreach (var input in new[] { ".markdown-quality.json", ".markdown-quality-execution.json", ".node-version", ".python-version", "tooling/markdown/package.json", "tooling/markdown/readme-document.mjs", "tooling/markdown/archives/core.tgz" })
+        foreach (var input in new[] { ".markdown-quality.json", ".markdown-quality-execution.json", ".node-version", ".python-version", "tooling/markdown/package.json", "tooling/markdown/readme-document.mjs", "tooling/markdown/render-description.mjs", "tooling/markdown/compatibility-badges.mjs", "tooling/markdown/archives/core.tgz" })
             File.WriteAllText(Path.Combine(fixture.WorktreeRoot, input), "{}");
         File.WriteAllText(Path.Combine(fixture.WorktreeRoot, "tooling/markdown/package-lock.json"), JsonSerializer.Serialize(new { packages = new Dictionary<string, object> { ["node_modules/@hadden-industries/markdown-quality"] = new { version = "1.0.3" } } }));
         var runner = new ReadmeValidationRunner(fixture.ProcessRunner);
@@ -43,6 +43,8 @@ public sealed class ValidateCommandTests
         {
             if (request.FileName == "node")
             {
+                if (request.Arguments[0].EndsWith("render-description.mjs", StringComparison.Ordinal))
+                    return new(0, request.StandardInput!, "");
                 if (request.StandardInput is not null)
                 {
                     using var input = JsonDocument.Parse(request.StandardInput);
@@ -59,7 +61,7 @@ public sealed class ValidateCommandTests
             }
             var result = await inner.RunAsync(request, cancellationToken);
             return request.Arguments.SequenceEqual(new[] { "ls-files", "-z" })
-                ? result with { StandardOutput = result.StandardOutput + "README.md\0package.json\0package-lock.json\0.markdown-quality.json\0.markdown-quality-execution.json\0.node-version\0.python-version\0tooling/markdown/package.json\0tooling/markdown/package-lock.json\0tooling/markdown/readme-document.mjs\0tooling/markdown/archives/core.tgz\0" }
+                ? result with { StandardOutput = result.StandardOutput + "README.md\0package.json\0package-lock.json\0.markdown-quality.json\0.markdown-quality-execution.json\0.node-version\0.python-version\0tooling/markdown/package.json\0tooling/markdown/package-lock.json\0tooling/markdown/readme-document.mjs\0tooling/markdown/render-description.mjs\0tooling/markdown/compatibility-badges.mjs\0tooling/markdown/archives/core.tgz\0" }
                 : result;
         }
     }

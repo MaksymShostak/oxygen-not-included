@@ -89,6 +89,10 @@ class CiChecksTests(unittest.TestCase):
                 self.assertTrue(plan["checks"]["pipeline"])
                 self.assertTrue(plan["checks"]["codeql"])
 
+    def test_python_runtime_also_selects_python_unit_tests(self):
+        self.write(".python-version", "3.14.8\n")
+        self.assertTrue(self.push_plan()["checks"]["python"])
+
     def test_pipeline_producer_and_embedded_backend_inputs(self):
         self.write("tools/oni-mod-pipeline/src/OniModPipeline/Readme/File.cs", "new\n")
         plan = self.push_plan()

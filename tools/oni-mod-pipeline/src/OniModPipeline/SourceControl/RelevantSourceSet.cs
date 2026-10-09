@@ -72,6 +72,8 @@ internal sealed record RelevantSourceSet(
                 builder.AddDeclaredFile(worktreeRoot, "tooling/markdown/package.json");
                 builder.AddDeclaredFile(worktreeRoot, "tooling/markdown/package-lock.json");
                 builder.AddDeclaredFile(worktreeRoot, "tooling/markdown/readme-document.mjs");
+                builder.AddDeclaredFile(worktreeRoot, "tooling/markdown/compatibility-badges.mjs");
+                builder.AddDeclaredFile(worktreeRoot, "tooling/markdown/render-description.mjs");
                 builder.AddDeclaredFileOrTree(worktreeRoot, "tooling/markdown/archives");
             }
 

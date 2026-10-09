@@ -74,6 +74,8 @@ public sealed class ReadmeSynchronizerTests
             Directory.CreateDirectory(directory.GetPath("package"));
             File.WriteAllText(directory.GetPath("package", "package.json"), "{\"name\":\"steam-community-bbcode\",\"bin\":\"cli.js\"}");
             File.WriteAllText(directory.GetPath("package", "cli.js"), "// bin");
+            Directory.CreateDirectory(directory.GetPath("tooling", "markdown"));
+            File.WriteAllText(directory.GetPath("tooling", "markdown", "render-description.mjs"), "// renderer");
         }
         internal Task<ReadmeSynchronization> Run(bool check, CancellationToken token = default) =>
             new ReadmeSynchronizer(new InstalledBbcodeConverter(Runner), Canonicalizer).SynchronizeAsync(directory.Path, new ReadmeProfile("README.md"), Description, directory.GetPath("package"), check, token);
@@ -93,6 +95,8 @@ public sealed class ReadmeSynchronizerTests
         internal int ExitCode { get; set; }
         public Task<ProcessResult> RunAsync(ProcessRequest request, CancellationToken cancellationToken)
         {
+            if (request.StandardInput is { } markdown)
+                return Task.FromResult(new ProcessResult(0, markdown, ""));
             GeneratedBytes = File.ReadAllBytes(request.Arguments[^1]);
             DuringConversion?.Invoke();
             return Task.FromResult(new ProcessResult(ExitCode, "{\"value\":\"# Mod\\n\",\"diagnostics\":[]}", ""));
