@@ -3,6 +3,7 @@
   "preset": "authored-gfm@1",
   "include": ["**/*.md"],
   "exclude": [
+    "**/*.md",
     "**/artifacts/**",
     "**/[Bb]in/**",
     "**/[Oo]bj/**",

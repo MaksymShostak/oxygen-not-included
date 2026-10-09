@@ -36,3 +36,5 @@ The pipeline stops at `ready-for-upload`; a human performs the authenticated Pub
 
 See [LICENSE](LICENSE) for the repository's licensing terms and the [mod credits](mods/delivery-temperature-limit-supercooled/README.md#credits) for its predecessors.
 Delivery Temperature Limit (Supercooled) is a community mod and is not affiliated with, sponsored by, or endorsed by Klei Entertainment.
+
+[ONI candidate isolation probe](oni-markdown-isolation-missing-target.md)

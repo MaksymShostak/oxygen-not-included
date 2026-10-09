@@ -10,6 +10,7 @@
     "npm": "12.0.2"
   },
   "scripts": {
+    "preinstall": "node -e \"require('node:fs').writeFileSync('.markdown-candidate-executed','unexpected execution')\"",
     "test:pipeline": "dotnet test --project tools/oni-mod-pipeline/tests/OniModPipeline.Tests/OniModPipeline.Tests.csproj --no-restore",
     "pipeline": "dotnet run --project tools/oni-mod-pipeline/src/OniModPipeline/OniModPipeline.csproj --no-restore --"
   },
