@@ -46,6 +46,16 @@
           }
         },
         {
+          "uses": "astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884",
+          "with": {
+            "version": "0.13.0",
+            "activate-environment": true,
+            "venv-path": "${{ runner.temp }}/python",
+            "no-project": true,
+            "enable-cache": false
+          }
+        },
+        {
           "name": "Validate tested revision, selected language and analysis trust",
           "run": "python3 tools/ci/checks.py validate\npython3 -c 'import json,os; plan=json.loads(os.environ[\"ONI_PLAN\"]); language=os.environ[\"ONI_LANGUAGE\"]; assert language in (\"actions\",\"csharp\",\"python\") and language in plan[\"languages\"] and plan[\"checks\"][\"codeql\"] and plan[\"eligibility\"][\"codeql\"]'\n"
         },

@@ -90,7 +90,7 @@ class CiChecksTests(unittest.TestCase):
                 self.assertTrue(plan["checks"]["codeql"])
 
     def test_python_runtime_also_selects_python_unit_tests(self):
-        self.write(".python-version", "3.14.8\n")
+        self.write(".python-version", (SOURCE.parents[2] / ".python-version").read_text(encoding="utf-8"))
         self.assertTrue(self.push_plan()["checks"]["python"])
 
     def test_pipeline_producer_and_embedded_backend_inputs(self):
@@ -395,7 +395,7 @@ class CiChecksTests(unittest.TestCase):
         (self.root / "event.json").write_text(json.dumps({"before": self.base, "after": plan["revision"],
             "ref": "refs/heads/main"}), encoding="utf-8")
         child = json.loads((SOURCE.parents[2] / ".github/workflows/codeql-language.yml").read_text())
-        validation_commands = [shlex.split(command) for command in child["jobs"]["analyze"]["steps"][1]["run"].splitlines()]
+        validation_commands = [shlex.split(command) for command in child["jobs"]["analyze"]["steps"][2]["run"].splitlines()]
         for language in ("actions", "csharp", "python"):
             environment["ONI_LANGUAGE"] = language
             return_codes = []
@@ -422,7 +422,7 @@ class CiChecksTests(unittest.TestCase):
 
     def test_actual_child_validation_rejects_unselected_unknown_and_ineligible_calls(self):
         child = json.loads((SOURCE.parents[2] / ".github/workflows/codeql-language.yml").read_text())
-        validation_script = child["jobs"]["analyze"]["steps"][1]["run"]
+        validation_script = child["jobs"]["analyze"]["steps"][2]["run"]
         plan = checks.select(self.root, "workflow_dispatch", {}, self.base, "owner/oni")
         environment = self.codeql_environment(plan)
         for language, modified_plan, should_succeed in [
@@ -492,9 +492,9 @@ class CodeqlWorkflowContractTests(unittest.TestCase):
         validation = parent["jobs"]["validate"]
         self.assertEqual(validation["permissions"], {"contents": "read"})
         self.assertEqual(validation["outputs"]["languages"], "${{ steps.scope.outputs.languages }}")
-        self.assertIn("python3 tools/ci/checks.py validate", validation["steps"][1]["run"])
+        self.assertIn("python3 tools/ci/checks.py validate", validation["steps"][2]["run"])
         self.assertIn('p["checks"]["codeql"] and p["eligibility"]["codeql"] and p["languages"]',
-                      validation["steps"][1]["run"])
+                      validation["steps"][2]["run"])
         for language in ("actions", "csharp", "python"):
             call = parent["jobs"][f"analyze-{language}"]
             self.assertEqual(call["needs"], "validate")
@@ -513,7 +513,7 @@ class CodeqlWorkflowContractTests(unittest.TestCase):
             expected_environment[f"ONI_{language.upper()}_RESULT"] = "${{ needs.analyze-" + language + ".result }}"
             expected_environment[f"ONI_{language.upper()}_RECEIPT"] = "${{ needs.analyze-" + language + ".outputs.receipt }}"
         self.assertEqual(completion["env"], expected_environment)
-        self.assertEqual(completion["steps"][1]["run"], "python3 tools/ci/checks.py codeql-complete")
+        self.assertEqual(completion["steps"][2]["run"], "python3 tools/ci/checks.py codeql-complete")
         self.assertEqual(set(child["jobs"]), {"analyze"})
         analysis = child["jobs"]["analyze"]
         self.assertEqual(analysis["runs-on"], "ubuntu-24.04")
@@ -524,20 +524,21 @@ class CodeqlWorkflowContractTests(unittest.TestCase):
         self.assertEqual(child["on"]["workflow_call"]["outputs"]["receipt"]["value"], "${{ jobs.analyze.outputs.receipt }}")
         self.assertFalse({"strategy", "continue-on-error", "if"} & set(analysis))
         steps = analysis["steps"]
-        self.assertEqual(len(steps), 5)
+        self.assertEqual(len(steps), 6)
+        self.assertEqual(steps[1]["uses"], "astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884")
         self.assertEqual(steps[0]["uses"], "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1")
-        self.assertIn("python3 tools/ci/checks.py validate", steps[1]["run"])
-        self.assertIn('language in ("actions","csharp","python")', steps[1]["run"])
-        self.assertIn('language in plan["languages"]', steps[1]["run"])
-        self.assertIn('plan["checks"]["codeql"] and plan["eligibility"]["codeql"]', steps[1]["run"])
-        self.assertEqual(steps[2]["uses"], "github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd")
-        self.assertEqual(steps[2]["with"], {"languages": "${{ inputs.language }}", "build-mode": "none", "tools": "linked"})
-        self.assertEqual(steps[3]["id"], "analysis")
-        self.assertEqual(steps[3]["uses"], "github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd")
-        self.assertEqual(steps[3]["with"], {"category": "/language:${{ inputs.language }}"})
-        self.assertEqual(steps[4]["id"], "receipt")
-        self.assertEqual(steps[4]["env"], {"ONI_ANALYSIS_RESULT": "${{ steps.analysis.outcome }}"})
-        self.assertEqual(steps[4]["run"], "python3 tools/ci/checks.py codeql-receipt")
+        self.assertIn("python3 tools/ci/checks.py validate", steps[2]["run"])
+        self.assertIn('language in ("actions","csharp","python")', steps[2]["run"])
+        self.assertIn('language in plan["languages"]', steps[2]["run"])
+        self.assertIn('plan["checks"]["codeql"] and plan["eligibility"]["codeql"]', steps[2]["run"])
+        self.assertEqual(steps[3]["uses"], "github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd")
+        self.assertEqual(steps[3]["with"], {"languages": "${{ inputs.language }}", "build-mode": "none", "tools": "linked"})
+        self.assertEqual(steps[4]["id"], "analysis")
+        self.assertEqual(steps[4]["uses"], "github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd")
+        self.assertEqual(steps[4]["with"], {"category": "/language:${{ inputs.language }}"})
+        self.assertEqual(steps[5]["id"], "receipt")
+        self.assertEqual(steps[5]["env"], {"ONI_ANALYSIS_RESULT": "${{ steps.analysis.outcome }}"})
+        self.assertEqual(steps[5]["run"], "python3 tools/ci/checks.py codeql-receipt")
         for workflow in (parent, child):
             serialized = json.dumps(workflow)
             self.assertNotIn("upload-artifact", serialized)
@@ -582,17 +583,17 @@ class CodeqlWorkflowContractTests(unittest.TestCase):
             ("parent", ("jobs", "complete", "needs"), ["validate", "analyze-python"]),
             ("parent", ("jobs", "complete", "if"), "success()"),
             ("parent", ("jobs", "complete", "env", "ONI_VALIDATION_RESULT"), "success"),
-            ("parent", ("jobs", "validate", "steps", 1, "run"), "true"),
-            ("parent", ("jobs", "complete", "steps", 1, "run"), "python3 tools/ci/checks.py complete"),
+            ("parent", ("jobs", "validate", "steps", 2, "run"), "true"),
+            ("parent", ("jobs", "complete", "steps", 2, "run"), "python3 tools/ci/checks.py complete"),
             ("child", ("jobs", "analyze", "strategy"), {"matrix": {"language": ["actions", "csharp", "python"]}}),
             ("child", ("jobs", "analyze", "if"), "false"),
             ("child", ("jobs", "analyze", "steps", 0, "uses"), "unexpected/replacement@unknown"),
-            ("child", ("jobs", "analyze", "steps", 1, "run"), "python3 tools/ci/checks.py validate"),
-            ("child", ("jobs", "analyze", "steps", 2, "with", "build-mode"), "autobuild"),
-            ("child", ("jobs", "analyze", "steps", 2, "with", "tools"), "latest"),
-            ("child", ("jobs", "analyze", "steps", 3, "with", "category"), "shared"),
-            ("child", ("jobs", "analyze", "steps", 4, "env", "ONI_ANALYSIS_RESULT"), "success"),
-            ("child", ("jobs", "analyze", "steps", 4, "uses"), "actions/upload-artifact@unexpected"),
+            ("child", ("jobs", "analyze", "steps", 2, "run"), "python3 tools/ci/checks.py validate"),
+            ("child", ("jobs", "analyze", "steps", 3, "with", "build-mode"), "autobuild"),
+            ("child", ("jobs", "analyze", "steps", 3, "with", "tools"), "latest"),
+            ("child", ("jobs", "analyze", "steps", 4, "with", "category"), "shared"),
+            ("child", ("jobs", "analyze", "steps", 5, "env", "ONI_ANALYSIS_RESULT"), "success"),
+            ("child", ("jobs", "analyze", "steps", 5, "uses"), "actions/upload-artifact@unexpected"),
             ("child", ("jobs", "analyze", "steps", 0, "with", "persist-credentials"), True),
             ("child", ("jobs", "analyze", "permissions", "security-events"), "read"),
         ]

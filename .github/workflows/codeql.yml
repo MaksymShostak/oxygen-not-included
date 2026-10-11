@@ -38,9 +38,19 @@
           }
         },
         {
+          "uses": "astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884",
+          "with": {
+            "version": "0.13.0",
+            "activate-environment": true,
+            "venv-path": "${{ runner.temp }}/python",
+            "no-project": true,
+            "enable-cache": false
+          }
+        },
+        {
           "id": "scope",
           "name": "Independently validate selection and analysis trust",
-          "run": "python3 -c \"import sys; assert sys.version_info >= (3,10); print(sys.version)\"\npython3 tools/ci/checks.py validate\npython3 -c 'import json,os; p=json.loads(os.environ[\"ONI_PLAN\"]); assert p[\"checks\"][\"codeql\"] and p[\"eligibility\"][\"codeql\"] and p[\"languages\"]'\n"
+          "run": "python3 tools/ci/checks.py validate\npython3 -c 'import json,os; p=json.loads(os.environ[\"ONI_PLAN\"]); assert p[\"checks\"][\"codeql\"] and p[\"eligibility\"][\"codeql\"] and p[\"languages\"]'\n"
         }
       ]
     },
@@ -118,6 +128,16 @@
           "with": {
             "fetch-depth": 0,
             "persist-credentials": false
+          }
+        },
+        {
+          "uses": "astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884",
+          "with": {
+            "version": "0.13.0",
+            "activate-environment": true,
+            "venv-path": "${{ runner.temp }}/python",
+            "no-project": true,
+            "enable-cache": false
           }
         },
         {
