@@ -74,8 +74,8 @@ public sealed class ReadmeSynchronizerTests
             Directory.CreateDirectory(directory.GetPath("package"));
             File.WriteAllText(directory.GetPath("package", "package.json"), "{\"name\":\"steam-community-bbcode\",\"bin\":\"cli.js\"}");
             File.WriteAllText(directory.GetPath("package", "cli.js"), "// bin");
-            Directory.CreateDirectory(directory.GetPath("tooling", "markdown"));
-            File.WriteAllText(directory.GetPath("tooling", "markdown", "render-description.mjs"), "// renderer");
+            Directory.CreateDirectory(directory.GetPath("tools", "readme"));
+            File.WriteAllText(directory.GetPath("tools", "readme", "render-description.mjs"), "// renderer");
         }
         internal Task<ReadmeSynchronization> Run(bool check, CancellationToken token = default) =>
             new ReadmeSynchronizer(new InstalledBbcodeConverter(Runner), Canonicalizer).SynchronizeAsync(directory.Path, new ReadmeProfile("README.md"), Description, directory.GetPath("package"), check, token);

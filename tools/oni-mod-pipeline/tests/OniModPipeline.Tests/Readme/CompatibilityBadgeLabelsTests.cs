@@ -11,8 +11,8 @@ public sealed class CompatibilityBadgeLabelsTests
     public async Task GeneratedDescription_UsesBoundedStdinAtTheDomainRenderer()
     {
         using var directory = new TemporaryDirectory();
-        Directory.CreateDirectory(directory.GetPath("tooling", "markdown"));
-        File.WriteAllText(directory.GetPath("tooling", "markdown", "render-description.mjs"), "// renderer");
+        Directory.CreateDirectory(directory.GetPath("tools", "readme"));
+        File.WriteAllText(directory.GetPath("tools", "readme", "render-description.mjs"), "// renderer");
         var runner = new Runner();
         Assert.AreEqual("rendered", await CompatibilityBadgeLabels.RenderGeneratedDescriptionAsync(directory.Path, "literal", runner, CancellationToken.None));
         Assert.AreEqual("literal", runner.Request!.StandardInput);

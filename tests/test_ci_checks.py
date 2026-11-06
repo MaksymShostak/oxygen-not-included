@@ -23,6 +23,15 @@ checks = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(checks)
 
 
+def setUpModule():
+    """Keep fixture reports out of the enclosing Actions step's output files."""
+    environment = patch.dict(os.environ)
+    environment.start()
+    unittest.addModuleCleanup(environment.stop)
+    for name in ("GITHUB_STEP_SUMMARY", "GITHUB_OUTPUT"):
+        os.environ.pop(name, None)
+
+
 class CiChecksTests(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
@@ -650,6 +659,24 @@ class CodeqlCompletionContractTests(unittest.TestCase):
         with contextlib.redirect_stdout(self.output):
             return checks.complete_codeql_analysis(plan or self.plan, self.results if results is None else results,
                 self.receipts if receipts is None else receipts, "123", "2", validation_result)
+
+    def test_negative_cases_leave_inherited_runner_files_untouched(self):
+        with tempfile.TemporaryDirectory() as directory:
+            summary = Path(directory) / "runner-summary.md"
+            output = Path(directory) / "runner-output.txt"
+            summary.write_bytes(b"real runner summary\n")
+            output.write_bytes(b"real runner output\n")
+            environment = {**os.environ, "GITHUB_STEP_SUMMARY": str(summary), "GITHUB_OUTPUT": str(output)}
+            result = subprocess.run(
+                [sys.executable, "-B", "-m", "unittest",
+                 "test_ci_checks.CodeqlCompletionContractTests.test_unselected_slots_cannot_return_results_or_receipts",
+                 "test_ci_checks.CodeqlWorkflowContractTests.test_actual_workflow_contract_and_independent_output_wiring",
+                 "test_ci_checks.CiChecksTests.test_native_completion_emits_only_the_qualified_source_revision"],
+                cwd=SOURCE.parents[2] / "tests", env=environment, capture_output=True, text=True, timeout=30,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(summary.read_bytes(), b"real runner summary\n")
+            self.assertEqual(output.read_bytes(), b"real runner output\n")
 
     def test_all_nonempty_language_subsets_and_receipt_arrival_orders(self):
         for count in (1, 2, 3):

@@ -40,7 +40,7 @@ public sealed class ReleaseCandidatePreparerTests
         Directory.CreateDirectory(package);
         File.WriteAllText(Path.Combine(package, "package.json"), "{\"name\":\"steam-community-bbcode\",\"bin\":\"cli.cjs\"}");
         File.WriteAllText(Path.Combine(package, "cli.cjs"), "console.log(JSON.stringify({value: '# Updated description\\n', diagnostics: []}));");
-        var rendererDirectory = Path.Combine(fixture.WorktreeRoot, "tooling", "markdown");
+        var rendererDirectory = Path.Combine(fixture.WorktreeRoot, "tools", "readme");
         Directory.CreateDirectory(rendererDirectory);
         File.WriteAllText(Path.Combine(rendererDirectory, "render-description.mjs"), "process.stdin.pipe(process.stdout);");
         var request = fixture.Request with { Profile = fixture.Request.Profile with { Readme = new ReadmeProfile("README.md") } };
