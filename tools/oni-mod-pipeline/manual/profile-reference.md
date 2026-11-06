@@ -56,8 +56,10 @@ Place exactly one standalone marker pair around the description to manage:
 Run `oni-mod-pipeline sync-readme --mod <mod-root>` before reviewing and committing.
 The installed `steam-community-bbcode` public CLI converts the same generated CRLF description bytes used by Workshop listing assembly.
 The README description producer supplies domain labels for the six known compatibility badges before the shared Markdown package processes the document at its final logical path.
+
 The package owns Markdown rules and result validation; unknown authored images require their author's alternative text.
 Section levels come directly from the BBCode source: description sections use `[h2]` beneath the README's title.
+
 Synchronization replaces only the managed block and preserves surrounding bytes.
 The block uses the start marker line's newline convention.
 Invalid markers, unknown images needing descriptions, rejected conversion or formatting, cancellation, or a detected target change prevent replacement.

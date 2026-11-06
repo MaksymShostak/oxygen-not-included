@@ -15,7 +15,7 @@ It provides context, UI locations, format placeholder rules, and semantic defini
   - *Colony*: Player's save game / asteroid base.
   - *Storage / Details Panel*: The side screen inspector panel when clicking buildings.
   - *Construction / Blueprints*: Planned buildings awaiting materials and building errands.
-  - *Units*: Formatted temperatures use $^\circ ext{C}$, $^\circ ext{F}$, or $ ext{K}$ depending on player settings.
+  - *Units*: Formatted temperatures use °C, °F or K depending on player settings.
 
 ### Formatting & Tag Rules
 
@@ -132,6 +132,7 @@ Translate “game log” as a player-facing term for the game's diagnostic log, 
 
 `SECTION_ADVANCED_TROUBLESHOOTING` is a stable disclosure heading with a chevron, not an action label that changes between “show” and “hide”.
 Its whole row toggles the advanced tools: configuration folder, local-only report generation, opening the last report folder, and copying its summary.
+
 Enter and Space also toggle focused disclosure headers.
 Creating a local report does not open a browser; copying is a separate action.
 Keep those actions distinct in translation.
@@ -190,6 +191,7 @@ The declared `[catalogs]` inputs are checked during `validate`, `build`, and nat
 The gate compares contextual keys, source text, nonempty locale translations, numbered token multiplicity, decoded newline counts, and literal Options source declarations.
 `inspect-catalogs` exports all present entries under the declared Options prefix, including raw blocks and decoded values, without requiring the game environment.
 Absent entries stay absent.
+
 Use `--python C:\absolute\path\python.exe` to select an interpreter explicitly; otherwise the pipeline resolves Python from PATH.
 Python 3.10+ is required only for profiles declaring catalogs.
 The owned backend is embedded in the pipeline assembly and runs with `-I -B` and a 30-second deadline.
@@ -197,6 +199,7 @@ The owned backend is embedded in the pipeline assembly and runs with `-I -B` and
 The accepted PO subset uses single-line contextual entries and JSON-compatible string escapes.
 Metadata headers and ordinary comments are supported.
 Active multiline/plural entries, fuzzy flags, obsolete entries, and malformed syntax fail explicitly instead of being skipped.
+
 This does not establish full gettext conformance, complete format-string semantics, or actual ONI localization rendering.
 Continue the in-game translation checks below.
 Run Python regression tests with `python -B -m unittest discover -s tests -p "test_*.py"`.

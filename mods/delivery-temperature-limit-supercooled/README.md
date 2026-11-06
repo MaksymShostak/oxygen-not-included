@@ -1,6 +1,6 @@
 # Delivery Temperature Limit (Supercooled)
 
-![Oxygen Not Included Mod](https://img.shields.io/badge/Game-Oxygen_Not_Included-orange)
+[Set delivery limits](#what-it-does) · [Change mod options](#mod-options) · [Troubleshoot a delivery](../../SUPPORT.md)
 
 <!-- oni-mod-pipeline:workshop-description:start -->
 

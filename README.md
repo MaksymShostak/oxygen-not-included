@@ -5,10 +5,13 @@ The mod lets you set minimum and maximum temperatures for deliveries to storage 
 
 ## Explore the mod
 
-- [Features, compatibility, options and credits](mods/delivery-temperature-limit-supercooled/README.md)
+[View Delivery Temperature Limit (Supercooled) on Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3759075866).
+
+- [Set a temperature range for deliveries](mods/delivery-temperature-limit-supercooled/README.md#what-it-does) or [enable limits for construction materials](mods/delivery-temperature-limit-supercooled/README.md#mod-options).
+- [Check game compatibility and available languages](mods/delivery-temperature-limit-supercooled/README.md#compatibility--localisation).
 - [Report a bug](https://github.com/MaksymShostak/oxygen-not-included/issues/new?template=temperature-limit-bug.yml)
 - [Suggest a feature](https://github.com/MaksymShostak/oxygen-not-included/issues/new?template=temperature-limit-feature.yml)
-- [Support and diagnostic-report privacy](SUPPORT.md)
+- [Create a local diagnostic report and decide what to share](SUPPORT.md#fastest-reporting-path).
 
 ## Contribute
 
@@ -19,7 +22,7 @@ The mod lets you set minimum and maximum temperatures for deliveries to storage 
 ## Develop and release
 
 ONI Mod Pipeline is the supported command-line workflow for validating, building, testing, installing and preparing this mod for manual Workshop upload.
-Start with the guide for your task:
+Choose the guide for the step you are working on.
 
 | Task                                   | Guide                                                                                        |
 | -------------------------------------- | -------------------------------------------------------------------------------------------- |

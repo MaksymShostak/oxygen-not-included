@@ -62,6 +62,7 @@ Steam Community BBCode currently publishes a release candidate, so its existing 
 
 Some transitive dependencies remain older than their latest releases because Markdown Quality ships bundled dependencies.
 The Steam Community BBCode overrides resolve its older Markdown package pins to the current direct declarations without repeating their version numbers.
+
 The direct dependencies and toolchain selections are current; the entire transitive closure is not.
 Those remaining versions require upstream releases or separately reviewed overrides.
 
@@ -73,6 +74,7 @@ The test projects select the engine, assertions, reports, and coverage packages 
 Markdown Quality's published bundle includes ESLint code that imports Ajv 6's draft-04 schema path and accesses `ajv._opts`.
 Updating its bundled Ajv to 8 requires migrating that caller and producing a new upstream package artifact.
 [npm's bundled-dependency ownership](https://docs.npmjs.com/cli/v12/configuring-npm/package-json/#bundledependencies) also means that root overrides cannot be treated as proof that shipped bundle contents changed.
+
 A clean isolated npm 12.2.2 installation with a root `minimatch >=11.0.5` override still materialized bundled minimatch 11.0.3 with `inBundle: true`.
 That native probe confirmed that a root override did not update the published bundle's contents.
 

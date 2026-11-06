@@ -8,6 +8,7 @@ The MIT boundary is this repository; continued upstream code and copied third-pa
 
 Use the repository's [private vulnerability report](https://github.com/MaksymShostak/oxygen-not-included/security/advisories/new).
 Include the mod version or commit, ONI build and DLC set, the pipeline command or in-game action, smallest useful reproduction, observed result and security impact.
+
 Keep sensitive data and exploit details in that private report; do not use the public bug form for security findings.
 The destination channel was verified enabled on 16 September 2026.
 No response-time or supported-release commitment is implied.
@@ -16,6 +17,7 @@ No response-time or supported-release commitment is implied.
 
 Treat save data, other mods, `Player.log` contents, Workshop listing text and translation files as untrusted.
 The player chooses whether a support report is generated, reviewed and attached; the mod never decides for them.
+
 The pipeline operator chooses the mod root, profile, build result and install target; repository content must never select paths outside those choices.
 The tracked profile, metadata, lock files and package allowlist are trusted release inputs, subject to supply-chain review.
 
@@ -34,6 +36,7 @@ The tracked profile, metadata, lock files and package allowlist are trusted rele
 ## Findings and limitations
 
 Assess reachable consequences: mod-triggered network or filesystem activity beyond the report folder, code execution or path traversal driven by save data, other mods or listing text, report contents that leak data the policy says is excluded, or compromise of the built DLL or release candidate are reportable concerns.
+
 Severity depends on the actual game build, active mod set and deployment.
 A crash or lost feature caused by another mod's incompatibility is a bug, not evidence of a security issue, unless it enables one of the consequences above.
 No finding class is waived by this document.

@@ -33,10 +33,12 @@ npm ci --include=dev --ignore-scripts
 `@hadden-industries/markdown-quality` is an ordinary registry devDependency declared as `>=3.0.0`; npm installs its matching native package.
 Use `npm run check:markdown` for read-only checking and `npm run format:markdown -- -- path/to/file.md` for explicit repairs.
 `npm run inspect:markdown` reports the selected scope, and `npm run test:readme` exercises the real README integration.
+
 README synchronization never installs or upgrades packages.
 It sends the generated candidate through the package's public logical-document API, then checks the formatted candidate before the C# owner performs its guarded replacement.
 Formatting success alone is not a quality verdict.
 The README's authored bytes outside the generated block remain protected by the synchronizer.
+
 The Markdown configuration only excludes generated build output and dependency directories in addition to the package defaults.
 Repository development uses Python 3.15.2 or later; the catalog runtime requirement above remains Python 3.10+.
 CI workflows share `.github/actions/setup-python/action.yml`, which owns the uv version and isolated environment settings.

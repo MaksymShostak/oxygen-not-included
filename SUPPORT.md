@@ -5,23 +5,29 @@ For a general Oxygen Not Included problem that is not caused by this mod, use [K
 
 ## Fastest reporting path
 
-1. In Oxygen Not Included, open **Mods → Delivery Temperature Limit → Options**.
-2. Select **Create Support Report**.
-3. Review the generated local JSON file.
-   The mod also copies a compact diagnostic summary, opens the report folder, and opens the [Temperature Limit bug form](https://github.com/MaksymShostak/oxygen-not-included/issues/new?template=temperature-limit-bug.yml) with that summary prefilled where possible.
-4. Describe what happened, attach the reviewed JSON report, and submit the issue.
+1. In Oxygen Not Included, open **Mods → Delivery Temperature Limit → Options** and select **Report a bug…**.
+2. Leave **Include game log (optional)** unchecked for a standard report.
+   Select it only if recent game logs would help explain the failure.
+3. Select **Continue to GitHub**.
+   This creates a fresh local report and sends its summary to GitHub to prefill the bug form.
+4. Review the form and describe what happened.
+   To share the full JSON file, open it, check its contents and attach it yourself.
 
-The report remains on your computer until you choose to attach it.
-Nothing is uploaded automatically.
+To inspect a report before opening GitHub, expand **Advanced troubleshooting** and select **Create local report**.
+The same section lets you **Open report folder** or **Copy last report summary**.
+
+If the mod fails before Options opens, follow [If the reporter cannot run](#if-the-reporter-cannot-run).
 
 ## Standard versus extended reports
 
-**Create Support Report** is the default.
+A **standard report** is the default.
 It collects the structured mod, game, settings, compatibility, and diagnostic facts listed below.
 It does not locate or read `Player.log`.
 
-**Create Extended Support Report** collects the same structured facts and also includes a bounded copy of the current `Player.log` for failures that need more context.
-It reads at most the most recent 6 MiB of raw log data, replaces known user-profile, ONI-data, and installation-root path prefixes on a best-effort basis, and keeps the complete JSON below 12 MiB.
+Select **Include game log (optional)** before creating the report when a failure needs recent game logs.
+This extended report adds a bounded excerpt of `Player.log` to the structured facts.
+
+The extended report reads at most the most recent 6 MiB of raw log data, replaces known user-profile, ONI-data, and installation-root path prefixes on a best-effort basis, and keeps the complete JSON below 12 MiB.
 `Player.log` contains output from the game and other mods, so automatic redaction cannot guarantee removal of every sensitive value.
 Review the extended report before attaching it.
 
@@ -75,5 +81,6 @@ Then review the copy and attach it to the Temperature Limit issue if the crash a
 
 GitHub issues and their attachments in this repository are public.
 Open every generated report, log, image, or archive and remove anything you do not want to publish before uploading it.
+
 Extended reports can contain arbitrary text written by ONI or other mods even after best-effort path redaction.
 Local report files are never submitted, synchronized, or deleted by the mod; you decide whether to attach or remove them.
