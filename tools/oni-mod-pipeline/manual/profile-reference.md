@@ -9,6 +9,92 @@ Schema version 1 is strict and data-only.
 > Unknown keys are errors.
 > ONI Mod Pipeline does not support executable profile hooks, implicit package discovery, machine-specific fallback properties, or arbitrary Uploader identifiers.
 
+## Locate and discover a profile
+
+The profile filename is exactly `oni-mod-pipeline.toml`.
+Its containing directory is the mod root, and every declared source path is resolved relative to that directory.
+
+Commands discover a profile from:
+
+- the current directory when `--mod` is omitted; or
+- the mod directory, profile file, or descendant path supplied to `--mod`.
+
+Discovery walks upward and stops at the Git worktree boundary.
+It must identify exactly one profile.
+
+## Understand the schema structure
+
+| Object                  |                                                        Cardinality | Purpose                                                                                                     |
+| ----------------------- | -----------------------------------------------------------------: | ----------------------------------------------------------------------------------------------------------- |
+| `schema-version`        |                                                        Exactly one | Selects the strict profile schema. Version `1` is supported.                                                |
+| `[mod]`                 |                                                        Exactly one | Identifies the authoritative ONI metadata files.                                                            |
+| `[build]`               |                                                        Zero or one | Declares one MSBuild entry point and its primary output for a compiled mod. Omit it for a content-only mod. |
+| `[[package-files]]`     |                                                        One or more | Defines the complete allowlist of runtime content and portable destinations.                                |
+| `[workshop-listing]`    |                                                        Exactly one | Declares listing text, preview, mod types, DLC compatibility, and optional byte ceilings.                   |
+| `[local-install]`       |                                                        Exactly one | Declares one portable managed directory name beneath `mods/Dev` or `mods/Local`.                            |
+| `[[test-projects]]`     |                                                       Zero or more | Declares automated test projects and whether each result blocks readiness.                                  |
+| `[[acceptance-checks]]` | Zero or more syntactically; one or more for a releasable candidate | Declares stable human checks copied into immutable candidate evidence.                                      |
+| `[catalogs]`            |                                                        Zero or one | [Declare and validate translation catalogs](#optional-catalog-inputs).                                      |
+| `[readme]`              |                                                        Zero or one | [Synchronize the managed README description](#optional-readme-description).                                 |
+
+<details>
+
+<summary>Complete compiled-mod profile example</summary>
+
+```toml
+schema-version = 1
+
+[mod]
+mod-yaml = "mod.yaml"
+mod-info-yaml = "mod_info.yaml"
+
+[build]
+entry-point = "Source/ExampleMod.csproj"
+configuration = "Release"
+game-managed-directory-property = "OniManagedAssemblyDirectory"
+primary-output = "{build-output}/ExampleMod.dll"
+merge-inputs = ["PLib"]
+
+[[package-files]]
+source = "mod.yaml"
+destination = "mod.yaml"
+
+[[package-files]]
+source = "mod_info.yaml"
+destination = "mod_info.yaml"
+
+[[package-files]]
+source = "{build-output}/ExampleMod.dll"
+destination = "ExampleMod.dll"
+
+[workshop-listing]
+description = "STEAM_DESCRIPTION.bbcode"
+change-notes = "STEAM_CHANGE_NOTES.bbcode"
+preview = "Preview.png"
+mod-types = ["new-features", "tweaks"]
+dlc-compatibility = ["base-game", "spaced-out"]
+
+[local-install]
+directory-name = "ExampleMod"
+
+[[test-projects]]
+id = "example-mod-regressions"
+path = "Tests/ExampleMod.Tests.csproj"
+required = true
+
+[[acceptance-checks]]
+id = "example-mod-smoke-test"
+title = "Representative colony behavior remains correct"
+required = true
+setup = "Load the designated acceptance save and enable only the candidate copy."
+action = "Exercise the changed behavior and one unchanged control case."
+expected = "The changed behavior succeeds, the control remains unchanged, and Player.log contains no relevant exception."
+```
+
+</details>
+
+The repository's maintained real profile is [`mods/delivery-temperature-limit-supercooled/oni-mod-pipeline.toml`](../../../mods/delivery-temperature-limit-supercooled/oni-mod-pipeline.toml).
+
 ## Optional catalog inputs
 
 Declare the owned catalog subset with:
@@ -80,90 +166,6 @@ The root graph pins the public registry package `steam-community-bbcode@1.0.0-rc
 
 Release validation and preparation use the normal installation and check freshness without rewriting source.
 The configured README, root npm manifests, isolated Markdown manifests and archives, document transport, shared Markdown policy, execution profile, and runtime declarations become contributing release inputs.
-
-## Locate and discover a profile
-
-The profile filename is exactly `oni-mod-pipeline.toml`.
-Its containing directory is the mod root, and every declared source path is resolved relative to that directory.
-
-Commands discover a profile from:
-
-- the current directory when `--mod` is omitted; or
-- the mod directory, profile file, or descendant path supplied to `--mod`.
-
-Discovery walks upward and stops at the Git worktree boundary.
-It must identify exactly one profile.
-
-## Understand the schema structure
-
-| Object                  |                                                        Cardinality | Purpose                                                                                                     |
-| ----------------------- | -----------------------------------------------------------------: | ----------------------------------------------------------------------------------------------------------- |
-| `schema-version`        |                                                        Exactly one | Selects the strict profile schema. Version `1` is supported.                                                |
-| `[mod]`                 |                                                        Exactly one | Identifies the authoritative ONI metadata files.                                                            |
-| `[build]`               |                                                        Zero or one | Declares one MSBuild entry point and its primary output for a compiled mod. Omit it for a content-only mod. |
-| `[[package-files]]`     |                                                        One or more | Defines the complete allowlist of runtime content and portable destinations.                                |
-| `[workshop-listing]`    |                                                        Exactly one | Declares listing text, preview, mod types, DLC compatibility, and optional byte ceilings.                   |
-| `[local-install]`       |                                                        Exactly one | Declares one portable managed directory name beneath `mods/Dev` or `mods/Local`.                            |
-| `[[test-projects]]`     |                                                       Zero or more | Declares automated test projects and whether each result blocks readiness.                                  |
-| `[[acceptance-checks]]` | Zero or more syntactically; one or more for a releasable candidate | Declares stable human checks copied into immutable candidate evidence.                                      |
-
-<details>
-
-<summary>Complete compiled-mod profile example</summary>
-
-```toml
-schema-version = 1
-
-[mod]
-mod-yaml = "mod.yaml"
-mod-info-yaml = "mod_info.yaml"
-
-[build]
-entry-point = "Source/ExampleMod.csproj"
-configuration = "Release"
-game-managed-directory-property = "OniManagedAssemblyDirectory"
-primary-output = "{build-output}/ExampleMod.dll"
-merge-inputs = ["PLib"]
-
-[[package-files]]
-source = "mod.yaml"
-destination = "mod.yaml"
-
-[[package-files]]
-source = "mod_info.yaml"
-destination = "mod_info.yaml"
-
-[[package-files]]
-source = "{build-output}/ExampleMod.dll"
-destination = "ExampleMod.dll"
-
-[workshop-listing]
-description = "STEAM_DESCRIPTION.bbcode"
-change-notes = "STEAM_CHANGE_NOTES.bbcode"
-preview = "Preview.png"
-mod-types = ["new-features", "tweaks"]
-dlc-compatibility = ["base-game", "spaced-out"]
-
-[local-install]
-directory-name = "ExampleMod"
-
-[[test-projects]]
-id = "example-mod-regressions"
-path = "Tests/ExampleMod.Tests.csproj"
-required = true
-
-[[acceptance-checks]]
-id = "example-mod-smoke-test"
-title = "Representative colony behavior remains correct"
-required = true
-setup = "Load the designated acceptance save and enable only the candidate copy."
-action = "Exercise the changed behavior and one unchanged control case."
-expected = "The changed behavior succeeds, the control remains unchanged, and Player.log contains no relevant exception."
-```
-
-</details>
-
-The repository's maintained real profile is [`mods/delivery-temperature-limit-supercooled/oni-mod-pipeline.toml`](../../../mods/delivery-temperature-limit-supercooled/oni-mod-pipeline.toml).
 
 ## Root key reference
 

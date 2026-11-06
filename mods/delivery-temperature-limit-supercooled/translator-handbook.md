@@ -180,12 +180,23 @@ The repository currently maintains 18 translation catalogs in `mods/delivery-tem
 
 ### Contributing Workflow
 
-From the repository root, use the pipeline's catalog gate and optional inspection:
+1. Open `mods/delivery-temperature-limit-supercooled/translations/delivery_temperature_limit.pot` in Poedit, Crowdin, Weblate or your usual translation tool.
+   Use `msgctxt` to identify the UI location and `msgid` for the English source.
+   The string tables above explain the intended meaning.
+2. Save the locale under `mods/delivery-temperature-limit-supercooled/translations/<language_code>.po`, for example `de.po`, `zh.po` or `uk.po`.
+3. From the repository root, validate the translation.
+   The second command is optional and prints the catalog entries for inspection.
 
-```powershell
-npm run pipeline -- validate --mod mods/delivery-temperature-limit-supercooled
-npm run pipeline -- inspect-catalogs --mod mods/delivery-temperature-limit-supercooled --format json
-```
+   ```powershell
+   npm run pipeline -- validate --mod mods/delivery-temperature-limit-supercooled
+   npm run pipeline -- inspect-catalogs --mod mods/delivery-temperature-limit-supercooled --format json
+   ```
+
+4. [Build and install the exact development result](../../tools/oni-mod-pipeline/manual/building-testing-and-installing-mods.md#install-the-exact-development-build).
+   Use the build result path printed by `build` and `--target dev`.
+   Open the translated UI in game to check layout and text expansion.
+
+### What the catalog check verifies
 
 The declared `[catalogs]` inputs are checked during `validate`, `build`, and native release preparation, before build or candidate artifacts are created.
 The gate compares contextual keys, source text, nonempty locale translations, numbered token multiplicity, decoded newline counts, and literal Options source declarations.
@@ -201,7 +212,7 @@ Metadata headers and ordinary comments are supported.
 Active multiline/plural entries, fuzzy flags, obsolete entries, and malformed syntax fail explicitly instead of being skipped.
 
 This does not establish full gettext conformance, complete format-string semantics, or actual ONI localization rendering.
-Continue the in-game translation checks below.
+Use the in-game check in step 4 to confirm the text fits.
 Run Python regression tests with `python -B -m unittest discover -s tests -p "test_*.py"`.
 
 For an explicit local performance comparison, prepare a baseline checkout with the same owned `Catalogs/Python/catalogs.py` layout and catalog/declaration bytes:
@@ -211,14 +222,6 @@ python -I -B tools/oni-mod-pipeline/benchmarks/benchmark_catalogs.py --baseline-
 ```
 
 Each invocation records one session's raw warm/CLI samples, input/tool/runtime hashes and separate traced allocation observations.
-Run three sessions for the an explicit acceptance campaign.
+Run three sessions for an explicit acceptance campaign.
 Timing gates are local engineering evidence and do not run as CI unit-test assertions.
 The stricter integrated parser changes the operation's work; the historical checker speedup does not qualify this version.
-
-1. **Working with CAT Tools (Poedit, Crowdin, Weblate)**:
-   - Load `mods/delivery-temperature-limit-supercooled/translations/delivery_temperature_limit.pot` directly into your translation tool.
-   - The `msgctxt` field contains the unique key; the `msgid` field contains the English source string.
-   - Reference the tables above for precise context, UI location, and mechanical intent.
-2. **Testing Translations In-Game**:
-   - Save the translated `.po` file into `mods/delivery-temperature-limit-supercooled/translations/<language_code>.po` (e.g., `de.po`, `zh.po`, `uk.po`).
-   - Run `oni-mod-pipeline build` and `oni-mod-pipeline install --target dev` to test layout and text expansion in the live game.

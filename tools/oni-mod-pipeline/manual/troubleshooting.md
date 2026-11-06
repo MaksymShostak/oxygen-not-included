@@ -1,13 +1,10 @@
 # Troubleshooting ONI Mod Pipeline
 
-Resolve ONI Mod Pipeline failures by following the stable diagnostic ID, exact evidence path, and bounded next action reported by the command.
-Preserve source, installations, candidates, and evidence until the failing object is understood.
+Find the `ONIP` code in the failed command's output and [look up its diagnostic range](#use-the-diagnostic-range).
+If you only have a process exit code, use the [exit-code table](#interpret-command-exit-codes).
 
-[Workflow overview](development-and-release-workflow.md) · [Getting started](setting-up-a-checkout.md) · [Developing ONI mods](building-testing-and-installing-mods.md) · [Preparing releases](preparing-releases.md) · [Profile reference](profile-reference.md)
-
-> [!TIP]
-> Start with the diagnostic's **Evidence** field, not with the newest artifact directory.
-> ONI Mod Pipeline prints exact paths because substituting a similarly named run can hide the real failure or invalidate provenance.
+Open the exact path in **Evidence** and follow **Next action**.
+Keep the original run and its files until you know what failed.
 
 ## Read the complete diagnostic
 
@@ -31,14 +28,14 @@ Do not parse human prose.
 
 ## Use the diagnostic range
 
-| Diagnostic range      | Area                                                                                                                                                                      | First response                                                                                                                             |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `ONIP1001`–`ONIP1008` | Profile schema, metadata, declared paths, package mappings, Workshop listing, preview, or missing inputs                                                                  | Open the exact field or path from **Evidence**, correct the tracked declaration or source, and rerun `validate`.                           |
-| `ONIP2001`–`ONIP2005` | SDK, game installation, managed assemblies, ONI user data, artifact root, or duplicate subscribed mod                                                                     | Run `diagnose`; add one exact override only when discovery is unavailable or ambiguous; review duplicate enabled copies manually.          |
-| `ONIP3001`–`ONIP3005` | Locked restore, build, source mutation, required output, or automated tests                                                                                               | Inspect the printed build or test run, including captured output and TRX, then fix tracked source or dependencies and create a new run.    |
-| `ONIP4001`–`ONIP4003` | Unowned destination, installed-byte mismatch, or existing candidate installation receipt                                                                                  | Preserve unknown data, use the exact intended destination and input, and create a new candidate when a receipt already exists.             |
-| `ONIP5001`–`ONIP5008` | Dirty release input, candidate/content mismatch, acceptance binding, required acceptance, Uploader representation, readiness, run collision, or noninteractive acceptance | Inspect the candidate readiness report and named evidence. Do not mutate a failed candidate; prepare a new one after correcting the cause. |
-| `ONIP9001`–`ONIP9002` | Unexpected internal failure or secondary cleanup failure                                                                                                                  | Preserve the complete diagnostic and artifact tree. Resolve the primary failure first and report the reproducible command, ID, and path.   |
+| Diagnostic range      | First response                                                                                                                                                                |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ONIP1001`–`ONIP1008` | [Correct the profile or declared input](#resolve-profile-and-validation-failures) named in **Evidence**, then rerun `validate`.                                               |
+| `ONIP2001`–`ONIP2005` | [Check environment discovery](#resolve-setup-and-discovery-failures) with `diagnose`. Review duplicate enabled copies manually.                                               |
+| `ONIP3001`–`ONIP3005` | [Inspect the exact build or test run](#resolve-locked-restore-build-and-test-failures), including captured output and TRX. Fix the source or dependency and create a new run. |
+| `ONIP4001`–`ONIP4003` | [Check the installation and ownership evidence](#resolve-installation-failures). Preserve unknown data. An existing candidate installation receipt requires a new candidate.  |
+| `ONIP5001`–`ONIP5008` | [Inspect readiness and acceptance evidence](#resolve-acceptance-and-verification-failures). Correct the cause in source before preparing a new candidate.                     |
+| `ONIP9001`–`ONIP9002` | [Report the internal failure](#report-an-internal-failure-responsibly) with the diagnostic, exact command and artifact path. Resolve the primary failure before cleanup.      |
 
 The ID is stable enough for support and automation.
 The summary and evidence provide the instance-specific detail.
@@ -321,3 +318,5 @@ For `ONIP9001` or `ONIP9002`, retain:
 
 Resolve any earlier primary diagnostic before acting on a secondary cleanup diagnostic.
 Do not delete broad directories to make a reproduction appear clean.
+
+[Workflow overview](development-and-release-workflow.md) · [Getting started](setting-up-a-checkout.md) · [Developing ONI mods](building-testing-and-installing-mods.md) · [Preparing releases](preparing-releases.md) · [Profile reference](profile-reference.md)

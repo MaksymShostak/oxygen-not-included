@@ -6,20 +6,25 @@ Set up a repository checkout so ONI Mod Pipeline can discover one mod profile, r
 
 ## Meet the prerequisites
 
-Provide all of the following before running the tool:
+For a local gameplay build, prepare:
 
-- the stable `.NET 10 SDK` selected by the repository's `global.json`;
-- an `oni-mod-pipeline` command built from the same repository revision as the mod, or the repository-local invocation described below;
-- a local Oxygen Not Included installation whose managed-assembly directory contains `Assembly-CSharp.dll` and `0Harmony.dll`;
-- an existing ONI per-user data directory containing a `mods` directory;
-- Git when validating release provenance or preparing a release candidate; and
-- current Windows Notepad plus the authenticated Oxygen Not Included Uploader when completing the final Workshop text-representation check and manual handoff.
+- the stable `.NET 10 SDK` selected by `global.json`;
+- `oni-mod-pipeline` built from the mod's repository revision, or the [repository-local invocation](#choose-an-invocation-form);
+- a local ONI installation with `Assembly-CSharp.dll` and `0Harmony.dll` in its managed-assembly directory;
+- an existing ONI per-user data directory with a `mods` directory.
+
+**For release work**, use Git to validate provenance or prepare a candidate.
+The final Workshop text check and handoff also require current Windows Notepad and the authenticated ONI Uploader.
 
 ONI Mod Pipeline does not download the SDK, install or update ONI, create the ONI user-data hierarchy, install the Uploader, or authenticate a Steam account.
+
+### If the mod declares translation catalogs
 
 Profiles with a `[catalogs]` table also require Python 3.10+ for validation, build, and release preparation.
 Resolve it from PATH or pass an absolute `--python` executable path.
 Catalog inspection can run without game or user-data discovery: `oni-mod-pipeline inspect-catalogs --mod <mod-root> --format json`.
+
+### If the mod generates its README
 
 Profiles with a `[readme]` table also require a supported Node.js runtime and the root locked npm development dependencies.
 `.node-version` selects the CI runtime; `package.json` declares the supported range.

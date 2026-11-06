@@ -1,6 +1,14 @@
 # Preparing ONI mod releases
 
-Turn reviewed, committed mod source into one immutable release candidate, bind human acceptance to the exact installed bytes, and prove that the candidate is ready for a deliberate manual ONI Uploader handoff.
+Prepare one immutable candidate from reviewed, committed source.
+Use the same candidate directory for installation, acceptance and the manual ONI Uploader handoff.
+
+| Where you are in the release | Continue here                                                                                                                                                           |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Starting from source         | [Review inputs](#review-every-release-input), check the release scope and run current tests before preparing the candidate.                                             |
+| Candidate prepared           | [Inspect the candidate](#inspect-the-candidate-before-installation) before installing it.                                                                               |
+| Candidate installed          | [Perform the human checks](#perform-every-human-acceptance-check), verify the Uploader text and record acceptance once.                                                 |
+| Acceptance recorded          | [Verify upload readiness](#verify-upload-readiness-deterministically). Only `ready-for-upload` proceeds to the [manual handoff](#complete-the-manual-uploader-handoff). |
 
 [Workflow overview](development-and-release-workflow.md) · [Getting started](setting-up-a-checkout.md) · [Developing ONI mods](building-testing-and-installing-mods.md) · [Profile reference](profile-reference.md) · [Troubleshooting](troubleshooting.md)
 
