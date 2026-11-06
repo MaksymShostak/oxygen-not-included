@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "actions": {
+    "actions/checkout": {
+      "tag": "v7.0.1",
+      "revision": "3d3c42e5aac5ba805825da76410c181273ba90b1"
+    },
+    "actions/component-detection-dependency-submission-action": {
+      "revision": "98beaea5a1227f3db476e4c9ca959a0cacd7ac4f"
+    },
+    "actions/setup-dotnet": {
+      "tag": "v6.1.0",
+      "revision": "0f4a354dd5547a28c70b7853dbd95d5b67886e73"
+    },
+    "actions/setup-node": {
+      "tag": "v7.1.0",
+      "revision": "949feb2413d6458794dcd2491c4babbbce0c15c1"
+    },
+    "astral-sh/setup-uv": {
+      "tag": "v10.3.3",
+      "revision": "68559e99cc807c1eb7e9238fd43a15bba460eec2"
+    },
+    "github/codeql-action": {
+      "tag": "v4.39.3",
+      "revision": "33d7b85da1a04171e211befe2c739303b9a4c066"
+    }
+  }
+}

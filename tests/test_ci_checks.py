@@ -548,20 +548,21 @@ class CodeqlWorkflowContractTests(unittest.TestCase):
         self.assertEqual(setup["runs"]["using"], "composite")
         self.assertEqual(len(setup["runs"]["steps"]), 1)
         uv_step = setup["runs"]["steps"][0]
-        self.assertEqual(uv_step["uses"], "astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884")
+        self.assertRegex(uv_step["uses"], r"^astral-sh/setup-uv@[0-9a-f]{40}$")
         options = dict(uv_step["with"])
         self.assertRegex(options.pop("version"), r"^\d+\.\d+\.\d+$")
         self.assertEqual(options, {"activate-environment": True, "venv-path": "${{ runner.temp }}/python",
                                    "no-project": True, "enable-cache": False})
-        self.assertEqual(steps[0]["uses"], "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1")
+        self.assertRegex(steps[0]["uses"], r"^actions/checkout@[0-9a-f]{40}$")
         self.assertIn("python3 tools/ci/checks.py validate", steps[2]["run"])
         self.assertIn('language in ("actions","csharp","python")', steps[2]["run"])
         self.assertIn('language in plan["languages"]', steps[2]["run"])
         self.assertIn('plan["checks"]["codeql"] and plan["eligibility"]["codeql"]', steps[2]["run"])
-        self.assertEqual(steps[3]["uses"], "github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd")
+        self.assertRegex(steps[3]["uses"], r"^github/codeql-action/init@[0-9a-f]{40}$")
         self.assertEqual(steps[3]["with"], {"languages": "${{ inputs.language }}", "build-mode": "none", "tools": "linked"})
         self.assertEqual(steps[4]["id"], "analysis")
-        self.assertEqual(steps[4]["uses"], "github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd")
+        self.assertRegex(steps[4]["uses"], r"^github/codeql-action/analyze@[0-9a-f]{40}$")
+        self.assertEqual(steps[3]["uses"].split("@")[1], steps[4]["uses"].split("@")[1])
         self.assertEqual(steps[4]["with"], {"category": "/language:${{ inputs.language }}"})
         self.assertEqual(steps[5]["id"], "receipt")
         self.assertEqual(steps[5]["env"], {"ONI_ANALYSIS_RESULT": "${{ steps.analysis.outcome }}"})
@@ -576,7 +577,7 @@ class CodeqlWorkflowContractTests(unittest.TestCase):
                     self.assertNotIn("continue-on-error", step)
                     self.assertNotIn("${{", step.get("run", ""))
                     if step.get("uses", "").startswith("actions/checkout@"):
-                        self.assertEqual(step["uses"], "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1")
+                        self.assertRegex(step["uses"], r"^actions/checkout@[0-9a-f]{40}$")
                         self.assertEqual(step["with"], {"fetch-depth": 0, "persist-credentials": False})
 
     def test_actual_workflow_contract_and_independent_output_wiring(self):

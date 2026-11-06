@@ -88,6 +88,10 @@ public sealed class ProjectTargetFrameworkContractTests
             Path.GetDirectoryName(ProductionProjectPath(repositoryRoot))!,
             "packages.lock.json");
         using var document = JsonDocument.Parse(File.ReadAllBytes(lockFilePath));
+        var centralVersions = XDocument.Load(Path.Combine(repositoryRoot, "Directory.Packages.props"))
+            .Descendants("PackageVersion")
+            .ToDictionary(package => package.Attribute("Include")!.Value,
+                package => package.Attribute("Version")!.Value, StringComparer.Ordinal);
         var dependencyGraphs = document.RootElement.GetProperty("dependencies");
         var graphNames = dependencyGraphs
             .EnumerateObject()
@@ -116,12 +120,12 @@ public sealed class ProjectTargetFrameworkContractTests
             dependencies,
             "ILRepack.Lib.MSBuild.Task",
             "Direct",
-            "2.0.34");
+            centralVersions["ILRepack.Lib.MSBuild.Task"]);
         AssertLockedDependency(
             dependencies,
             "PLib",
             "Direct",
-            "4.25.0");
+            centralVersions["PLib"]);
         AssertLockedDependency(
             dependencies,
             "Lib.Harmony.Ref",

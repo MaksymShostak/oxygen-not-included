@@ -4,10 +4,9 @@
   "private": true,
   "license": "MIT",
   "type": "module",
-  "packageManager": "npm@12.0.2",
+  "packageManager": "npm@12.2.2",
   "engines": {
-    "node": ">=24.21.0",
-    "npm": "12.0.2"
+    "node": ">=26.13"
   },
   "scripts": {
     "test:pipeline": "dotnet test --project tools/oni-mod-pipeline/tests/OniModPipeline.Tests/OniModPipeline.Tests.csproj --no-restore",
@@ -18,11 +17,19 @@
     "test:readme": "node --test tests/readme.test.mjs"
   },
   "devDependencies": {
-    "steam-community-bbcode": "1.0.0-rc.1",
+    "steam-community-bbcode": ">=1.0.0-rc.1",
     "@hadden-industries/markdown-quality": ">=3.0.0",
-    "mdast-util-from-markdown": "2.1.0",
-    "mdast-util-gfm": "3.1.0",
-    "mdast-util-to-markdown": "2.2.0",
-    "micromark-extension-gfm": "3.0.0"
+    "mdast-util-from-markdown": ">=2.1.0",
+    "mdast-util-gfm": ">=3.1.0",
+    "mdast-util-to-markdown": ">=2.2.3",
+    "micromark-extension-gfm": ">=3.0.0"
+  },
+  "overrides": {
+    "steam-community-bbcode": {
+      "mdast-util-from-markdown": "$mdast-util-from-markdown",
+      "mdast-util-to-markdown": "$mdast-util-to-markdown",
+      "mdast-util-gfm-strikethrough": ">=2.0.1"
+    },
+    "fast-uri": ">=4.2.3"
   }
 }

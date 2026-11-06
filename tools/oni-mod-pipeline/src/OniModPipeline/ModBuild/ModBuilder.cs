@@ -326,6 +326,16 @@ internal sealed class ModBuilder(
         AddDeclaredFile(paths, profile.ModRoot, profile.ModYamlPath);
         AddDeclaredFile(paths, profile.ModRoot, profile.ModInfoYamlPath);
 
+        if (profile.Build is not null || profile.TestProjects.Count > 0)
+        {
+            var worktreeRoot = FindWorktreeRoot(profile.ModRoot);
+            foreach (var control in new[] { "Directory.Packages.props", "global.json" })
+            {
+                var path = Path.Combine(worktreeRoot, control);
+                if (File.Exists(path)) AddExistingFile(paths, path);
+            }
+        }
+
         if (profile.Build is { } build)
         {
             AddDeclaredProjectTree(paths, profile.ModRoot, build.EntryPoint);

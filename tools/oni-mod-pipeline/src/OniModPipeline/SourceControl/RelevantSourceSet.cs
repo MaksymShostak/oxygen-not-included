@@ -27,6 +27,12 @@ internal sealed record RelevantSourceSet(
                 .Select(builder.ResolveWorktreeRelativePath)
                 .ToArray();
 
+            if (profile.Build is not null || profile.TestProjects.Count > 0)
+            {
+                builder.AddOptionalControlFile("Directory.Packages.props", trackedWorktreeRelativePaths);
+                builder.AddOptionalControlFile("global.json", trackedWorktreeRelativePaths);
+            }
+
             builder.AddAbsolutePath(profile.ManifestPath);
             builder.AddDeclaredFile(profile.ModRoot, profile.ModYamlPath);
             builder.AddDeclaredFile(profile.ModRoot, profile.ModInfoYamlPath);

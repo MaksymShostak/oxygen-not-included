@@ -8,6 +8,27 @@ namespace MaksymShostak.OniModPipeline.Tests.SourceControl;
 public sealed class RelevantSourceSetTests
 {
     [TestMethod]
+    [DataRow("Directory.Packages.props")]
+    [DataRow("global.json")]
+    public void Create_WithDotnetProjects_IncludesCentralControlsAndRetainsTrackedDeletions(string control)
+    {
+        using var directory = new TemporaryDirectory();
+        var profile = CreateProfileFixture(directory);
+        var path = directory.GetPath(control);
+        WriteFile(path);
+        var present = RelevantSourceSet.Create(profile, directory.Path, [], null);
+        Assert.IsTrue(present.IsSuccess);
+        CollectionAssert.Contains(present.Value!.WorktreeRelativePaths.ToArray(), control);
+        File.Delete(path);
+        var deleted = RelevantSourceSet.Create(profile, directory.Path, [control], null);
+        Assert.IsTrue(deleted.IsSuccess);
+        CollectionAssert.Contains(deleted.Value!.WorktreeRelativePaths.ToArray(), control);
+        var absent = RelevantSourceSet.Create(profile, directory.Path, [], null);
+        Assert.IsTrue(absent.IsSuccess);
+        Assert.IsFalse(absent.Value!.WorktreeRelativePaths.Contains(control));
+    }
+
+    [TestMethod]
     public void Create_WithReadme_IncludesDocumentationAndNpmDeclarations()
     {
         using var directory = new TemporaryDirectory();

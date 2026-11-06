@@ -30,11 +30,13 @@ jobs:
       - uses: ./.github/actions/setup-python
       - name: Record supported control runtime
         run: python3 --version
+      - name: Check centralized action pins
+        run: python3 tools/ci/action_versions.py --check
       - id: scope
         run: python3 tools/ci/checks.py select
       - name: Test CI contracts when their controls changed
         if: fromJSON(steps.scope.outputs.plan).checks.pipeline && fromJSON(steps.scope.outputs.plan).checks.python
-        run: python3 -m unittest discover -s tests -p test_ci_checks.py
+        run: python3 -m unittest discover -s tests -p 'test_ci_*.py'
 
   worker:
     needs: [select, documentation]
@@ -55,7 +57,7 @@ jobs:
       - name: Verify selection against this checkout
         run: |
           python tools/ci/checks.py validate
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         if: fromJSON(env.ONI_PLAN).checks.pipeline || fromJSON(env.ONI_PLAN).checks.producer
         with:
           global-json-file: global.json
@@ -70,7 +72,7 @@ jobs:
         name: Test repository Python scripts
         if: fromJSON(env.ONI_PLAN).checks.python
         run: python -m unittest discover -s tests -p "test_*.py"
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: fromJSON(env.ONI_PLAN).checks.producer
         with:
           node-version-file: .node-version
@@ -78,7 +80,11 @@ jobs:
         if: fromJSON(env.ONI_PLAN).checks.producer
         run: |
           node --version
-          npm --version
+          $npmSelection = node -p "require('./package.json').packageManager"
+          $npmPrefix = node -p "require('node:path').dirname(process.execPath)"
+          npm install --global --prefix $npmPrefix $npmSelection --ignore-scripts --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ("npm@$(npm --version)" -ne $npmSelection) { throw "npm does not match packageManager" }
           npm ci --ignore-scripts --no-audit --no-fund --registry https://registry.npmjs.org/
       - id: producer
         name: Check real README producer convergence without game installation
@@ -107,11 +113,14 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - uses: ./.github/actions/setup-python
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
       - name: Install the locked root development graph without lifecycle scripts
-        run: npm ci --include=dev --ignore-scripts --no-audit --no-fund
+        run: |
+          npm install --global --prefix "$(dirname "$(dirname "$(command -v node)")")" "$(node -p "require('./package.json').packageManager")" --ignore-scripts --no-audit --no-fund
+          test "npm@$(npm --version)" = "$(node -p "require('./package.json').packageManager")"
+          npm ci --include=dev --ignore-scripts --no-audit --no-fund
       - name: Check all authored Markdown before consumer tests
         run: |
           token="$(node -e "process.stdout.write(require('node:crypto').randomBytes(32).toString('hex'))")"

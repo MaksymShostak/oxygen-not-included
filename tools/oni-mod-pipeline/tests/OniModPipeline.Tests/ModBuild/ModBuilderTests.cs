@@ -16,6 +16,45 @@ namespace MaksymShostak.OniModPipeline.Tests.ModBuild;
 public sealed class ModBuilderTests
 {
     [TestMethod]
+    [DataRow("Directory.Packages.props")]
+    [DataRow("global.json")]
+    public async Task BuildAsync_WithCentralDotnetControls_RecordsTheirDigests(string control)
+    {
+        using var fixture = new BuildFixture();
+        var path = Path.Combine(fixture.WorktreeRoot, control);
+        File.WriteAllText(path, "original\n");
+        fixture.ProcessRunner.BuildAction = fixture.WritePrimaryOutput;
+        var result = await new ModBuilder(fixture.ProcessRunner, new Utf8ArtifactWriter())
+            .BuildAsync(fixture.CreateRequest(), CancellationToken.None);
+        Assert.IsTrue(result.IsSuccess);
+        Assert.IsTrue(result.Value!.Inputs.Any(input => input.Path == path));
+    }
+
+    [TestMethod]
+    [DataRow("Directory.Packages.props", "edit")]
+    [DataRow("Directory.Packages.props", "create")]
+    [DataRow("Directory.Packages.props", "delete")]
+    [DataRow("global.json", "edit")]
+    [DataRow("global.json", "create")]
+    [DataRow("global.json", "delete")]
+    public async Task BuildAsync_WhenCentralDotnetControlsChange_RejectsStaleBuild(string control, string change)
+    {
+        using var fixture = new BuildFixture();
+        var path = Path.Combine(fixture.WorktreeRoot, control);
+        if (change != "create") File.WriteAllText(path, "original\n");
+        fixture.ProcessRunner.BuildAction = request =>
+        {
+            fixture.WritePrimaryOutput(request);
+            if (change == "delete") File.Delete(path);
+            else File.WriteAllText(path, "changed during build\n");
+        };
+        var result = await new ModBuilder(fixture.ProcessRunner, new Utf8ArtifactWriter())
+            .BuildAsync(fixture.CreateRequest(), CancellationToken.None);
+        AssertDiagnostic(result, DiagnosticIds.SourceChangedDuringBuild);
+        Assert.IsFalse(File.Exists(Path.Combine(fixture.RunRoot, "build-result.json")));
+    }
+
+    [TestMethod]
     public async Task BuildAsync_WhenProfileHasBuild_RestoresLockedThenBuildsWithoutShell()
     {
         using var fixture = new BuildFixture();

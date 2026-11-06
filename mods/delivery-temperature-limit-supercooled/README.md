@@ -96,7 +96,7 @@ This mod continues the incredible work begun by the ONI modding community:
 Developed by [Maksym Shostak](https://orcid.org/0000-0001-8017-8797).
 Free Dive into the source code on [GitHub](https://github.com/MaksymShostak/oxygen-not-included).
 
-*Delivery Temperature Limit (Supercooled) is a community mod and is not affiliated with, sponsored by, or endorsed by Klei Entertainment.*
+*Delivery Temperature Limit (Supercooled) is a community mod and is not affiliated with, sponsored by, or endorsed by Klei Entertainment.*&#xA;
 <!-- oni-mod-pipeline:workshop-description:end -->
 
 ## Repository and contributing
