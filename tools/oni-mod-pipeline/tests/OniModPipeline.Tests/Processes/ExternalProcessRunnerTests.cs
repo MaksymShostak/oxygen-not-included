@@ -5,16 +5,13 @@ using System.Globalization;
 using System.Text.Json;
 
 namespace MaksymShostak.OniModPipeline.Tests.Processes;
-
-[TestClass]
 public sealed class ExternalProcessRunnerTests
 {
     private static TemporaryDirectory? fixtureDirectory;
     private static string? fixtureAssemblyPath;
 
-    [ClassInitialize]
-    public static async Task Initialize(TestContext _)
-    {
+    [Before(HookType.Class)]
+    public static async Task Initialize()    {
         fixtureDirectory = new TemporaryDirectory();
         var projectPath = fixtureDirectory.GetPath("ProcessFixture.csproj");
         File.WriteAllText(projectPath, FixtureProject);
@@ -48,64 +45,61 @@ public sealed class ExternalProcessRunnerTests
         catch (OperationCanceledException)
         {
             process.Kill(entireProcessTree: true);
-            throw new AssertFailedException("The process fixture build exceeded 30 seconds.");
+            Assert.Fail("The process fixture build exceeded 30 seconds.");
         }
 
         var standardOutput = await standardOutputTask;
         var standardError = await standardErrorTask;
-        Assert.AreEqual(
-            0,
-            process.ExitCode,
-            $"Fixture build failed.{Environment.NewLine}{standardOutput}{standardError}");
+        await Assert.That(process.ExitCode).IsEqualTo(0).Because($"Fixture build failed.{Environment.NewLine}{standardOutput}{standardError}");
 
         fixtureAssemblyPath = fixtureDirectory.GetPath(
             "bin",
             "Release",
             "net10.0",
             "ProcessFixture.dll");
-        Assert.IsTrue(File.Exists(fixtureAssemblyPath));
+        await Assert.That(File.Exists(fixtureAssemblyPath)).IsTrue();
     }
 
-    [ClassCleanup]
+    [After(HookType.Class)]
     public static void Cleanup()
     {
         fixtureDirectory?.Dispose();
     }
 
-    [TestMethod]
+    [Test]
     public async Task RunAsync_TransportsLiteralStandardInputWithoutAScratchFile()
     {
         const string input = "雪 and shell characters & $literal\n";
         var result = await new ExternalProcessRunner().RunAsync(CreateRequest("stdin") with { StandardInput = input }, CancellationToken.None);
-        Assert.AreEqual(0, result.ExitCode);
-        Assert.AreEqual(input, result.StandardOutput);
+        await Assert.That(result.ExitCode).IsEqualTo(0);
+        await Assert.That(result.StandardOutput).IsEqualTo(input);
     }
 
-    [TestMethod]
+    [Test]
     public async Task RunAsync_RejectsOutputThatExceedsTheRequestedBoundary()
     {
-        await Assert.ThrowsAsync<InvalidDataException>(() => new ExternalProcessRunner().RunAsync(
-            CreateRequest("streams") with { OutputLimitCharacters = 8 }, CancellationToken.None));
+        await Assert.That(async () => {await new ExternalProcessRunner().RunAsync(
+            CreateRequest("streams") with { OutputLimitCharacters = 8 }, CancellationToken.None);}).Throws<InvalidDataException>();
     }
 
-    [TestMethod]
+    [Test]
     public async Task RunAsync_ObservesEarlyInputRejectionAndRetainsDiagnostics()
     {
         var result = await new ExternalProcessRunner().RunAsync(
             CreateRequest("reject-input") with { StandardInput = new string('x', 2_097_152) }, CancellationToken.None);
-        Assert.AreEqual(2, result.ExitCode);
-        Assert.AreEqual("request rejected", result.StandardError);
+        await Assert.That(result.ExitCode).IsEqualTo(2);
+        await Assert.That(result.StandardError).IsEqualTo("request rejected");
     }
 
-    [TestMethod]
+    [Test]
     public async Task RunAsync_WhenCancelledDuringInput_ReportsCancellationAndCompletes()
     {
         using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(1));
-        await Assert.ThrowsExactlyAsync<OperationCanceledException>(() => new ExternalProcessRunner().RunAsync(
-            CreateRequest("wait-input") with { StandardInput = new string('x', 2_097_152) }, cancellation.Token));
+        await Assert.That(async () => {await new ExternalProcessRunner().RunAsync(
+            CreateRequest("wait-input") with { StandardInput = new string('x', 2_097_152) }, cancellation.Token);}).ThrowsExactly<OperationCanceledException>();
     }
 
-    [TestMethod]
+    [Test]
     public async Task RunAsync_WhenArgumentContainsShellCharacters_PreservesOneLiteralArgument()
     {
         const string literalArgument = "value with spaces \"quotes\" & $dollar; semicolon";
@@ -114,14 +108,12 @@ public sealed class ExternalProcessRunnerTests
 
         var result = await runner.RunAsync(request, CancellationToken.None);
 
-        Assert.AreEqual(0, result.ExitCode);
-        CollectionAssert.AreEqual(
-            new[] { literalArgument },
-            JsonSerializer.Deserialize<string[]>(result.StandardOutput));
-        Assert.AreEqual(string.Empty, result.StandardError);
+        await Assert.That(result.ExitCode).IsEqualTo(0);
+        await Assert.That(JsonSerializer.Deserialize<string[]>(result.StandardOutput)).IsEquivalentTo(new[] { literalArgument }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(result.StandardError).IsEqualTo(string.Empty);
     }
 
-    [TestMethod]
+    [Test]
     public async Task RunAsync_WhenEnvironmentVariableIsProvided_PassesExactValue()
     {
         const string variableName = "ONI_MOD_PIPELINE_TEST_VALUE";
@@ -137,11 +129,11 @@ public sealed class ExternalProcessRunnerTests
 
         var result = await runner.RunAsync(request, CancellationToken.None);
 
-        Assert.AreEqual(0, result.ExitCode);
-        Assert.AreEqual(variableValue, result.StandardOutput);
+        await Assert.That(result.ExitCode).IsEqualTo(0);
+        await Assert.That(result.StandardOutput).IsEqualTo(variableValue);
     }
 
-    [TestMethod]
+    [Test]
     public async Task RunAsync_WhenChildWritesBothStreams_ReturnsExactTextAndExitCode()
     {
         var runner = new ExternalProcessRunner();
@@ -149,12 +141,12 @@ public sealed class ExternalProcessRunnerTests
 
         var result = await runner.RunAsync(request, CancellationToken.None);
 
-        Assert.AreEqual(7, result.ExitCode);
-        Assert.AreEqual("standard-output", result.StandardOutput);
-        Assert.AreEqual("standard-error", result.StandardError);
+        await Assert.That(result.ExitCode).IsEqualTo(7);
+        await Assert.That(result.StandardOutput).IsEqualTo("standard-output");
+        await Assert.That(result.StandardError).IsEqualTo("standard-error");
     }
 
-    [TestMethod]
+    [Test]
     public async Task RunAsync_WhenCancelled_KillsProcessTreeAndThrowsOperationCancelledException()
     {
         var grandchildPidPath = fixtureDirectory!.GetPath("grandchild.pid");
@@ -176,15 +168,13 @@ public sealed class ExternalProcessRunnerTests
                 File.ReadAllText($"{grandchildPidPath}.parent"),
                 CultureInfo.InvariantCulture);
             cancellation.Cancel();
-            var cancellationAssertion = Assert.ThrowsExactlyAsync<OperationCanceledException>(
-                async () => await runTask);
+            var cancellationAssertion = VerifyCancellationAsync();
+            async Task VerifyCancellationAsync() =>
+                await Assert.ThrowsExactlyAsync<OperationCanceledException>(async () => { await runTask; });
             var completedTask = await Task.WhenAny(
                 cancellationAssertion,
                 Task.Delay(TimeSpan.FromSeconds(10)));
-            Assert.AreSame(
-                cancellationAssertion,
-                completedTask,
-                "The external process runner did not complete cancellation within 10 seconds.");
+            await Assert.That(completedTask).IsSameReferenceAs(cancellationAssertion).Because("The external process runner did not complete cancellation within 10 seconds.");
             await cancellationAssertion;
             await WaitForProcessExitAsync(grandchildPid.Value, TimeSpan.FromSeconds(10));
         }

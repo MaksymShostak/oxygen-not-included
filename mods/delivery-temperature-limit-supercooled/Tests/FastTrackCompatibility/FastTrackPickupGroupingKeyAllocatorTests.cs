@@ -2,56 +2,54 @@ using System.Collections;
 using System.Reflection;
 
 namespace DeliveryTemperatureLimit.Tests.FastTrackCompatibility;
-
-[TestClass]
 public sealed class FastTrackPickupGroupingKeyAllocatorTests
 {
-    [TestMethod]
-    public void GetOrAllocate_WhenOriginalHashMatchesAndTemperatureClassesDiffer_ReturnsDifferentKeys()
+    [Test]
+    public async Task GetOrAllocate_WhenOriginalHashMatchesAndTemperatureClassesDiffer_ReturnsDifferentKeys()
     {
         var allocator = new FastTrackPickupGroupingKeyAllocator();
         allocator.Begin(temperatureGroupingIsActive: true);
         var firstCandidate = new FastTrackFetchableCandidateModel(123);
         var secondCandidate = new FastTrackFetchableCandidateModel(123);
 
-        var first = ConstructPickupTagKeyWithoutMutatingFetchable(
+        var first = await ConstructPickupTagKeyWithoutMutatingFetchable(
             allocator,
             firstCandidate,
             TemperatureEligibilityClassKey.OptimizedPartitionInterval(7, 1));
-        var second = ConstructPickupTagKeyWithoutMutatingFetchable(
+        var second = await ConstructPickupTagKeyWithoutMutatingFetchable(
             allocator,
             secondCandidate,
             TemperatureEligibilityClassKey.OptimizedPartitionInterval(7, 2));
 
-        Assert.AreNotEqual(first, second);
-        Assert.AreEqual(123, firstCandidate.TagBitsHash);
-        Assert.AreEqual(123, secondCandidate.TagBitsHash);
+        await Assert.That(second).IsNotEqualTo(first);
+        await Assert.That(firstCandidate.TagBitsHash).IsEqualTo(123);
+        await Assert.That(secondCandidate.TagBitsHash).IsEqualTo(123);
     }
 
-    [TestMethod]
-    public void GetOrAllocate_WhenCompositeIdentityRepeats_ReturnsSameKey()
+    [Test]
+    public async Task GetOrAllocate_WhenCompositeIdentityRepeats_ReturnsSameKey()
     {
         var allocator = BeginActiveAllocator();
         var candidate = new FastTrackFetchableCandidateModel(123);
         var classification =
             TemperatureEligibilityClassKey.OptimizedPartitionInterval(7, 1);
 
-        var first = ConstructPickupTagKeyWithoutMutatingFetchable(
+        var first = await ConstructPickupTagKeyWithoutMutatingFetchable(
             allocator,
             candidate,
             classification);
-        var repeated = ConstructPickupTagKeyWithoutMutatingFetchable(
+        var repeated = await ConstructPickupTagKeyWithoutMutatingFetchable(
             allocator,
             candidate,
             classification);
 
-        Assert.AreEqual(first, repeated);
-        Assert.AreEqual(123, candidate.TagBitsHash);
-        Assert.AreEqual(1, GetAllocatedGroupingKeyDictionary(allocator).Count);
+        await Assert.That(repeated).IsEqualTo(first);
+        await Assert.That(candidate.TagBitsHash).IsEqualTo(123);
+        await Assert.That((await GetAllocatedGroupingKeyDictionary(allocator)).Count).IsEqualTo(1);
     }
 
-    [TestMethod]
-    public void GetOrAllocate_WhenOriginalHashesDifferAndTemperatureClassMatches_ReturnsDifferentKeys()
+    [Test]
+    public async Task GetOrAllocate_WhenOriginalHashesDifferAndTemperatureClassMatches_ReturnsDifferentKeys()
     {
         var allocator = BeginActiveAllocator();
         var firstCandidate = new FastTrackFetchableCandidateModel(123);
@@ -59,22 +57,22 @@ public sealed class FastTrackPickupGroupingKeyAllocatorTests
         var classification =
             TemperatureEligibilityClassKey.OptimizedPartitionInterval(7, 1);
 
-        var first = ConstructPickupTagKeyWithoutMutatingFetchable(
+        var first = await ConstructPickupTagKeyWithoutMutatingFetchable(
             allocator,
             firstCandidate,
             classification);
-        var second = ConstructPickupTagKeyWithoutMutatingFetchable(
+        var second = await ConstructPickupTagKeyWithoutMutatingFetchable(
             allocator,
             secondCandidate,
             classification);
 
-        Assert.AreNotEqual(first, second);
-        Assert.AreEqual(123, firstCandidate.TagBitsHash);
-        Assert.AreEqual(456, secondCandidate.TagBitsHash);
+        await Assert.That(second).IsNotEqualTo(first);
+        await Assert.That(firstCandidate.TagBitsHash).IsEqualTo(123);
+        await Assert.That(secondCandidate.TagBitsHash).IsEqualTo(456);
     }
 
-    [TestMethod]
-    public void GetOrAllocate_WhenDefinitionIdsDiffer_ReturnsDifferentIntegers()
+    [Test]
+    public async Task GetOrAllocate_WhenDefinitionIdsDiffer_ReturnsDifferentIntegers()
     {
         var allocator = BeginActiveAllocator();
 
@@ -85,11 +83,11 @@ public sealed class FastTrackPickupGroupingKeyAllocatorTests
             123,
             TemperatureEligibilityClassKey.OptimizedPartitionInterval(8, 1));
 
-        Assert.AreNotEqual(first, second);
+        await Assert.That(second).IsNotEqualTo(first);
     }
 
-    [TestMethod]
-    public void GetOrAllocate_WhenPrimaryElementIsMissing_UsesDedicatedNonTemperatureClass()
+    [Test]
+    public async Task GetOrAllocate_WhenPrimaryElementIsMissing_UsesDedicatedNonTemperatureClass()
     {
         var allocator = BeginActiveAllocator();
         var missingPrimaryElementCandidate =
@@ -98,26 +96,26 @@ public sealed class FastTrackPickupGroupingKeyAllocatorTests
             new FastTrackFetchableCandidateModel(123);
 
         var missingPrimaryElementKey =
-            ConstructPickupTagKeyWithoutMutatingFetchable(
+            await ConstructPickupTagKeyWithoutMutatingFetchable(
             allocator,
             missingPrimaryElementCandidate,
             TemperatureEligibilityClassKey.MissingPrimaryElement());
         var exactTemperatureKey =
-            ConstructPickupTagKeyWithoutMutatingFetchable(
+            await ConstructPickupTagKeyWithoutMutatingFetchable(
             allocator,
             exactTemperatureCandidate,
             TemperatureEligibilityClassKey.ExactDecisionBucket(
                 TemperatureDecisionBucket.FromIntegerKelvin(0)));
 
-        Assert.AreEqual(0, missingPrimaryElementKey);
-        Assert.AreEqual(1, exactTemperatureKey);
-        Assert.AreNotEqual(missingPrimaryElementKey, exactTemperatureKey);
-        Assert.AreEqual(123, missingPrimaryElementCandidate.TagBitsHash);
-        Assert.AreEqual(123, exactTemperatureCandidate.TagBitsHash);
+        await Assert.That(missingPrimaryElementKey).IsEqualTo(0);
+        await Assert.That(exactTemperatureKey).IsEqualTo(1);
+        await Assert.That(exactTemperatureKey).IsNotEqualTo(missingPrimaryElementKey);
+        await Assert.That(missingPrimaryElementCandidate.TagBitsHash).IsEqualTo(123);
+        await Assert.That(exactTemperatureCandidate.TagBitsHash).IsEqualTo(123);
     }
 
-    [TestMethod]
-    public void GetOrAllocate_WhenGroupingIsInactive_ReturnsOriginalHashWithoutRetainingEntry()
+    [Test]
+    public async Task GetOrAllocate_WhenGroupingIsInactive_ReturnsOriginalHashWithoutRetainingEntry()
     {
         var allocator = new FastTrackPickupGroupingKeyAllocator();
         allocator.Begin(temperatureGroupingIsActive: false);
@@ -126,12 +124,12 @@ public sealed class FastTrackPickupGroupingKeyAllocatorTests
             originalTagBitsHash: -123456789,
             TemperatureEligibilityClassKey.MissingPrimaryElement());
 
-        Assert.AreEqual(-123456789, allocatedKey);
-        Assert.IsEmpty(GetAllocatedGroupingKeyDictionary(allocator));
+        await Assert.That(allocatedKey).IsEqualTo(-123456789);
+        await Assert.That(((System.Collections.IEnumerable)(await GetAllocatedGroupingKeyDictionary(allocator))).Cast<object?>()).IsEmpty();
     }
 
-    [TestMethod]
-    public void GetOrAllocate_WhenEveryOriginalHashCollides_StillAllocatesUniqueIntegers()
+    [Test]
+    public async Task GetOrAllocate_WhenEveryOriginalHashCollides_StillAllocatesUniqueIntegers()
     {
         var allocator = BeginActiveAllocator();
         var allocatedKeys = new HashSet<int>();
@@ -145,70 +143,66 @@ public sealed class FastTrackPickupGroupingKeyAllocatorTests
                 TemperatureEligibilityClassKey.OptimizedPartitionInterval(
                     partitionDefinitionId: classificationIndex + 1,
                     intervalOrdinal: classificationIndex % 5));
-            Assert.IsTrue(
-                allocatedKeys.Add(allocatedKey),
-                $"Classification {classificationIndex} reused integer " +
+            await Assert.That(allocatedKeys.Add(allocatedKey)).IsTrue().Because($"Classification {classificationIndex} reused integer " +
                 $"{allocatedKey}.");
         }
 
-        Assert.HasCount(1000, allocatedKeys);
+        await Assert.That(allocatedKeys).Count().IsEqualTo(1000);
     }
 
-    [TestMethod]
-    public void GetOrAllocate_WhenIntegerSpaceIsExhausted_ThrowsWithoutWraparound()
+    [Test]
+    public async Task GetOrAllocate_WhenIntegerSpaceIsExhausted_ThrowsWithoutWraparound()
     {
         var allocator = BeginActiveAllocator();
-        var nextAllocationField = RequirePrivateInstanceField(
+        var nextAllocationField = await RequirePrivateInstanceField(
             "nextAllocatedGroupingKey",
             typeof(int));
         nextAllocationField.SetValue(allocator, int.MaxValue);
 
-        var exception = Assert.ThrowsExactly<InvalidOperationException>(() =>
+        var exception = (await Assert.That(() =>
             allocator.GetOrAllocate(
                 123,
-                TemperatureEligibilityClassKey.MissingPrimaryElement()));
+                TemperatureEligibilityClassKey.MissingPrimaryElement())).ThrowsExactly<InvalidOperationException>())!;
 
-        StringAssert.Contains(exception.Message, "exhausted");
-        Assert.AreEqual(int.MaxValue, nextAllocationField.GetValue(allocator));
-        Assert.IsEmpty(GetAllocatedGroupingKeyDictionary(allocator));
+        await Assert.That(exception.Message).Contains("exhausted");
+        await Assert.That(nextAllocationField.GetValue(allocator)).IsEqualTo(int.MaxValue);
+        await Assert.That(((System.Collections.IEnumerable)(await GetAllocatedGroupingKeyDictionary(allocator))).Cast<object?>()).IsEmpty();
     }
 
-    [TestMethod]
-    public void Begin_WhenAlreadyActive_ThrowsInvalidOperationException()
+    [Test]
+    public async Task Begin_WhenAlreadyActive_ThrowsInvalidOperationException()
     {
         var allocator = BeginActiveAllocator();
 
-        Assert.ThrowsExactly<InvalidOperationException>(() =>
-            allocator.Begin(temperatureGroupingIsActive: true));
+        await Assert.That(() =>
+            allocator.Begin(temperatureGroupingIsActive: true)).ThrowsExactly<InvalidOperationException>();
     }
 
-    [TestMethod]
-    public void Discard_WhenCalledAfterFailure_ClearsActiveState()
+    [Test]
+    public async Task Discard_WhenCalledAfterFailure_ClearsActiveState()
     {
         var allocator = BeginActiveAllocator();
-        var nextAllocationField = RequirePrivateInstanceField(
+        var nextAllocationField = await RequirePrivateInstanceField(
             "nextAllocatedGroupingKey",
             typeof(int));
         nextAllocationField.SetValue(allocator, int.MaxValue);
-        Assert.ThrowsExactly<InvalidOperationException>(() =>
+        await Assert.That(() =>
             allocator.GetOrAllocate(
                 123,
-                TemperatureEligibilityClassKey.MissingPrimaryElement()));
+                TemperatureEligibilityClassKey.MissingPrimaryElement())).ThrowsExactly<InvalidOperationException>();
 
         allocator.Discard();
 
-        Assert.IsEmpty(GetAllocatedGroupingKeyDictionary(allocator));
-        Assert.AreEqual(0, nextAllocationField.GetValue(allocator));
+        await Assert.That(((System.Collections.IEnumerable)(await GetAllocatedGroupingKeyDictionary(allocator))).Cast<object?>()).IsEmpty();
+        await Assert.That(nextAllocationField.GetValue(allocator)).IsEqualTo(0);
         allocator.Begin(temperatureGroupingIsActive: true);
-        Assert.AreEqual(
-            0,
-            allocator.GetOrAllocate(
+        await Assert.That(allocator.GetOrAllocate(
                 456,
-                TemperatureEligibilityClassKey.MissingPrimaryElement()));
+                TemperatureEligibilityClassKey.MissingPrimaryElement())).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void Complete_WhenEntryCountExceededHighWater_ReplacesDictionary()
+    [Test]
+    public async Task Complete_WhenEntryCountExceededHighWater_ReplacesDictionary()
     {
         var allocator = new FastTrackPickupGroupingKeyAllocator();
         var retentionLimit =
@@ -216,36 +210,30 @@ public sealed class FastTrackPickupGroupingKeyAllocatorTests
                 .MaximumRetainedFastTrackGroupingKeyCount;
 
         allocator.Begin(temperatureGroupingIsActive: true);
-        var dictionaryAtLimit = GetAllocatedGroupingKeyDictionary(allocator);
-        AllocateAndVerifyDistinctComposites(allocator, retentionLimit);
+        var dictionaryAtLimit = await GetAllocatedGroupingKeyDictionary(allocator);
+        await AllocateAndVerifyDistinctComposites(allocator, retentionLimit);
         allocator.Complete();
-        Assert.AreSame(
-            dictionaryAtLimit,
-            GetAllocatedGroupingKeyDictionary(allocator));
+        await Assert.That((await GetAllocatedGroupingKeyDictionary(allocator))).IsSameReferenceAs(dictionaryAtLimit);
 
         allocator.Begin(temperatureGroupingIsActive: true);
         var dictionaryBeforeLimitExceeded =
-            GetAllocatedGroupingKeyDictionary(allocator);
-        AllocateAndVerifyDistinctComposites(allocator, retentionLimit + 1);
+            await GetAllocatedGroupingKeyDictionary(allocator);
+        await AllocateAndVerifyDistinctComposites(allocator, retentionLimit + 1);
         allocator.Complete();
-        Assert.AreNotSame(
-            dictionaryBeforeLimitExceeded,
-            GetAllocatedGroupingKeyDictionary(allocator));
+        await Assert.That((await GetAllocatedGroupingKeyDictionary(allocator))).IsNotSameReferenceAs(dictionaryBeforeLimitExceeded);
 
         allocator.Begin(temperatureGroupingIsActive: true);
         var dictionaryBeforeLargerWorkload =
-            GetAllocatedGroupingKeyDictionary(allocator);
-        AllocateAndVerifyDistinctComposites(
+            await GetAllocatedGroupingKeyDictionary(allocator);
+        await AllocateAndVerifyDistinctComposites(
             allocator,
             (retentionLimit * 2) + 17);
         allocator.Complete();
-        Assert.AreNotSame(
-            dictionaryBeforeLargerWorkload,
-            GetAllocatedGroupingKeyDictionary(allocator));
+        await Assert.That((await GetAllocatedGroupingKeyDictionary(allocator))).IsNotSameReferenceAs(dictionaryBeforeLargerWorkload);
     }
 
-    [TestMethod]
-    public void GetOrAllocate_WhenOneHundredThousandCollisionHeavyInputsRepeat_PreservesCompositeBijection()
+    [Test]
+    public async Task GetOrAllocate_WhenOneHundredThousandCollisionHeavyInputsRepeat_PreservesCompositeBijection()
     {
         const int inputCount = 100000;
         const int reusedOriginalHashCount = 16;
@@ -274,48 +262,40 @@ public sealed class FastTrackPickupGroupingKeyAllocatorTests
                     composite,
                     out var expectedGroupingKey))
             {
-                Assert.AreEqual(expectedGroupingKey, allocatedGroupingKey);
+                await Assert.That(allocatedGroupingKey).IsEqualTo(expectedGroupingKey);
             }
             else
             {
                 expectedGroupingKeyByComposite.Add(
                     composite,
                     allocatedGroupingKey);
-                Assert.IsFalse(
-                    compositeByAllocatedGroupingKey.ContainsKey(
-                        allocatedGroupingKey),
-                    $"Distinct composite input {inputIndex} reused allocated " +
+                await Assert.That(compositeByAllocatedGroupingKey.ContainsKey(
+                        allocatedGroupingKey)).IsFalse().Because($"Distinct composite input {inputIndex} reused allocated " +
                     $"integer {allocatedGroupingKey}.");
                 compositeByAllocatedGroupingKey.Add(
                     allocatedGroupingKey,
                     composite);
             }
 
-            Assert.AreEqual(
-                composite,
-                compositeByAllocatedGroupingKey[allocatedGroupingKey]);
+            await Assert.That(compositeByAllocatedGroupingKey[allocatedGroupingKey]).IsEqualTo(composite);
         }
 
-        Assert.HasCount(
-            reusedOriginalHashCount * reusedTemperatureClassCount,
-            expectedGroupingKeyByComposite);
-        Assert.AreEqual(
-            expectedGroupingKeyByComposite.Count,
-            GetAllocatedGroupingKeyDictionary(allocator).Count);
+        await Assert.That(expectedGroupingKeyByComposite).Count().IsEqualTo(reusedOriginalHashCount * reusedTemperatureClassCount);
+        await Assert.That((await GetAllocatedGroupingKeyDictionary(allocator)).Count).IsEqualTo(expectedGroupingKeyByComposite.Count);
     }
 
-    [TestMethod]
-    public void GetOrAllocate_WhenAllocatorHasNotBegun_ThrowsInvalidOperationException()
+    [Test]
+    public async Task GetOrAllocate_WhenAllocatorHasNotBegun_ThrowsInvalidOperationException()
     {
         var allocator = new FastTrackPickupGroupingKeyAllocator();
 
-        Assert.ThrowsExactly<InvalidOperationException>(() =>
+        await Assert.That(() =>
             allocator.GetOrAllocate(
                 123,
-                TemperatureEligibilityClassKey.MissingPrimaryElement()));
+                TemperatureEligibilityClassKey.MissingPrimaryElement())).ThrowsExactly<InvalidOperationException>();
     }
 
-    private static void AllocateAndVerifyDistinctComposites(
+    private static async Task AllocateAndVerifyDistinctComposites(
         FastTrackPickupGroupingKeyAllocator allocator,
         int compositeCount)
     {
@@ -328,7 +308,7 @@ public sealed class FastTrackPickupGroupingKeyAllocatorTests
                 TemperatureEligibilityClassKey.OptimizedPartitionInterval(
                     partitionDefinitionId: compositeIndex + 1,
                     intervalOrdinal: compositeIndex % 3));
-            Assert.AreEqual(compositeIndex, allocatedGroupingKey);
+            await Assert.That(allocatedGroupingKey).IsEqualTo(compositeIndex);
         }
 
         for (var compositeIndex = 0;
@@ -340,12 +320,10 @@ public sealed class FastTrackPickupGroupingKeyAllocatorTests
                 TemperatureEligibilityClassKey.OptimizedPartitionInterval(
                     partitionDefinitionId: compositeIndex + 1,
                     intervalOrdinal: compositeIndex % 3));
-            Assert.AreEqual(compositeIndex, repeatedGroupingKey);
+            await Assert.That(repeatedGroupingKey).IsEqualTo(compositeIndex);
         }
 
-        Assert.AreEqual(
-            compositeCount,
-            GetAllocatedGroupingKeyDictionary(allocator).Count);
+        await Assert.That((await GetAllocatedGroupingKeyDictionary(allocator)).Count).IsEqualTo(compositeCount);
     }
 
     private static FastTrackPickupGroupingKeyAllocator BeginActiveAllocator()
@@ -355,7 +333,7 @@ public sealed class FastTrackPickupGroupingKeyAllocatorTests
         return allocator;
     }
 
-    private static int ConstructPickupTagKeyWithoutMutatingFetchable(
+    private static async Task<int> ConstructPickupTagKeyWithoutMutatingFetchable(
         FastTrackPickupGroupingKeyAllocator allocator,
         FastTrackFetchableCandidateModel fetchableCandidate,
         TemperatureEligibilityClassKey temperatureEligibilityClass)
@@ -364,43 +342,35 @@ public sealed class FastTrackPickupGroupingKeyAllocatorTests
         int constructorGroupingKey = allocator.GetOrAllocate(
             originalTagBitsHash,
             temperatureEligibilityClass);
-        Assert.AreEqual(
-            originalTagBitsHash,
-            fetchableCandidate.TagBitsHash,
-            "Only the private PickupTagKey constructor argument may receive " +
+        await Assert.That(fetchableCandidate.TagBitsHash).IsEqualTo(originalTagBitsHash).Because("Only the private PickupTagKey constructor argument may receive " +
             "the allocated key; FastTrack's fetchable tagBitsHash must remain " +
             "unchanged.");
         return constructorGroupingKey;
     }
 
-    private static IDictionary GetAllocatedGroupingKeyDictionary(
+    private static async Task<IDictionary> GetAllocatedGroupingKeyDictionary(
         FastTrackPickupGroupingKeyAllocator allocator) =>
-        Assert.IsInstanceOfType<IDictionary>(
-            RequirePrivateInstanceField(
+        (await Assert.That((await RequirePrivateInstanceField(
                     "allocatedGroupingKeysByCompositeIdentity",
-                    typeof(Dictionary<,>))
-                .GetValue(allocator));
+                    typeof(Dictionary<,>)))
+                .GetValue(allocator)).IsAssignableTo<IDictionary>())!;
 
-    private static FieldInfo RequirePrivateInstanceField(
+    private static async Task<FieldInfo> RequirePrivateInstanceField(
         string fieldName,
         Type expectedFieldType)
     {
         var field = typeof(FastTrackPickupGroupingKeyAllocator).GetField(
             fieldName,
             BindingFlags.Instance | BindingFlags.NonPublic);
-        Assert.IsNotNull(
-            field,
-            $"Expected one predeclared private field named '{fieldName}'.");
+        if (field is null) throw new TUnit.Assertions.Exceptions.AssertionException($"Expected one predeclared private field named '{fieldName}'.");
         if (expectedFieldType.IsGenericTypeDefinition)
         {
-            Assert.IsTrue(field.FieldType.IsGenericType);
-            Assert.AreEqual(
-                expectedFieldType,
-                field.FieldType.GetGenericTypeDefinition());
+            await Assert.That(field.FieldType.IsGenericType).IsTrue();
+            await Assert.That(field.FieldType.GetGenericTypeDefinition()).IsEqualTo(expectedFieldType);
         }
         else
         {
-            Assert.AreEqual(expectedFieldType, field.FieldType);
+            await Assert.That(field.FieldType).IsEqualTo(expectedFieldType);
         }
 
         return field;

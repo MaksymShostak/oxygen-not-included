@@ -1,12 +1,10 @@
 using MaksymShostak.OniModPipeline.Tests.Fixtures;
 
 namespace MaksymShostak.OniModPipeline.Tests.FixturesTests;
-
-[TestClass]
 public sealed class TemporaryDirectoryTests
 {
-    [TestMethod]
-    public void Dispose_WhenDescendantFileIsReadOnly_RemovesValidatedTemporaryTree()
+    [Test]
+    public async Task Dispose_WhenDescendantFileIsReadOnly_RemovesValidatedTemporaryTree()
     {
         var temporaryDirectory = new TemporaryDirectory();
         var temporaryPath = temporaryDirectory.Path;
@@ -16,6 +14,6 @@ public sealed class TemporaryDirectoryTests
 
         temporaryDirectory.Dispose();
 
-        Assert.IsFalse(Directory.Exists(temporaryPath));
+        await Assert.That(Directory.Exists(temporaryPath)).IsFalse();
     }
 }

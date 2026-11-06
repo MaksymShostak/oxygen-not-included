@@ -10,11 +10,9 @@ using MaksymShostak.OniModPipeline.WorkshopListing;
 using System.Text.Json;
 
 namespace MaksymShostak.OniModPipeline.Tests.Cli;
-
-[TestClass]
 public sealed class BuildCommandTests
 {
-    [TestMethod]
+    [Test]
     public async Task Build_WhenProfileIsContentOnly_PrintsExactBuildResultPath()
     {
         using var fixture = new PipelineCommandFixture(includeTests: false);
@@ -24,29 +22,25 @@ public sealed class BuildCommandTests
             command,
             fixture.CreateArguments("build", "--configuration", "Release"));
 
-        Assert.AreEqual(0, invocation.ExitCode);
-        Assert.AreEqual(string.Empty, invocation.StandardError);
+        await Assert.That(invocation.ExitCode).IsEqualTo(0);
+        await Assert.That(invocation.StandardError).IsEqualTo(string.Empty);
         var buildResultPath = invocation.StandardOutput.TrimEnd('\r', '\n');
-        Assert.AreEqual("build-result.json", Path.GetFileName(buildResultPath));
-        Assert.IsTrue(File.Exists(buildResultPath));
-        Assert.IsTrue(buildResultPath.StartsWith(
+        await Assert.That(Path.GetFileName(buildResultPath)).IsEqualTo("build-result.json");
+        await Assert.That(File.Exists(buildResultPath)).IsTrue();
+        await Assert.That(buildResultPath.StartsWith(
             Path.Combine(fixture.ArtifactsDirectory, "builds", "Example.Mod") +
             Path.DirectorySeparatorChar,
-            StringComparison.OrdinalIgnoreCase));
+            StringComparison.OrdinalIgnoreCase)).IsTrue();
         using var document = JsonDocument.Parse(await File.ReadAllBytesAsync(buildResultPath));
-        Assert.AreEqual(
-            Path.GetDirectoryName(buildResultPath),
-            document.RootElement.GetProperty("runRoot").GetString());
-        Assert.AreEqual(JsonValueKind.Null, document.RootElement
+        await Assert.That(document.RootElement.GetProperty("runRoot").GetString()).IsEqualTo(Path.GetDirectoryName(buildResultPath));
+        await Assert.That(document.RootElement
             .GetProperty("primaryOutputPath")
-            .ValueKind);
-        Assert.AreEqual(
-            PipelineCommandFixture.Commit,
-            document.RootElement.GetProperty("sourceCommit").GetString());
-        Assert.AreEqual(0, fixture.ProcessRunner.BuildOrTestRequests.Count);
+            .ValueKind).IsEqualTo(JsonValueKind.Null);
+        await Assert.That(document.RootElement.GetProperty("sourceCommit").GetString()).IsEqualTo(PipelineCommandFixture.Commit);
+        await Assert.That(fixture.ProcessRunner.BuildOrTestRequests.Count).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public async Task Build_WhenJsonRequested_ReturnsExactBuildResultPathAsValue()
     {
         using var fixture = new PipelineCommandFixture(includeTests: false);
@@ -56,12 +50,12 @@ public sealed class BuildCommandTests
             command,
             fixture.CreateArguments("build", "--format", "json"));
 
-        Assert.AreEqual(0, invocation.ExitCode);
-        Assert.AreEqual(string.Empty, invocation.StandardError);
+        await Assert.That(invocation.ExitCode).IsEqualTo(0);
+        await Assert.That(invocation.StandardError).IsEqualTo(string.Empty);
         using var document = JsonDocument.Parse(invocation.StandardOutput);
         var buildResultPath = document.RootElement.GetProperty("value").GetString();
-        Assert.IsNotNull(buildResultPath);
-        Assert.IsTrue(File.Exists(buildResultPath));
+        Assert.NotNull(buildResultPath);
+        await Assert.That(File.Exists(buildResultPath)).IsTrue();
     }
 }
 
@@ -245,7 +239,7 @@ internal sealed class PipelineCommandProcessRunner(
             request.Arguments[0] is "restore" or "test" or "build" or "msbuild")
         .ToArray();
 
-    public Task<ProcessResult> RunAsync(
+    public async Task<ProcessResult> RunAsync(
         ProcessRequest request,
         CancellationToken cancellationToken)
     {
@@ -253,12 +247,12 @@ internal sealed class PipelineCommandProcessRunner(
         Requests.Add(request);
         if (request.FileName == "dotnet")
         {
-            return Task.FromResult(RunDotnet(request));
+            return RunDotnet(request);
         }
 
-        Assert.AreEqual("git", request.FileName);
+        await Assert.That(request.FileName).IsEqualTo("git");
         var key = string.Join(' ', request.Arguments);
-        return Task.FromResult(key switch
+        return key switch
         {
             "rev-parse --show-toplevel" => new ProcessResult(
                 0,
@@ -275,7 +269,7 @@ internal sealed class PipelineCommandProcessRunner(
                 string.Join('\0', trackedPaths) + '\0',
                 string.Empty),
             _ => new ProcessResult(2, string.Empty, $"Unexpected git arguments: {key}")
-        });
+        };
     }
 
     private static ProcessResult RunDotnet(ProcessRequest request)

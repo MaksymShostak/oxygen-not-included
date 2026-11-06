@@ -2,8 +2,6 @@ using System.Collections;
 using System.Reflection;
 
 namespace DeliveryTemperatureLimit.Tests.WorldResourceTemperatureAmounts;
-
-[TestClass]
 public sealed class WorldResourceTemperatureAmountCatalogTests
 {
     private const int MixedPublicationSeed = 0xC47A109;
@@ -14,8 +12,8 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
     private static readonly Tag Gold = new("Gold");
     private static readonly Tag[] StressResourceTags = [Iron, Copper, Gold];
 
-    [TestMethod]
-    public void GetTemperatureConstrainedAmountAvailability_WhenCoverageContainsTagButSeriesHasNotArrived_ReturnsInventoryIncomplete()
+    [Test]
+    public async Task GetTemperatureConstrainedAmountAvailability_WhenCoverageContainsTagButSeriesHasNotArrived_ReturnsInventoryIncomplete()
     {
         var catalog = new WorldResourceTemperatureAmountCatalog();
         catalog.RegisterWorld(worldId: 1, parentWorldId: 1);
@@ -30,29 +28,27 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
             constraint: Constraint(250, 350),
             expectedCollectionGeneration: generation);
 
-        Assert.AreEqual(
-            TemperatureConstrainedAmountAvailabilityState.InventoryIncomplete,
-            availability.State);
-        Assert.IsFalse(availability.TryGetCompleteAvailableAmount(out _));
+        await Assert.That(availability.State).IsEqualTo(TemperatureConstrainedAmountAvailabilityState.InventoryIncomplete);
+        await Assert.That(availability.TryGetCompleteAvailableAmount(out _)).IsFalse();
     }
 
-    [TestMethod]
-    public void GetTemperatureConstrainedAmountAvailability_WhenEveryMemberHasCompleteWorldPublication_ReturnsCompleteParentAndChildSum()
+    [Test]
+    public async Task GetTemperatureConstrainedAmountAvailability_WhenEveryMemberHasCompleteWorldPublication_ReturnsCompleteParentAndChildSum()
     {
         var generation = Generation();
         var catalog = CatalogWithWorlds((1, 1), (2, 1));
-        Assert.IsTrue(catalog.PublishCompleteWorldResourceAmounts(
+        await Assert.That(catalog.PublishCompleteWorldResourceAmounts(
             1,
             CompleteWorld(
                 generation,
-                ResourceAmount(Iron, 300.0f, 10.0f))));
-        Assert.IsTrue(catalog.PublishCompleteWorldResourceAmounts(
+                ResourceAmount(Iron, 300.0f, 10.0f)))).IsTrue();
+        await Assert.That(catalog.PublishCompleteWorldResourceAmounts(
             2,
             CompleteWorld(
                 generation,
-                ResourceAmount(Iron, 320.0f, 20.0f))));
+                ResourceAmount(Iron, 320.0f, 20.0f)))).IsTrue();
 
-        AssertCompleteAmount(
+        await AssertCompleteAmount(
             30.0f,
             catalog.GetTemperatureConstrainedAmountAvailability(
                 1,
@@ -61,23 +57,23 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
                 generation));
     }
 
-    [TestMethod]
-    public void GetTemperatureConstrainedAmountAvailability_WhenTagIsAbsentFromCompleteWorld_ReturnsCompleteKnownZeroContribution()
+    [Test]
+    public async Task GetTemperatureConstrainedAmountAvailability_WhenTagIsAbsentFromCompleteWorld_ReturnsCompleteKnownZeroContribution()
     {
         var generation = Generation();
         var catalog = CatalogWithWorlds((1, 1), (2, 1));
-        Assert.IsTrue(catalog.PublishCompleteWorldResourceAmounts(
+        await Assert.That(catalog.PublishCompleteWorldResourceAmounts(
             1,
             CompleteWorld(
                 generation,
-                ResourceAmount(Iron, 300.0f, 10.0f))));
-        Assert.IsTrue(catalog.PublishCompleteWorldResourceAmounts(
+                ResourceAmount(Iron, 300.0f, 10.0f)))).IsTrue();
+        await Assert.That(catalog.PublishCompleteWorldResourceAmounts(
             2,
             CompleteWorld(
                 generation,
-                ResourceAmount(Copper, 300.0f, 50.0f))));
+                ResourceAmount(Copper, 300.0f, 50.0f)))).IsTrue();
 
-        AssertCompleteAmount(
+        await AssertCompleteAmount(
             10.0f,
             catalog.GetTemperatureConstrainedAmountAvailability(
                 1,
@@ -86,19 +82,19 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
                 generation));
     }
 
-    [TestMethod]
-    public void GetTemperatureConstrainedAmountAvailability_WhenEveryCoverageExcludesTag_ReturnsCompleteZero()
+    [Test]
+    public async Task GetTemperatureConstrainedAmountAvailability_WhenEveryCoverageExcludesTag_ReturnsCompleteZero()
     {
         var generation = Generation();
         var catalog = CatalogWithWorlds((1, 1), (2, 1));
-        Assert.IsTrue(catalog.PublishWorldResourceTagCoverage(
+        await Assert.That(catalog.PublishWorldResourceTagCoverage(
             1,
-            Coverage(generation, Copper)));
-        Assert.IsTrue(catalog.PublishWorldResourceTagCoverage(
+            Coverage(generation, Copper))).IsTrue();
+        await Assert.That(catalog.PublishWorldResourceTagCoverage(
             2,
-            Coverage(generation, Copper)));
+            Coverage(generation, Copper))).IsTrue();
 
-        AssertCompleteAmount(
+        await AssertCompleteAmount(
             0.0f,
             catalog.GetTemperatureConstrainedAmountAvailability(
                 1,
@@ -107,16 +103,16 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
                 generation));
     }
 
-    [TestMethod]
-    public void GetTemperatureConstrainedAmountAvailability_WhenOneMemberCoverageIsMissing_ReturnsInventoryIncomplete()
+    [Test]
+    public async Task GetTemperatureConstrainedAmountAvailability_WhenOneMemberCoverageIsMissing_ReturnsInventoryIncomplete()
     {
         var generation = Generation();
         var catalog = CatalogWithWorlds((1, 1), (2, 1));
-        Assert.IsTrue(catalog.PublishWorldResourceTagCoverage(
+        await Assert.That(catalog.PublishWorldResourceTagCoverage(
             1,
-            Coverage(generation, Copper)));
+            Coverage(generation, Copper))).IsTrue();
 
-        AssertUnavailable(
+        await AssertUnavailable(
             TemperatureConstrainedAmountAvailabilityState.InventoryIncomplete,
             catalog.GetTemperatureConstrainedAmountAvailability(
                 1,
@@ -125,19 +121,19 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
                 generation));
     }
 
-    [TestMethod]
-    public void GetTemperatureConstrainedAmountAvailability_WhenCoverageContainsTagAndCurrentSeriesExists_ReturnsCompleteAmount()
+    [Test]
+    public async Task GetTemperatureConstrainedAmountAvailability_WhenCoverageContainsTagAndCurrentSeriesExists_ReturnsCompleteAmount()
     {
         var generation = Generation();
         var catalog = CatalogWithWorlds((1, 1));
-        Assert.IsTrue(catalog.PublishWorldResourceTagCoverage(
+        await Assert.That(catalog.PublishWorldResourceTagCoverage(
             1,
-            Coverage(generation, Iron)));
-        Assert.IsTrue(catalog.PublishWorldResourceTemperatureSeries(
+            Coverage(generation, Iron))).IsTrue();
+        await Assert.That(catalog.PublishWorldResourceTemperatureSeries(
             1,
-            SeriesPublication(generation, Iron, 300.0f, 10.0f)));
+            SeriesPublication(generation, Iron, 300.0f, 10.0f))).IsTrue();
 
-        AssertCompleteAmount(
+        await AssertCompleteAmount(
             10.0f,
             catalog.GetTemperatureConstrainedAmountAvailability(
                 1,
@@ -146,22 +142,22 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
                 generation));
     }
 
-    [TestMethod]
-    public void GetTemperatureConstrainedAmountAvailability_WhenOnePresentMemberSeriesIsPending_ReturnsInventoryIncompleteRatherThanZero()
+    [Test]
+    public async Task GetTemperatureConstrainedAmountAvailability_WhenOnePresentMemberSeriesIsPending_ReturnsInventoryIncompleteRatherThanZero()
     {
         var generation = Generation();
         var catalog = CatalogWithWorlds((1, 1), (2, 1));
-        Assert.IsTrue(catalog.PublishWorldResourceTagCoverage(
+        await Assert.That(catalog.PublishWorldResourceTagCoverage(
             1,
-            Coverage(generation, Iron)));
-        Assert.IsTrue(catalog.PublishWorldResourceTagCoverage(
+            Coverage(generation, Iron))).IsTrue();
+        await Assert.That(catalog.PublishWorldResourceTagCoverage(
             2,
-            Coverage(generation, Iron)));
-        Assert.IsTrue(catalog.PublishWorldResourceTemperatureSeries(
+            Coverage(generation, Iron))).IsTrue();
+        await Assert.That(catalog.PublishWorldResourceTemperatureSeries(
             1,
-            SeriesPublication(generation, Iron, 300.0f, 10.0f)));
+            SeriesPublication(generation, Iron, 300.0f, 10.0f))).IsTrue();
 
-        AssertUnavailable(
+        await AssertUnavailable(
             TemperatureConstrainedAmountAvailabilityState.InventoryIncomplete,
             catalog.GetTemperatureConstrainedAmountAvailability(
                 1,
@@ -170,69 +166,65 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
                 generation));
     }
 
-    [TestMethod]
-    public void PublishCompleteWorldResourceAmounts_WhenWorldIsUnknown_ReturnsFalse()
+    [Test]
+    public async Task PublishCompleteWorldResourceAmounts_WhenWorldIsUnknown_ReturnsFalse()
     {
         var catalog = new WorldResourceTemperatureAmountCatalog();
 
-        Assert.IsFalse(catalog.PublishCompleteWorldResourceAmounts(
+        await Assert.That(catalog.PublishCompleteWorldResourceAmounts(
             99,
             CompleteWorld(
                 Generation(),
-                ResourceAmount(Iron, 300.0f, 10.0f))));
+                ResourceAmount(Iron, 300.0f, 10.0f)))).IsFalse();
     }
 
-    [TestMethod]
-    public void PublishWorldResourceTagCoverage_WhenGenerationIsOlder_RejectsLatePublication()
+    [Test]
+    public async Task PublishWorldResourceTagCoverage_WhenGenerationIsOlder_RejectsLatePublication()
     {
         var catalog = CatalogWithWorlds((1, 1));
         var currentGeneration = new WorldInventoryCollectionGeneration(10);
         var olderGeneration = new WorldInventoryCollectionGeneration(9);
-        Assert.IsTrue(catalog.PublishWorldResourceTagCoverage(
+        await Assert.That(catalog.PublishWorldResourceTagCoverage(
             1,
-            Coverage(currentGeneration, Iron)));
+            Coverage(currentGeneration, Iron))).IsTrue();
 
-        Assert.IsFalse(catalog.PublishWorldResourceTagCoverage(
+        await Assert.That(catalog.PublishWorldResourceTagCoverage(
             1,
-            Coverage(olderGeneration, Copper)));
-        Assert.AreEqual(
-            WorldResourceTagCoverageRequirementState.CoverageCurrent,
-            catalog.GetWorldResourceTagCoverageRequirementState(
+            Coverage(olderGeneration, Copper))).IsFalse();
+        await Assert.That(catalog.GetWorldResourceTagCoverageRequirementState(
                 1,
-                currentGeneration));
-        Assert.AreEqual(
-            WorldResourceTagCoverageRequirementState
-                .UnknownWorldOrCollectionGeneration,
-            catalog.GetWorldResourceTagCoverageRequirementState(
+                currentGeneration)).IsEqualTo(WorldResourceTagCoverageRequirementState.CoverageCurrent);
+        await Assert.That(catalog.GetWorldResourceTagCoverageRequirementState(
                 1,
-                olderGeneration));
+                olderGeneration)).IsEqualTo(WorldResourceTagCoverageRequirementState
+                .UnknownWorldOrCollectionGeneration);
     }
 
-    [TestMethod]
-    public void PublishWorldResourceTemperatureSeries_WhenNoCurrentCoverageOrCompletePublicationExists_ReturnsFalse()
+    [Test]
+    public async Task PublishWorldResourceTemperatureSeries_WhenNoCurrentCoverageOrCompletePublicationExists_ReturnsFalse()
     {
         var catalog = CatalogWithWorlds((1, 1));
 
-        Assert.IsFalse(catalog.PublishWorldResourceTemperatureSeries(
+        await Assert.That(catalog.PublishWorldResourceTemperatureSeries(
             1,
-            SeriesPublication(Generation(), Iron, 300.0f, 10.0f)));
+            SeriesPublication(Generation(), Iron, 300.0f, 10.0f))).IsFalse();
     }
 
-    [TestMethod]
-    public void PublishWorldResourceTagCoverage_AfterCompletePublicationForSameGeneration_RejectsSemanticDowngrade()
+    [Test]
+    public async Task PublishWorldResourceTagCoverage_AfterCompletePublicationForSameGeneration_RejectsSemanticDowngrade()
     {
         var generation = Generation();
         var catalog = CatalogWithWorlds((1, 1));
-        Assert.IsTrue(catalog.PublishCompleteWorldResourceAmounts(
+        await Assert.That(catalog.PublishCompleteWorldResourceAmounts(
             1,
             CompleteWorld(
                 generation,
-                ResourceAmount(Iron, 300.0f, 10.0f))));
+                ResourceAmount(Iron, 300.0f, 10.0f)))).IsTrue();
 
-        Assert.IsFalse(catalog.PublishWorldResourceTagCoverage(
+        await Assert.That(catalog.PublishWorldResourceTagCoverage(
             1,
-            Coverage(generation, Copper)));
-        AssertCompleteAmount(
+            Coverage(generation, Copper))).IsFalse();
+        await AssertCompleteAmount(
             10.0f,
             catalog.GetTemperatureConstrainedAmountAvailability(
                 1,
@@ -241,21 +233,21 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
                 generation));
     }
 
-    [TestMethod]
-    public void PublishCompleteWorldResourceAmounts_AfterCoveragePublication_UpgradesToCompleteWorldState()
+    [Test]
+    public async Task PublishCompleteWorldResourceAmounts_AfterCoveragePublication_UpgradesToCompleteWorldState()
     {
         var generation = Generation();
         var catalog = CatalogWithWorlds((1, 1));
-        Assert.IsTrue(catalog.PublishWorldResourceTagCoverage(
+        await Assert.That(catalog.PublishWorldResourceTagCoverage(
             1,
-            Coverage(generation, Iron)));
+            Coverage(generation, Iron))).IsTrue();
 
-        Assert.IsTrue(catalog.PublishCompleteWorldResourceAmounts(
+        await Assert.That(catalog.PublishCompleteWorldResourceAmounts(
             1,
             CompleteWorld(
                 generation,
-                ResourceAmount(Iron, 300.0f, 10.0f))));
-        AssertCompleteAmount(
+                ResourceAmount(Iron, 300.0f, 10.0f)))).IsTrue();
+        await AssertCompleteAmount(
             10.0f,
             catalog.GetTemperatureConstrainedAmountAvailability(
                 1,
@@ -264,84 +256,74 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
                 generation));
     }
 
-    [TestMethod]
-    public void GetWorldResourceTagCoverageRequirementState_WhenWorldOrGenerationIsUnknown_ReturnsUnknownWorldOrCollectionGeneration()
+    [Test]
+    public async Task GetWorldResourceTagCoverageRequirementState_WhenWorldOrGenerationIsUnknown_ReturnsUnknownWorldOrCollectionGeneration()
     {
         var catalog = CatalogWithWorlds((1, 1));
         var currentGeneration = new WorldInventoryCollectionGeneration(10);
-        Assert.IsTrue(catalog.PublishWorldResourceTagCoverage(
+        await Assert.That(catalog.PublishWorldResourceTagCoverage(
             1,
-            Coverage(currentGeneration, Iron)));
+            Coverage(currentGeneration, Iron))).IsTrue();
 
-        Assert.AreEqual(
-            WorldResourceTagCoverageRequirementState
-                .UnknownWorldOrCollectionGeneration,
-            catalog.GetWorldResourceTagCoverageRequirementState(
+        await Assert.That(catalog.GetWorldResourceTagCoverageRequirementState(
                 99,
-                currentGeneration));
-        Assert.AreEqual(
-            WorldResourceTagCoverageRequirementState
-                .UnknownWorldOrCollectionGeneration,
-            catalog.GetWorldResourceTagCoverageRequirementState(
+                currentGeneration)).IsEqualTo(WorldResourceTagCoverageRequirementState
+                .UnknownWorldOrCollectionGeneration);
+        await Assert.That(catalog.GetWorldResourceTagCoverageRequirementState(
                 1,
-                new WorldInventoryCollectionGeneration(9)));
+                new WorldInventoryCollectionGeneration(9))).IsEqualTo(WorldResourceTagCoverageRequirementState
+                .UnknownWorldOrCollectionGeneration);
     }
 
-    [TestMethod]
-    public void GetWorldResourceTagCoverageRequirementState_WhenGenerationHasNoCoverage_ReturnsCoverageRequired()
+    [Test]
+    public async Task GetWorldResourceTagCoverageRequirementState_WhenGenerationHasNoCoverage_ReturnsCoverageRequired()
     {
         var catalog = CatalogWithWorlds((1, 1));
 
-        Assert.AreEqual(
-            WorldResourceTagCoverageRequirementState.CoverageRequired,
-            catalog.GetWorldResourceTagCoverageRequirementState(
+        await Assert.That(catalog.GetWorldResourceTagCoverageRequirementState(
                 1,
-                Generation()));
+                Generation())).IsEqualTo(WorldResourceTagCoverageRequirementState.CoverageRequired);
     }
 
-    [TestMethod]
-    public void GetWorldResourceTagCoverageRequirementState_WhenCoverageOrCompletePublicationIsCurrent_ReturnsCoverageCurrent()
+    [Test]
+    public async Task GetWorldResourceTagCoverageRequirementState_WhenCoverageOrCompletePublicationIsCurrent_ReturnsCoverageCurrent()
     {
         var generation = Generation();
         var catalog = CatalogWithWorlds((1, 1), (2, 1));
-        Assert.IsTrue(catalog.PublishWorldResourceTagCoverage(
+        await Assert.That(catalog.PublishWorldResourceTagCoverage(
             1,
-            Coverage(generation, Iron)));
-        Assert.IsTrue(catalog.PublishCompleteWorldResourceAmounts(
+            Coverage(generation, Iron))).IsTrue();
+        await Assert.That(catalog.PublishCompleteWorldResourceAmounts(
             2,
-            CompleteWorld(generation)));
+            CompleteWorld(generation))).IsTrue();
 
-        Assert.AreEqual(
-            WorldResourceTagCoverageRequirementState.CoverageCurrent,
-            catalog.GetWorldResourceTagCoverageRequirementState(1, generation));
-        Assert.AreEqual(
-            WorldResourceTagCoverageRequirementState.CoverageCurrent,
-            catalog.GetWorldResourceTagCoverageRequirementState(2, generation));
+        await Assert.That(catalog.GetWorldResourceTagCoverageRequirementState(1, generation)).IsEqualTo(WorldResourceTagCoverageRequirementState.CoverageCurrent);
+        await Assert.That(catalog.GetWorldResourceTagCoverageRequirementState(2, generation)).IsEqualTo(WorldResourceTagCoverageRequirementState.CoverageCurrent);
     }
 
-    [TestMethod]
-    public void PublishWorldResourceTemperatureSeries_WhenSameTagRepeats_ReplacesOnlyThatWorldTagContribution()
+    [Test]
+    public async Task PublishWorldResourceTemperatureSeries_WhenSameTagRepeats_ReplacesOnlyThatWorldTagContribution()
     {
         var generation = Generation();
         var catalog = CatalogWithWorlds((1, 1), (2, 1));
-        Assert.IsTrue(catalog.PublishWorldResourceTagCoverage(
+        await Assert.That(catalog.PublishWorldResourceTagCoverage(
             1,
-            Coverage(generation, Iron)));
-        Assert.IsTrue(catalog.PublishWorldResourceTagCoverage(
+            Coverage(generation, Iron))).IsTrue();
+        await Assert.That(catalog.PublishWorldResourceTagCoverage(
             2,
-            Coverage(generation, Iron)));
-        Assert.IsTrue(catalog.PublishWorldResourceTemperatureSeries(
+            Coverage(generation, Iron))).IsTrue();
+        await Assert.That(catalog.PublishWorldResourceTemperatureSeries(
             1,
-            SeriesPublication(generation, Iron, 300.0f, 10.0f)));
-        Assert.IsTrue(catalog.PublishWorldResourceTemperatureSeries(
+            SeriesPublication(generation, Iron, 300.0f, 10.0f))).IsTrue();
+        await Assert.That(catalog.PublishWorldResourceTemperatureSeries(
             2,
-            SeriesPublication(generation, Iron, 300.0f, 20.0f)));
+            SeriesPublication(generation, Iron, 300.0f, 20.0f))).IsTrue();
 
-        Assert.IsTrue(catalog.PublishWorldResourceTemperatureSeries(
+        await Assert.That(catalog.PublishWorldResourceTemperatureSeries(
             1,
-            SeriesPublication(generation, Iron, 300.0f, 40.0f)));
+            SeriesPublication(generation, Iron, 300.0f, 40.0f))).IsTrue();
 
-        AssertCompleteAmount(
+        await AssertCompleteAmount(
             60.0f,
             catalog.GetTemperatureConstrainedAmountAvailability(
                 1,
@@ -350,20 +332,20 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
                 generation));
     }
 
-    [TestMethod]
-    public void PublishWorldResourceTemperatureSeries_WhenTagWasAbsentFromCoverage_AddsPresentCurrentTagAtomically()
+    [Test]
+    public async Task PublishWorldResourceTemperatureSeries_WhenTagWasAbsentFromCoverage_AddsPresentCurrentTagAtomically()
     {
         var generation = Generation();
         var catalog = CatalogWithWorlds((1, 1));
-        Assert.IsTrue(catalog.PublishWorldResourceTagCoverage(
+        await Assert.That(catalog.PublishWorldResourceTagCoverage(
             1,
-            Coverage(generation, Copper)));
+            Coverage(generation, Copper))).IsTrue();
 
-        Assert.IsTrue(catalog.PublishWorldResourceTemperatureSeries(
+        await Assert.That(catalog.PublishWorldResourceTemperatureSeries(
             1,
-            SeriesPublication(generation, Iron, 300.0f, 10.0f)));
+            SeriesPublication(generation, Iron, 300.0f, 10.0f))).IsTrue();
 
-        AssertCompleteAmount(
+        await AssertCompleteAmount(
             10.0f,
             catalog.GetTemperatureConstrainedAmountAvailability(
                 1,
@@ -372,31 +354,29 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
                 generation));
     }
 
-    [TestMethod]
-    public void PublishWorldResourceTemperatureSeries_WhenDifferentTagChanges_DoesNotRebuildUnaffectedParentTag()
+    [Test]
+    public async Task PublishWorldResourceTemperatureSeries_WhenDifferentTagChanges_DoesNotRebuildUnaffectedParentTag()
     {
         var generation = Generation();
         var catalog = CatalogWithWorlds((1, 1));
-        Assert.IsTrue(catalog.PublishWorldResourceTagCoverage(
+        await Assert.That(catalog.PublishWorldResourceTagCoverage(
             1,
-            Coverage(generation, Iron, Copper)));
-        Assert.IsTrue(catalog.PublishWorldResourceTemperatureSeries(
+            Coverage(generation, Iron, Copper))).IsTrue();
+        await Assert.That(catalog.PublishWorldResourceTemperatureSeries(
             1,
-            SeriesPublication(generation, Iron, 300.0f, 10.0f)));
-        Assert.IsTrue(catalog.PublishWorldResourceTemperatureSeries(
+            SeriesPublication(generation, Iron, 300.0f, 10.0f))).IsTrue();
+        await Assert.That(catalog.PublishWorldResourceTemperatureSeries(
             1,
-            SeriesPublication(generation, Copper, 300.0f, 20.0f)));
+            SeriesPublication(generation, Copper, 300.0f, 20.0f))).IsTrue();
         var ironAggregateBeforeCopperReplacement =
-            ReadAggregateReference(catalog, parentWorldId: 1, Iron);
+            await ReadAggregateReference(catalog, parentWorldId: 1, Iron);
 
-        Assert.IsTrue(catalog.PublishWorldResourceTemperatureSeries(
+        await Assert.That(catalog.PublishWorldResourceTemperatureSeries(
             1,
-            SeriesPublication(generation, Copper, 300.0f, 40.0f)));
+            SeriesPublication(generation, Copper, 300.0f, 40.0f))).IsTrue();
 
-        Assert.AreSame(
-            ironAggregateBeforeCopperReplacement,
-            ReadAggregateReference(catalog, parentWorldId: 1, Iron));
-        AssertCompleteAmount(
+        await Assert.That((await ReadAggregateReference(catalog, parentWorldId: 1, Iron))).IsSameReferenceAs(ironAggregateBeforeCopperReplacement);
+        await AssertCompleteAmount(
             10.0f,
             catalog.GetTemperatureConstrainedAmountAvailability(
                 1,
@@ -405,20 +385,20 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
                 generation));
     }
 
-    [TestMethod]
-    public void PublishWorldResourceTagCoverage_WhenSameGenerationSetChanges_RecomputesOnlyChangedTagCompleteness()
+    [Test]
+    public async Task PublishWorldResourceTagCoverage_WhenSameGenerationSetChanges_RecomputesOnlyChangedTagCompleteness()
     {
         var generation = Generation();
         var catalog = CatalogWithWorlds((1, 1));
-        Assert.IsTrue(catalog.PublishWorldResourceTagCoverage(
+        await Assert.That(catalog.PublishWorldResourceTagCoverage(
             1,
-            Coverage(generation, Iron, Copper)));
-        Assert.IsTrue(catalog.PublishWorldResourceTemperatureSeries(
+            Coverage(generation, Iron, Copper))).IsTrue();
+        await Assert.That(catalog.PublishWorldResourceTemperatureSeries(
             1,
-            SeriesPublication(generation, Iron, 300.0f, 10.0f)));
+            SeriesPublication(generation, Iron, 300.0f, 10.0f))).IsTrue();
         var ironAggregateBeforeCoverageReplacement =
-            ReadAggregateReference(catalog, parentWorldId: 1, Iron);
-        AssertUnavailable(
+            await ReadAggregateReference(catalog, parentWorldId: 1, Iron);
+        await AssertUnavailable(
             TemperatureConstrainedAmountAvailabilityState.InventoryIncomplete,
             catalog.GetTemperatureConstrainedAmountAvailability(
                 1,
@@ -426,14 +406,12 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
                 Constraint(250, 350),
                 generation));
 
-        Assert.IsTrue(catalog.PublishWorldResourceTagCoverage(
+        await Assert.That(catalog.PublishWorldResourceTagCoverage(
             1,
-            Coverage(generation, Iron)));
+            Coverage(generation, Iron))).IsTrue();
 
-        Assert.AreSame(
-            ironAggregateBeforeCoverageReplacement,
-            ReadAggregateReference(catalog, parentWorldId: 1, Iron));
-        AssertCompleteAmount(
+        await Assert.That((await ReadAggregateReference(catalog, parentWorldId: 1, Iron))).IsSameReferenceAs(ironAggregateBeforeCoverageReplacement);
+        await AssertCompleteAmount(
             0.0f,
             catalog.GetTemperatureConstrainedAmountAvailability(
                 1,
@@ -442,54 +420,50 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
                 generation));
     }
 
-    [TestMethod]
-    public void RegisterWorld_WhenWorldMovesParent_InvalidatesOldAndNewParentMembershipVersions()
+    [Test]
+    public async Task RegisterWorld_WhenWorldMovesParent_InvalidatesOldAndNewParentMembershipVersions()
     {
         var generation = Generation();
         var catalog = CatalogWithWorlds((1, 1), (2, 2), (3, 1));
-        PublishIronCompleteWorld(catalog, 1, generation, 10.0f);
-        PublishIronCompleteWorld(catalog, 2, generation, 20.0f);
-        PublishIronCompleteWorld(catalog, 3, generation, 5.0f);
+        await PublishIronCompleteWorld(catalog, 1, generation, 10.0f);
+        await PublishIronCompleteWorld(catalog, 2, generation, 20.0f);
+        await PublishIronCompleteWorld(catalog, 3, generation, 5.0f);
         var oldParentAggregateBeforeMove =
-            ReadAggregateReference(catalog, parentWorldId: 1, Iron);
+            await ReadAggregateReference(catalog, parentWorldId: 1, Iron);
         var newParentAggregateBeforeMove =
-            ReadAggregateReference(catalog, parentWorldId: 2, Iron);
+            await ReadAggregateReference(catalog, parentWorldId: 2, Iron);
 
         catalog.RegisterWorld(worldId: 1, parentWorldId: 2);
 
-        AssertCompleteAmount(
+        await AssertCompleteAmount(
             5.0f,
             catalog.GetTemperatureConstrainedAmountAvailability(
                 1,
                 Iron,
                 Constraint(250, 350),
                 generation));
-        AssertCompleteAmount(
+        await AssertCompleteAmount(
             30.0f,
             catalog.GetTemperatureConstrainedAmountAvailability(
                 2,
                 Iron,
                 Constraint(250, 350),
                 generation));
-        Assert.AreNotSame(
-            oldParentAggregateBeforeMove,
-            ReadAggregateReference(catalog, parentWorldId: 1, Iron));
-        Assert.AreNotSame(
-            newParentAggregateBeforeMove,
-            ReadAggregateReference(catalog, parentWorldId: 2, Iron));
+        await Assert.That((await ReadAggregateReference(catalog, parentWorldId: 1, Iron))).IsNotSameReferenceAs(oldParentAggregateBeforeMove);
+        await Assert.That((await ReadAggregateReference(catalog, parentWorldId: 2, Iron))).IsNotSameReferenceAs(newParentAggregateBeforeMove);
     }
 
-    [TestMethod]
-    public void RemoveWorld_WhenKnown_RemovesItsContributionAndRecomputesAffectedAggregates()
+    [Test]
+    public async Task RemoveWorld_WhenKnown_RemovesItsContributionAndRecomputesAffectedAggregates()
     {
         var generation = Generation();
         var catalog = CatalogWithWorlds((1, 1), (2, 1));
-        PublishIronCompleteWorld(catalog, 1, generation, 10.0f);
-        PublishIronCompleteWorld(catalog, 2, generation, 20.0f);
+        await PublishIronCompleteWorld(catalog, 1, generation, 10.0f);
+        await PublishIronCompleteWorld(catalog, 2, generation, 20.0f);
 
         catalog.RemoveWorld(1);
 
-        AssertCompleteAmount(
+        await AssertCompleteAmount(
             20.0f,
             catalog.GetTemperatureConstrainedAmountAvailability(
                 1,
@@ -498,87 +472,87 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
                 generation));
     }
 
-    [TestMethod]
-    public void RemoveWorld_WhenLatePublicationArrives_RejectsIt()
+    [Test]
+    public async Task RemoveWorld_WhenLatePublicationArrives_RejectsIt()
     {
         var generation = Generation();
         var catalog = CatalogWithWorlds((1, 1));
         catalog.RemoveWorld(1);
 
-        Assert.IsFalse(catalog.PublishCompleteWorldResourceAmounts(
+        await Assert.That(catalog.PublishCompleteWorldResourceAmounts(
             1,
             CompleteWorld(
                 generation,
-                ResourceAmount(Iron, 300.0f, 10.0f))));
-        Assert.IsFalse(catalog.PublishWorldResourceTagCoverage(
+                ResourceAmount(Iron, 300.0f, 10.0f)))).IsFalse();
+        await Assert.That(catalog.PublishWorldResourceTagCoverage(
             1,
-            Coverage(generation, Iron)));
-        Assert.IsFalse(catalog.PublishWorldResourceTemperatureSeries(
+            Coverage(generation, Iron))).IsFalse();
+        await Assert.That(catalog.PublishWorldResourceTemperatureSeries(
             1,
-            SeriesPublication(generation, Iron, 300.0f, 10.0f)));
+            SeriesPublication(generation, Iron, 300.0f, 10.0f))).IsFalse();
     }
 
-    [TestMethod]
-    public void ClearForGameSession_WhenCalledTwice_IsIdempotent()
+    [Test]
+    public async Task ClearForGameSession_WhenCalledTwice_IsIdempotent()
     {
         var generation = Generation();
         var catalog = CatalogWithWorlds((1, 1));
-        PublishIronCompleteWorld(catalog, 1, generation, 10.0f);
+        await PublishIronCompleteWorld(catalog, 1, generation, 10.0f);
 
         catalog.ClearForGameSession();
         catalog.ClearForGameSession();
 
-        Assert.IsFalse(catalog.PublishCompleteWorldResourceAmounts(
+        await Assert.That(catalog.PublishCompleteWorldResourceAmounts(
             1,
             CompleteWorld(
                 generation,
-                ResourceAmount(Iron, 300.0f, 20.0f))));
-        AssertUnavailable(
+                ResourceAmount(Iron, 300.0f, 20.0f)))).IsFalse();
+        await AssertUnavailable(
             TemperatureConstrainedAmountAvailabilityState.InventoryIncomplete,
             catalog.GetTemperatureConstrainedAmountAvailability(
                 1,
                 Iron,
                 Constraint(250, 350),
                 generation));
-        Assert.IsEmpty(ReadAggregateMap(catalog));
+        await Assert.That(((System.Collections.IEnumerable)(await ReadAggregateMap(catalog))).Cast<object?>()).IsEmpty();
     }
 
-    [TestMethod]
-    public void GetTemperatureConstrainedAmountAvailability_WhenConstraintIsEmpty_ReturnsCompleteZeroWithoutSeriesSearch()
+    [Test]
+    public async Task GetTemperatureConstrainedAmountAvailability_WhenConstraintIsEmpty_ReturnsCompleteZeroWithoutSeriesSearch()
     {
         var catalog = CatalogWithWorlds((1, 1));
 
-        AssertCompleteAmount(
+        await AssertCompleteAmount(
             0.0f,
             catalog.GetTemperatureConstrainedAmountAvailability(
                 1,
                 Iron,
                 Constraint(300, 300),
                 Generation()));
-        Assert.IsEmpty(ReadAggregateMap(catalog));
+        await Assert.That(((System.Collections.IEnumerable)(await ReadAggregateMap(catalog))).Cast<object?>()).IsEmpty();
     }
 
-    [TestMethod]
-    public void GetTemperatureConstrainedAmountAvailability_WhenConstraintIsEmptyAndWorldIsUnknown_ReturnsCompleteZeroWithoutCatalogLookup()
+    [Test]
+    public async Task GetTemperatureConstrainedAmountAvailability_WhenConstraintIsEmptyAndWorldIsUnknown_ReturnsCompleteZeroWithoutCatalogLookup()
     {
         var catalog = new WorldResourceTemperatureAmountCatalog();
 
-        AssertCompleteAmount(
+        await AssertCompleteAmount(
             0.0f,
             catalog.GetTemperatureConstrainedAmountAvailability(
                 parentWorldId: 991,
                 resourceTag: Iron,
                 constraint: Constraint(300, 300),
                 expectedCollectionGeneration: Generation()));
-        Assert.IsEmpty(ReadAggregateMap(catalog));
+        await Assert.That(((System.Collections.IEnumerable)(await ReadAggregateMap(catalog))).Cast<object?>()).IsEmpty();
     }
 
-    [TestMethod]
-    public void GetTemperatureConstrainedAmountAvailability_WhenConstraintIsDisabled_ReturnsTemperatureConstraintDisabled()
+    [Test]
+    public async Task GetTemperatureConstrainedAmountAvailability_WhenConstraintIsDisabled_ReturnsTemperatureConstraintDisabled()
     {
         var catalog = new WorldResourceTemperatureAmountCatalog();
 
-        AssertUnavailable(
+        await AssertUnavailable(
             TemperatureConstrainedAmountAvailabilityState
                 .TemperatureConstraintDisabled,
             catalog.GetTemperatureConstrainedAmountAvailability(
@@ -588,19 +562,19 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
                 Generation()));
     }
 
-    [TestMethod]
-    public void GetTemperatureConstrainedAmountAvailability_WhenSingleTagPublicationIsConcurrent_ReturnsWholeOldOrNewAggregate()
+    [Test]
+    public async Task GetTemperatureConstrainedAmountAvailability_WhenSingleTagPublicationIsConcurrent_ReturnsWholeOldOrNewAggregate()
     {
         var generation = Generation();
         var catalog = CatalogWithWorlds((1, 1));
-        Assert.IsTrue(catalog.PublishWorldResourceTagCoverage(
+        await Assert.That(catalog.PublishWorldResourceTagCoverage(
             1,
-            Coverage(generation, Iron)));
-        Assert.IsTrue(catalog.PublishWorldResourceTemperatureSeries(
+            Coverage(generation, Iron))).IsTrue();
+        await Assert.That(catalog.PublishWorldResourceTemperatureSeries(
             1,
-            SeriesPublication(generation, Iron, 300.0f, 1.0f)));
+            SeriesPublication(generation, Iron, 300.0f, 1.0f))).IsTrue();
         using var start = new ManualResetEventSlim();
-        var publisher = Task.Run(() =>
+        var publisher = Task.Run(async () =>
         {
             start.Wait();
             for (var publicationIndex = 0;
@@ -608,13 +582,13 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
                  publicationIndex++)
             {
                 var amount = publicationIndex % 2 == 0 ? 2.0f : 3.0f;
-                Assert.IsTrue(catalog.PublishWorldResourceTemperatureSeries(
+                await Assert.That(catalog.PublishWorldResourceTemperatureSeries(
                     1,
                     SeriesPublication(
                         generation,
                         Iron,
                         300.0f,
-                        amount)));
+                        amount))).IsTrue();
             }
         });
 
@@ -627,21 +601,16 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
                     Iron,
                     Constraint(250, 350),
                     generation);
-            Assert.AreEqual(
-                TemperatureConstrainedAmountAvailabilityState.Complete,
-                availability.State);
-            Assert.IsTrue(
-                availability.TryGetCompleteAvailableAmount(out var amount));
-            Assert.IsTrue(
-                amount == 1.0f || amount == 2.0f || amount == 3.0f,
-                $"Observed torn aggregate amount {amount}.");
+            await Assert.That(availability.State).IsEqualTo(TemperatureConstrainedAmountAvailabilityState.Complete);
+            await Assert.That(availability.TryGetCompleteAvailableAmount(out var amount)).IsTrue();
+            await Assert.That(amount == 1.0f || amount == 2.0f || amount == 3.0f).IsTrue().Because($"Observed torn aggregate amount {amount}.");
         }
 
         publisher.GetAwaiter().GetResult();
     }
 
-    [TestMethod]
-    public void MixedPublications_WhenTenThousandSeededOperationsRun_MatchIndependentThreeProofReferenceModel()
+    [Test]
+    public async Task MixedPublications_WhenTenThousandSeededOperationsRun_MatchIndependentThreeProofReferenceModel()
     {
         var random = new Random(MixedPublicationSeed);
         var generation = Generation();
@@ -652,7 +621,7 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
              operationIndex < MixedPublicationOperationCount;
              operationIndex++)
         {
-            ApplyRandomOperation(
+            await ApplyRandomOperation(
                 random,
                 catalog,
                 referenceWorlds,
@@ -672,65 +641,57 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
                 Constraint(250, 350),
                 generation);
 
-            Assert.AreEqual(
-                expected.State,
-                observed.State,
-                StressMessage(operationIndex, parentWorldId, resourceTag));
+            await Assert.That(observed.State).IsEqualTo(expected.State).Because(StressMessage(operationIndex, parentWorldId, resourceTag));
             if (expected.State ==
                 TemperatureConstrainedAmountAvailabilityState.Complete)
             {
-                Assert.IsTrue(
-                    expected.TryGetCompleteAvailableAmount(
-                        out var expectedAmount));
-                Assert.IsTrue(
-                    observed.TryGetCompleteAvailableAmount(
-                        out var observedAmount));
-                Assert.AreEqual(
-                    expectedAmount,
-                    observedAmount,
-                    StressMessage(operationIndex, parentWorldId, resourceTag));
+                await Assert.That(expected.TryGetCompleteAvailableAmount(
+                        out var expectedAmount)).IsTrue();
+                await Assert.That(observed.TryGetCompleteAvailableAmount(
+                        out var observedAmount)).IsTrue();
+                await Assert.That(observedAmount).IsEqualTo(expectedAmount).Because(StressMessage(operationIndex, parentWorldId, resourceTag));
             }
             else
             {
-                Assert.IsFalse(observed.TryGetCompleteAvailableAmount(out _));
+                await Assert.That(observed.TryGetCompleteAvailableAmount(out _)).IsFalse();
             }
         }
     }
 
-    [TestMethod]
-    public void ProductionSource_WhenSingleTagAndQueryPathsAreInspected_UseOnlyNamedSparsePrimitives()
+    [Test]
+    public async Task ProductionSource_WhenSingleTagAndQueryPathsAreInspected_UseOnlyNamedSparsePrimitives()
     {
         var source = File.ReadAllText(ResolveCatalogSourcePath());
-        var singleTagPublicationSource = ExtractMethodRegion(
+        var singleTagPublicationSource = await ExtractMethodRegion(
             source,
             "internal bool PublishWorldResourceTemperatureSeries(",
             "internal WorldResourceTagCoverageRequirementState");
-        Assert.IsTrue(singleTagPublicationSource.Contains(
+        await Assert.That(singleTagPublicationSource.Contains(
             "RebuildOneParentResourceTagAggregate(",
-            StringComparison.Ordinal));
-        Assert.IsFalse(singleTagPublicationSource.Contains(
+            StringComparison.Ordinal)).IsTrue();
+        await Assert.That(singleTagPublicationSource.Contains(
             "RebuildAffectedParentResourceTagAggregates(",
-            StringComparison.Ordinal));
-        Assert.IsFalse(singleTagPublicationSource.Contains(
+            StringComparison.Ordinal)).IsFalse();
+        await Assert.That(singleTagPublicationSource.Contains(
             "WorldContainer",
-            StringComparison.Ordinal));
-        Assert.IsFalse(singleTagPublicationSource.Contains(
+            StringComparison.Ordinal)).IsFalse();
+        await Assert.That(singleTagPublicationSource.Contains(
             "TemperatureDecisionBucket.BucketCount",
-            StringComparison.Ordinal));
+            StringComparison.Ordinal)).IsFalse();
 
-        var querySource = ExtractMethodRegion(
+        var querySource = await ExtractMethodRegion(
             source,
             "internal TemperatureConstrainedAmountAvailability GetTemperatureConstrainedAmountAvailability(",
             "internal void RemoveWorld(");
-        Assert.IsFalse(querySource.Contains("WorldContainer", StringComparison.Ordinal));
-        Assert.IsFalse(querySource.Contains(
+        await Assert.That(querySource.Contains("WorldContainer", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(querySource.Contains(
             "TemperatureDecisionBucket.BucketCount",
-            StringComparison.Ordinal));
-        Assert.IsFalse(querySource.Contains("foreach (", StringComparison.Ordinal));
-        Assert.IsFalse(querySource.Contains("for (", StringComparison.Ordinal));
+            StringComparison.Ordinal)).IsFalse();
+        await Assert.That(querySource.Contains("foreach (", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(querySource.Contains("for (", StringComparison.Ordinal)).IsFalse();
     }
 
-    private static void ApplyRandomOperation(
+    private static async Task ApplyRandomOperation(
         Random random,
         WorldResourceTemperatureAmountCatalog catalog,
         Dictionary<int, ReferenceWorldState> referenceWorlds,
@@ -764,7 +725,7 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
                 var expectedAccepted = referenceWorlds.TryGetValue(
                     worldId,
                     out var world);
-                Assert.AreEqual(expectedAccepted, accepted);
+                await Assert.That(accepted).IsEqualTo(expectedAccepted);
                 if (expectedAccepted)
                 {
                     world!.PublicationStrength =
@@ -796,7 +757,7 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
                     out var world) &&
                     world.PublicationStrength !=
                         ReferencePublicationStrength.CompleteWorld;
-                Assert.AreEqual(expectedAccepted, accepted);
+                await Assert.That(accepted).IsEqualTo(expectedAccepted);
                 if (expectedAccepted)
                 {
                     world!.PublicationStrength =
@@ -838,7 +799,7 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
                     out var world) &&
                     world.PublicationStrength !=
                         ReferencePublicationStrength.NoCoverage;
-                Assert.AreEqual(expectedAccepted, accepted);
+                await Assert.That(accepted).IsEqualTo(expectedAccepted);
                 if (expectedAccepted)
                 {
                     world!.PresentResourceTags.Add(resourceTag);
@@ -956,17 +917,17 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
         return catalog;
     }
 
-    private static void PublishIronCompleteWorld(
+    private static async Task PublishIronCompleteWorld(
         WorldResourceTemperatureAmountCatalog catalog,
         int worldId,
         WorldInventoryCollectionGeneration generation,
         float amount)
     {
-        Assert.IsTrue(catalog.PublishCompleteWorldResourceAmounts(
+        await Assert.That(catalog.PublishCompleteWorldResourceAmounts(
             worldId,
             CompleteWorld(
                 generation,
-                ResourceAmount(Iron, 300.0f, amount))));
+                ResourceAmount(Iron, 300.0f, amount)))).IsTrue();
     }
 
     private static CompleteWorldResourceTemperatureAmounts CompleteWorld(
@@ -1027,37 +988,32 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
             minimumInclusiveKelvin,
             maximumExclusiveKelvin);
 
-    private static void AssertCompleteAmount(
+    private static async Task AssertCompleteAmount(
         float expectedAmount,
         TemperatureConstrainedAmountAvailability availability)
     {
-        Assert.AreEqual(
-            TemperatureConstrainedAmountAvailabilityState.Complete,
-            availability.State);
-        Assert.IsTrue(
-            availability.TryGetCompleteAvailableAmount(out var observedAmount));
-        Assert.AreEqual(expectedAmount, observedAmount);
+        await Assert.That(availability.State).IsEqualTo(TemperatureConstrainedAmountAvailabilityState.Complete);
+        await Assert.That(availability.TryGetCompleteAvailableAmount(out var observedAmount)).IsTrue();
+        await Assert.That(observedAmount).IsEqualTo(expectedAmount);
     }
 
-    private static void AssertUnavailable(
+    private static async Task AssertUnavailable(
         TemperatureConstrainedAmountAvailabilityState expectedState,
         TemperatureConstrainedAmountAvailability availability)
     {
-        Assert.AreNotEqual(
-            TemperatureConstrainedAmountAvailabilityState.Complete,
-            expectedState);
-        Assert.AreEqual(expectedState, availability.State);
-        Assert.IsFalse(availability.TryGetCompleteAvailableAmount(out _));
+        await Assert.That(expectedState).IsNotEqualTo(TemperatureConstrainedAmountAvailabilityState.Complete);
+        await Assert.That(availability.State).IsEqualTo(expectedState);
+        await Assert.That(availability.TryGetCompleteAvailableAmount(out _)).IsFalse();
     }
 
-    private static object ReadAggregateReference(
+    private static async Task<object> ReadAggregateReference(
         WorldResourceTemperatureAmountCatalog catalog,
         int parentWorldId,
         Tag resourceTag)
     {
-        foreach (DictionaryEntry entry in ReadAggregateMap(catalog))
+        foreach (DictionaryEntry entry in (await ReadAggregateMap(catalog)))
         {
-            Assert.IsNotNull(entry.Key);
+            Assert.NotNull(entry.Key);
             var key = entry.Key;
             var keyType = key.GetType();
             var parentWorldIdField = keyType.GetField(
@@ -1066,14 +1022,12 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
             var resourceTagField = keyType.GetField(
                 "resourceTag",
                 BindingFlags.Instance | BindingFlags.NonPublic);
-            Assert.IsNotNull(parentWorldIdField);
-            Assert.IsNotNull(resourceTagField);
-            if (Assert.IsInstanceOfType<int>(
-                    parentWorldIdField.GetValue(key)) == parentWorldId &&
-                Assert.IsInstanceOfType<Tag>(
-                    resourceTagField.GetValue(key)).Equals(resourceTag))
+            Assert.NotNull(parentWorldIdField);
+            Assert.NotNull(resourceTagField);
+            if (((await Assert.That(parentWorldIdField.GetValue(key)).IsAssignableTo<int>())!) == parentWorldId &&
+                ((await Assert.That(resourceTagField.GetValue(key)).IsAssignableTo<Tag>())!).Equals(resourceTag))
             {
-                Assert.IsNotNull(entry.Value);
+                Assert.NotNull(entry.Value);
                 return entry.Value;
             }
         }
@@ -1084,17 +1038,15 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
         return new object();
     }
 
-    private static IDictionary ReadAggregateMap(
+    private static async Task<IDictionary> ReadAggregateMap(
         WorldResourceTemperatureAmountCatalog catalog)
     {
         var field = typeof(WorldResourceTemperatureAmountCatalog).GetField(
             "aggregatesByParentWorldAndResourceTag",
             BindingFlags.Instance | BindingFlags.NonPublic);
-        Assert.IsNotNull(
-            field,
-            "The optimized aggregate-reuse contract requires the exact private " +
+        if (field is null) throw new TUnit.Assertions.Exceptions.AssertionException("The optimized aggregate-reuse contract requires the exact private " +
             "field aggregatesByParentWorldAndResourceTag.");
-        return Assert.IsInstanceOfType<IDictionary>(field.GetValue(catalog));
+        return ((await Assert.That(field.GetValue(catalog)).IsAssignableTo<IDictionary>())!);
     }
 
     private static string ResolveCatalogSourcePath()
@@ -1134,18 +1086,18 @@ public sealed class WorldResourceTemperatureAmountCatalogTests
         return string.Empty;
     }
 
-    private static string ExtractMethodRegion(
+    private static async Task<string> ExtractMethodRegion(
         string source,
         string startMarker,
         string endMarker)
     {
         var startIndex = source.IndexOf(startMarker, StringComparison.Ordinal);
-        Assert.IsTrue(startIndex >= 0);
+        await Assert.That(startIndex >= 0).IsTrue();
         var endIndex = source.IndexOf(
             endMarker,
             startIndex + startMarker.Length,
             StringComparison.Ordinal);
-        Assert.IsTrue(endIndex > startIndex);
+        await Assert.That(endIndex > startIndex).IsTrue();
         return source.Substring(startIndex, endIndex - startIndex);
     }
 

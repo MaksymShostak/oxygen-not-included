@@ -3,61 +3,59 @@ using System.Globalization;
 using DeliveryTemperatureLimit;
 
 namespace DeliveryTemperatureLimit.Tests.Options;
-
-[TestClass]
 public sealed class ConstructionTemperatureDraftTests
 {
-    [TestMethod]
-    public void Validate_WhenInitial_IsValidAndClean()
+    [Test]
+    public async Task Validate_WhenInitial_IsValidAndClean()
     {
         var draft = CreateDraft(223, 318);
-        Assert.IsFalse(draft.IsDirty);
-        AssertValid(draft, 223, 318);
+        await Assert.That(draft.IsDirty).IsFalse();
+        await AssertValid(draft, 223, 318);
     }
 
-    [TestMethod]
-    public void Validate_WhenInvalidNumberEntered_FailsWithoutOverwritingUserDraft()
+    [Test]
+    public async Task Validate_WhenInvalidNumberEntered_FailsWithoutOverwritingUserDraft()
     {
         var draft = CreateDraft(223, 318);
 
         foreach (string text in new[] { "", "-", "abc", "2147483648", "1.5" })
         {
             draft.LowerText = text;
-            Assert.AreEqual(ConstructionRangeError.LowerNumber, draft.Validate(out _, out _));
-            Assert.AreEqual(text, draft.LowerText, "Validation must not overwrite the draft while typing.");
+            await Assert.That(draft.Validate(out _, out _)).IsEqualTo(ConstructionRangeError.LowerNumber);
+            await Assert.That(draft.LowerText).IsEqualTo(text).Because("Validation must not overwrite the draft while typing.");
         }
     }
 
-    [TestMethod]
-    public void Validate_WhenBoundsViolatedOrReverted_ReportsExpectedErrors()
+    [Test]
+    public async Task Validate_WhenBoundsViolatedOrReverted_ReportsExpectedErrors()
     {
         var draft = CreateDraft(223, 318);
 
         draft.LowerText = "-1";
-        Assert.AreEqual(ConstructionRangeError.LowerRange, draft.Validate(out _, out _));
+        await Assert.That(draft.Validate(out _, out _)).IsEqualTo(ConstructionRangeError.LowerRange);
 
         draft.Revert();
-        Assert.IsFalse(draft.IsDirty);
+        await Assert.That(draft.IsDirty).IsFalse();
 
         draft.UpperText = "10001";
-        Assert.AreEqual(ConstructionRangeError.UpperRange, draft.Validate(out _, out _));
+        await Assert.That(draft.Validate(out _, out _)).IsEqualTo(ConstructionRangeError.UpperRange);
 
         draft.UpperText = "-";
-        Assert.AreEqual(ConstructionRangeError.UpperNumber, draft.Validate(out _, out _));
+        await Assert.That(draft.Validate(out _, out _)).IsEqualTo(ConstructionRangeError.UpperNumber);
 
         draft.UpperText = "223";
-        Assert.AreEqual(ConstructionRangeError.EmptyRange, draft.Validate(out _, out _));
+        await Assert.That(draft.Validate(out _, out _)).IsEqualTo(ConstructionRangeError.EmptyRange);
 
         draft.UpperText = "222";
-        Assert.AreEqual(ConstructionRangeError.EmptyRange, draft.Validate(out _, out _));
+        await Assert.That(draft.Validate(out _, out _)).IsEqualTo(ConstructionRangeError.EmptyRange);
 
         draft.Reset(0, 10000);
-        AssertValid(draft, 0, 10000);
-        Assert.IsFalse(draft.IsDirty);
+        await AssertValid(draft, 0, 10000);
+        await Assert.That(draft.IsDirty).IsFalse();
     }
 
-    [TestMethod]
-    public void Validate_WhenTextIsUnchanged_DoesNotRunTemperatureConversion()
+    [Test]
+    public async Task Validate_WhenTextIsUnchanged_DoesNotRunTemperatureConversion()
     {
         int conversions = 0;
         var preserved = new ConstructionTemperatureDraft(
@@ -65,31 +63,31 @@ public sealed class ConstructionTemperatureDraftTests
             value => { conversions++; return value; },
             Format);
 
-        AssertValid(preserved, 223, 318);
-        Assert.AreEqual(0, conversions, "Initial unedited text must not trigger conversion.");
+        await AssertValid(preserved, 223, 318);
+        await Assert.That(conversions).IsEqualTo(0).Because("Initial unedited text must not trigger conversion.");
 
         preserved.LowerText = "224";
-        AssertValid(preserved, 224, 318);
-        Assert.AreEqual(1, conversions, "Editing lower bound must trigger exactly one conversion.");
+        await AssertValid(preserved, 224, 318);
+        await Assert.That(conversions).IsEqualTo(1).Because("Editing lower bound must trigger exactly one conversion.");
     }
 
-    [TestMethod]
-    public void Validate_WhenConversionProducesOverflowOrNaN_ReportsRangeError()
+    [Test]
+    public async Task Validate_WhenConversionProducesOverflowOrNaN_ReportsRangeError()
     {
         foreach (float invalid in new[] { float.NaN, float.PositiveInfinity, float.MaxValue })
         {
             var overflow = new ConstructionTemperatureDraft(223, 318, _ => invalid, Format);
             overflow.LowerText = "224";
-            Assert.AreEqual(ConstructionRangeError.LowerRange, overflow.Validate(out _, out _));
+            await Assert.That(overflow.Validate(out _, out _)).IsEqualTo(ConstructionRangeError.LowerRange);
         }
 
         var rounding = new ConstructionTemperatureDraft(223, 318, _ => 317.6f, Format);
         rounding.LowerText = "317";
-        Assert.AreEqual(ConstructionRangeError.EmptyRange, rounding.Validate(out _, out _));
+        await Assert.That(rounding.Validate(out _, out _)).IsEqualTo(ConstructionRangeError.EmptyRange);
     }
 
-    [TestMethod]
-    public void Validate_AcrossAllNineUnitTransitions_PreservesCanonicalKelvinBounds()
+    [Test]
+    public async Task Validate_AcrossAllNineUnitTransitions_PreservesCanonicalKelvinBounds()
     {
         foreach (string source in new[] { "celsius", "fahrenheit", "kelvin" })
         {
@@ -103,8 +101,8 @@ public sealed class ConstructionTemperatureDraftTests
                     value => ToKelvin(value, display),
                     value => FromKelvin(value, display));
 
-                AssertValid(converted, 223, 318);
-                Assert.IsFalse(converted.IsDirty);
+                await AssertValid(converted, 223, 318);
+                await Assert.That(converted.IsDirty).IsFalse();
             }
         }
     }
@@ -112,41 +110,36 @@ public sealed class ConstructionTemperatureDraftTests
     private static ConstructionTemperatureDraft CreateDraft(int low, int high) =>
         new ConstructionTemperatureDraft(low, high, value => value, Format);
 
-    [TestMethod]
-    public void Save_WhenDisabledWithIncompleteInput_PreservesSavedBoundsAndRetainsTyping()
+    [Test]
+    public async Task Save_WhenDisabledWithIncompleteInput_PreservesSavedBoundsAndRetainsTyping()
     {
         var draft = CreateDraft(223, 318);
         draft.LowerText = "-";
-        Assert.AreEqual(ConstructionRangeError.None,
-            draft.ResolveForSave(false, out int low, out int high));
-        Assert.AreEqual(223, low);
-        Assert.AreEqual(318, high);
-        Assert.AreEqual("-", draft.LowerText);
-        Assert.AreEqual(ConstructionRangeError.LowerNumber,
-            draft.ResolveForSave(true, out _, out _), "Re-enabling must still validate the retained input.");
+        await Assert.That(draft.ResolveForSave(false, out int low, out int high)).IsEqualTo(ConstructionRangeError.None);
+        await Assert.That(low).IsEqualTo(223);
+        await Assert.That(high).IsEqualTo(318);
+        await Assert.That(draft.LowerText).IsEqualTo("-");
+        await Assert.That(draft.ResolveForSave(true, out _, out _)).IsEqualTo(ConstructionRangeError.LowerNumber).Because("Re-enabling must still validate the retained input.");
     }
 
-    [TestMethod]
-    public void Save_WhenDisabledWithValidEdits_KeepsTheNewDefaultRange()
+    [Test]
+    public async Task Save_WhenDisabledWithValidEdits_KeepsTheNewDefaultRange()
     {
         var draft = CreateDraft(223, 318);
         draft.LowerText = "250";
-        Assert.AreEqual(ConstructionRangeError.None,
-            draft.ResolveForSave(false, out int low, out int high));
-        Assert.AreEqual(250, low);
-        Assert.AreEqual(318, high);
+        await Assert.That(draft.ResolveForSave(false, out int low, out int high)).IsEqualTo(ConstructionRangeError.None);
+        await Assert.That(low).IsEqualTo(250);
+        await Assert.That(high).IsEqualTo(318);
     }
 
-    [TestMethod]
-    public void Save_WhenDisabledWithAnInvalidExistingRange_DoesNotRequireHiddenRepairs()
+    [Test]
+    public async Task Save_WhenDisabledWithAnInvalidExistingRange_DoesNotRequireHiddenRepairs()
     {
         var draft = CreateDraft(318, 223);
-        Assert.AreEqual(ConstructionRangeError.None,
-            draft.ResolveForSave(false, out int low, out int high));
-        Assert.AreEqual(318, low);
-        Assert.AreEqual(223, high);
-        Assert.AreEqual(ConstructionRangeError.EmptyRange,
-            draft.ResolveForSave(true, out _, out _));
+        await Assert.That(draft.ResolveForSave(false, out int low, out int high)).IsEqualTo(ConstructionRangeError.None);
+        await Assert.That(low).IsEqualTo(318);
+        await Assert.That(high).IsEqualTo(223);
+        await Assert.That(draft.ResolveForSave(true, out _, out _)).IsEqualTo(ConstructionRangeError.EmptyRange);
     }
 
     private static string Format(int value) => value.ToString(CultureInfo.InvariantCulture);
@@ -160,10 +153,10 @@ public sealed class ConstructionTemperatureDraftTests
         unit == "fahrenheit" ? (value - 273.15f) * (9f / 5f) + 32 : value)
         .ToString(CultureInfo.InvariantCulture);
 
-    private static void AssertValid(ConstructionTemperatureDraft draft, int expectedLow, int expectedHigh)
+    private static async Task AssertValid(ConstructionTemperatureDraft draft, int expectedLow, int expectedHigh)
     {
-        Assert.AreEqual(ConstructionRangeError.None, draft.Validate(out int actualLow, out int actualHigh));
-        Assert.AreEqual(expectedLow, actualLow);
-        Assert.AreEqual(expectedHigh, actualHigh);
+        await Assert.That(draft.Validate(out int actualLow, out int actualHigh)).IsEqualTo(ConstructionRangeError.None);
+        await Assert.That(actualLow).IsEqualTo(expectedLow);
+        await Assert.That(actualHigh).IsEqualTo(expectedHigh);
     }
 }

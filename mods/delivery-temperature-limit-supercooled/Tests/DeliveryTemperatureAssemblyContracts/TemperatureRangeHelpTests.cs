@@ -3,164 +3,159 @@ using System.Runtime.Loader;
 using DeliveryTemperatureLimit.Tests.OniModPipelineIntegration;
 
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
-
-[TestClass]
 public sealed class TemperatureRangeHelpTests
 {
-    [TestMethod]
-    public void HelpPreview_StaysOpenWhileMovingFromTriggerToContent()
+    [Test]
+    public async Task HelpPreview_StaysOpenWhileMovingFromTriggerToContent()
     {
         using var help = new HelpState();
-        help.Call("SetPointerOverTrigger", true);
-        Assert.IsTrue(help.Visible);
-        help.Call("SetPointerOverContent", true);
-        help.Call("SetPointerOverTrigger", false);
-        Assert.IsTrue(help.Visible);
-        help.Call("SetPointerOverContent", false);
-        Assert.IsFalse(help.Visible);
+        await help.Call("SetPointerOverTrigger", true);
+        await Assert.That(help.Visible).IsTrue();
+        await help.Call("SetPointerOverContent", true);
+        await help.Call("SetPointerOverTrigger", false);
+        await Assert.That(help.Visible).IsTrue();
+        await help.Call("SetPointerOverContent", false);
+        await Assert.That(help.Visible).IsFalse();
     }
 
-    [TestMethod]
-    public void Activation_PinsHelpAfterPointerAndFocusLeave_SecondActivationClosesIt()
+    [Test]
+    public async Task Activation_PinsHelpAfterPointerAndFocusLeave_SecondActivationClosesIt()
     {
         using var help = new HelpState();
-        help.Call("SetFocused", true);
-        help.Call("Activate");
-        help.Call("SetFocused", false);
-        Assert.IsTrue(help.Visible);
-        help.Call("SetPointerOverTrigger", true);
-        help.Call("Activate");
-        Assert.IsFalse(help.Visible, "Closing must not immediately reopen from the same hover.");
+        await help.Call("SetFocused", true);
+        await help.Call("Activate");
+        await help.Call("SetFocused", false);
+        await Assert.That(help.Visible).IsTrue();
+        await help.Call("SetPointerOverTrigger", true);
+        await help.Call("Activate");
+        await Assert.That(help.Visible).IsFalse().Because("Closing must not immediately reopen from the same hover.");
     }
 
-    [TestMethod]
-    public void Escape_DismissesHelpUntilANewInteraction_ActivationCanReopenIt()
+    [Test]
+    public async Task Escape_DismissesHelpUntilANewInteraction_ActivationCanReopenIt()
     {
         using var help = new HelpState();
-        help.Call("SetFocused", true);
-        Assert.IsTrue(help.Visible);
-        help.Call("Dismiss");
-        Assert.IsFalse(help.Visible);
-        help.Call("SetFocused", true);
-        Assert.IsFalse(help.Visible);
-        help.Call("Activate");
-        Assert.IsTrue(help.Visible);
-        help.Call("Dismiss");
-        help.Call("SetFocused", false);
-        help.Call("SetFocused", true);
-        Assert.IsTrue(help.Visible);
+        await help.Call("SetFocused", true);
+        await Assert.That(help.Visible).IsTrue();
+        await help.Call("Dismiss");
+        await Assert.That(help.Visible).IsFalse();
+        await help.Call("SetFocused", true);
+        await Assert.That(help.Visible).IsFalse();
+        await help.Call("Activate");
+        await Assert.That(help.Visible).IsTrue();
+        await help.Call("Dismiss");
+        await help.Call("SetFocused", false);
+        await help.Call("SetFocused", true);
+        await Assert.That(help.Visible).IsTrue();
     }
 
-    [TestMethod]
-    public void ChangingTargetOrClosingEditor_ResetsPinnedAndPreviewHelp()
+    [Test]
+    public async Task ChangingTargetOrClosingEditor_ResetsPinnedAndPreviewHelp()
     {
         using var help = new HelpState();
-        help.Call("SetPointerOverTrigger", true);
-        help.Call("SetFocused", true);
-        help.Call("Activate");
-        help.Call("Reset");
-        Assert.IsFalse(help.Visible);
-        help.Call("SetPointerOverTrigger", true);
-        Assert.IsTrue(help.Visible);
+        await help.Call("SetPointerOverTrigger", true);
+        await help.Call("SetFocused", true);
+        await help.Call("Activate");
+        await help.Call("Reset");
+        await Assert.That(help.Visible).IsFalse();
+        await help.Call("SetPointerOverTrigger", true);
+        await Assert.That(help.Visible).IsTrue();
     }
 
-    [TestMethod]
-    public void HigherModal_ClosesExistingPinnedHelpWithoutReopeningFromTheSameHover()
+    [Test]
+    public async Task HigherModal_ClosesExistingPinnedHelpWithoutReopeningFromTheSameHover()
     {
         using var help = new HelpState();
-        help.Call("SetKeyboardLayerActive", true);
-        help.Call("SetPointerOverTrigger", true);
-        help.Call("Activate");
-        help.Call("SetKeyboardLayerActive", false);
-        Assert.IsFalse(help.Visible);
-        help.Call("SetKeyboardLayerActive", true);
-        help.Call("SetPointerOverTrigger", true);
-        Assert.IsFalse(help.Visible);
+        await help.Call("SetKeyboardLayerActive", true);
+        await help.Call("SetPointerOverTrigger", true);
+        await help.Call("Activate");
+        await help.Call("SetKeyboardLayerActive", false);
+        await Assert.That(help.Visible).IsFalse();
+        await help.Call("SetKeyboardLayerActive", true);
+        await help.Call("SetPointerOverTrigger", true);
+        await Assert.That(help.Visible).IsFalse();
     }
 
-    [TestMethod]
-    public void AlreadyBlockedKeyboardLayer_DoesNotCancelANewRoutedPointerPreview()
+    [Test]
+    public async Task AlreadyBlockedKeyboardLayer_DoesNotCancelANewRoutedPointerPreview()
     {
         using var help = new HelpState();
-        help.Call("SetKeyboardLayerActive", false);
-        help.Call("SetPointerOverTrigger", true);
-        help.Call("SetKeyboardLayerActive", false);
-        Assert.IsTrue(help.Visible, "Only a change of input layer dismisses help, not a stale keyboard gate.");
+        await help.Call("SetKeyboardLayerActive", false);
+        await help.Call("SetPointerOverTrigger", true);
+        await help.Call("SetKeyboardLayerActive", false);
+        await Assert.That(help.Visible).IsTrue().Because("Only a change of input layer dismisses help, not a stale keyboard gate.");
     }
 
-    [TestMethod]
-    public void NormalEditorRefresh_DoesNotDisplayTheRoutineRangeSummary()
+    [Test]
+    public async Task NormalEditorRefresh_DoesNotDisplayTheRoutineRangeSummary()
     {
-        var body = Read("TemperatureLimitWidget", "UpdateInputsCore");
-        Assert.IsFalse(body.Any(i => i.ResolvedOperand ==
-            "DeliveryTemperatureLimit.TemperatureLimitPresenter.GetRangeDescription"),
-            "Normal use should show the controls without a redundant range sentence.");
+        var body = await Read("TemperatureLimitWidget", "UpdateInputsCore");
+        await Assert.That(body.Any(i => i.ResolvedOperand ==
+            "DeliveryTemperatureLimit.TemperatureLimitPresenter.GetRangeDescription")).IsFalse().Because("Normal use should show the controls without a redundant range sentence.");
     }
 
-    [TestMethod]
-    public void FeedbackUpdate_ReachesInactiveTextAndRemovesEmptyFeedbackFromLayout()
+    [Test]
+    public async Task FeedbackUpdate_ReachesInactiveTextAndRemovesEmptyFeedbackFromLayout()
     {
-        var body = Read("TemperatureLimitWidget", "ShowFeedback");
-        AssertCalls(body, "TMPro.TMP_Text.set_text");
-        AssertCalls(body, "UnityEngine.GameObject.SetActive");
-        AssertCalls(body, "UnityEngine.UI.LayoutRebuilder.MarkLayoutForRebuild");
+        var body = await Read("TemperatureLimitWidget", "ShowFeedback");
+        await AssertCalls(body, "TMPro.TMP_Text.set_text");
+        await AssertCalls(body, "UnityEngine.GameObject.SetActive");
+        await AssertCalls(body, "UnityEngine.UI.LayoutRebuilder.MarkLayoutForRebuild");
     }
 
-    [TestMethod]
-    public void FeedbackLayout_MeasuresAtAvailableWidthAndProtectsWrappedHeight()
+    [Test]
+    public async Task FeedbackLayout_MeasuresAtAvailableWidthAndProtectsWrappedHeight()
     {
-        var body = Read("TemperatureRangeTextLayout", "SetLayoutHorizontal");
-        AssertCalls(body, "TMPro.TMP_Text.GetPreferredValues");
-        AssertCalls(body, "UnityEngine.UI.LayoutRebuilder.MarkLayoutForRebuild");
-        AssertCalls(Read("TemperatureRangeTextLayout", "get_minHeight"),
+        var body = await Read("TemperatureRangeTextLayout", "SetLayoutHorizontal");
+        await AssertCalls(body, "TMPro.TMP_Text.GetPreferredValues");
+        await AssertCalls(body, "UnityEngine.UI.LayoutRebuilder.MarkLayoutForRebuild");
+        await AssertCalls((await Read("TemperatureRangeTextLayout", "get_minHeight")),
             "DeliveryTemperatureLimit.TemperatureRangeTextLayout.get_preferredHeight");
     }
 
-    [TestMethod]
-    public void HelpKeyboardPolling_RespectsTheGameScreenStacksModalOrdering()
+    [Test]
+    public async Task HelpKeyboardPolling_RespectsTheGameScreenStacksModalOrdering()
     {
-        var body = Read("TemperatureRangeHelpScreen", "ScreenUpdate");
-        Assert.IsTrue(body.Any(i => i.Operation.StartsWith("brtrue", StringComparison.Ordinal)),
-            "A higher modal must prevent background help from processing raw keyboard input.");
-        AssertCalls(body, "DeliveryTemperatureLimit.TemperatureRangeHelpScreen.HandleKeyboard");
-        AssertCalls(body, "DeliveryTemperatureLimit.TemperatureRangeHelpState.SetKeyboardLayerActive");
-        Assert.HasCount(0, DeliveryTemperatureAssemblyMetadataReader.ReadMethodBodies(BuildPath(),
-            "DeliveryTemperatureLimit.TemperatureRangeHelpScreen", "Update"),
-            "Raw Update bypasses KScreenManager's topLevel gate.");
+        var body = await Read("TemperatureRangeHelpScreen", "ScreenUpdate");
+        await Assert.That(body.Any(i => i.Operation.StartsWith("brtrue", StringComparison.Ordinal))).IsTrue().Because("A higher modal must prevent background help from processing raw keyboard input.");
+        await AssertCalls(body, "DeliveryTemperatureLimit.TemperatureRangeHelpScreen.HandleKeyboard");
+        await AssertCalls(body, "DeliveryTemperatureLimit.TemperatureRangeHelpState.SetKeyboardLayerActive");
+        await Assert.That(DeliveryTemperatureAssemblyMetadataReader.ReadMethodBodies(BuildPath(),
+            "DeliveryTemperatureLimit.TemperatureRangeHelpScreen", "Update")).Count().IsEqualTo(0).Because("Raw Update bypasses KScreenManager's topLevel gate.");
     }
 
-    [TestMethod]
-    public void RoutedClick_OpensHelpEvenWhenThePreviousKeyboardPollWasBlocked()
+    [Test]
+    public async Task RoutedClick_OpensHelpEvenWhenThePreviousKeyboardPollWasBlocked()
     {
-        AssertRoutedEventOpensHelp("ToggleHelp");
+        await AssertRoutedEventOpensHelp("ToggleHelp");
     }
 
-    [TestMethod]
-    public void RoutedHover_OpensHelpEvenWhenThePreviousKeyboardPollWasBlocked()
+    [Test]
+    public async Task RoutedHover_OpensHelpEvenWhenThePreviousKeyboardPollWasBlocked()
     {
-        AssertRoutedEventOpensHelp("OnPointerEnter");
+        await AssertRoutedEventOpensHelp("OnPointerEnter");
     }
 
-    [TestMethod]
-    public void PopoverCreation_UsesTheGamesUiLayerAndTransformInitialization()
+    [Test]
+    public async Task PopoverCreation_UsesTheGamesUiLayerAndTransformInitialization()
     {
         // A raw GameObject stays on Default. ONI's camera UI needs the UI layer,
         // unit scale and RectTransform supplied by the same helper as the editor.
-        AssertCalls(Read("TemperatureRangeHelpScreen", "CreatePopover"),
+        await AssertCalls((await Read("TemperatureRangeHelpScreen", "CreatePopover")),
             "PeterHan.PLib.UI.PUIElements.CreateUI");
     }
 
-    [TestMethod]
-    public void DisabledHelp_IgnoresRoutedClickAndHover()
+    [Test]
+    public async Task DisabledHelp_IgnoresRoutedClickAndHover()
     {
-        AssertRoutedEventOpensHelp("OnPointerEnter", enabled: false);
-        AssertRoutedEventOpensHelp("OnSubmit", enabled: false);
+        await AssertRoutedEventOpensHelp("OnPointerEnter", enabled: false);
+        await AssertRoutedEventOpensHelp("OnSubmit", enabled: false);
     }
 
-    private static void AssertRoutedEventOpensHelp(string method, bool enabled = true)
+    private static async Task AssertRoutedEventOpensHelp(string method, bool enabled = true)
     {
         using var help = new HelpState();
-        var instructions = Read("TemperatureRangeHelpScreen", method);
+        var instructions = await Read("TemperatureRangeHelpScreen", method);
         var stack = new Stack<object>();
         bool presented = false;
         // Execute the compiled event branch and real interaction state. Only the
@@ -188,7 +183,7 @@ public sealed class TemperatureRangeHelpTests
                     {
                         int target = instructions[index + 1].Offset + Convert.ToInt32(instruction.Operand);
                         int targetIndex = instructions.ToList().FindIndex(item => item.Offset == target);
-                        Assert.IsTrue(targetIndex >= 0);
+                        await Assert.That(targetIndex >= 0).IsTrue();
                         index = targetIndex - 1;
                     }
                     break;
@@ -199,22 +194,22 @@ public sealed class TemperatureRangeHelpTests
                             stack.Push(enabled); break;
                         case "KScreen.OnPointerEnter": stack.Pop(); stack.Pop(); break;
                         case "DeliveryTemperatureLimit.TemperatureRangeHelpState.Activate":
-                            ((HelpState)stack.Pop()).Call("Activate"); break;
+                            await ((HelpState)stack.Pop()).Call("Activate"); break;
                         case "DeliveryTemperatureLimit.TemperatureRangeHelpState.SetPointerOverTrigger":
                             bool over = (bool)stack.Pop();
-                            ((HelpState)stack.Pop()).Call("SetPointerOverTrigger", over); break;
+                            await ((HelpState)stack.Pop()).Call("SetPointerOverTrigger", over); break;
                         case "DeliveryTemperatureLimit.TemperatureRangeHelpScreen.ApplyVisibility":
                             stack.Pop(); stack.Pop(); presented = help.Visible; break;
                         default: Assert.Fail("Unexpected event call: " + instruction); break;
                     }
                     break;
                 case "ret":
-                    Assert.AreEqual(enabled, presented, "Only an enabled help control may request visible help.");
+                    await Assert.That(presented).IsEqualTo(enabled).Because("Only an enabled help control may request visible help.");
                     return;
                 case "leave": case "leave.s":
                     int destination = instructions[index + 1].Offset + Convert.ToInt32(instruction.Operand);
                     index = instructions.ToList().FindIndex(item => item.Offset == destination) - 1;
-                    Assert.IsTrue(index >= 0);
+                    await Assert.That(index >= 0).IsTrue();
                     stack.Clear();
                     break;
                 case "nop": break;
@@ -224,38 +219,38 @@ public sealed class TemperatureRangeHelpTests
         Assert.Fail("The routed event did not return.");
     }
 
-    [TestMethod]
-    public void HelpTabNavigation_ChecksWhichEditorOwnsTheCurrentSelection()
+    [Test]
+    public async Task HelpTabNavigation_ChecksWhichEditorOwnsTheCurrentSelection()
     {
-        AssertCalls(Read("TemperatureRangeHelpScreen", "HandleKeyboard"),
+        await AssertCalls((await Read("TemperatureRangeHelpScreen", "HandleKeyboard")),
             "DeliveryTemperatureLimit.TemperatureLimitWidget.CanNavigateFromCurrentSelection");
     }
 
-    [TestMethod]
-    public void ScrollingHelp_DoesNotAlsoZoomTheGame()
+    [Test]
+    public async Task ScrollingHelp_DoesNotAlsoZoomTheGame()
     {
-        var body = Read("TemperatureRangeHelpScreen", "OnKeyDown");
-        AssertCalls(body, "DeliveryTemperatureLimit.TemperatureRangeHelpState.get_IsPointerOverContent");
-        AssertCalls(body, "KButtonEvent.TryConsume");
+        var body = await Read("TemperatureRangeHelpScreen", "OnKeyDown");
+        await AssertCalls(body, "DeliveryTemperatureLimit.TemperatureRangeHelpState.get_IsPointerOverContent");
+        await AssertCalls(body, "KButtonEvent.TryConsume");
     }
 
-    [TestMethod]
-    public void OverflowingHelp_CanBeScrolledWithoutAMouse()
+    [Test]
+    public async Task OverflowingHelp_CanBeScrolledWithoutAMouse()
     {
-        AssertCalls(Read("TemperatureRangeHelpScreen", "HandleKeyboard"),
+        await AssertCalls((await Read("TemperatureRangeHelpScreen", "HandleKeyboard")),
             "DeliveryTemperatureLimit.TemperatureRangeHelpScreen.HandleHelpScroll");
-        AssertCalls(Read("TemperatureRangeHelpScreen", "HandleHelpScroll"),
+        await AssertCalls((await Read("TemperatureRangeHelpScreen", "HandleHelpScroll")),
             "UnityEngine.UI.ScrollRect.set_verticalNormalizedPosition");
     }
 
-    private static void AssertCalls(IReadOnlyList<AssemblyInstructionContract> body, string method) =>
-        Assert.IsTrue(body.Any(i => i.ResolvedOperand == method), "Missing native boundary call: " + method);
+    private static async Task AssertCalls(IReadOnlyList<AssemblyInstructionContract> body, string method) =>
+        await Assert.That(body.Any(i => i.ResolvedOperand == method)).IsTrue().Because("Missing native boundary call: " + method);
 
-    private static IReadOnlyList<AssemblyInstructionContract> Read(string type, string method)
+    private static async Task<IReadOnlyList<AssemblyInstructionContract>> Read(string type, string method)
     {
         var bodies = DeliveryTemperatureAssemblyMetadataReader.ReadMethodBodies(BuildPath(),
             "DeliveryTemperatureLimit." + type, method);
-        Assert.HasCount(1, bodies, $"The compiled UI must implement {type}.{method}.");
+        await Assert.That(bodies).Count().IsEqualTo(1).Because($"The compiled UI must implement {type}.{method}.");
         return bodies.Single().Instructions;
     }
 
@@ -263,7 +258,7 @@ public sealed class TemperatureRangeHelpTests
     {
         var builds = PipelineProvenanceBoundAssemblyLocator.CreateForCurrentPipelineEnvironment()
             .ProbeExactPipelineBuildDataRows();
-        if (builds.Count == 0) Assert.Inconclusive("Run with DELIVERY_TEMPERATURE_LIMIT_BUILD_RESULT_PATH.");
+        if (builds.Count == 0) Skip.Test("Run with DELIVERY_TEMPERATURE_LIMIT_BUILD_RESULT_PATH.");
         return builds.Single().AssemblyPath;
     }
 
@@ -279,16 +274,16 @@ public sealed class TemperatureRangeHelpTests
         {
             Type? candidate = context.LoadFromAssemblyPath(BuildPath())
                 .GetType("DeliveryTemperatureLimit.TemperatureRangeHelpState");
-            Assert.IsNotNull(candidate, "The help interaction must support focus, pinned opening, and dismissal.");
+            if (candidate is null) throw new TUnit.Assertions.Exceptions.AssertionException("The help interaction must support focus, pinned opening, and dismissal.");
             type = candidate;
             instance = Activator.CreateInstance(type, nonPublic: true)!;
         }
 
         public bool Visible => (bool)type.GetProperty("IsVisible")!.GetValue(instance)!;
-        public void Call(string method, params object[] arguments)
+        public async Task Call(string method, params object[] arguments)
         {
             MethodInfo? handler = type.GetMethod(method, BindingFlags.Public | BindingFlags.Instance);
-            Assert.IsNotNull(handler, "Missing help interaction: " + method);
+            if (handler is null) throw new TUnit.Assertions.Exceptions.AssertionException("Missing help interaction: " + method);
             handler.Invoke(instance, arguments);
         }
         public void Dispose() => context.Unload();

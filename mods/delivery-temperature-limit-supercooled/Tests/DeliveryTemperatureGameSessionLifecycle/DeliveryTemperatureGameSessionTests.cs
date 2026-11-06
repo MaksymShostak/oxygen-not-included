@@ -2,9 +2,7 @@ using System.Collections;
 using System.Reflection;
 
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureGameSessionLifecycle;
-
-[TestClass]
-[DoNotParallelize]
+[NotInParallel]
 public sealed class DeliveryTemperatureGameSessionTests
 {
     private const int LifecycleScheduleSeed = 0x5E5510;
@@ -13,7 +11,7 @@ public sealed class DeliveryTemperatureGameSessionTests
 
     private readonly HashSet<int> gameInstanceIdsForCleanup = new();
 
-    [TestCleanup]
+    [After(HookType.Test)]
     public void CompleteAnyTrackedCurrentGameSession()
     {
         // Tests exercise the same two-phase lifecycle used by the eventual Harmony
@@ -26,49 +24,49 @@ public sealed class DeliveryTemperatureGameSessionTests
         }
     }
 
-    [TestMethod]
-    public void StopCurrentSessionPublications_MakesTheSessionUnavailableWithoutReleasingInFlightState()
+    [Test]
+    public async Task StopCurrentSessionPublications_MakesTheSessionUnavailableWithoutReleasingInFlightState()
     {
         var session = EnsureTrackedGameSession(5199);
-        Assert.IsTrue(DeliveryTemperatureGameSessionHost.TryCaptureCurrent(out var captured));
-        Assert.AreSame(session, captured);
+        await Assert.That(DeliveryTemperatureGameSessionHost.TryCaptureCurrent(out var captured)).IsTrue();
+        await Assert.That(captured).IsSameReferenceAs(session);
 
         DeliveryTemperatureGameSessionHost.StopCurrentSessionPublications();
 
-        Assert.IsFalse(session.IsAcceptingPublications);
-        Assert.IsFalse(DeliveryTemperatureGameSessionHost.TryCaptureCurrent(out _));
+        await Assert.That(session.IsAcceptingPublications).IsFalse();
+        await Assert.That(DeliveryTemperatureGameSessionHost.TryCaptureCurrent(out _)).IsFalse();
         // Failure containment stops new work immediately. The ordinary teardown
         // still owns detachment and release after workers have unwound.
-        Assert.AreSame(session, DeliveryTemperatureGameSessionHost.DetachGameSession(5199));
+        await Assert.That(DeliveryTemperatureGameSessionHost.DetachGameSession(5199)).IsSameReferenceAs(session);
         DeliveryTemperatureGameSessionHost.CompleteShutdown(session);
     }
 
-    [TestMethod]
-    public void EnsureGameSession_WhenGameIdentityChanges_DetachesAndInvalidatesOldSession()
+    [Test]
+    public async Task EnsureGameSession_WhenGameIdentityChanges_DetachesAndInvalidatesOldSession()
     {
         var oldSession = EnsureTrackedGameSession(5101);
 
         var newSession = EnsureTrackedGameSession(5102);
 
-        Assert.AreNotSame(oldSession, newSession);
-        Assert.IsFalse(oldSession.IsAcceptingPublications);
-        Assert.IsTrue(newSession.IsAcceptingPublications);
-        Assert.AreNotEqual(oldSession.Generation, newSession.Generation);
+        await Assert.That(newSession).IsNotSameReferenceAs(oldSession);
+        await Assert.That(oldSession.IsAcceptingPublications).IsFalse();
+        await Assert.That(newSession.IsAcceptingPublications).IsTrue();
+        await Assert.That(newSession.Generation).IsNotEqualTo(oldSession.Generation);
     }
 
-    [TestMethod]
-    public void EnsureGameSession_WhenIdentityMatches_ReturnsSameSession()
+    [Test]
+    public async Task EnsureGameSession_WhenIdentityMatches_ReturnsSameSession()
     {
         var firstCapture = EnsureTrackedGameSession(5201);
 
         var repeatedCapture = EnsureTrackedGameSession(5201);
 
-        Assert.AreSame(firstCapture, repeatedCapture);
-        Assert.AreEqual(firstCapture.Generation, repeatedCapture.Generation);
-        Assert.IsTrue(repeatedCapture.IsAcceptingPublications);
+        await Assert.That(repeatedCapture).IsSameReferenceAs(firstCapture);
+        await Assert.That(repeatedCapture.Generation).IsEqualTo(firstCapture.Generation);
+        await Assert.That(repeatedCapture.IsAcceptingPublications).IsTrue();
     }
 
-    [TestMethod]
+    [Test]
     public async Task EnsureGameSession_WhenSameIdentityIsEnsuredConcurrently_PublishesOneSession()
     {
         const int concurrentCallerCount = 32;
@@ -96,92 +94,86 @@ public sealed class DeliveryTemperatureGameSessionTests
 
         foreach (var observedSession in observedSessions)
         {
-            Assert.AreSame(publishedSession, observedSession);
+            await Assert.That(observedSession).IsSameReferenceAs(publishedSession);
         }
 
-        Assert.IsTrue(
-            DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
-                out var capturedSession));
-        Assert.AreSame(publishedSession, capturedSession);
-        Assert.IsTrue(publishedSession.IsAcceptingPublications);
+        await Assert.That(DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
+                out var capturedSession)).IsTrue();
+        await Assert.That(capturedSession).IsSameReferenceAs(publishedSession);
+        await Assert.That(publishedSession.IsAcceptingPublications).IsTrue();
     }
 
-    [TestMethod]
-    public void TryCaptureCurrent_WhenNoSession_ReturnsFalse()
+    [Test]
+    public async Task TryCaptureCurrent_WhenNoSession_ReturnsFalse()
     {
-        Assert.IsFalse(
-            DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
-                out var capturedSession));
-        Assert.IsNull(capturedSession);
+        await Assert.That(DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
+                out var capturedSession)).IsFalse();
+        await Assert.That(capturedSession).IsNull();
     }
 
-    [TestMethod]
-    public void DetachGameSession_WhenIdentityMatches_StopsAndReturnsSession()
+    [Test]
+    public async Task DetachGameSession_WhenIdentityMatches_StopsAndReturnsSession()
     {
         var session = EnsureTrackedGameSession(5301);
 
         var detachedSession =
             DeliveryTemperatureGameSessionHost.DetachGameSession(5301);
 
-        Assert.AreSame(session, detachedSession);
-        Assert.IsFalse(session.IsAcceptingPublications);
-        Assert.IsFalse(
-            DeliveryTemperatureGameSessionHost.TryCaptureCurrent(out _));
+        await Assert.That(detachedSession).IsSameReferenceAs(session);
+        await Assert.That(session.IsAcceptingPublications).IsFalse();
+        await Assert.That(DeliveryTemperatureGameSessionHost.TryCaptureCurrent(out _)).IsFalse();
         DeliveryTemperatureGameSessionHost.CompleteShutdown(detachedSession);
     }
 
-    [TestMethod]
-    public void DetachGameSession_WhenIdentityDiffers_DoesNotDetachCurrentSession()
+    [Test]
+    public async Task DetachGameSession_WhenIdentityDiffers_DoesNotDetachCurrentSession()
     {
         var session = EnsureTrackedGameSession(5401);
 
         var detachedSession =
             DeliveryTemperatureGameSessionHost.DetachGameSession(5402);
 
-        Assert.IsNull(detachedSession);
-        Assert.IsTrue(
-            DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
-                out var capturedSession));
-        Assert.AreSame(session, capturedSession);
-        Assert.IsTrue(session.IsAcceptingPublications);
+        await Assert.That(detachedSession).IsNull();
+        await Assert.That(DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
+                out var capturedSession)).IsTrue();
+        await Assert.That(capturedSession).IsSameReferenceAs(session);
+        await Assert.That(session.IsAcceptingPublications).IsTrue();
     }
 
-    [TestMethod]
-    public void CompleteShutdown_WhenCalledTwice_IsIdempotent()
+    [Test]
+    public async Task CompleteShutdown_WhenCalledTwice_IsIdempotent()
     {
         var session = EnsureTrackedGameSession(5501);
         var detachedSession =
             DeliveryTemperatureGameSessionHost.DetachGameSession(5501);
-        Assert.AreSame(session, detachedSession);
+        await Assert.That(detachedSession).IsSameReferenceAs(session);
 
         DeliveryTemperatureGameSessionHost.CompleteShutdown(detachedSession);
         DeliveryTemperatureGameSessionHost.CompleteShutdown(detachedSession);
 
-        Assert.IsFalse(session.IsAcceptingPublications);
-        Assert.ThrowsExactly<InvalidOperationException>(() =>
+        await Assert.That(session.IsAcceptingPublications).IsFalse();
+        await Assert.That(() =>
             session.RegisterTemperatureLimit(
                 gameObjectInstanceId: 55011,
                 componentInstanceId: 55012,
                 new TemperatureLimit(),
-                Constraint(10, 20)));
+                Constraint(10, 20))).ThrowsExactly<InvalidOperationException>();
     }
 
-    [TestMethod]
-    public void EnsureGameSession_WhenCreated_ConstructsWorldParentTopologyForSameGeneration()
+    [Test]
+    public async Task EnsureGameSession_WhenCreated_ConstructsWorldParentTopologyForSameGeneration()
     {
         var session = EnsureTrackedGameSession(5551);
 
         var topologySnapshot = session.WorldParentTopology.CaptureSnapshot();
 
-        Assert.AreEqual(
-            session.Generation,
-            topologySnapshot.GameSessionGeneration);
-        Assert.AreEqual(0L, topologySnapshot.Version.Value);
-        Assert.IsFalse(topologySnapshot.TryResolveParentWorld(0, out _));
+        await Assert.That(topologySnapshot.GameSessionGeneration).IsEqualTo(session.Generation);
+        await Assert.That(topologySnapshot.Version.Value).IsEqualTo(0L);
+        await Assert.That(topologySnapshot.TryResolveParentWorld(0, out _)).IsFalse();
     }
 
-    [TestMethod]
-    public void EnsureGameSession_WhenCreated_ConstructsOwnedWorldResourceTemperatureAmountCatalog()
+    [Test]
+    public async Task EnsureGameSession_WhenCreated_ConstructsOwnedWorldResourceTemperatureAmountCatalog()
     {
         var session = EnsureTrackedGameSession(55511);
         var generation = new WorldInventoryCollectionGeneration(1);
@@ -190,14 +182,12 @@ public sealed class DeliveryTemperatureGameSessionTests
             worldId: 7,
             parentWorldId: 1);
 
-        Assert.AreEqual(
-            WorldResourceTagCoverageRequirementState.CoverageRequired,
-            session.WorldResourceTemperatureAmounts
-                .GetWorldResourceTagCoverageRequirementState(7, generation));
+        await Assert.That(session.WorldResourceTemperatureAmounts
+                .GetWorldResourceTagCoverageRequirementState(7, generation)).IsEqualTo(WorldResourceTagCoverageRequirementState.CoverageRequired);
     }
 
-    [TestMethod]
-    public void CompleteShutdown_WhenTopologySnapshotWasCaptured_ClearsOwnedMappingsWithoutMutatingSnapshot()
+    [Test]
+    public async Task CompleteShutdown_WhenTopologySnapshotWasCaptured_ClearsOwnedMappingsWithoutMutatingSnapshot()
     {
         var session = EnsureTrackedGameSession(5552);
         session.WorldParentTopology.RegisterWorld(
@@ -209,32 +199,27 @@ public sealed class DeliveryTemperatureGameSessionTests
 
         DeliveryTemperatureGameSessionHost.CompleteShutdown(detachedSession);
 
-        Assert.IsTrue(capturedSnapshot.TryResolveParentWorld(
+        await Assert.That(capturedSnapshot.TryResolveParentWorld(
             7,
-            out var capturedParentWorldId));
-        Assert.AreEqual(1, capturedParentWorldId);
-        Assert.AreSame(
-            capturedSnapshot,
-            session.WorldParentTopology.CaptureSnapshot());
+            out var capturedParentWorldId)).IsTrue();
+        await Assert.That(capturedParentWorldId).IsEqualTo(1);
+        await Assert.That(session.WorldParentTopology.CaptureSnapshot()).IsSameReferenceAs(capturedSnapshot);
         var ownedMappingField = typeof(WorldParentTopologyCatalog).GetField(
             "parentWorldIdsByWorldId",
             BindingFlags.Instance | BindingFlags.NonPublic);
-        Assert.IsNotNull(
-            ownedMappingField,
-            "Shutdown structure requires the exact private owned mapping field " +
+        if (ownedMappingField is null) throw new TUnit.Assertions.Exceptions.AssertionException("Shutdown structure requires the exact private owned mapping field " +
             "WorldParentTopologyCatalog.parentWorldIdsByWorldId.");
-        var ownedMappings = Assert.IsInstanceOfType<IDictionary<int, int>>(
-            ownedMappingField.GetValue(session.WorldParentTopology));
-        Assert.AreEqual(0, ownedMappings.Count);
-        var exception = Assert.ThrowsExactly<InvalidOperationException>(() =>
+        var ownedMappings = (await Assert.That(ownedMappingField.GetValue(session.WorldParentTopology)).IsAssignableTo<IDictionary<int, int>>())!;
+        await Assert.That(ownedMappings.Count).IsEqualTo(0);
+        var exception = (await Assert.That(() =>
             session.WorldParentTopology.RegisterWorld(
                 worldId: 8,
-                parentWorldId: 1));
-        StringAssert.Contains(exception.Message, "no longer accepts publications");
+                parentWorldId: 1)).ThrowsExactly<InvalidOperationException>())!;
+        await Assert.That(exception.Message).Contains("no longer accepts publications");
     }
 
-    [TestMethod]
-    public void CompleteShutdown_WhenWorldResourceAmountsWerePublished_ClearsCatalogOnceAndRejectsLatePublication()
+    [Test]
+    public async Task CompleteShutdown_WhenWorldResourceAmountsWerePublished_ClearsCatalogOnceAndRejectsLatePublication()
     {
         var session = EnsureTrackedGameSession(55521);
         var generation = new WorldInventoryCollectionGeneration(1);
@@ -247,62 +232,55 @@ public sealed class DeliveryTemperatureGameSessionTests
         builder.AddTemperatureAmount(300.0f, 10.0f);
         builder.CompleteResourceTag();
         var publication = builder.Build();
-        Assert.IsTrue(
-            session.WorldResourceTemperatureAmounts
-                .PublishCompleteWorldResourceAmounts(7, publication));
+        await Assert.That(session.WorldResourceTemperatureAmounts
+                .PublishCompleteWorldResourceAmounts(7, publication)).IsTrue();
         var detachedSession =
             DeliveryTemperatureGameSessionHost.DetachGameSession(55521);
 
         DeliveryTemperatureGameSessionHost.CompleteShutdown(detachedSession);
         DeliveryTemperatureGameSessionHost.CompleteShutdown(detachedSession);
 
-        Assert.IsFalse(
-            session.WorldResourceTemperatureAmounts
-                .PublishCompleteWorldResourceAmounts(7, publication));
+        await Assert.That(session.WorldResourceTemperatureAmounts
+                .PublishCompleteWorldResourceAmounts(7, publication)).IsFalse();
         var catalogDictionaryFields = typeof(WorldResourceTemperatureAmountCatalog)
             .GetFields(BindingFlags.Instance | BindingFlags.NonPublic)
             .Where(field => typeof(IDictionary).IsAssignableFrom(field.FieldType))
             .ToArray();
-        Assert.IsNotEmpty(catalogDictionaryFields);
+        await Assert.That(catalogDictionaryFields).IsNotEmpty();
         foreach (var catalogDictionaryField in catalogDictionaryFields)
         {
-            var retainedState = Assert.IsInstanceOfType<IDictionary>(
-                catalogDictionaryField.GetValue(
-                    session.WorldResourceTemperatureAmounts));
-            Assert.IsEmpty(
-                retainedState,
-                $"Shutdown retained catalog state in " +
+            var retainedState = (await Assert.That(catalogDictionaryField.GetValue(
+                    session.WorldResourceTemperatureAmounts)).IsAssignableTo<IDictionary>())!;
+            await Assert.That(((System.Collections.IEnumerable)retainedState).Cast<object?>()).IsEmpty().Because($"Shutdown retained catalog state in " +
                 $"{catalogDictionaryField.Name}.");
         }
     }
 
-    [TestMethod]
-    public void EnsureGameSession_WhenCreated_ConstructsFetchServicesInBypassState()
+    [Test]
+    public async Task EnsureGameSession_WhenCreated_ConstructsFetchServicesInBypassState()
     {
         var session = EnsureTrackedGameSession(55522);
 
-        Assert.IsNotNull(session.FetchRequestTopology);
-        Assert.AreEqual(0L, session.FetchRequestTopology.CaptureVersion().Value);
-        Assert.AreEqual(
-            0L,
-            session.CurrentWorldInventoryCollectionGeneration.Value);
-        Assert.IsNull(session.CurrentFetchTemperatureEligibility);
+        Assert.NotNull(session.FetchRequestTopology);
+        await Assert.That(session.FetchRequestTopology.CaptureVersion().Value).IsEqualTo(0L);
+        await Assert.That(session.CurrentWorldInventoryCollectionGeneration.Value).IsEqualTo(0L);
+        await Assert.That(session.CurrentFetchTemperatureEligibility).IsNull();
     }
 
-    [TestMethod]
-    public void TryPublishFetchTemperatureEligibility_WhenEveryVersionMatches_PublishesWholeCandidate()
+    [Test]
+    public async Task TryPublishFetchTemperatureEligibility_WhenEveryVersionMatches_PublishesWholeCandidate()
     {
         var session = EnsureTrackedGameSession(55523);
         var candidate = BuildCurrentFetchTemperatureEligibilityCandidate(session);
 
         var published = session.TryPublishFetchTemperatureEligibility(candidate);
 
-        Assert.IsTrue(published);
-        Assert.AreSame(candidate, session.CurrentFetchTemperatureEligibility);
+        await Assert.That(published).IsTrue();
+        await Assert.That(session.CurrentFetchTemperatureEligibility).IsSameReferenceAs(candidate);
     }
 
-    [TestMethod]
-    public void TryPublishFetchTemperatureEligibility_WhenGameSessionWasDetached_RejectsCandidateAndPreservesPublication()
+    [Test]
+    public async Task TryPublishFetchTemperatureEligibility_WhenGameSessionWasDetached_RejectsCandidateAndPreservesPublication()
     {
         var oldSession = EnsureTrackedGameSession(55524);
         var staleCandidate =
@@ -310,49 +288,42 @@ public sealed class DeliveryTemperatureGameSessionTests
         var currentSession = EnsureTrackedGameSession(55525);
         var priorPublication =
             BuildCurrentFetchTemperatureEligibilityCandidate(currentSession);
-        Assert.IsTrue(
-            currentSession.TryPublishFetchTemperatureEligibility(priorPublication));
+        await Assert.That(currentSession.TryPublishFetchTemperatureEligibility(priorPublication)).IsTrue();
 
         var published =
             currentSession.TryPublishFetchTemperatureEligibility(staleCandidate);
 
-        Assert.IsFalse(published);
-        Assert.AreSame(
-            priorPublication,
-            currentSession.CurrentFetchTemperatureEligibility);
+        await Assert.That(published).IsFalse();
+        await Assert.That(currentSession.CurrentFetchTemperatureEligibility).IsSameReferenceAs(priorPublication);
     }
 
-    [TestMethod]
-    public void TryPublishFetchTemperatureEligibility_WhenConstraintGenerationChanged_RejectsCandidateAndPreservesPublication()
+    [Test]
+    public async Task TryPublishFetchTemperatureEligibility_WhenConstraintGenerationChanged_RejectsCandidateAndPreservesPublication()
     {
         var session = EnsureTrackedGameSession(55526);
         var priorPublication = BuildCurrentFetchTemperatureEligibilityCandidate(session);
-        Assert.IsTrue(
-            session.TryPublishFetchTemperatureEligibility(priorPublication));
+        await Assert.That(session.TryPublishFetchTemperatureEligibility(priorPublication)).IsTrue();
         var staleCandidate =
             BuildCurrentFetchTemperatureEligibilityCandidate(session);
         session.TemperatureConstraints.Register(
             componentInstanceId: 555261,
             Constraint(10, 20),
             out var effectiveStateChanged);
-        Assert.IsTrue(effectiveStateChanged);
+        await Assert.That(effectiveStateChanged).IsTrue();
 
         var published =
             session.TryPublishFetchTemperatureEligibility(staleCandidate);
 
-        Assert.IsFalse(published);
-        Assert.AreSame(
-            priorPublication,
-            session.CurrentFetchTemperatureEligibility);
+        await Assert.That(published).IsFalse();
+        await Assert.That(session.CurrentFetchTemperatureEligibility).IsSameReferenceAs(priorPublication);
     }
 
-    [TestMethod]
-    public void TryPublishFetchTemperatureEligibility_WhenFetchTopologyVersionChanged_RejectsCandidateAndPreservesPublication()
+    [Test]
+    public async Task TryPublishFetchTemperatureEligibility_WhenFetchTopologyVersionChanged_RejectsCandidateAndPreservesPublication()
     {
         var session = EnsureTrackedGameSession(55527);
         var priorPublication = BuildCurrentFetchTemperatureEligibilityCandidate(session);
-        Assert.IsTrue(
-            session.TryPublishFetchTemperatureEligibility(priorPublication));
+        await Assert.That(session.TryPublishFetchTemperatureEligibility(priorPublication)).IsTrue();
         var staleCandidate =
             BuildCurrentFetchTemperatureEligibilityCandidate(session);
         session.FetchRequestTopology.RecordEffectiveChange();
@@ -360,19 +331,16 @@ public sealed class DeliveryTemperatureGameSessionTests
         var published =
             session.TryPublishFetchTemperatureEligibility(staleCandidate);
 
-        Assert.IsFalse(published);
-        Assert.AreSame(
-            priorPublication,
-            session.CurrentFetchTemperatureEligibility);
+        await Assert.That(published).IsFalse();
+        await Assert.That(session.CurrentFetchTemperatureEligibility).IsSameReferenceAs(priorPublication);
     }
 
-    [TestMethod]
-    public void TryPublishFetchTemperatureEligibility_WhenWorldTopologyVersionChanged_RejectsCandidateAndPreservesPublication()
+    [Test]
+    public async Task TryPublishFetchTemperatureEligibility_WhenWorldTopologyVersionChanged_RejectsCandidateAndPreservesPublication()
     {
         var session = EnsureTrackedGameSession(55528);
         var priorPublication = BuildCurrentFetchTemperatureEligibilityCandidate(session);
-        Assert.IsTrue(
-            session.TryPublishFetchTemperatureEligibility(priorPublication));
+        await Assert.That(session.TryPublishFetchTemperatureEligibility(priorPublication)).IsTrue();
         var staleCandidate =
             BuildCurrentFetchTemperatureEligibilityCandidate(session);
         session.WorldParentTopology.RegisterWorld(
@@ -382,14 +350,12 @@ public sealed class DeliveryTemperatureGameSessionTests
         var published =
             session.TryPublishFetchTemperatureEligibility(staleCandidate);
 
-        Assert.IsFalse(published);
-        Assert.AreSame(
-            priorPublication,
-            session.CurrentFetchTemperatureEligibility);
+        await Assert.That(published).IsFalse();
+        await Assert.That(session.CurrentFetchTemperatureEligibility).IsSameReferenceAs(priorPublication);
     }
 
-    [TestMethod]
-    public void RegisterTemperatureLimit_WhenEffectiveConstraintChanges_RecordsOneFetchTopologyChange()
+    [Test]
+    public async Task RegisterTemperatureLimit_WhenEffectiveConstraintChanges_RecordsOneFetchTopologyChange()
     {
         var session = EnsureTrackedGameSession(55529);
         var registration = session.RegisterTemperatureLimit(
@@ -397,24 +363,24 @@ public sealed class DeliveryTemperatureGameSessionTests
             componentInstanceId: 555292,
             new TemperatureLimit(),
             Constraint(10, 20));
-        Assert.AreEqual(1L, session.FetchRequestTopology.CaptureVersion().Value);
+        await Assert.That(session.FetchRequestTopology.CaptureVersion().Value).IsEqualTo(1L);
 
-        Assert.IsTrue(session.TryReplaceTemperatureConstraint(
+        await Assert.That(session.TryReplaceTemperatureConstraint(
             registration,
-            Constraint(10, 20)));
-        Assert.AreEqual(1L, session.FetchRequestTopology.CaptureVersion().Value);
+            Constraint(10, 20))).IsTrue();
+        await Assert.That(session.FetchRequestTopology.CaptureVersion().Value).IsEqualTo(1L);
 
-        Assert.IsTrue(session.TryReplaceTemperatureConstraint(
+        await Assert.That(session.TryReplaceTemperatureConstraint(
             registration,
-            Constraint(30, 40)));
-        Assert.AreEqual(2L, session.FetchRequestTopology.CaptureVersion().Value);
+            Constraint(30, 40))).IsTrue();
+        await Assert.That(session.FetchRequestTopology.CaptureVersion().Value).IsEqualTo(2L);
 
         session.RemoveTemperatureLimit(registration);
-        Assert.AreEqual(3L, session.FetchRequestTopology.CaptureVersion().Value);
+        await Assert.That(session.FetchRequestTopology.CaptureVersion().Value).IsEqualTo(3L);
     }
 
-    [TestMethod]
-    public void RegisterWorld_WhenNew_UpdatesTopologyInventoryAndFetchVersionOnce()
+    [Test]
+    public async Task RegisterWorld_WhenNew_UpdatesTopologyInventoryAndFetchVersionOnce()
     {
         var session = EnsureTrackedGameSession(55530);
         var arbitraryPositiveCollectionGeneration =
@@ -422,21 +388,19 @@ public sealed class DeliveryTemperatureGameSessionTests
 
         var change = session.RegisterWorld(worldId: 7, parentWorldId: 1);
 
-        Assert.IsTrue(change.HasChanged);
-        Assert.AreEqual(1L, session.FetchRequestTopology.CaptureVersion().Value);
-        Assert.IsTrue(session.WorldParentTopology.CaptureSnapshot()
-            .TryResolveParentWorld(7, out var parentWorldId));
-        Assert.AreEqual(1, parentWorldId);
-        Assert.AreEqual(
-            WorldResourceTagCoverageRequirementState.CoverageRequired,
-            session.WorldResourceTemperatureAmounts
+        await Assert.That(change.HasChanged).IsTrue();
+        await Assert.That(session.FetchRequestTopology.CaptureVersion().Value).IsEqualTo(1L);
+        await Assert.That(session.WorldParentTopology.CaptureSnapshot()
+            .TryResolveParentWorld(7, out var parentWorldId)).IsTrue();
+        await Assert.That(parentWorldId).IsEqualTo(1);
+        await Assert.That(session.WorldResourceTemperatureAmounts
                 .GetWorldResourceTagCoverageRequirementState(
                     7,
-                    arbitraryPositiveCollectionGeneration));
+                    arbitraryPositiveCollectionGeneration)).IsEqualTo(WorldResourceTagCoverageRequirementState.CoverageRequired);
     }
 
-    [TestMethod]
-    public void RegisterWorld_WhenIdentical_DoesNotAdvanceFetchVersion()
+    [Test]
+    public async Task RegisterWorld_WhenIdentical_DoesNotAdvanceFetchVersion()
     {
         var session = EnsureTrackedGameSession(555301);
         session.RegisterWorld(worldId: 7, parentWorldId: 1);
@@ -447,17 +411,13 @@ public sealed class DeliveryTemperatureGameSessionTests
 
         var repeatedChange = session.RegisterWorld(worldId: 7, parentWorldId: 1);
 
-        Assert.IsFalse(repeatedChange.HasChanged);
-        Assert.AreSame(
-            topologyBeforeRepeatedRegistration,
-            session.WorldParentTopology.CaptureSnapshot());
-        Assert.AreEqual(
-            fetchTopologyVersionBeforeRepeatedRegistration,
-            session.FetchRequestTopology.CaptureVersion());
+        await Assert.That(repeatedChange.HasChanged).IsFalse();
+        await Assert.That(session.WorldParentTopology.CaptureSnapshot()).IsSameReferenceAs(topologyBeforeRepeatedRegistration);
+        await Assert.That(session.FetchRequestTopology.CaptureVersion()).IsEqualTo(fetchTopologyVersionBeforeRepeatedRegistration);
     }
 
-    [TestMethod]
-    public void RegisterWorld_WhenReparented_InvalidatesBothInventoryParentsAndAdvancesFetchVersionOnce()
+    [Test]
+    public async Task RegisterWorld_WhenReparented_InvalidatesBothInventoryParentsAndAdvancesFetchVersionOnce()
     {
         var session = EnsureTrackedGameSession(555302);
         var collectionGeneration = new WorldInventoryCollectionGeneration(1);
@@ -465,57 +425,49 @@ public sealed class DeliveryTemperatureGameSessionTests
         var constraint = Constraint(0, 1000);
         session.RegisterWorld(worldId: 7, parentWorldId: 1);
         session.RegisterWorld(worldId: 8, parentWorldId: 1);
-        PublishCompleteWorldResourceAmount(
+        await PublishCompleteWorldResourceAmount(
             session,
             worldId: 7,
             collectionGeneration,
             iron,
             amount: 10.0f);
-        PublishCompleteWorldResourceAmount(
+        await PublishCompleteWorldResourceAmount(
             session,
             worldId: 8,
             collectionGeneration,
             iron,
             amount: 20.0f);
-        Assert.AreEqual(
-            30.0f,
-            RequireCompleteTemperatureConstrainedAmount(
+        await Assert.That((await RequireCompleteTemperatureConstrainedAmount(
                 session,
                 parentWorldId: 1,
                 iron,
                 constraint,
-                collectionGeneration));
+                collectionGeneration))).IsEqualTo(30.0f);
         var fetchTopologyVersionBeforeReparenting =
             session.FetchRequestTopology.CaptureVersion();
 
         var change = session.RegisterWorld(worldId: 7, parentWorldId: 2);
 
-        Assert.IsTrue(change.HasChanged);
-        Assert.AreEqual(1, change.PreviousParentWorldId);
-        Assert.AreEqual(2, change.CurrentParentWorldId);
-        Assert.AreEqual(
-            fetchTopologyVersionBeforeReparenting.Value + 1L,
-            session.FetchRequestTopology.CaptureVersion().Value);
-        Assert.AreEqual(
-            20.0f,
-            RequireCompleteTemperatureConstrainedAmount(
+        await Assert.That(change.HasChanged).IsTrue();
+        await Assert.That(change.PreviousParentWorldId).IsEqualTo(1);
+        await Assert.That(change.CurrentParentWorldId).IsEqualTo(2);
+        await Assert.That(session.FetchRequestTopology.CaptureVersion().Value).IsEqualTo(fetchTopologyVersionBeforeReparenting.Value + 1L);
+        await Assert.That((await RequireCompleteTemperatureConstrainedAmount(
                 session,
                 parentWorldId: 1,
                 iron,
                 constraint,
-                collectionGeneration));
-        Assert.AreEqual(
-            10.0f,
-            RequireCompleteTemperatureConstrainedAmount(
+                collectionGeneration))).IsEqualTo(20.0f);
+        await Assert.That((await RequireCompleteTemperatureConstrainedAmount(
                 session,
                 parentWorldId: 2,
                 iron,
                 constraint,
-                collectionGeneration));
+                collectionGeneration))).IsEqualTo(10.0f);
     }
 
-    [TestMethod]
-    public void RemoveWorld_WhenKnown_RemovesTopologyAndInventoryBeforeAdvancingFetchVersion()
+    [Test]
+    public async Task RemoveWorld_WhenKnown_RemovesTopologyAndInventoryBeforeAdvancingFetchVersion()
     {
         var session = EnsureTrackedGameSession(55531);
         var arbitraryPositiveCollectionGeneration =
@@ -524,21 +476,19 @@ public sealed class DeliveryTemperatureGameSessionTests
 
         var change = session.RemoveWorld(worldId: 7);
 
-        Assert.IsTrue(change.HasChanged);
-        Assert.AreEqual(2L, session.FetchRequestTopology.CaptureVersion().Value);
-        Assert.IsFalse(session.WorldParentTopology.CaptureSnapshot()
-            .TryResolveParentWorld(7, out _));
-        Assert.AreEqual(
-            WorldResourceTagCoverageRequirementState
-                .UnknownWorldOrCollectionGeneration,
-            session.WorldResourceTemperatureAmounts
+        await Assert.That(change.HasChanged).IsTrue();
+        await Assert.That(session.FetchRequestTopology.CaptureVersion().Value).IsEqualTo(2L);
+        await Assert.That(session.WorldParentTopology.CaptureSnapshot()
+            .TryResolveParentWorld(7, out _)).IsFalse();
+        await Assert.That(session.WorldResourceTemperatureAmounts
                 .GetWorldResourceTagCoverageRequirementState(
                     7,
-                    arbitraryPositiveCollectionGeneration));
+                    arbitraryPositiveCollectionGeneration)).IsEqualTo(WorldResourceTagCoverageRequirementState
+                .UnknownWorldOrCollectionGeneration);
     }
 
-    [TestMethod]
-    public void RemoveWorld_WhenUnknown_IsIdempotent()
+    [Test]
+    public async Task RemoveWorld_WhenUnknown_IsIdempotent()
     {
         var session = EnsureTrackedGameSession(555311);
         session.RegisterWorld(worldId: 7, parentWorldId: 1);
@@ -549,17 +499,13 @@ public sealed class DeliveryTemperatureGameSessionTests
 
         var change = session.RemoveWorld(worldId: 999);
 
-        Assert.IsFalse(change.HasChanged);
-        Assert.AreSame(
-            topologyBeforeUnknownRemoval,
-            session.WorldParentTopology.CaptureSnapshot());
-        Assert.AreEqual(
-            fetchTopologyVersionBeforeUnknownRemoval,
-            session.FetchRequestTopology.CaptureVersion());
+        await Assert.That(change.HasChanged).IsFalse();
+        await Assert.That(session.WorldParentTopology.CaptureSnapshot()).IsSameReferenceAs(topologyBeforeUnknownRemoval);
+        await Assert.That(session.FetchRequestTopology.CaptureVersion()).IsEqualTo(fetchTopologyVersionBeforeUnknownRemoval);
     }
 
-    [TestMethod]
-    public void StopAcceptingPublications_WhenLateWorldCallbackArrives_RejectsMutation()
+    [Test]
+    public async Task StopAcceptingPublications_WhenLateWorldCallbackArrives_RejectsMutation()
     {
         var session = EnsureTrackedGameSession(555312);
         session.RegisterWorld(worldId: 7, parentWorldId: 1);
@@ -569,35 +515,29 @@ public sealed class DeliveryTemperatureGameSessionTests
             session.FetchRequestTopology.CaptureVersion();
         session.StopAcceptingPublications();
 
-        Assert.ThrowsExactly<InvalidOperationException>(() =>
-            session.RegisterWorld(worldId: 8, parentWorldId: 1));
-        Assert.ThrowsExactly<InvalidOperationException>(() =>
-            session.RemoveWorld(worldId: 7));
-        Assert.AreSame(
-            topologyAtShutdownBoundary,
-            session.WorldParentTopology.CaptureSnapshot());
-        Assert.AreEqual(
-            fetchTopologyVersionAtShutdownBoundary,
-            session.FetchRequestTopology.CaptureVersion());
+        await Assert.That(() =>
+            session.RegisterWorld(worldId: 8, parentWorldId: 1)).ThrowsExactly<InvalidOperationException>();
+        await Assert.That(() =>
+            session.RemoveWorld(worldId: 7)).ThrowsExactly<InvalidOperationException>();
+        await Assert.That(session.WorldParentTopology.CaptureSnapshot()).IsSameReferenceAs(topologyAtShutdownBoundary);
+        await Assert.That(session.FetchRequestTopology.CaptureVersion()).IsEqualTo(fetchTopologyVersionAtShutdownBoundary);
     }
 
-    [TestMethod]
-    public void WorldLifecycleOperations_WhenInspected_DoNotRetainCrossCatalogMutationLock()
+    [Test]
+    public async Task WorldLifecycleOperations_WhenInspected_DoNotRetainCrossCatalogMutationLock()
     {
         var crossCatalogMutationLock = typeof(DeliveryTemperatureGameSession)
             .GetField(
                 "worldTopologyMutationLock",
                 BindingFlags.Instance | BindingFlags.NonPublic);
 
-        Assert.IsNull(
-            crossCatalogMutationLock,
-            "World topology and amount-catalog mutations must release each " +
+        await Assert.That(crossCatalogMutationLock).IsNull().Because("World topology and amount-catalog mutations must release each " +
             "owned catalog lock before entering the next catalog; a session-level " +
             "outer lock would nest those synchronization domains.");
     }
 
-    [TestMethod]
-    public void TemperatureLimitLifecycle_WhenEnabledCountCrossesZero_AdvancesGenerationAndClearsAmountsWithoutLosingWorlds()
+    [Test]
+    public async Task TemperatureLimitLifecycle_WhenEnabledCountCrossesZero_AdvancesGenerationAndClearsAmountsWithoutLosingWorlds()
     {
         var session = EnsureTrackedGameSession(55532);
         var iron = new Tag("Iron");
@@ -610,7 +550,7 @@ public sealed class DeliveryTemperatureGameSessionTests
             Constraint(10, 20));
         var firstCollectionGeneration =
             session.CurrentWorldInventoryCollectionGeneration;
-        Assert.AreEqual(1L, firstCollectionGeneration.Value);
+        await Assert.That(firstCollectionGeneration.Value).IsEqualTo(1L);
 
         var completeWorldBuilder =
             new CompleteWorldResourceTemperatureAmountsBuilder();
@@ -618,37 +558,30 @@ public sealed class DeliveryTemperatureGameSessionTests
         completeWorldBuilder.BeginResourceTag(iron);
         completeWorldBuilder.AddTemperatureAmount(15.0f, 10.0f);
         completeWorldBuilder.CompleteResourceTag();
-        Assert.IsTrue(ownedCatalog.PublishCompleteWorldResourceAmounts(
+        await Assert.That(ownedCatalog.PublishCompleteWorldResourceAmounts(
             worldId: 7,
-            completeWorldBuilder.Build()));
+            completeWorldBuilder.Build())).IsTrue();
         var completeAvailability =
             ownedCatalog.GetTemperatureConstrainedAmountAvailability(
                 parentWorldId: 1,
                 resourceTag: iron,
                 Constraint(10, 20),
                 firstCollectionGeneration);
-        Assert.IsTrue(
-            completeAvailability.TryGetCompleteAvailableAmount(
-                out var completeAmount));
-        Assert.AreEqual(10.0f, completeAmount);
+        await Assert.That(completeAvailability.TryGetCompleteAvailableAmount(
+                out var completeAmount)).IsTrue();
+        await Assert.That(completeAmount).IsEqualTo(10.0f);
 
-        Assert.IsTrue(session.TryReplaceTemperatureConstraint(
+        await Assert.That(session.TryReplaceTemperatureConstraint(
             firstRegistration,
-            Constraint(30, 40)));
-        Assert.AreEqual(
-            firstCollectionGeneration,
-            session.CurrentWorldInventoryCollectionGeneration);
+            Constraint(30, 40))).IsTrue();
+        await Assert.That(session.CurrentWorldInventoryCollectionGeneration).IsEqualTo(firstCollectionGeneration);
         session.RemoveTemperatureLimit(firstRegistration);
 
-        Assert.AreSame(ownedCatalog, session.WorldResourceTemperatureAmounts);
-        Assert.AreEqual(
-            firstCollectionGeneration,
-            session.CurrentWorldInventoryCollectionGeneration);
-        Assert.AreEqual(
-            WorldResourceTagCoverageRequirementState.CoverageRequired,
-            ownedCatalog.GetWorldResourceTagCoverageRequirementState(
+        await Assert.That(session.WorldResourceTemperatureAmounts).IsSameReferenceAs(ownedCatalog);
+        await Assert.That(session.CurrentWorldInventoryCollectionGeneration).IsEqualTo(firstCollectionGeneration);
+        await Assert.That(ownedCatalog.GetWorldResourceTagCoverageRequirementState(
                 7,
-                firstCollectionGeneration));
+                firstCollectionGeneration)).IsEqualTo(WorldResourceTagCoverageRequirementState.CoverageRequired);
 
         session.RegisterTemperatureLimit(
             gameObjectInstanceId: 555323,
@@ -656,21 +589,17 @@ public sealed class DeliveryTemperatureGameSessionTests
             new TemperatureLimit(),
             Constraint(50, 60));
 
-        Assert.AreEqual(
-            firstCollectionGeneration.Value + 1,
-            session.CurrentWorldInventoryCollectionGeneration.Value);
-        Assert.AreEqual(
-            WorldResourceTagCoverageRequirementState.CoverageRequired,
-            ownedCatalog.GetWorldResourceTagCoverageRequirementState(
+        await Assert.That(session.CurrentWorldInventoryCollectionGeneration.Value).IsEqualTo(firstCollectionGeneration.Value + 1);
+        await Assert.That(ownedCatalog.GetWorldResourceTagCoverageRequirementState(
                 7,
-                session.CurrentWorldInventoryCollectionGeneration));
+                session.CurrentWorldInventoryCollectionGeneration)).IsEqualTo(WorldResourceTagCoverageRequirementState.CoverageRequired);
     }
 
-    [TestMethod]
-    public void RegisterTemperatureLimit_WhenInventoryCollectionGenerationIsExhausted_ThrowsWithoutStartingCollection()
+    [Test]
+    public async Task RegisterTemperatureLimit_WhenInventoryCollectionGenerationIsExhausted_ThrowsWithoutStartingCollection()
     {
         var session = EnsureTrackedGameSession(55533);
-        var generationField = RequirePrivateInstanceField(
+        var generationField = await RequirePrivateInstanceField(
             typeof(DeliveryTemperatureGameSession),
             "currentWorldInventoryCollectionGenerationValue",
             typeof(long));
@@ -681,90 +610,78 @@ public sealed class DeliveryTemperatureGameSessionTests
         var priorFetchTopologyVersion =
             session.FetchRequestTopology.CaptureVersion();
 
-        var exception = Assert.ThrowsExactly<InvalidOperationException>(() =>
+        var exception = (await Assert.That(() =>
             session.RegisterTemperatureLimit(
                 gameObjectInstanceId: 555331,
                 componentInstanceId: 555332,
                 new TemperatureLimit(),
-                Constraint(10, 20)));
+                Constraint(10, 20))).ThrowsExactly<InvalidOperationException>())!;
 
-        StringAssert.Contains(exception.Message, "exhausted");
-        Assert.AreSame(
-            priorConstraintSnapshot,
-            session.TemperatureConstraints.CaptureSnapshot());
-        Assert.AreSame(priorCatalog, session.WorldResourceTemperatureAmounts);
-        Assert.AreEqual(
-            priorFetchTopologyVersion,
-            session.FetchRequestTopology.CaptureVersion());
-        Assert.AreEqual(
-            long.MaxValue,
-            session.CurrentWorldInventoryCollectionGeneration.Value);
-        Assert.IsFalse(session.TemperatureLimitComponents
-            .TryGetRegisteredComponent(555331, out _, out _));
+        await Assert.That(exception.Message).Contains("exhausted");
+        await Assert.That(session.TemperatureConstraints.CaptureSnapshot()).IsSameReferenceAs(priorConstraintSnapshot);
+        await Assert.That(session.WorldResourceTemperatureAmounts).IsSameReferenceAs(priorCatalog);
+        await Assert.That(session.FetchRequestTopology.CaptureVersion()).IsEqualTo(priorFetchTopologyVersion);
+        await Assert.That(session.CurrentWorldInventoryCollectionGeneration.Value).IsEqualTo(long.MaxValue);
+        await Assert.That(session.TemperatureLimitComponents
+            .TryGetRegisteredComponent(555331, out _, out _)).IsFalse();
     }
 
-    [TestMethod]
-    public void OldSession_WhenNewSessionExists_RejectsTemperatureLimitRegistration()
+    [Test]
+    public async Task OldSession_WhenNewSessionExists_RejectsTemperatureLimitRegistration()
     {
         var oldSession = EnsureTrackedGameSession(5601);
         var newSession = EnsureTrackedGameSession(5602);
 
-        var exception = Assert.ThrowsExactly<InvalidOperationException>(() =>
+        var exception = (await Assert.That(() =>
             oldSession.RegisterTemperatureLimit(
                 gameObjectInstanceId: 56011,
                 componentInstanceId: 56012,
                 new TemperatureLimit(),
-                Constraint(10, 20)));
+                Constraint(10, 20))).ThrowsExactly<InvalidOperationException>())!;
 
-        StringAssert.Contains(exception.Message, "not accepting publications");
-        Assert.IsTrue(newSession.IsAcceptingPublications);
-        Assert.AreEqual(
-            0,
-            newSession.TemperatureConstraints
+        await Assert.That(exception.Message).Contains("not accepting publications");
+        await Assert.That(newSession.IsAcceptingPublications).IsTrue();
+        await Assert.That(newSession.TemperatureConstraints
                 .CaptureSnapshot()
-                .EnabledConstraintCount);
+                .EnabledConstraintCount).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void EnsureGameSession_WhenIdentityChanges_CreatesFreshSessionDiagnosticLimiter()
+    [Test]
+    public async Task EnsureGameSession_WhenIdentityChanges_CreatesFreshSessionDiagnosticLimiter()
     {
         var oldSession = EnsureTrackedGameSession(5651);
-        Assert.IsTrue(oldSession.DiagnosticLimiter.ShouldEmit("DTL_WORLD_UNRESOLVED"));
-        Assert.IsFalse(oldSession.DiagnosticLimiter.ShouldEmit("DTL_WORLD_UNRESOLVED"));
+        await Assert.That(oldSession.DiagnosticLimiter.ShouldEmit("DTL_WORLD_UNRESOLVED")).IsTrue();
+        await Assert.That(oldSession.DiagnosticLimiter.ShouldEmit("DTL_WORLD_UNRESOLVED")).IsFalse();
 
         var newSession = EnsureTrackedGameSession(5652);
 
-        Assert.AreNotSame(
-            oldSession.DiagnosticLimiter,
-            newSession.DiagnosticLimiter);
-        Assert.IsTrue(newSession.DiagnosticLimiter.ShouldEmit("DTL_WORLD_UNRESOLVED"));
+        await Assert.That(newSession.DiagnosticLimiter).IsNotSameReferenceAs(oldSession.DiagnosticLimiter);
+        await Assert.That(newSession.DiagnosticLimiter.ShouldEmit("DTL_WORLD_UNRESOLVED")).IsTrue();
     }
 
-    [TestMethod]
-    public void RegisterTemperatureLimit_WhenSessionIsStopping_ThrowsLifecycleViolation()
+    [Test]
+    public async Task RegisterTemperatureLimit_WhenSessionIsStopping_ThrowsLifecycleViolation()
     {
         var session = EnsureTrackedGameSession(5701);
         var detachedSession =
             DeliveryTemperatureGameSessionHost.DetachGameSession(5701);
 
-        var exception = Assert.ThrowsExactly<InvalidOperationException>(() =>
+        var exception = (await Assert.That(() =>
             session.RegisterTemperatureLimit(
                 gameObjectInstanceId: 57011,
                 componentInstanceId: 57012,
                 new TemperatureLimit(),
-                Constraint(10, 20)));
+                Constraint(10, 20))).ThrowsExactly<InvalidOperationException>())!;
 
-        StringAssert.Contains(exception.Message, "not accepting publications");
-        Assert.AreEqual(
-            0,
-            session.TemperatureConstraints
+        await Assert.That(exception.Message).Contains("not accepting publications");
+        await Assert.That(session.TemperatureConstraints
                 .CaptureSnapshot()
-                .EnabledConstraintCount);
+                .EnabledConstraintCount).IsEqualTo(0);
         DeliveryTemperatureGameSessionHost.CompleteShutdown(detachedSession);
     }
 
-    [TestMethod]
-    public void RemoveTemperatureLimit_WhenRegistrationBelongsToOldSession_DoesNotTouchCurrentSession()
+    [Test]
+    public async Task RemoveTemperatureLimit_WhenRegistrationBelongsToOldSession_DoesNotTouchCurrentSession()
     {
         const int reusedGameObjectInstanceId = 58011;
         const int reusedComponentInstanceId = 58012;
@@ -786,30 +703,22 @@ public sealed class DeliveryTemperatureGameSessionTests
 
         // Registry sequence values restart inside each session, so the outer session
         // generation is what makes this otherwise identical ownership token stale.
-        Assert.AreEqual(
-            oldRegistration.ConstraintRegistrationToken,
-            currentRegistration.ConstraintRegistrationToken);
-        Assert.AreNotEqual(
-            oldRegistration.GameSessionGeneration,
-            currentRegistration.GameSessionGeneration);
+        await Assert.That(currentRegistration.ConstraintRegistrationToken).IsEqualTo(oldRegistration.ConstraintRegistrationToken);
+        await Assert.That(currentRegistration.GameSessionGeneration).IsNotEqualTo(oldRegistration.GameSessionGeneration);
         currentSession.RemoveTemperatureLimit(oldRegistration);
 
-        Assert.AreSame(
-            snapshotBeforeStaleRemoval,
-            currentSession.TemperatureConstraints.CaptureSnapshot());
-        Assert.IsTrue(currentSession.TemperatureLimitComponents
+        await Assert.That(currentSession.TemperatureConstraints.CaptureSnapshot()).IsSameReferenceAs(snapshotBeforeStaleRemoval);
+        await Assert.That(currentSession.TemperatureLimitComponents
             .TryGetRegisteredComponent(
                 reusedGameObjectInstanceId,
                 out var retainedComponent,
-                out var retainedConstraintRegistration));
-        Assert.AreSame(currentComponent, retainedComponent);
-        Assert.AreEqual(
-            currentRegistration.ConstraintRegistrationToken,
-            retainedConstraintRegistration);
+                out var retainedConstraintRegistration)).IsTrue();
+        await Assert.That(retainedComponent).IsSameReferenceAs(currentComponent);
+        await Assert.That(retainedConstraintRegistration).IsEqualTo(currentRegistration.ConstraintRegistrationToken);
     }
 
-    [TestMethod]
-    public void TryReplaceTemperatureConstraint_WhenNormalizedConstraintIsIdentical_DoesNotAdvanceGeneration()
+    [Test]
+    public async Task TryReplaceTemperatureConstraint_WhenNormalizedConstraintIsIdentical_DoesNotAdvanceGeneration()
     {
         var session = EnsureTrackedGameSession(5901);
         var normalizedFullRangeConstraint = Constraint(-100, 20000);
@@ -827,17 +736,13 @@ public sealed class DeliveryTemperatureGameSessionTests
                 OniStorableTemperatureBounds.MinimumTemperatureKelvin,
                 OniStorableTemperatureBounds.MaximumTemperatureKelvin));
 
-        Assert.IsTrue(registrationFound);
-        Assert.AreSame(
-            snapshotBeforeReplacement,
-            session.TemperatureConstraints.CaptureSnapshot());
-        Assert.AreEqual(
-            snapshotBeforeReplacement.Generation,
-            session.TemperatureConstraints.CaptureSnapshot().Generation);
+        await Assert.That(registrationFound).IsTrue();
+        await Assert.That(session.TemperatureConstraints.CaptureSnapshot()).IsSameReferenceAs(snapshotBeforeReplacement);
+        await Assert.That(session.TemperatureConstraints.CaptureSnapshot().Generation).IsEqualTo(snapshotBeforeReplacement.Generation);
     }
 
-    [TestMethod]
-    public void TryReplaceTemperatureConstraint_WhenRegistrationMatches_UpdatesBothOwnedServices()
+    [Test]
+    public async Task TryReplaceTemperatureConstraint_WhenRegistrationMatches_UpdatesBothOwnedServices()
     {
         var session = EnsureTrackedGameSession(5951);
         var component = new TemperatureLimit();
@@ -854,31 +759,27 @@ public sealed class DeliveryTemperatureGameSessionTests
             registration,
             replacementConstraint);
 
-        Assert.IsTrue(registrationFound);
-        Assert.AreEqual(
-            generationBeforeReplacement.Value + 1,
-            session.TemperatureConstraints
+        await Assert.That(registrationFound).IsTrue();
+        await Assert.That(session.TemperatureConstraints
                 .CaptureSnapshot()
                 .Generation
-                .Value);
-        Assert.IsTrue(session.TemperatureLimitComponents.TryGetConstraint(
+                .Value).IsEqualTo(generationBeforeReplacement.Value + 1);
+        await Assert.That(session.TemperatureLimitComponents.TryGetConstraint(
             59511,
             out var observedConstraint,
-            out var observedConstraintRegistration));
-        Assert.AreEqual(replacementConstraint, observedConstraint);
-        Assert.AreEqual(
-            registration.ConstraintRegistrationToken,
-            observedConstraintRegistration);
-        Assert.IsTrue(session.TemperatureLimitComponents
+            out var observedConstraintRegistration)).IsTrue();
+        await Assert.That(observedConstraint).IsEqualTo(replacementConstraint);
+        await Assert.That(observedConstraintRegistration).IsEqualTo(registration.ConstraintRegistrationToken);
+        await Assert.That(session.TemperatureLimitComponents
             .TryGetRegisteredComponent(
                 59511,
                 out var observedComponent,
-                out _));
-        Assert.AreSame(component, observedComponent);
+                out _)).IsTrue();
+        await Assert.That(observedComponent).IsSameReferenceAs(component);
     }
 
-    [TestMethod]
-    public void RegisterTemperatureLimit_WhenSessionIsActive_PublishesCompositeOwnershipToBothServices()
+    [Test]
+    public async Task RegisterTemperatureLimit_WhenSessionIsActive_PublishesCompositeOwnershipToBothServices()
     {
         var session = EnsureTrackedGameSession(6001);
         var component = new TemperatureLimit();
@@ -890,34 +791,28 @@ public sealed class DeliveryTemperatureGameSessionTests
             component,
             constraint);
 
-        Assert.AreEqual(session.Generation, registration.GameSessionGeneration);
-        Assert.AreEqual(60011, registration.GameObjectInstanceId);
-        Assert.AreEqual(
-            60012,
-            registration.ConstraintRegistrationToken.ComponentInstanceId);
-        Assert.IsTrue(session.TemperatureLimitComponents
+        await Assert.That(registration.GameSessionGeneration).IsEqualTo(session.Generation);
+        await Assert.That(registration.GameObjectInstanceId).IsEqualTo(60011);
+        await Assert.That(registration.ConstraintRegistrationToken.ComponentInstanceId).IsEqualTo(60012);
+        await Assert.That(session.TemperatureLimitComponents
             .TryGetRegisteredComponent(
                 60011,
                 out var observedComponent,
-                out var observedConstraintRegistration));
-        Assert.AreSame(component, observedComponent);
-        Assert.AreEqual(
-            registration.ConstraintRegistrationToken,
-            observedConstraintRegistration);
-        Assert.IsTrue(session.TemperatureLimitComponents.TryGetConstraint(
+                out var observedConstraintRegistration)).IsTrue();
+        await Assert.That(observedComponent).IsSameReferenceAs(component);
+        await Assert.That(observedConstraintRegistration).IsEqualTo(registration.ConstraintRegistrationToken);
+        await Assert.That(session.TemperatureLimitComponents.TryGetConstraint(
             60011,
             out var observedConstraint,
-            out _));
-        Assert.AreEqual(constraint, observedConstraint);
-        Assert.AreEqual(
-            1,
-            session.TemperatureConstraints
+            out _)).IsTrue();
+        await Assert.That(observedConstraint).IsEqualTo(constraint);
+        await Assert.That(session.TemperatureConstraints
                 .CaptureSnapshot()
-                .EnabledConstraintCount);
+                .EnabledConstraintCount).IsEqualTo(1);
     }
 
-    [TestMethod]
-    public void RegisterTemperatureLimit_WhenComponentIndexRejectsPublication_RollsBackConstraintRegistration()
+    [Test]
+    public async Task RegisterTemperatureLimit_WhenComponentIndexRejectsPublication_RollsBackConstraintRegistration()
     {
         const int gameObjectInstanceId = 61011;
         const int componentInstanceId = 61012;
@@ -928,38 +823,34 @@ public sealed class DeliveryTemperatureGameSessionTests
                 componentInstanceId,
                 registrationSequence: 1);
         var retainedConflictingComponent = new TemperatureLimit();
-        Assert.IsTrue(session.TemperatureLimitComponents.TryRegister(
+        await Assert.That(session.TemperatureLimitComponents.TryRegister(
             gameObjectInstanceId,
             retainedConflictingComponent,
             predictedFirstConstraintRegistration,
-            constraint));
+            constraint)).IsTrue();
 
-        var exception = Assert.ThrowsExactly<InvalidOperationException>(() =>
+        var exception = (await Assert.That(() =>
             session.RegisterTemperatureLimit(
                 gameObjectInstanceId,
                 componentInstanceId,
                 new TemperatureLimit(),
-                constraint));
+                constraint)).ThrowsExactly<InvalidOperationException>())!;
 
-        StringAssert.Contains(exception.Message, "component index");
-        Assert.AreEqual(
-            0,
-            session.TemperatureConstraints
+        await Assert.That(exception.Message).Contains("component index");
+        await Assert.That(session.TemperatureConstraints
                 .CaptureSnapshot()
-                .EnabledConstraintCount);
-        Assert.IsTrue(session.TemperatureLimitComponents
+                .EnabledConstraintCount).IsEqualTo(0);
+        await Assert.That(session.TemperatureLimitComponents
             .TryGetRegisteredComponent(
                 gameObjectInstanceId,
                 out var retainedComponent,
-                out var retainedRegistration));
-        Assert.AreSame(retainedConflictingComponent, retainedComponent);
-        Assert.AreEqual(
-            predictedFirstConstraintRegistration,
-            retainedRegistration);
+                out var retainedRegistration)).IsTrue();
+        await Assert.That(retainedComponent).IsSameReferenceAs(retainedConflictingComponent);
+        await Assert.That(retainedRegistration).IsEqualTo(predictedFirstConstraintRegistration);
     }
 
-    [TestMethod]
-    public void RemoveTemperatureLimit_WhenRegistrationMatches_RemovesBothOwnedEntriesIdempotently()
+    [Test]
+    public async Task RemoveTemperatureLimit_WhenRegistrationMatches_RemovesBothOwnedEntriesIdempotently()
     {
         var session = EnsureTrackedGameSession(6201);
         var registration = session.RegisterTemperatureLimit(
@@ -971,17 +862,15 @@ public sealed class DeliveryTemperatureGameSessionTests
         session.RemoveTemperatureLimit(registration);
         session.RemoveTemperatureLimit(registration);
 
-        Assert.IsFalse(session.TemperatureLimitComponents
-            .TryGetRegisteredComponent(62011, out _, out _));
-        Assert.AreEqual(
-            0,
-            session.TemperatureConstraints
+        await Assert.That(session.TemperatureLimitComponents
+            .TryGetRegisteredComponent(62011, out _, out _)).IsFalse();
+        await Assert.That(session.TemperatureConstraints
                 .CaptureSnapshot()
-                .EnabledConstraintCount);
+                .EnabledConstraintCount).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void TryReplaceTemperatureConstraint_WhenRegistrationIsStale_LeavesCurrentRegistrationUnchanged()
+    [Test]
+    public async Task TryReplaceTemperatureConstraint_WhenRegistrationIsStale_LeavesCurrentRegistrationUnchanged()
     {
         const int reusedGameObjectInstanceId = 63011;
         const int reusedComponentInstanceId = 63012;
@@ -1001,46 +890,39 @@ public sealed class DeliveryTemperatureGameSessionTests
         var snapshotBeforeStaleReplacement =
             currentSession.TemperatureConstraints.CaptureSnapshot();
 
-        Assert.IsFalse(currentSession.TryReplaceTemperatureConstraint(
+        await Assert.That(currentSession.TryReplaceTemperatureConstraint(
             staleRegistration,
-            Constraint(50, 60)));
+            Constraint(50, 60))).IsFalse();
 
-        Assert.AreSame(
-            snapshotBeforeStaleReplacement,
-            currentSession.TemperatureConstraints.CaptureSnapshot());
-        Assert.IsTrue(currentSession.TemperatureLimitComponents.TryGetConstraint(
+        await Assert.That(currentSession.TemperatureConstraints.CaptureSnapshot()).IsSameReferenceAs(snapshotBeforeStaleReplacement);
+        await Assert.That(currentSession.TemperatureLimitComponents.TryGetConstraint(
             reusedGameObjectInstanceId,
             out var retainedConstraint,
-            out _));
-        Assert.AreEqual(currentConstraint, retainedConstraint);
+            out _)).IsTrue();
+        await Assert.That(retainedConstraint).IsEqualTo(currentConstraint);
     }
 
-    [TestMethod]
-    [DoNotParallelize]
-    public void EnsureGameSession_WhenGenerationIsExhausted_ThrowsBeforePublication()
+    [Test]
+    [NotInParallel]
+    public async Task EnsureGameSession_WhenGenerationIsExhausted_ThrowsBeforePublication()
     {
-        Assert.IsFalse(
-            DeliveryTemperatureGameSessionHost.TryCaptureCurrent(out _));
-        var generationSourceField = RequirePrivateStaticField(
+        await Assert.That(DeliveryTemperatureGameSessionHost.TryCaptureCurrent(out _)).IsFalse();
+        var generationSourceField = await RequirePrivateStaticField(
             typeof(DeliveryTemperatureGameSessionHost),
             "lastIssuedGameSessionGeneration",
             typeof(long));
         var generationBeforeTest =
-            Assert.IsInstanceOfType<long>(generationSourceField.GetValue(null));
+            (await Assert.That(generationSourceField.GetValue(null)).IsAssignableTo<long>())!;
         generationSourceField.SetValue(null, long.MaxValue);
 
         try
         {
-            var exception = Assert.ThrowsExactly<InvalidOperationException>(() =>
-                EnsureTrackedGameSession(6401));
+            var exception = (await Assert.That(() =>
+                EnsureTrackedGameSession(6401)).ThrowsExactly<InvalidOperationException>())!;
 
-            StringAssert.Contains(exception.Message, "game-session generation");
-            Assert.IsFalse(
-                DeliveryTemperatureGameSessionHost.TryCaptureCurrent(out _));
-            Assert.AreEqual(
-                long.MaxValue,
-                Assert.IsInstanceOfType<long>(
-                    generationSourceField.GetValue(null)));
+            await Assert.That(exception.Message).Contains("game-session generation");
+            await Assert.That(DeliveryTemperatureGameSessionHost.TryCaptureCurrent(out _)).IsFalse();
+            await Assert.That(((await Assert.That(generationSourceField.GetValue(null)).IsAssignableTo<long>())!)).IsEqualTo(long.MaxValue);
         }
         finally
         {
@@ -1050,8 +932,8 @@ public sealed class DeliveryTemperatureGameSessionTests
         }
     }
 
-    [TestMethod]
-    public void RetainedCollectionCapacityLimits_WhenInspected_ExposeReviewedResourcePolicies()
+    [Test]
+    public async Task RetainedCollectionCapacityLimits_WhenInspected_ExposeReviewedResourcePolicies()
     {
         var expectedConstantValuesByExactFieldName =
             new Dictionary<string, int>(StringComparer.Ordinal)
@@ -1070,17 +952,16 @@ public sealed class DeliveryTemperatureGameSessionTests
                 .Where(field => field.IsLiteral && field.FieldType == typeof(int))
                 .ToDictionary(
                     field => field.Name,
-                    field => Assert.IsInstanceOfType<int>(
-                        field.GetRawConstantValue()),
+                    field => (int)(field.GetRawConstantValue()
+                        ?? throw new TUnit.Assertions.Exceptions.AssertionException(
+                            $"The integer constant {field.Name} has no value.")),
                     StringComparer.Ordinal);
 
-        CollectionAssert.AreEquivalent(
-            expectedConstantValuesByExactFieldName,
-            observedConstantValuesByExactFieldName);
+        await Assert.That(observedConstantValuesByExactFieldName).IsEquivalentTo(expectedConstantValuesByExactFieldName, TUnit.Assertions.Enums.CollectionOrdering.Any);
     }
 
-    [TestMethod]
-    public void LifecycleProductionTypes_WhenInspected_ContainOnlyNamedMutableStaticState()
+    [Test]
+    public async Task LifecycleProductionTypes_WhenInspected_ContainOnlyNamedMutableStaticState()
     {
         var lifecycleProductionTypes = new[]
         {
@@ -1106,13 +987,11 @@ public sealed class DeliveryTemperatureGameSessionTests
             "DeliveryTemperatureGameSessionHost.lastIssuedGameSessionGeneration",
         };
 
-        Assert.AreSequenceEqual(
-            expectedMutableStaticFieldNames,
-            observedMutableStaticFieldNames);
+        await Assert.That(observedMutableStaticFieldNames).IsEquivalentTo(expectedMutableStaticFieldNames, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void LifecycleOperations_WhenDeterministicallyScheduled_RejectStaleGenerationMutation()
+    [Test]
+    public async Task LifecycleOperations_WhenDeterministicallyScheduled_RejectStaleGenerationMutation()
     {
         var random = new Random(LifecycleScheduleSeed);
         DeliveryTemperatureGameSession? expectedCurrentSession = null;
@@ -1130,27 +1009,19 @@ public sealed class DeliveryTemperatureGameSessionTests
             switch (random.Next(6))
             {
                 case 0:
-                    EnsureScheduledGameSession(
-                        random,
-                        ref expectedCurrentSession,
-                        currentRegistrationsByGameObjectInstanceId,
-                        staleRegistrations);
+                    expectedCurrentSession = await EnsureScheduledGameSession(
+                        random,expectedCurrentSession,                        currentRegistrationsByGameObjectInstanceId,                        staleRegistrations);
                     break;
 
                 case 1:
-                    AssertScheduledCapture(
+                    await AssertScheduledCapture(
                         expectedCurrentSession,
                         operationIndex);
                     break;
 
                 case 2:
-                    DetachScheduledGameSession(
-                        random,
-                        ref expectedCurrentSession,
-                        currentRegistrationsByGameObjectInstanceId,
-                        staleRegistrations,
-                        explicitlyDetachedSessions,
-                        operationIndex);
+                    expectedCurrentSession = await DetachScheduledGameSession(
+                        random,expectedCurrentSession,                        currentRegistrationsByGameObjectInstanceId,                        staleRegistrations,                        explicitlyDetachedSessions,                        operationIndex);
                     break;
 
                 case 3:
@@ -1160,15 +1031,12 @@ public sealed class DeliveryTemperatureGameSessionTests
                     break;
 
                 case 4:
-                    RegisterScheduledTemperatureLimit(
-                        random,
-                        ref expectedCurrentSession,
-                        currentRegistrationsByGameObjectInstanceId,
-                        staleRegistrations);
+                    expectedCurrentSession = await RegisterScheduledTemperatureLimit(
+                        random,expectedCurrentSession,                        currentRegistrationsByGameObjectInstanceId,                        staleRegistrations);
                     break;
 
                 default:
-                    RemoveScheduledTemperatureLimit(
+                    await RemoveScheduledTemperatureLimit(
                         random,
                         expectedCurrentSession,
                         currentRegistrationsByGameObjectInstanceId,
@@ -1177,7 +1045,7 @@ public sealed class DeliveryTemperatureGameSessionTests
                     break;
             }
 
-            AssertScheduledCurrentState(
+            await AssertScheduledCurrentState(
                 expectedCurrentSession,
                 currentRegistrationsByGameObjectInstanceId,
                 operationIndex);
@@ -1196,12 +1064,9 @@ public sealed class DeliveryTemperatureGameSessionTests
         return DeliveryTemperatureGameSessionHost.EnsureGameSession(gameInstanceId);
     }
 
-    private void EnsureScheduledGameSession(
-        Random random,
-        ref DeliveryTemperatureGameSession? expectedCurrentSession,
-        IDictionary<int, ScheduledRegistration>
-            currentRegistrationsByGameObjectInstanceId,
-        ICollection<GameSessionTemperatureLimitRegistrationToken>
+    private async Task<DeliveryTemperatureGameSession?> EnsureScheduledGameSession(
+        Random random,DeliveryTemperatureGameSession? expectedCurrentSession,        IDictionary<int, ScheduledRegistration>
+            currentRegistrationsByGameObjectInstanceId,        ICollection<GameSessionTemperatureLimitRegistrationToken>
             staleRegistrations)
     {
         var gameInstanceId = 6500 + random.Next(4);
@@ -1214,13 +1079,14 @@ public sealed class DeliveryTemperatureGameSessionTests
             MoveCurrentRegistrationsToStale(
                 currentRegistrationsByGameObjectInstanceId,
                 staleRegistrations);
-            Assert.IsFalse(priorSession.IsAcceptingPublications);
+            await Assert.That(priorSession.IsAcceptingPublications).IsFalse();
         }
 
         expectedCurrentSession = ensuredSession;
+        return expectedCurrentSession;
     }
 
-    private static void AssertScheduledCapture(
+    private static async Task AssertScheduledCapture(
         DeliveryTemperatureGameSession? expectedCurrentSession,
         int operationIndex)
     {
@@ -1228,32 +1094,21 @@ public sealed class DeliveryTemperatureGameSessionTests
             out var observedSession);
         var assertionContext = LifecycleScheduleAssertionContext(operationIndex);
 
-        Assert.AreEqual(
-            expectedCurrentSession is not null,
-            captured,
-            assertionContext);
+        await Assert.That(captured).IsEqualTo(expectedCurrentSession is not null).Because(assertionContext);
         if (expectedCurrentSession is null)
         {
-            Assert.IsNull(observedSession, assertionContext);
+            await Assert.That(observedSession).IsNull().Because(assertionContext);
         }
         else
         {
-            Assert.AreSame(
-                expectedCurrentSession,
-                observedSession,
-                assertionContext);
+            await Assert.That(observedSession).IsSameReferenceAs(expectedCurrentSession).Because(assertionContext);
         }
     }
 
-    private static void DetachScheduledGameSession(
-        Random random,
-        ref DeliveryTemperatureGameSession? expectedCurrentSession,
-        IDictionary<int, ScheduledRegistration>
-            currentRegistrationsByGameObjectInstanceId,
-        ICollection<GameSessionTemperatureLimitRegistrationToken>
-            staleRegistrations,
-        ICollection<DeliveryTemperatureGameSession> explicitlyDetachedSessions,
-        int operationIndex)
+    private static async Task<DeliveryTemperatureGameSession?> DetachScheduledGameSession(
+        Random random,DeliveryTemperatureGameSession? expectedCurrentSession,        IDictionary<int, ScheduledRegistration>
+            currentRegistrationsByGameObjectInstanceId,        ICollection<GameSessionTemperatureLimitRegistrationToken>
+            staleRegistrations,        ICollection<DeliveryTemperatureGameSession> explicitlyDetachedSessions,        int operationIndex)
     {
         var detachMatchingIdentity =
             expectedCurrentSession is not null && random.Next(2) == 0;
@@ -1267,22 +1122,18 @@ public sealed class DeliveryTemperatureGameSessionTests
 
         if (!detachMatchingIdentity)
         {
-            Assert.IsNull(detachedSession, assertionContext);
-            return;
+            await Assert.That(detachedSession).IsNull().Because(assertionContext);
+            return expectedCurrentSession;
         }
 
-        Assert.AreSame(
-            expectedCurrentSession,
-            detachedSession,
-            assertionContext);
-        Assert.IsFalse(
-            detachedSession!.IsAcceptingPublications,
-            assertionContext);
+        await Assert.That(detachedSession).IsSameReferenceAs(expectedCurrentSession).Because(assertionContext);
+        await Assert.That(detachedSession!.IsAcceptingPublications).IsFalse().Because(assertionContext);
         explicitlyDetachedSessions.Add(detachedSession);
         MoveCurrentRegistrationsToStale(
             currentRegistrationsByGameObjectInstanceId,
             staleRegistrations);
         expectedCurrentSession = null;
+        return expectedCurrentSession;
     }
 
     private static void CompleteScheduledShutdown(
@@ -1302,21 +1153,15 @@ public sealed class DeliveryTemperatureGameSessionTests
         DeliveryTemperatureGameSessionHost.CompleteShutdown(detachedSession);
     }
 
-    private void RegisterScheduledTemperatureLimit(
-        Random random,
-        ref DeliveryTemperatureGameSession? expectedCurrentSession,
-        IDictionary<int, ScheduledRegistration>
-            currentRegistrationsByGameObjectInstanceId,
-        ICollection<GameSessionTemperatureLimitRegistrationToken>
+    private async Task<DeliveryTemperatureGameSession?> RegisterScheduledTemperatureLimit(
+        Random random,DeliveryTemperatureGameSession? expectedCurrentSession,        IDictionary<int, ScheduledRegistration>
+            currentRegistrationsByGameObjectInstanceId,        ICollection<GameSessionTemperatureLimitRegistrationToken>
             staleRegistrations)
     {
         if (expectedCurrentSession is null)
         {
-            EnsureScheduledGameSession(
-                random,
-                ref expectedCurrentSession,
-                currentRegistrationsByGameObjectInstanceId,
-                staleRegistrations);
+            expectedCurrentSession = await EnsureScheduledGameSession(
+                random,expectedCurrentSession,                currentRegistrationsByGameObjectInstanceId,                staleRegistrations);
         }
 
         var availableIdentityOffset = FindAvailableScheduleIdentityOffset(
@@ -1324,7 +1169,7 @@ public sealed class DeliveryTemperatureGameSessionTests
             currentRegistrationsByGameObjectInstanceId);
         if (availableIdentityOffset < 0)
         {
-            return;
+            return expectedCurrentSession;
         }
 
         var gameObjectInstanceId = 67000 + availableIdentityOffset;
@@ -1345,9 +1190,10 @@ public sealed class DeliveryTemperatureGameSessionTests
                 registration,
                 component,
                 constraint));
+        return expectedCurrentSession;
     }
 
-    private static void RemoveScheduledTemperatureLimit(
+    private static async Task RemoveScheduledTemperatureLimit(
         Random random,
         DeliveryTemperatureGameSession? expectedCurrentSession,
         IDictionary<int, ScheduledRegistration>
@@ -1372,10 +1218,7 @@ public sealed class DeliveryTemperatureGameSessionTests
 
             expectedCurrentSession.RemoveTemperatureLimit(staleRegistration);
 
-            Assert.AreSame(
-                snapshotBeforeStaleRemoval,
-                expectedCurrentSession.TemperatureConstraints.CaptureSnapshot(),
-                LifecycleScheduleAssertionContext(operationIndex));
+            await Assert.That(expectedCurrentSession.TemperatureConstraints.CaptureSnapshot()).IsSameReferenceAs(snapshotBeforeStaleRemoval).Because(LifecycleScheduleAssertionContext(operationIndex));
             return;
         }
 
@@ -1394,7 +1237,7 @@ public sealed class DeliveryTemperatureGameSessionTests
             scheduledRegistration.RegistrationToken.GameObjectInstanceId);
     }
 
-    private static void AssertScheduledCurrentState(
+    private static async Task AssertScheduledCurrentState(
         DeliveryTemperatureGameSession? expectedCurrentSession,
         IReadOnlyDictionary<int, ScheduledRegistration>
             currentRegistrationsByGameObjectInstanceId,
@@ -1403,66 +1246,37 @@ public sealed class DeliveryTemperatureGameSessionTests
         var assertionContext = LifecycleScheduleAssertionContext(operationIndex);
         if (expectedCurrentSession is null)
         {
-            Assert.IsFalse(
-                DeliveryTemperatureGameSessionHost.TryCaptureCurrent(out _),
-                assertionContext);
-            Assert.AreEqual(
-                0,
-                currentRegistrationsByGameObjectInstanceId.Count,
-                assertionContext);
+            await Assert.That(DeliveryTemperatureGameSessionHost.TryCaptureCurrent(out _)).IsFalse().Because(assertionContext);
+            await Assert.That(currentRegistrationsByGameObjectInstanceId.Count).IsEqualTo(0).Because(assertionContext);
             return;
         }
 
-        Assert.IsTrue(
-            DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
-                out var observedCurrentSession),
-            assertionContext);
-        Assert.AreSame(
-            expectedCurrentSession,
-            observedCurrentSession,
-            assertionContext);
-        Assert.IsTrue(
-            expectedCurrentSession.IsAcceptingPublications,
-            assertionContext);
-        Assert.AreEqual(
-            currentRegistrationsByGameObjectInstanceId.Count,
-            expectedCurrentSession.TemperatureConstraints
+        await Assert.That(DeliveryTemperatureGameSessionHost.TryCaptureCurrent(
+                out var observedCurrentSession)).IsTrue().Because(assertionContext);
+        await Assert.That(observedCurrentSession).IsSameReferenceAs(expectedCurrentSession).Because(assertionContext);
+        await Assert.That(expectedCurrentSession.IsAcceptingPublications).IsTrue().Because(assertionContext);
+        await Assert.That(expectedCurrentSession.TemperatureConstraints
                 .CaptureSnapshot()
-                .EnabledConstraintCount,
-            assertionContext);
+                .EnabledConstraintCount).IsEqualTo(currentRegistrationsByGameObjectInstanceId.Count).Because(assertionContext);
 
         foreach (var scheduledRegistration in
                  currentRegistrationsByGameObjectInstanceId.Values)
         {
-            Assert.AreEqual(
-                expectedCurrentSession.Generation,
-                scheduledRegistration.RegistrationToken.GameSessionGeneration,
-                assertionContext);
-            Assert.IsTrue(expectedCurrentSession.TemperatureLimitComponents
+            await Assert.That(scheduledRegistration.RegistrationToken.GameSessionGeneration).IsEqualTo(expectedCurrentSession.Generation).Because(assertionContext);
+            await Assert.That(expectedCurrentSession.TemperatureLimitComponents
                 .TryGetRegisteredComponent(
                     scheduledRegistration.RegistrationToken.GameObjectInstanceId,
                     out var observedComponent,
-                    out var observedConstraintRegistration),
-                assertionContext);
-            Assert.AreSame(
-                scheduledRegistration.Component,
-                observedComponent,
-                assertionContext);
-            Assert.AreEqual(
-                scheduledRegistration.RegistrationToken
-                    .ConstraintRegistrationToken,
-                observedConstraintRegistration,
-                assertionContext);
-            Assert.IsTrue(expectedCurrentSession.TemperatureLimitComponents
+                    out var observedConstraintRegistration)).IsTrue().Because(assertionContext);
+            await Assert.That(observedComponent).IsSameReferenceAs(scheduledRegistration.Component).Because(assertionContext);
+            await Assert.That(observedConstraintRegistration).IsEqualTo(scheduledRegistration.RegistrationToken
+                    .ConstraintRegistrationToken).Because(assertionContext);
+            await Assert.That(expectedCurrentSession.TemperatureLimitComponents
                 .TryGetConstraint(
                     scheduledRegistration.RegistrationToken.GameObjectInstanceId,
                     out var observedConstraint,
-                    out _),
-                assertionContext);
-            Assert.AreEqual(
-                scheduledRegistration.Constraint,
-                observedConstraint,
-                assertionContext);
+                    out _)).IsTrue().Because(assertionContext);
+            await Assert.That(observedConstraint).IsEqualTo(scheduledRegistration.Constraint).Because(assertionContext);
         }
     }
 
@@ -1511,7 +1325,7 @@ public sealed class DeliveryTemperatureGameSessionTests
             minimumInclusiveKelvin,
             maximumExclusiveKelvin);
 
-    private static void PublishCompleteWorldResourceAmount(
+    private static async Task PublishCompleteWorldResourceAmount(
         DeliveryTemperatureGameSession session,
         int worldId,
         WorldInventoryCollectionGeneration collectionGeneration,
@@ -1523,14 +1337,13 @@ public sealed class DeliveryTemperatureGameSessionTests
         builder.BeginResourceTag(resourceTag);
         builder.AddTemperatureAmount(temperatureKelvin: 300.0f, amount);
         builder.CompleteResourceTag();
-        Assert.IsTrue(
-            session.WorldResourceTemperatureAmounts
+        await Assert.That(session.WorldResourceTemperatureAmounts
                 .PublishCompleteWorldResourceAmounts(
                     worldId,
-                    builder.Build()));
+                    builder.Build())).IsTrue();
     }
 
-    private static float RequireCompleteTemperatureConstrainedAmount(
+    private static async Task<float> RequireCompleteTemperatureConstrainedAmount(
         DeliveryTemperatureGameSession session,
         int parentWorldId,
         Tag resourceTag,
@@ -1543,9 +1356,7 @@ public sealed class DeliveryTemperatureGameSessionTests
                 resourceTag,
                 constraint,
                 collectionGeneration);
-        Assert.IsTrue(
-            availability.TryGetCompleteAvailableAmount(out var amount),
-            $"Expected a complete aggregate for parent world " +
+        await Assert.That(availability.TryGetCompleteAvailableAmount(out var amount)).IsTrue().Because($"Expected a complete aggregate for parent world " +
             $"{parentWorldId} and resource tag {resourceTag}.");
         return amount;
     }
@@ -1567,7 +1378,7 @@ public sealed class DeliveryTemperatureGameSessionTests
         int operationIndex) =>
         $"Seed=0x{LifecycleScheduleSeed:X}; operation index={operationIndex}.";
 
-    private static FieldInfo RequirePrivateStaticField(
+    private static async Task<FieldInfo> RequirePrivateStaticField(
         Type declaringType,
         string exactFieldName,
         Type exactFieldType)
@@ -1575,15 +1386,13 @@ public sealed class DeliveryTemperatureGameSessionTests
         var field = declaringType.GetField(
             exactFieldName,
             BindingFlags.Static | BindingFlags.NonPublic);
-        Assert.IsNotNull(
-            field,
-            $"The representation contract requires the exact private static " +
+        if (field is null) throw new TUnit.Assertions.Exceptions.AssertionException($"The representation contract requires the exact private static " +
             $"field {declaringType.Name}.{exactFieldName}.");
-        Assert.AreEqual(exactFieldType, field.FieldType);
+        await Assert.That(field.FieldType).IsEqualTo(exactFieldType);
         return field;
     }
 
-    private static FieldInfo RequirePrivateInstanceField(
+    private static async Task<FieldInfo> RequirePrivateInstanceField(
         Type declaringType,
         string exactFieldName,
         Type exactFieldType)
@@ -1591,11 +1400,9 @@ public sealed class DeliveryTemperatureGameSessionTests
         var field = declaringType.GetField(
             exactFieldName,
             BindingFlags.Instance | BindingFlags.NonPublic);
-        Assert.IsNotNull(
-            field,
-            $"The representation contract requires the exact private instance " +
+        if (field is null) throw new TUnit.Assertions.Exceptions.AssertionException($"The representation contract requires the exact private instance " +
             $"field {declaringType.Name}.{exactFieldName}.");
-        Assert.AreEqual(exactFieldType, field.FieldType);
+        await Assert.That(field.FieldType).IsEqualTo(exactFieldType);
         return field;
     }
 

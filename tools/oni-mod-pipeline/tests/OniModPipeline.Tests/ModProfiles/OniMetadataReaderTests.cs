@@ -3,33 +3,31 @@ using MaksymShostak.OniModPipeline.ModProfiles;
 using MaksymShostak.OniModPipeline.Tests.Fixtures;
 
 namespace MaksymShostak.OniModPipeline.Tests.ModProfiles;
-
-[TestClass]
 public sealed class OniMetadataReaderTests
 {
     private readonly OniMetadataReader metadataReader = new();
 
-    [TestMethod]
-    public void Read_WhenYamlContainsAllRequiredScalars_ReturnsTypedMetadata()
+    [Test]
+    public async Task Read_WhenYamlContainsAllRequiredScalars_ReturnsTypedMetadata()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         WriteValidMetadata(temporaryDirectory);
 
         var result = metadataReader.Read(CreateProfile(temporaryDirectory));
 
-        Assert.IsTrue(result.IsSuccess);
-        Assert.IsNotNull(result.Value);
-        Assert.AreEqual("MaksymShostak.ExampleMod", result.Value.StaticId);
-        Assert.AreEqual("Example Mod", result.Value.Title);
-        Assert.AreEqual("Example description", result.Value.Description);
-        Assert.AreEqual("ALL", result.Value.SupportedContent);
-        Assert.AreEqual(596100, result.Value.MinimumSupportedBuild);
-        Assert.AreEqual("2026.8.27", result.Value.Version);
-        Assert.AreEqual(2, result.Value.ApiVersion);
+        await Assert.That(result.IsSuccess).IsTrue();
+        Assert.NotNull(result.Value);
+        await Assert.That(result.Value.StaticId).IsEqualTo("MaksymShostak.ExampleMod");
+        await Assert.That(result.Value.Title).IsEqualTo("Example Mod");
+        await Assert.That(result.Value.Description).IsEqualTo("Example description");
+        await Assert.That(result.Value.SupportedContent).IsEqualTo("ALL");
+        await Assert.That(result.Value.MinimumSupportedBuild).IsEqualTo(596100);
+        await Assert.That(result.Value.Version).IsEqualTo("2026.8.27");
+        await Assert.That(result.Value.ApiVersion).IsEqualTo(2);
     }
 
-    [TestMethod]
-    public void Read_WhenYamlContainsAdditionalOniOwnedKey_StillReturnsRequiredMetadata()
+    [Test]
+    public async Task Read_WhenYamlContainsAdditionalOniOwnedKey_StillReturnsRequiredMetadata()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         WriteValidMetadata(
@@ -38,12 +36,12 @@ public sealed class OniMetadataReaderTests
 
         var result = metadataReader.Read(CreateProfile(temporaryDirectory));
 
-        Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual("MaksymShostak.ExampleMod", result.Value?.StaticId);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value?.StaticId).IsEqualTo("MaksymShostak.ExampleMod");
     }
 
-    [TestMethod]
-    public void Read_WhenYamlHasMultipleDocuments_ReturnsOnip1005()
+    [Test]
+    public async Task Read_WhenYamlHasMultipleDocuments_ReturnsOnip1005()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         File.WriteAllText(
@@ -59,32 +57,32 @@ public sealed class OniMetadataReaderTests
 
         var result = metadataReader.Read(CreateProfile(temporaryDirectory));
 
-        Assert.AreEqual(PipelineExitCode.InvalidInput, result.ExitCode);
-        Assert.AreEqual("ONIP1005", result.Diagnostics.Single().Id);
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.InvalidInput);
+        await Assert.That(result.Diagnostics.Single().Id).IsEqualTo("ONIP1005");
     }
 
-    [TestMethod]
-    public void Read_WhenDeclaredYamlIsMissing_ReturnsOnip1008()
+    [Test]
+    public async Task Read_WhenDeclaredYamlIsMissing_ReturnsOnip1008()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         File.WriteAllText(temporaryDirectory.GetPath("mod.yaml"), ValidModYaml);
 
         var result = metadataReader.Read(CreateProfile(temporaryDirectory));
 
-        Assert.AreEqual(PipelineExitCode.InvalidInput, result.ExitCode);
-        Assert.AreEqual("ONIP1008", result.Diagnostics.Single().Id);
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.InvalidInput);
+        await Assert.That(result.Diagnostics.Single().Id).IsEqualTo("ONIP1008");
     }
 
-    [TestMethod]
-    [DataRow(
+    [Test]
+    [Arguments(
         "title: First title\ntitle: Second title\ndescription: Example description\nstaticID: MaksymShostak.ExampleMod\n")]
-    [DataRow(
+    [Arguments(
         "title: &title Example Mod\ndescription: *title\nstaticID: MaksymShostak.ExampleMod\n")]
-    [DataRow(
+    [Arguments(
         "title: !custom Example Mod\ndescription: Example description\nstaticID: MaksymShostak.ExampleMod\n")]
-    [DataRow(
+    [Arguments(
         "title:\n  - Example Mod\ndescription: Example description\nstaticID: MaksymShostak.ExampleMod\n")]
-    public void Read_WhenYamlUsesUnsupportedStructure_ReturnsOnip1005(string modYaml)
+    public async Task Read_WhenYamlUsesUnsupportedStructure_ReturnsOnip1005(string modYaml)
     {
         using var temporaryDirectory = new TemporaryDirectory();
         File.WriteAllText(temporaryDirectory.GetPath("mod.yaml"), modYaml);
@@ -92,12 +90,12 @@ public sealed class OniMetadataReaderTests
 
         var result = metadataReader.Read(CreateProfile(temporaryDirectory));
 
-        Assert.AreEqual(PipelineExitCode.InvalidInput, result.ExitCode);
-        Assert.AreEqual("ONIP1005", result.Diagnostics.Single().Id);
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.InvalidInput);
+        await Assert.That(result.Diagnostics.Single().Id).IsEqualTo("ONIP1005");
     }
 
-    [TestMethod]
-    public void Read_WhenInterpretedIntegerOverflows_ReturnsOnip1005()
+    [Test]
+    public async Task Read_WhenInterpretedIntegerOverflows_ReturnsOnip1005()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         File.WriteAllText(temporaryDirectory.GetPath("mod.yaml"), ValidModYaml);
@@ -110,8 +108,8 @@ public sealed class OniMetadataReaderTests
 
         var result = metadataReader.Read(CreateProfile(temporaryDirectory));
 
-        Assert.AreEqual(PipelineExitCode.InvalidInput, result.ExitCode);
-        Assert.AreEqual("ONIP1005", result.Diagnostics.Single().Id);
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.InvalidInput);
+        await Assert.That(result.Diagnostics.Single().Id).IsEqualTo("ONIP1005");
     }
 
     private static ModProfile CreateProfile(TemporaryDirectory temporaryDirectory) =>

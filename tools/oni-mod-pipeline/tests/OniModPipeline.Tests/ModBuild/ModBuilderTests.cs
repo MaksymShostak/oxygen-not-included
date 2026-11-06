@@ -11,36 +11,44 @@ using System.Text;
 using System.Text.Json;
 
 namespace MaksymShostak.OniModPipeline.Tests.ModBuild;
-
-[TestClass]
 public sealed class ModBuilderTests
 {
-    [TestMethod]
-    [DataRow("Directory.Packages.props")]
-    [DataRow("global.json")]
+    [Test]
+    [Arguments("Directory.Packages.props")]
+    [Arguments("global.json")]
+    [Arguments("tests/TUnitProjectDefaults.cs")]
+    [Arguments("tests/TUnitProject.props")]
     public async Task BuildAsync_WithCentralDotnetControls_RecordsTheirDigests(string control)
     {
         using var fixture = new BuildFixture();
-        var path = Path.Combine(fixture.WorktreeRoot, control);
+        var path = Path.GetFullPath(Path.Combine(fixture.WorktreeRoot, control));
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(path, "original\n");
         fixture.ProcessRunner.BuildAction = fixture.WritePrimaryOutput;
         var result = await new ModBuilder(fixture.ProcessRunner, new Utf8ArtifactWriter())
             .BuildAsync(fixture.CreateRequest(), CancellationToken.None);
-        Assert.IsTrue(result.IsSuccess);
-        Assert.IsTrue(result.Value!.Inputs.Any(input => input.Path == path));
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value!.Inputs.Any(input => input.Path == path)).IsTrue();
     }
 
-    [TestMethod]
-    [DataRow("Directory.Packages.props", "edit")]
-    [DataRow("Directory.Packages.props", "create")]
-    [DataRow("Directory.Packages.props", "delete")]
-    [DataRow("global.json", "edit")]
-    [DataRow("global.json", "create")]
-    [DataRow("global.json", "delete")]
+    [Test]
+    [Arguments("Directory.Packages.props", "edit")]
+    [Arguments("Directory.Packages.props", "create")]
+    [Arguments("Directory.Packages.props", "delete")]
+    [Arguments("global.json", "edit")]
+    [Arguments("global.json", "create")]
+    [Arguments("global.json", "delete")]
+    [Arguments("tests/TUnitProjectDefaults.cs", "edit")]
+    [Arguments("tests/TUnitProjectDefaults.cs", "create")]
+    [Arguments("tests/TUnitProjectDefaults.cs", "delete")]
+    [Arguments("tests/TUnitProject.props", "edit")]
+    [Arguments("tests/TUnitProject.props", "create")]
+    [Arguments("tests/TUnitProject.props", "delete")]
     public async Task BuildAsync_WhenCentralDotnetControlsChange_RejectsStaleBuild(string control, string change)
     {
         using var fixture = new BuildFixture();
-        var path = Path.Combine(fixture.WorktreeRoot, control);
+        var path = Path.GetFullPath(Path.Combine(fixture.WorktreeRoot, control));
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         if (change != "create") File.WriteAllText(path, "original\n");
         fixture.ProcessRunner.BuildAction = request =>
         {
@@ -50,11 +58,11 @@ public sealed class ModBuilderTests
         };
         var result = await new ModBuilder(fixture.ProcessRunner, new Utf8ArtifactWriter())
             .BuildAsync(fixture.CreateRequest(), CancellationToken.None);
-        AssertDiagnostic(result, DiagnosticIds.SourceChangedDuringBuild);
-        Assert.IsFalse(File.Exists(Path.Combine(fixture.RunRoot, "build-result.json")));
+        await AssertDiagnostic(result, DiagnosticIds.SourceChangedDuringBuild);
+        await Assert.That(File.Exists(Path.Combine(fixture.RunRoot, "build-result.json"))).IsFalse();
     }
 
-    [TestMethod]
+    [Test]
     public async Task BuildAsync_WhenProfileHasBuild_RestoresLockedThenBuildsWithoutShell()
     {
         using var fixture = new BuildFixture();
@@ -65,38 +73,27 @@ public sealed class ModBuilderTests
             fixture.CreateRequest(),
             CancellationToken.None);
 
-        Assert.AreEqual(
-            PipelineExitCode.Success,
-            result.ExitCode,
-            string.Join(Environment.NewLine, result.Diagnostics.Select(d => d.Evidence)));
-        Assert.IsNotNull(result.Value);
-        Assert.AreEqual(3, fixture.ProcessRunner.Requests.Count);
-        Assert.IsTrue(fixture.ProcessRunner.Requests.All(request => request.FileName == "dotnet"));
-        CollectionAssert.AreEqual(
-            fixture.ExpectedRestoreArguments,
-            fixture.ProcessRunner.Requests[0].Arguments.ToArray());
-        CollectionAssert.AreEqual(
-            fixture.ExpectedResolveReferencesArguments,
-            fixture.ProcessRunner.Requests[1].Arguments.ToArray());
-        CollectionAssert.AreEqual(
-            fixture.ExpectedBuildArguments,
-            fixture.ProcessRunner.Requests[2].Arguments.ToArray());
-        Assert.IsTrue(fixture.ProcessRunner.Requests.All(
-            request => request.EnvironmentVariables.Count == 0));
-        CollectionAssert.AreEqual(
-            fixture.ExpectedBuildArguments,
-            result.Value.StructuredBuildArguments.ToArray());
-        Assert.AreEqual(fixture.PrimaryOutputPath, result.Value.PrimaryOutputPath);
-        Assert.AreEqual(1, result.Value.Outputs.Count);
-        Assert.AreEqual(fixture.PrimaryOutputPath, result.Value.Outputs[0].Path);
-        Assert.AreEqual(fixture.MergeInputPath, result.Value.MergeInputs.Single().Path);
-        Assert.AreEqual(fixture.GameReferencePath, result.Value.GameReferences.Single().Path);
-        Assert.IsTrue(result.Value.Inputs.Any(input => input.Path == fixture.SourcePath));
-        Assert.IsTrue(result.Value.SourceBytesUnchanged);
-        Assert.IsTrue(File.Exists(Path.Combine(fixture.RunRoot, "build-result.json")));
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.Success).Because(string.Join(Environment.NewLine, result.Diagnostics.Select(d => d.Evidence)));
+        Assert.NotNull(result.Value);
+        await Assert.That(fixture.ProcessRunner.Requests.Count).IsEqualTo(3);
+        await Assert.That(fixture.ProcessRunner.Requests.All(request => request.FileName == "dotnet")).IsTrue();
+        await Assert.That(fixture.ProcessRunner.Requests[0].Arguments.ToArray()).IsEquivalentTo(fixture.ExpectedRestoreArguments, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(fixture.ProcessRunner.Requests[1].Arguments.ToArray()).IsEquivalentTo(fixture.ExpectedResolveReferencesArguments, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(fixture.ProcessRunner.Requests[2].Arguments.ToArray()).IsEquivalentTo(fixture.ExpectedBuildArguments, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(fixture.ProcessRunner.Requests.All(
+            request => request.EnvironmentVariables.Count == 0)).IsTrue();
+        await Assert.That(result.Value.StructuredBuildArguments.ToArray()).IsEquivalentTo(fixture.ExpectedBuildArguments, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(result.Value.PrimaryOutputPath).IsEqualTo(fixture.PrimaryOutputPath);
+        await Assert.That(result.Value.Outputs.Count).IsEqualTo(1);
+        await Assert.That(result.Value.Outputs[0].Path).IsEqualTo(fixture.PrimaryOutputPath);
+        await Assert.That(result.Value.MergeInputs.Single().Path).IsEqualTo(fixture.MergeInputPath);
+        await Assert.That(result.Value.GameReferences.Single().Path).IsEqualTo(fixture.GameReferencePath);
+        await Assert.That(result.Value.Inputs.Any(input => input.Path == fixture.SourcePath)).IsTrue();
+        await Assert.That(result.Value.SourceBytesUnchanged).IsTrue();
+        await Assert.That(File.Exists(Path.Combine(fixture.RunRoot, "build-result.json"))).IsTrue();
     }
 
-    [TestMethod]
+    [Test]
     public async Task BuildAsync_WhenSourceBytesChange_ReturnsOnip3003()
     {
         using var fixture = new BuildFixture();
@@ -111,11 +108,11 @@ public sealed class ModBuilderTests
             fixture.CreateRequest(),
             CancellationToken.None);
 
-        AssertDiagnostic(result, DiagnosticIds.SourceChangedDuringBuild);
-        Assert.IsFalse(File.Exists(Path.Combine(fixture.RunRoot, "build-result.json")));
+        await AssertDiagnostic(result, DiagnosticIds.SourceChangedDuringBuild);
+        await Assert.That(File.Exists(Path.Combine(fixture.RunRoot, "build-result.json"))).IsFalse();
     }
 
-    [TestMethod]
+    [Test]
     public async Task BuildAsync_WhenPrimaryOutputIsMissing_ReturnsOnip3004()
     {
         using var fixture = new BuildFixture();
@@ -125,11 +122,11 @@ public sealed class ModBuilderTests
             fixture.CreateRequest(),
             CancellationToken.None);
 
-        AssertDiagnostic(result, DiagnosticIds.BuildOutputMissing);
-        Assert.IsFalse(File.Exists(Path.Combine(fixture.RunRoot, "build-result.json")));
+        await AssertDiagnostic(result, DiagnosticIds.BuildOutputMissing);
+        await Assert.That(File.Exists(Path.Combine(fixture.RunRoot, "build-result.json"))).IsFalse();
     }
 
-    [TestMethod]
+    [Test]
     public async Task BuildAsync_WhenLockedRestoreFails_ReturnsOnip3001()
     {
         using var fixture = new BuildFixture();
@@ -140,11 +137,11 @@ public sealed class ModBuilderTests
             fixture.CreateRequest(),
             CancellationToken.None);
 
-        AssertDiagnostic(result, DiagnosticIds.RestoreFailed);
-        Assert.AreEqual(1, fixture.ProcessRunner.Requests.Count);
+        await AssertDiagnostic(result, DiagnosticIds.RestoreFailed);
+        await Assert.That(fixture.ProcessRunner.Requests.Count).IsEqualTo(1);
     }
 
-    [TestMethod]
+    [Test]
     public async Task BuildAsync_WhenBuildProcessFails_ReturnsOnip3002()
     {
         using var fixture = new BuildFixture();
@@ -155,11 +152,11 @@ public sealed class ModBuilderTests
             fixture.CreateRequest(),
             CancellationToken.None);
 
-        AssertDiagnostic(result, DiagnosticIds.BuildFailed);
-        Assert.AreEqual(3, fixture.ProcessRunner.Requests.Count);
+        await AssertDiagnostic(result, DiagnosticIds.BuildFailed);
+        await Assert.That(fixture.ProcessRunner.Requests.Count).IsEqualTo(3);
     }
 
-    [TestMethod]
+    [Test]
     public async Task BuildAsync_WhenDeclaredMergeInputIsMissing_ReturnsOnip3002()
     {
         using var fixture = new BuildFixture();
@@ -170,11 +167,11 @@ public sealed class ModBuilderTests
             fixture.CreateRequest(),
             CancellationToken.None);
 
-        AssertDiagnostic(result, DiagnosticIds.BuildFailed);
-        Assert.AreEqual(2, fixture.ProcessRunner.Requests.Count);
+        await AssertDiagnostic(result, DiagnosticIds.BuildFailed);
+        await Assert.That(fixture.ProcessRunner.Requests.Count).IsEqualTo(2);
     }
 
-    [TestMethod]
+    [Test]
     public async Task BuildAsync_WhenCopyLocalReferenceIsUndeclared_ReturnsOnip3002()
     {
         using var fixture = new BuildFixture();
@@ -186,11 +183,11 @@ public sealed class ModBuilderTests
             fixture.CreateRequest(),
             CancellationToken.None);
 
-        AssertDiagnostic(result, DiagnosticIds.BuildFailed);
-        Assert.AreEqual(2, fixture.ProcessRunner.Requests.Count);
+        await AssertDiagnostic(result, DiagnosticIds.BuildFailed);
+        await Assert.That(fixture.ProcessRunner.Requests.Count).IsEqualTo(2);
     }
 
-    [TestMethod]
+    [Test]
     public async Task BuildAsync_WhenDeclaredMergeInputResolvesTwice_ReturnsOnip3002()
     {
         using var fixture = new BuildFixture();
@@ -203,11 +200,11 @@ public sealed class ModBuilderTests
             fixture.CreateRequest(),
             CancellationToken.None);
 
-        AssertDiagnostic(result, DiagnosticIds.BuildFailed);
-        Assert.AreEqual(2, fixture.ProcessRunner.Requests.Count);
+        await AssertDiagnostic(result, DiagnosticIds.BuildFailed);
+        await Assert.That(fixture.ProcessRunner.Requests.Count).IsEqualTo(2);
     }
 
-    [TestMethod]
+    [Test]
     public async Task BuildAsync_WhenPrimaryOutputIsManagedAssembly_RecordsThreeVersionMeanings()
     {
         using var fixture = new BuildFixture();
@@ -228,23 +225,14 @@ public sealed class ModBuilderTests
             fixture.CreateRequest(releaseVersion),
             CancellationToken.None);
 
-        Assert.AreEqual(
-            PipelineExitCode.Success,
-            result.ExitCode,
-            string.Join(Environment.NewLine, result.Diagnostics.Select(d => d.Evidence)));
-        Assert.IsNotNull(result.Value?.PrimaryAssemblyVersion);
-        Assert.AreEqual(
-            assembly.GetName().Version!.ToString(),
-            result.Value.PrimaryAssemblyVersion.AssemblyVersion);
-        Assert.AreEqual(
-            assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version,
-            result.Value.PrimaryAssemblyVersion.FileVersion);
-        Assert.AreEqual(
-            informationalVersion,
-            result.Value.PrimaryAssemblyVersion.InformationalVersion);
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.Success).Because(string.Join(Environment.NewLine, result.Diagnostics.Select(d => d.Evidence)));
+        Assert.NotNull(result.Value?.PrimaryAssemblyVersion);
+        await Assert.That(result.Value.PrimaryAssemblyVersion.AssemblyVersion).IsEqualTo(assembly.GetName().Version!.ToString());
+        await Assert.That(result.Value.PrimaryAssemblyVersion.FileVersion).IsEqualTo(assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version);
+        await Assert.That(result.Value.PrimaryAssemblyVersion.InformationalVersion).IsEqualTo(informationalVersion);
     }
 
-    [TestMethod]
+    [Test]
     public async Task BuildAsync_WhenArtifactReleaseVersionDiffersFromMetadata_RejectsBuild()
     {
         using var fixture = new BuildFixture();
@@ -252,7 +240,7 @@ public sealed class ModBuilderTests
         var artifactVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!
             .InformationalVersion.Split('+')[0];
         const string requestedVersion = "65534.65534";
-        Assert.AreNotEqual(requestedVersion, artifactVersion, "Fixture must contain a real version mismatch.");
+        await Assert.That(artifactVersion).IsNotEqualTo(requestedVersion).Because("Fixture must contain a real version mismatch.");
         fixture.ProcessRunner.BuildAction = request =>
         {
             var destination = fixture.GetPrimaryOutputPath(request);
@@ -263,13 +251,13 @@ public sealed class ModBuilderTests
 
         var result = await builder.BuildAsync(fixture.CreateRequest(requestedVersion), CancellationToken.None);
 
-        AssertDiagnostic(result, DiagnosticIds.BuildFailed);
-        Assert.IsTrue(result.Diagnostics.Any(diagnostic =>
-            diagnostic.Evidence.Contains("informational version", StringComparison.Ordinal)));
-        Assert.IsFalse(File.Exists(Path.Combine(fixture.RunRoot, "build-result.json")));
+        await AssertDiagnostic(result, DiagnosticIds.BuildFailed);
+        await Assert.That(result.Diagnostics.Any(diagnostic =>
+            diagnostic.Evidence.Contains("informational version", StringComparison.Ordinal))).IsTrue();
+        await Assert.That(File.Exists(Path.Combine(fixture.RunRoot, "build-result.json"))).IsFalse();
     }
 
-    [TestMethod]
+    [Test]
     public async Task BuildAsync_WhenPrimaryOutputIsManagedAssembly_RecordsTargetFrameworkMonikerFromArtifactMetadata()
     {
         using var fixture = new BuildFixture();
@@ -290,24 +278,17 @@ public sealed class ModBuilderTests
             fixture.CreateRequest(releaseVersion),
             CancellationToken.None);
 
-        Assert.AreEqual(
-            PipelineExitCode.Success,
-            result.ExitCode,
-            string.Join(Environment.NewLine, result.Diagnostics.Select(d => d.Evidence)));
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.Success).Because(string.Join(Environment.NewLine, result.Diagnostics.Select(d => d.Evidence)));
         using var buildResultJson = JsonDocument.Parse(
             await File.ReadAllBytesAsync(
                 Path.Combine(fixture.RunRoot, "build-result.json")));
-        Assert.IsTrue(
-            buildResultJson.RootElement.TryGetProperty(
+        await Assert.That(buildResultJson.RootElement.TryGetProperty(
                 "primaryAssemblyTargetFrameworkMoniker",
-                out var targetFrameworkMoniker),
-            "The build result must carry target-framework evidence read from the exact primary assembly.");
-        Assert.AreEqual(
-            "net10.0",
-            targetFrameworkMoniker.GetString());
+                out var targetFrameworkMoniker)).IsTrue().Because("The build result must carry target-framework evidence read from the exact primary assembly.");
+        await Assert.That(targetFrameworkMoniker.GetString()).IsEqualTo("net10.0");
     }
 
-    [TestMethod]
+    [Test]
     public async Task BuildAsync_WhenManagedArtifactDeclaresNetStandardFramework_RecordsCanonicalMonikerAndFrameworkName()
     {
         using var fixture = new BuildFixture();
@@ -332,26 +313,19 @@ public sealed class ModBuilderTests
             fixture.CreateRequest(releaseVersion),
             CancellationToken.None);
 
-        Assert.AreEqual(
-            PipelineExitCode.Success,
-            result.ExitCode,
-            string.Join(Environment.NewLine, result.Diagnostics.Select(d => d.Evidence)));
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.Success).Because(string.Join(Environment.NewLine, result.Diagnostics.Select(d => d.Evidence)));
         using var buildResultJson = JsonDocument.Parse(
             await File.ReadAllBytesAsync(
                 Path.Combine(fixture.RunRoot, "build-result.json")));
-        Assert.AreEqual(
-            "netstandard2.1",
-            buildResultJson.RootElement
+        await Assert.That(buildResultJson.RootElement
                 .GetProperty("primaryAssemblyTargetFrameworkMoniker")
-                .GetString());
-        Assert.AreEqual(
-            ".NETStandard,Version=v2.1",
-            buildResultJson.RootElement
+                .GetString()).IsEqualTo("netstandard2.1");
+        await Assert.That(buildResultJson.RootElement
                 .GetProperty("primaryAssemblyTargetFrameworkName")
-                .GetString());
+                .GetString()).IsEqualTo(".NETStandard,Version=v2.1");
     }
 
-    [TestMethod]
+    [Test]
     public async Task BuildAsync_WhenProfileIsContentOnly_ProducesEmptySuccessfulBuildResult()
     {
         using var fixture = new BuildFixture(hasBuild: false);
@@ -361,20 +335,20 @@ public sealed class ModBuilderTests
             fixture.CreateRequest(),
             CancellationToken.None);
 
-        Assert.AreEqual(PipelineExitCode.Success, result.ExitCode);
-        Assert.IsNotNull(result.Value);
-        Assert.AreEqual(0, fixture.ProcessRunner.Requests.Count);
-        Assert.IsNull(result.Value.PrimaryOutputPath);
-        Assert.AreEqual(0, result.Value.Outputs.Count);
-        Assert.AreEqual(0, result.Value.MergeInputs.Count);
-        Assert.AreEqual(0, result.Value.GameReferences.Count);
-        Assert.AreEqual(0, result.Value.StructuredBuildArguments.Count);
-        Assert.IsNull(result.Value.PrimaryAssemblyVersion);
-        Assert.IsTrue(result.Value.SourceBytesUnchanged);
-        Assert.IsTrue(File.Exists(Path.Combine(fixture.RunRoot, "build-result.json")));
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.Success);
+        Assert.NotNull(result.Value);
+        await Assert.That(fixture.ProcessRunner.Requests.Count).IsEqualTo(0);
+        await Assert.That(result.Value.PrimaryOutputPath).IsNull();
+        await Assert.That(result.Value.Outputs.Count).IsEqualTo(0);
+        await Assert.That(result.Value.MergeInputs.Count).IsEqualTo(0);
+        await Assert.That(result.Value.GameReferences.Count).IsEqualTo(0);
+        await Assert.That(result.Value.StructuredBuildArguments.Count).IsEqualTo(0);
+        await Assert.That(result.Value.PrimaryAssemblyVersion).IsNull();
+        await Assert.That(result.Value.SourceBytesUnchanged).IsTrue();
+        await Assert.That(File.Exists(Path.Combine(fixture.RunRoot, "build-result.json"))).IsTrue();
     }
 
-    [TestMethod]
+    [Test]
     public async Task BuildAsync_WhenRunRootsContainSpacesAndDelimiters_ProducesRepeatableAssembliesInIsolation()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -436,23 +410,20 @@ public sealed class ModBuilderTests
                     "0123456789abcdef0123456789abcdef01234567"),
                 CancellationToken.None);
 
-            Assert.AreEqual(
-                PipelineExitCode.Success,
-                result.ExitCode,
-                string.Join(Environment.NewLine, result.Diagnostics.Select(d => d.Evidence)));
-            Assert.IsNotNull(result.Value);
-            Assert.IsTrue(result.Value.PrimaryOutputPath!.StartsWith(
+            await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.Success).Because(string.Join(Environment.NewLine, result.Diagnostics.Select(d => d.Evidence)));
+            Assert.NotNull(result.Value);
+            await Assert.That(result.Value.PrimaryOutputPath!.StartsWith(
                 Path.GetFullPath(runRoot) + Path.DirectorySeparatorChar,
-                StringComparison.OrdinalIgnoreCase));
-            Assert.IsTrue(File.Exists(result.Value.PrimaryOutputPath));
+                StringComparison.OrdinalIgnoreCase)).IsTrue();
+            await Assert.That(File.Exists(result.Value.PrimaryOutputPath)).IsTrue();
             outputHashes.Add(Convert.ToHexString(SHA256.HashData(
                 await File.ReadAllBytesAsync(result.Value.PrimaryOutputPath))));
-            CollectionAssert.AreEqual(sourceBytes, await File.ReadAllBytesAsync(sourcePath));
+            await Assert.That(await File.ReadAllBytesAsync(sourcePath)).IsEquivalentTo(sourceBytes, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         }
 
-        Assert.AreEqual(outputHashes[0], outputHashes[1]);
-        Assert.AreEqual(0, CountFilesIfDirectoryExists(Path.Combine(sourceDirectory, "bin")));
-        Assert.AreEqual(0, CountFilesIfDirectoryExists(Path.Combine(sourceDirectory, "obj")));
+        await Assert.That(outputHashes[1]).IsEqualTo(outputHashes[0]);
+        await Assert.That(CountFilesIfDirectoryExists(Path.Combine(sourceDirectory, "bin"))).IsEqualTo(0);
+        await Assert.That(CountFilesIfDirectoryExists(Path.Combine(sourceDirectory, "obj"))).IsEqualTo(0);
     }
 
     private static void ReplaceUniqueEqualLengthUtf8Sequence(
@@ -462,10 +433,8 @@ public sealed class ModBuilderTests
     {
         var existingBytes = Encoding.UTF8.GetBytes(existingValue);
         var replacementBytes = Encoding.UTF8.GetBytes(replacementValue);
-        Assert.AreEqual(
-            existingBytes.Length,
-            replacementBytes.Length,
-            "The metadata fixture replacement must preserve the PE blob length.");
+        if (replacementBytes.Length != existingBytes.Length)
+            Assert.Fail("The metadata fixture replacement must preserve the PE blob length.");
 
         var fileBytes = File.ReadAllBytes(filePath);
         var matchOffsets = new List<int>();
@@ -477,22 +446,18 @@ public sealed class ModBuilderTests
             }
         }
 
-        Assert.HasCount(
-            1,
-            matchOffsets,
-            "The managed test artifact must contain exactly one target-framework name payload.");
+        if (matchOffsets.Count != 1)
+            Assert.Fail("The managed test artifact must contain exactly one target-framework name payload.");
         replacementBytes.CopyTo(fileBytes.AsSpan(matchOffsets[0], replacementBytes.Length));
         File.WriteAllBytes(filePath, fileBytes);
     }
 
-    private static void AssertDiagnostic(
+    private static async Task AssertDiagnostic(
         OperationResult<BuildResult> result,
         string expectedId)
     {
-        Assert.AreEqual(PipelineExitCode.BuildOrTestFailed, result.ExitCode);
-        Assert.IsTrue(
-            result.Diagnostics.Any(diagnostic => diagnostic.Id == expectedId),
-            $"Expected {expectedId}; received " +
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.BuildOrTestFailed);
+        await Assert.That(result.Diagnostics.Any(diagnostic => diagnostic.Id == expectedId)).IsTrue().Because($"Expected {expectedId}; received " +
             string.Join(", ", result.Diagnostics.Select(diagnostic => diagnostic.Id)));
     }
 

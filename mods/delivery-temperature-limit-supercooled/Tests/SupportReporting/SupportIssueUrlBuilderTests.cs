@@ -1,10 +1,8 @@
 namespace DeliveryTemperatureLimit.Tests.SupportReporting;
-
-[TestClass]
 public sealed class SupportIssueUrlBuilderTests
 {
-    [TestMethod]
-    public void Create_WhenSummaryContainsReservedAndUnicodeText_PercentEncodesExactFixedQuery()
+    [Test]
+    public async Task Create_WhenSummaryContainsReservedAndUnicodeText_PercentEncodesExactFixedQuery()
     {
         const string summary = "build=744825 & branch=#public\r\nПривіт";
 
@@ -15,12 +13,12 @@ public sealed class SupportIssueUrlBuilderTests
             "?template=temperature-limit-bug.yml" +
             "&diagnostics=build%3D744825%20%26%20branch%3D%23public" +
             "%0D%0A%D0%9F%D1%80%D0%B8%D0%B2%D1%96%D1%82";
-        Assert.AreEqual(expected, result.Value);
-        Assert.IsFalse(result.SummaryWasShortened);
+        await Assert.That(result.Value).IsEqualTo(expected);
+        await Assert.That(result.SummaryWasShortened).IsFalse();
     }
 
-    [TestMethod]
-    public void Create_WhenSummaryAttemptsUrlInjection_KeepsFixedHostAndPath()
+    [Test]
+    public async Task Create_WhenSummaryAttemptsUrlInjection_KeepsFixedHostAndPath()
     {
         const string summary =
             "&template=https://evil.example/#fragment\r\nnext=value";
@@ -28,49 +26,41 @@ public sealed class SupportIssueUrlBuilderTests
         SupportIssueUrl result = SupportIssueUrlBuilder.Create(summary);
         var uri = new Uri(result.Value, UriKind.Absolute);
 
-        Assert.AreEqual(Uri.UriSchemeHttps, uri.Scheme);
-        Assert.AreEqual("github.com", uri.Host);
-        Assert.AreEqual(
-            "/MaksymShostak/oxygen-not-included/issues/new",
-            uri.AbsolutePath);
-        Assert.DoesNotContain("evil.example/#fragment", result.Value);
-        Assert.Contains(
-            "diagnostics=%26template%3Dhttps%3A%2F%2Fevil.example%2F%23fragment%0D%0A",
-            result.Value);
+        await Assert.That(uri.Scheme).IsEqualTo(Uri.UriSchemeHttps);
+        await Assert.That(uri.Host).IsEqualTo("github.com");
+        await Assert.That(uri.AbsolutePath).IsEqualTo("/MaksymShostak/oxygen-not-included/issues/new");
+        await Assert.That(result.Value).DoesNotContain("evil.example/#fragment");
+        await Assert.That(result.Value).Contains("diagnostics=%26template%3Dhttps%3A%2F%2Fevil.example%2F%23fragment%0D%0A");
     }
 
-    [TestMethod]
-    public void Create_WhenEncodedSummaryWouldExceedLimit_ShortensDeterministicallyWithMarker()
+    [Test]
+    public async Task Create_WhenEncodedSummaryWouldExceedLimit_ShortensDeterministicallyWithMarker()
     {
         string summary = new('&', 5_000);
 
         SupportIssueUrl first = SupportIssueUrlBuilder.Create(summary);
         SupportIssueUrl second = SupportIssueUrlBuilder.Create(summary);
 
-        Assert.IsTrue(first.SummaryWasShortened);
-        Assert.IsLessThanOrEqualTo(
-            SupportReportLimits.MaximumIssueUrlCharacters,
-            first.Value.Length);
-        Assert.AreEqual(first.Value, second.Value);
+        await Assert.That(first.SummaryWasShortened).IsTrue();
+        await Assert.That(first.Value.Length).IsLessThanOrEqualTo(SupportReportLimits.MaximumIssueUrlCharacters);
+        await Assert.That(second.Value).IsEqualTo(first.Value);
         const string queryPrefix =
             "?template=temperature-limit-bug.yml&diagnostics=";
         string encodedSummary = new Uri(first.Value).Query
             .Substring(queryPrefix.Length);
         string decodedSummary = Uri.UnescapeDataString(encodedSummary);
-        Assert.EndsWith(
-            "… [summary shortened; full details are in the local report file]",
-            decodedSummary);
+        await Assert.That(decodedSummary).EndsWith("… [summary shortened; full details are in the local report file]");
         string retainedPrefix = decodedSummary.Substring(
             0,
             decodedSummary.Length -
                 "… [summary shortened; full details are in the local report file]".Length);
-        Assert.IsTrue(retainedPrefix.All(character => character == '&'));
+        await Assert.That(retainedPrefix.All(character => character == '&')).IsTrue();
     }
 
-    [TestMethod]
-    public void Create_WhenSummaryIsNull_RejectsMissingDiagnostics()
+    [Test]
+    public async Task Create_WhenSummaryIsNull_RejectsMissingDiagnostics()
     {
-        Assert.ThrowsExactly<ArgumentNullException>(() =>
-            SupportIssueUrlBuilder.Create(null!));
+        await Assert.That(() =>
+            SupportIssueUrlBuilder.Create(null!)).ThrowsExactly<ArgumentNullException>();
     }
 }

@@ -1,16 +1,14 @@
 using System.Reflection;
 
 namespace DeliveryTemperatureLimit.Tests.WorldParentTopology;
-
-[TestClass]
 public sealed class WorldParentTopologyCatalogTests
 {
     private const int ConcurrentWriterIterationCount = 5000;
     private const int ConcurrentReaderIterationCount = 20000;
     private const int ConcurrentReaderCount = 4;
 
-    [TestMethod]
-    public void RegisterWorld_WhenMappingIsNew_IncrementsVersionOnce()
+    [Test]
+    public async Task RegisterWorld_WhenMappingIsNew_IncrementsVersionOnce()
     {
         var catalog = CreateCatalog();
         var initialSnapshot = catalog.CaptureSnapshot();
@@ -18,25 +16,21 @@ public sealed class WorldParentTopologyCatalogTests
         var change = catalog.RegisterWorld(worldId: 7, parentWorldId: 1);
         var changedSnapshot = catalog.CaptureSnapshot();
 
-        Assert.IsTrue(change.HasChanged);
-        Assert.AreEqual(7, change.WorldId);
-        Assert.IsNull(change.PreviousParentWorldId);
-        Assert.AreEqual(1, change.CurrentParentWorldId);
-        Assert.AreNotSame(initialSnapshot, changedSnapshot);
-        Assert.AreEqual(
-            initialSnapshot.Version.Value + 1,
-            changedSnapshot.Version.Value);
-        Assert.AreEqual(
-            initialSnapshot.GameSessionGeneration,
-            changedSnapshot.GameSessionGeneration);
-        Assert.IsTrue(changedSnapshot.TryResolveParentWorld(
+        await Assert.That(change.HasChanged).IsTrue();
+        await Assert.That(change.WorldId).IsEqualTo(7);
+        await Assert.That(change.PreviousParentWorldId).IsNull();
+        await Assert.That(change.CurrentParentWorldId).IsEqualTo(1);
+        await Assert.That(changedSnapshot).IsNotSameReferenceAs(initialSnapshot);
+        await Assert.That(changedSnapshot.Version.Value).IsEqualTo(initialSnapshot.Version.Value + 1);
+        await Assert.That(changedSnapshot.GameSessionGeneration).IsEqualTo(initialSnapshot.GameSessionGeneration);
+        await Assert.That(changedSnapshot.TryResolveParentWorld(
             7,
-            out var parentWorldId));
-        Assert.AreEqual(1, parentWorldId);
+            out var parentWorldId)).IsTrue();
+        await Assert.That(parentWorldId).IsEqualTo(1);
     }
 
-    [TestMethod]
-    public void RegisterWorld_WhenMappingIsIdentical_DoesNotChangeVersionOrSnapshotReference()
+    [Test]
+    public async Task RegisterWorld_WhenMappingIsIdentical_DoesNotChangeVersionOrSnapshotReference()
     {
         var catalog = CreateCatalog();
         catalog.RegisterWorld(worldId: 7, parentWorldId: 1);
@@ -44,77 +38,75 @@ public sealed class WorldParentTopologyCatalogTests
 
         var change = catalog.RegisterWorld(worldId: 7, parentWorldId: 1);
 
-        Assert.IsFalse(change.HasChanged);
-        Assert.AreEqual(7, change.WorldId);
-        Assert.AreEqual(1, change.PreviousParentWorldId);
-        Assert.AreEqual(1, change.CurrentParentWorldId);
-        Assert.AreSame(snapshotBeforeRepeat, catalog.CaptureSnapshot());
-        Assert.AreEqual(
-            snapshotBeforeRepeat.Version,
-            catalog.CaptureSnapshot().Version);
+        await Assert.That(change.HasChanged).IsFalse();
+        await Assert.That(change.WorldId).IsEqualTo(7);
+        await Assert.That(change.PreviousParentWorldId).IsEqualTo(1);
+        await Assert.That(change.CurrentParentWorldId).IsEqualTo(1);
+        await Assert.That(catalog.CaptureSnapshot()).IsSameReferenceAs(snapshotBeforeRepeat);
+        await Assert.That(catalog.CaptureSnapshot().Version).IsEqualTo(snapshotBeforeRepeat.Version);
     }
 
-    [TestMethod]
-    public void RegisterWorld_WhenExistingWorldChangesParent_ReturnsBothAffectedParents()
+    [Test]
+    public async Task RegisterWorld_WhenExistingWorldChangesParent_ReturnsBothAffectedParents()
     {
         var catalog = CreateCatalog();
         catalog.RegisterWorld(worldId: 7, parentWorldId: 1);
 
         var change = catalog.RegisterWorld(worldId: 7, parentWorldId: 2);
 
-        Assert.IsTrue(change.HasChanged);
-        Assert.AreEqual(7, change.WorldId);
-        Assert.AreEqual(1, change.PreviousParentWorldId);
-        Assert.AreEqual(2, change.CurrentParentWorldId);
-        Assert.IsTrue(catalog.CaptureSnapshot().TryResolveParentWorld(
+        await Assert.That(change.HasChanged).IsTrue();
+        await Assert.That(change.WorldId).IsEqualTo(7);
+        await Assert.That(change.PreviousParentWorldId).IsEqualTo(1);
+        await Assert.That(change.CurrentParentWorldId).IsEqualTo(2);
+        await Assert.That(catalog.CaptureSnapshot().TryResolveParentWorld(
             7,
-            out var parentWorldId));
-        Assert.AreEqual(2, parentWorldId);
+            out var parentWorldId)).IsTrue();
+        await Assert.That(parentWorldId).IsEqualTo(2);
     }
 
-    [TestMethod]
-    public void RegisterWorld_WhenWorldIsItsOwnParent_PreservesSelfParentMapping()
+    [Test]
+    public async Task RegisterWorld_WhenWorldIsItsOwnParent_PreservesSelfParentMapping()
     {
         var catalog = CreateCatalog();
 
         var change = catalog.RegisterWorld(worldId: 7, parentWorldId: 7);
         var snapshot = catalog.CaptureSnapshot();
 
-        Assert.IsTrue(change.HasChanged);
-        Assert.AreEqual(7, change.CurrentParentWorldId);
-        Assert.IsTrue(snapshot.TryResolveParentWorld(7, out var parentWorldId));
-        Assert.AreEqual(7, parentWorldId);
-        AssertMemberWorldIds(snapshot, parentWorldId: 7, 7);
+        await Assert.That(change.HasChanged).IsTrue();
+        await Assert.That(change.CurrentParentWorldId).IsEqualTo(7);
+        await Assert.That(snapshot.TryResolveParentWorld(7, out var parentWorldId)).IsTrue();
+        await Assert.That(parentWorldId).IsEqualTo(7);
+        await AssertMemberWorldIds(snapshot, parentWorldId: 7, 7);
     }
 
-    [TestMethod]
-    public void RegisterWorld_WhenWorldIdIsNegative_ThrowsArgumentOutOfRangeException()
+    [Test]
+    public async Task RegisterWorld_WhenWorldIdIsNegative_ThrowsArgumentOutOfRangeException()
     {
         var catalog = CreateCatalog();
         var snapshotBeforeFailure = catalog.CaptureSnapshot();
 
-        var exception = Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
-            catalog.RegisterWorld(worldId: -1, parentWorldId: 0));
+        var exception = (await Assert.That(() =>
+            catalog.RegisterWorld(worldId: -1, parentWorldId: 0)).ThrowsExactly<ArgumentOutOfRangeException>())!;
 
-        Assert.AreEqual("worldId", exception.ParamName);
-        Assert.AreSame(snapshotBeforeFailure, catalog.CaptureSnapshot());
+        await Assert.That(exception.ParamName).IsEqualTo("worldId");
+        await Assert.That(catalog.CaptureSnapshot()).IsSameReferenceAs(snapshotBeforeFailure);
     }
 
-    [TestMethod]
-    public void RegisterWorld_WhenParentWorldIdIsNegative_ThrowsArgumentOutOfRangeException()
+    [Test]
+    public async Task RegisterWorld_WhenParentWorldIdIsNegative_ThrowsArgumentOutOfRangeException()
     {
         var catalog = CreateCatalog();
         var snapshotBeforeFailure = catalog.CaptureSnapshot();
 
-        var exception = Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
-            catalog.RegisterWorld(worldId: 0, parentWorldId: -1));
+        var exception = (await Assert.That(() =>
+            catalog.RegisterWorld(worldId: 0, parentWorldId: -1)).ThrowsExactly<ArgumentOutOfRangeException>())!;
 
-        Assert.AreEqual("parentWorldId", exception.ParamName);
-        Assert.AreSame(snapshotBeforeFailure, catalog.CaptureSnapshot());
+        await Assert.That(exception.ParamName).IsEqualTo("parentWorldId");
+        await Assert.That(catalog.CaptureSnapshot()).IsSameReferenceAs(snapshotBeforeFailure);
     }
 
-    [TestMethod]
-    public void RemoveWorld_WhenKnown_ReturnsPreviousParentAndRemovesMapping()
+    [Test]
+    public async Task RemoveWorld_WhenKnown_ReturnsPreviousParentAndRemovesMapping()
     {
         var catalog = CreateCatalog();
         catalog.RegisterWorld(worldId: 7, parentWorldId: 2);
@@ -123,19 +115,17 @@ public sealed class WorldParentTopologyCatalogTests
         var change = catalog.RemoveWorld(worldId: 7);
         var snapshotAfterRemoval = catalog.CaptureSnapshot();
 
-        Assert.IsTrue(change.HasChanged);
-        Assert.AreEqual(7, change.WorldId);
-        Assert.AreEqual(2, change.PreviousParentWorldId);
-        Assert.IsNull(change.CurrentParentWorldId);
-        Assert.AreEqual(
-            snapshotBeforeRemoval.Version.Value + 1,
-            snapshotAfterRemoval.Version.Value);
-        Assert.IsFalse(snapshotAfterRemoval.TryResolveParentWorld(7, out _));
-        Assert.IsEmpty(snapshotAfterRemoval.GetMemberWorldIds(2));
+        await Assert.That(change.HasChanged).IsTrue();
+        await Assert.That(change.WorldId).IsEqualTo(7);
+        await Assert.That(change.PreviousParentWorldId).IsEqualTo(2);
+        await Assert.That(change.CurrentParentWorldId).IsNull();
+        await Assert.That(snapshotAfterRemoval.Version.Value).IsEqualTo(snapshotBeforeRemoval.Version.Value + 1);
+        await Assert.That(snapshotAfterRemoval.TryResolveParentWorld(7, out _)).IsFalse();
+        await Assert.That(snapshotAfterRemoval.GetMemberWorldIds(2)).IsEmpty();
     }
 
-    [TestMethod]
-    public void RemoveWorld_WhenUnknown_IsIdempotent()
+    [Test]
+    public async Task RemoveWorld_WhenUnknown_IsIdempotent()
     {
         var catalog = CreateCatalog();
         catalog.RegisterWorld(worldId: 7, parentWorldId: 2);
@@ -143,17 +133,15 @@ public sealed class WorldParentTopologyCatalogTests
 
         var change = catalog.RemoveWorld(worldId: 8);
 
-        Assert.IsFalse(change.HasChanged);
-        Assert.AreEqual(8, change.WorldId);
-        Assert.IsNull(change.PreviousParentWorldId);
-        Assert.IsNull(change.CurrentParentWorldId);
-        Assert.AreSame(
-            snapshotBeforeUnknownRemoval,
-            catalog.CaptureSnapshot());
+        await Assert.That(change.HasChanged).IsFalse();
+        await Assert.That(change.WorldId).IsEqualTo(8);
+        await Assert.That(change.PreviousParentWorldId).IsNull();
+        await Assert.That(change.CurrentParentWorldId).IsNull();
+        await Assert.That(catalog.CaptureSnapshot()).IsSameReferenceAs(snapshotBeforeUnknownRemoval);
     }
 
-    [TestMethod]
-    public void GetMemberWorldIds_WhenParentHasSeveralWorlds_ReturnsSortedImmutableIds()
+    [Test]
+    public async Task GetMemberWorldIds_WhenParentHasSeveralWorlds_ReturnsSortedImmutableIds()
     {
         var catalog = CreateCatalog();
         catalog.RegisterWorld(worldId: 9, parentWorldId: 1);
@@ -163,15 +151,15 @@ public sealed class WorldParentTopologyCatalogTests
 
         var memberWorldIds = snapshot.GetMemberWorldIds(parentWorldId: 1);
 
-        Assert.AreSequenceEqual(new[] { 2, 7, 9 }, memberWorldIds.ToArray());
-        Assert.IsFalse(memberWorldIds is int[]);
-        var mutableListView = Assert.IsInstanceOfType<IList<int>>(memberWorldIds);
-        Assert.ThrowsExactly<NotSupportedException>(() =>
-            mutableListView[0] = 99);
-        AssertMemberWorldIds(snapshot, parentWorldId: 1, 2, 7, 9);
+        await Assert.That(memberWorldIds.ToArray()).IsEquivalentTo(new[] { 2, 7, 9 }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(memberWorldIds is int[]).IsFalse();
+        var mutableListView = (await Assert.That(memberWorldIds).IsAssignableTo<IList<int>>())!;
+        await Assert.That(() =>
+            mutableListView[0] = 99).ThrowsExactly<NotSupportedException>();
+        await AssertMemberWorldIds(snapshot, parentWorldId: 1, 2, 7, 9);
     }
 
-    [TestMethod]
+    [Test]
     public async Task CaptureSnapshot_WhenMappingChanges_ReaderSeesCompleteOldOrCompleteNewMapping()
     {
         var catalog = CreateCatalog();
@@ -227,11 +215,11 @@ public sealed class WorldParentTopologyCatalogTests
         await writer;
         await Task.WhenAll(readers);
 
-        Assert.AreEqual(0, invalidSnapshotCount);
+        await Assert.That(invalidSnapshotCount).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void TryResolveParentWorld_WhenWorldIsUnknown_ReturnsFalseWithoutFallback()
+    [Test]
+    public async Task TryResolveParentWorld_WhenWorldIsUnknown_ReturnsFalseWithoutFallback()
     {
         var catalog = CreateCatalog();
         catalog.RegisterWorld(worldId: 0, parentWorldId: 0);
@@ -240,51 +228,49 @@ public sealed class WorldParentTopologyCatalogTests
             worldId: 999,
             out var parentWorldId);
 
-        Assert.IsFalse(found);
-        Assert.AreEqual(default, parentWorldId);
-        Assert.IsEmpty(catalog.CaptureSnapshot().GetMemberWorldIds(999));
+        await Assert.That(found).IsFalse();
+        await Assert.That(parentWorldId).IsEqualTo(default);
+        await Assert.That(catalog.CaptureSnapshot().GetMemberWorldIds(999)).IsEmpty();
     }
 
-    [TestMethod]
-    public void RegisterWorld_WhenTopologyVersionIsExhausted_ThrowsWithoutChangingSnapshot()
+    [Test]
+    public async Task RegisterWorld_WhenTopologyVersionIsExhausted_ThrowsWithoutChangingSnapshot()
     {
         var catalog = CreateCatalog();
         catalog.RegisterWorld(worldId: 7, parentWorldId: 1);
         var snapshotBeforeFailure = catalog.CaptureSnapshot();
-        var versionField = RequirePrivateInt64Field(
+        var versionField = await RequirePrivateInt64Field(
             typeof(WorldParentTopologyCatalog),
             "version");
         versionField.SetValue(catalog, long.MaxValue);
 
-        var exception = Assert.ThrowsExactly<InvalidOperationException>(() =>
-            catalog.RegisterWorld(worldId: 7, parentWorldId: 2));
+        var exception = (await Assert.That(() =>
+            catalog.RegisterWorld(worldId: 7, parentWorldId: 2)).ThrowsExactly<InvalidOperationException>())!;
 
-        StringAssert.Contains(exception.Message, "topology version");
-        Assert.AreSame(snapshotBeforeFailure, catalog.CaptureSnapshot());
-        Assert.IsTrue(catalog.CaptureSnapshot().TryResolveParentWorld(
+        await Assert.That(exception.Message).Contains("topology version");
+        await Assert.That(catalog.CaptureSnapshot()).IsSameReferenceAs(snapshotBeforeFailure);
+        await Assert.That(catalog.CaptureSnapshot().TryResolveParentWorld(
             7,
-            out var retainedParentWorldId));
-        Assert.AreEqual(1, retainedParentWorldId);
-        Assert.AreEqual(
-            long.MaxValue,
-            Assert.IsInstanceOfType<long>(versionField.GetValue(catalog)));
+            out var retainedParentWorldId)).IsTrue();
+        await Assert.That(retainedParentWorldId).IsEqualTo(1);
+        await Assert.That(((await Assert.That(versionField.GetValue(catalog)).IsAssignableTo<long>())!)).IsEqualTo(long.MaxValue);
     }
 
-    [TestMethod]
-    public void Catalog_WhenBaseGameContentModeShapeIsRegistered_PreservesReportedTopology()
+    [Test]
+    public async Task Catalog_WhenBaseGameContentModeShapeIsRegistered_PreservesReportedTopology()
     {
         var catalog = CreateCatalog();
 
         catalog.RegisterWorld(worldId: 0, parentWorldId: 0);
         var snapshot = catalog.CaptureSnapshot();
 
-        Assert.IsTrue(snapshot.TryResolveParentWorld(0, out var parentWorldId));
-        Assert.AreEqual(0, parentWorldId);
-        AssertMemberWorldIds(snapshot, parentWorldId: 0, 0);
+        await Assert.That(snapshot.TryResolveParentWorld(0, out var parentWorldId)).IsTrue();
+        await Assert.That(parentWorldId).IsEqualTo(0);
+        await AssertMemberWorldIds(snapshot, parentWorldId: 0, 0);
     }
 
-    [TestMethod]
-    public void Catalog_WhenSpacedOutContentModeShapeIsRegistered_PreservesEveryReportedWorld()
+    [Test]
+    public async Task Catalog_WhenSpacedOutContentModeShapeIsRegistered_PreservesEveryReportedWorld()
     {
         var catalog = CreateCatalog();
 
@@ -294,16 +280,16 @@ public sealed class WorldParentTopologyCatalogTests
         catalog.RegisterWorld(worldId: 11, parentWorldId: 1);
         var snapshot = catalog.CaptureSnapshot();
 
-        Assert.IsTrue(snapshot.TryResolveParentWorld(0, out var firstParentWorldId));
-        Assert.AreEqual(0, firstParentWorldId);
-        Assert.IsTrue(snapshot.TryResolveParentWorld(1, out var secondParentWorldId));
-        Assert.AreEqual(1, secondParentWorldId);
-        Assert.IsTrue(snapshot.TryResolveParentWorld(10, out var thirdParentWorldId));
-        Assert.AreEqual(1, thirdParentWorldId);
-        Assert.IsTrue(snapshot.TryResolveParentWorld(11, out var fourthParentWorldId));
-        Assert.AreEqual(1, fourthParentWorldId);
-        AssertMemberWorldIds(snapshot, parentWorldId: 0, 0);
-        AssertMemberWorldIds(snapshot, parentWorldId: 1, 1, 10, 11);
+        await Assert.That(snapshot.TryResolveParentWorld(0, out var firstParentWorldId)).IsTrue();
+        await Assert.That(firstParentWorldId).IsEqualTo(0);
+        await Assert.That(snapshot.TryResolveParentWorld(1, out var secondParentWorldId)).IsTrue();
+        await Assert.That(secondParentWorldId).IsEqualTo(1);
+        await Assert.That(snapshot.TryResolveParentWorld(10, out var thirdParentWorldId)).IsTrue();
+        await Assert.That(thirdParentWorldId).IsEqualTo(1);
+        await Assert.That(snapshot.TryResolveParentWorld(11, out var fourthParentWorldId)).IsTrue();
+        await Assert.That(fourthParentWorldId).IsEqualTo(1);
+        await AssertMemberWorldIds(snapshot, parentWorldId: 0, 0);
+        await AssertMemberWorldIds(snapshot, parentWorldId: 1, 1, 10, 11);
     }
 
     private static WorldParentTopologyCatalog CreateCatalog() =>
@@ -354,28 +340,24 @@ public sealed class WorldParentTopologyCatalogTests
         return true;
     }
 
-    private static void AssertMemberWorldIds(
+    private static async Task AssertMemberWorldIds(
         WorldParentTopologySnapshot snapshot,
         int parentWorldId,
         params int[] expectedMemberWorldIds)
     {
-        Assert.AreSequenceEqual(
-            expectedMemberWorldIds,
-            snapshot.GetMemberWorldIds(parentWorldId).ToArray());
+        await Assert.That(snapshot.GetMemberWorldIds(parentWorldId).ToArray()).IsEquivalentTo(expectedMemberWorldIds, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    private static FieldInfo RequirePrivateInt64Field(
+    private static async Task<FieldInfo> RequirePrivateInt64Field(
         Type declaringType,
         string exactFieldName)
     {
         var field = declaringType.GetField(
             exactFieldName,
             BindingFlags.Instance | BindingFlags.NonPublic);
-        Assert.IsNotNull(
-            field,
-            $"The representation contract requires the exact private field " +
+        if (field is null) throw new TUnit.Assertions.Exceptions.AssertionException($"The representation contract requires the exact private field " +
             $"{declaringType.Name}.{exactFieldName}.");
-        Assert.AreEqual(typeof(long), field.FieldType);
+        await Assert.That(field.FieldType).IsEqualTo(typeof(long));
         return field;
     }
 }

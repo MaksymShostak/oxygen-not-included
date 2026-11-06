@@ -7,14 +7,6 @@ using System.Text.RegularExpressions;
 using DeliveryTemperatureLimit.Tests.RuntimePatchInstallation;
 
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
-
-/// <summary>
-/// Pins the structural reasons the rewrite scales with observed colony work
-/// rather than the complete configured temperature range. These are call-edge,
-/// control-flow, immutable-reference, and semantic-count contracts - not timing or
-/// allocation benchmarks.
-/// </summary>
-[TestClass]
 public sealed class PerformanceArchitectureContractTests
 {
     private enum BackEdgePolicy
@@ -241,72 +233,64 @@ public sealed class PerformanceArchitectureContractTests
             .Select(field => (OpCode)field.GetValue(null)!)
             .ToDictionary(operation => operation.Value);
 
-    [TestMethod]
-    public void MethodContracts_WhenInspected_DeclareUniqueExactPerformanceSubjects()
+    [Test]
+    public async Task MethodContracts_WhenInspected_DeclareUniqueExactPerformanceSubjects()
     {
-        Assert.HasCount(
-            MethodContracts.Length,
-            MethodContracts
+        await Assert.That(MethodContracts
                 .Select(contract => contract.ContractId)
-                .Distinct(StringComparer.Ordinal));
+                .Distinct(StringComparer.Ordinal)).Count().IsEqualTo(MethodContracts.Length);
         foreach (MethodPerformanceContract contract in MethodContracts)
         {
-            Assert.IsFalse(string.IsNullOrWhiteSpace(contract.DeclaringTypeName));
-            Assert.IsFalse(string.IsNullOrWhiteSpace(contract.MethodName));
-            Assert.IsFalse(string.IsNullOrWhiteSpace(contract.RelativeSourcePath));
-            Assert.IsFalse(string.IsNullOrWhiteSpace(contract.DeclarationMarker));
+            await Assert.That(string.IsNullOrWhiteSpace(contract.DeclaringTypeName)).IsFalse();
+            await Assert.That(string.IsNullOrWhiteSpace(contract.MethodName)).IsFalse();
+            await Assert.That(string.IsNullOrWhiteSpace(contract.RelativeSourcePath)).IsFalse();
+            await Assert.That(string.IsNullOrWhiteSpace(contract.DeclarationMarker)).IsFalse();
         }
     }
 
-    [TestMethod]
-    public void ConstraintReadPath_WhenInspected_DoesNotCallSortDistinctOrRegistryRebuild()
+    [Test]
+    public async Task ConstraintReadPath_WhenInspected_DoesNotCallSortDistinctOrRegistryRebuild()
     {
-        MethodPerformanceContract contract = RequireContract("constraint-read");
-        MethodInfo method = RequireLinkedMethod(contract);
+        MethodPerformanceContract contract = await RequireContract("constraint-read");
+        MethodInfo method = await RequireLinkedMethod(contract);
         IReadOnlyList<string> directCalls = ReadDirectCallNames(method);
 
-        Assert.AreSequenceEqual(
-            contract.PermittedDirectCallNames,
-            directCalls.Distinct(StringComparer.Ordinal).ToArray(),
-            $"Unexpected direct call from {FormatSubject(contract)}.");
-        AssertContainsNoForbiddenReferences(contract, directCalls);
-        Assert.IsEmpty(ReadBackEdgeTargets(method));
+        await Assert.That(directCalls.Distinct(StringComparer.Ordinal).ToArray()).IsEquivalentTo(contract.PermittedDirectCallNames, TUnit.Assertions.Enums.CollectionOrdering.Matching).Because($"Unexpected direct call from {FormatSubject(contract)}.");
+        await AssertContainsNoForbiddenReferences(contract, directCalls);
+        await Assert.That(ReadBackEdgeTargets(method)).IsEmpty();
     }
 
-    [TestMethod]
-    public void StatusQueryPath_WhenInspected_DoesNotReferenceClusterManagerOrWorldContainers()
+    [Test]
+    public async Task StatusQueryPath_WhenInspected_DoesNotReferenceClusterManagerOrWorldContainers()
     {
-        MethodPerformanceContract contract = RequireContract("status-query");
-        string methodBody = ReadAndValidateSourceMethod(contract);
+        MethodPerformanceContract contract = await RequireContract("status-query");
+        string methodBody = await ReadAndValidateSourceMethod(contract);
 
-        AssertContainsEveryPermittedSourceCall(contract, methodBody);
-        AssertContainsNoForbiddenReferences(contract, [methodBody]);
-        AssertSourceHasNoLoop(contract, methodBody);
+        await AssertContainsEveryPermittedSourceCall(contract, methodBody);
+        await AssertContainsNoForbiddenReferences(contract, [methodBody]);
+        await AssertSourceHasNoLoop(contract, methodBody);
     }
 
-    [TestMethod]
-    public void KleiInventoryPublication_WhenOneUpdateRuns_EnumeratesEachContributingPickupableOnce()
+    [Test]
+    public async Task KleiInventoryPublication_WhenOneUpdateRuns_EnumeratesEachContributingPickupableOnce()
     {
-        MethodPerformanceContract contract = RequireContract("klei-inventory-pickup");
-        string methodBody = ReadAndValidateSourceMethod(contract);
+        MethodPerformanceContract contract = await RequireContract("klei-inventory-pickup");
+        string methodBody = await ReadAndValidateSourceMethod(contract);
 
-        Assert.AreEqual(
-            1,
-            CountOccurrences(methodBody, ".AddTemperatureAmount("),
-            "The one hook invocation injected at the verified original " +
+        await Assert.That(CountOccurrences(methodBody, ".AddTemperatureAmount(")).IsEqualTo(1).Because("The one hook invocation injected at the verified original " +
             "Pickupable.TotalAmount contribution must publish exactly once.");
-        AssertContainsNoForbiddenReferences(contract, [methodBody]);
-        AssertSourceHasNoLoop(contract, methodBody);
+        await AssertContainsNoForbiddenReferences(contract, [methodBody]);
+        await AssertSourceHasNoLoop(contract, methodBody);
     }
 
-    [TestMethod]
-    public void FastTrackIncrementalPublication_WhenOneTagRuns_DoesNotConstructCompleteWorldPublication()
+    [Test]
+    public async Task FastTrackIncrementalPublication_WhenOneTagRuns_DoesNotConstructCompleteWorldPublication()
     {
         var publicationSession = new FastTrackWorldInventoryPublicationSession();
-        FieldInfo completeWorldBuilderField = RequirePrivateInstanceField(
+        FieldInfo completeWorldBuilderField = await RequirePrivateInstanceField(
             typeof(FastTrackWorldInventoryPublicationSession),
             "completeWorldResourceTemperatureAmountsBuilder");
-        Assert.IsNull(completeWorldBuilderField.GetValue(publicationSession));
+        await Assert.That(completeWorldBuilderField.GetValue(publicationSession)).IsNull();
 
         publicationSession.BeginIncrementalResourceTagUpdateRequiringCoverage(
             new GameSessionGeneration(1),
@@ -318,20 +302,15 @@ public sealed class PerformanceArchitectureContractTests
         FastTrackWorldInventoryPublicationResult result =
             publicationSession.Complete();
 
-        Assert.IsNull(
-            completeWorldBuilderField.GetValue(publicationSession),
-            "The ordinary incremental path must leave the lazy complete-world " +
+        await Assert.That(completeWorldBuilderField.GetValue(publicationSession)).IsNull().Because("The ordinary incremental path must leave the lazy complete-world " +
             "builder unconstructed.");
-        Assert.IsFalse(
-            result.TryGetCompleteWorldResourceTemperatureAmounts(out _));
-        Assert.AreEqual(
-            FastTrackWorldInventoryPublicationKind
-                .ResourceTagCoverageAndTemperatureSeries,
-            result.Kind);
+        await Assert.That(result.TryGetCompleteWorldResourceTemperatureAmounts(out _)).IsFalse();
+        await Assert.That(result.Kind).IsEqualTo(FastTrackWorldInventoryPublicationKind
+                .ResourceTagCoverageAndTemperatureSeries);
     }
 
-    [TestMethod]
-    public void FastTrackIncrementalPublication_WhenOneTagRuns_RebuildsOneParentTagAggregate()
+    [Test]
+    public async Task FastTrackIncrementalPublication_WhenOneTagRuns_RebuildsOneParentTagAggregate()
     {
         var iron = new Tag("Iron");
         var copper = new Tag("Copper");
@@ -340,37 +319,31 @@ public sealed class PerformanceArchitectureContractTests
         catalog.RegisterWorld(worldId: 1, parentWorldId: 10);
         catalog.RegisterWorld(worldId: 2, parentWorldId: 10);
         catalog.RegisterWorld(worldId: 3, parentWorldId: 20);
-        Assert.IsTrue(catalog.PublishCompleteWorldResourceAmounts(
+        await Assert.That(catalog.PublishCompleteWorldResourceAmounts(
             1,
-            CompleteWorld(generation, (iron, 10.0f), (copper, 20.0f))));
-        Assert.IsTrue(catalog.PublishCompleteWorldResourceAmounts(
+            CompleteWorld(generation, (iron, 10.0f), (copper, 20.0f)))).IsTrue();
+        await Assert.That(catalog.PublishCompleteWorldResourceAmounts(
             2,
-            CompleteWorld(generation, (iron, 30.0f), (copper, 40.0f))));
-        Assert.IsTrue(catalog.PublishCompleteWorldResourceAmounts(
+            CompleteWorld(generation, (iron, 30.0f), (copper, 40.0f)))).IsTrue();
+        await Assert.That(catalog.PublishCompleteWorldResourceAmounts(
             3,
-            CompleteWorld(generation, (iron, 50.0f), (copper, 60.0f))));
-        object targetBefore = ReadAggregateReference(catalog, 10, iron);
+            CompleteWorld(generation, (iron, 50.0f), (copper, 60.0f)))).IsTrue();
+        object targetBefore = await ReadAggregateReference(catalog, 10, iron);
         object sameParentOtherTagBefore =
-            ReadAggregateReference(catalog, 10, copper);
+            await ReadAggregateReference(catalog, 10, copper);
         object otherParentSameTagBefore =
-            ReadAggregateReference(catalog, 20, iron);
+            await ReadAggregateReference(catalog, 20, iron);
 
-        Assert.IsTrue(catalog.PublishWorldResourceTemperatureSeries(
+        await Assert.That(catalog.PublishWorldResourceTemperatureSeries(
             1,
             new WorldResourceTemperatureSeriesPublication(
                 generation,
                 iron,
-                Series(300.0f, 70.0f))));
+                Series(300.0f, 70.0f)))).IsTrue();
 
-        Assert.AreNotSame(
-            targetBefore,
-            ReadAggregateReference(catalog, 10, iron));
-        Assert.AreSame(
-            sameParentOtherTagBefore,
-            ReadAggregateReference(catalog, 10, copper));
-        Assert.AreSame(
-            otherParentSameTagBefore,
-            ReadAggregateReference(catalog, 20, iron));
+        await Assert.That((await ReadAggregateReference(catalog, 10, iron))).IsNotSameReferenceAs(targetBefore);
+        await Assert.That((await ReadAggregateReference(catalog, 10, copper))).IsSameReferenceAs(sameParentOtherTagBefore);
+        await Assert.That((await ReadAggregateReference(catalog, 20, iron))).IsSameReferenceAs(otherParentSameTagBefore);
 
         MethodPerformanceContract sourceContract = new(
             "single-tag-catalog-publication",
@@ -382,35 +355,35 @@ public sealed class PerformanceArchitectureContractTests
             ["WorldResourceTemperatureAmountCatalog.RebuildOneParentResourceTagAggregate"],
             ["RebuildAffectedParentResourceTagAggregates"],
             BackEdgePolicy.None);
-        string methodBody = ReadAndValidateSourceMethod(sourceContract);
-        AssertContainsEveryPermittedSourceCall(sourceContract, methodBody);
-        AssertContainsNoForbiddenReferences(sourceContract, [methodBody]);
+        string methodBody = await ReadAndValidateSourceMethod(sourceContract);
+        await AssertContainsEveryPermittedSourceCall(sourceContract, methodBody);
+        await AssertContainsNoForbiddenReferences(sourceContract, [methodBody]);
     }
 
-    [TestMethod]
-    public void DirectEligibilityPath_WhenInspected_CallsNoAllocatorReflectionOrSnapshotRebuild()
+    [Test]
+    public async Task DirectEligibilityPath_WhenInspected_CallsNoAllocatorReflectionOrSnapshotRebuild()
     {
-        MethodPerformanceContract contract = RequireContract("direct-eligibility");
-        string methodBody = ReadAndValidateSourceMethod(contract);
+        MethodPerformanceContract contract = await RequireContract("direct-eligibility");
+        string methodBody = await ReadAndValidateSourceMethod(contract);
 
-        AssertContainsEveryPermittedSourceCall(contract, methodBody);
-        AssertContainsNoForbiddenReferences(contract, [methodBody]);
-        AssertSourceHasNoLoop(contract, methodBody);
+        await AssertContainsEveryPermittedSourceCall(contract, methodBody);
+        await AssertContainsNoForbiddenReferences(contract, [methodBody]);
+        await AssertSourceHasNoLoop(contract, methodBody);
     }
 
-    [TestMethod]
-    public void PickupComparator_WhenInspected_CapturesNoNewSnapshotAndCreatesNoCollection()
+    [Test]
+    public async Task PickupComparator_WhenInspected_CapturesNoNewSnapshotAndCreatesNoCollection()
     {
-        MethodPerformanceContract contract = RequireContract("pickup-comparator");
-        string methodBody = ReadAndValidateSourceMethod(contract);
+        MethodPerformanceContract contract = await RequireContract("pickup-comparator");
+        string methodBody = await ReadAndValidateSourceMethod(contract);
 
-        AssertContainsEveryPermittedSourceCall(contract, methodBody);
-        AssertContainsNoForbiddenReferences(contract, [methodBody]);
-        AssertSourceHasNoLoop(contract, methodBody);
+        await AssertContainsEveryPermittedSourceCall(contract, methodBody);
+        await AssertContainsNoForbiddenReferences(contract, [methodBody]);
+        await AssertSourceHasNoLoop(contract, methodBody);
     }
 
-    [TestMethod]
-    public void StatusOptionDisabled_WhenActivationPlanIsInspected_ContainsNoInventoryOrStatusPatchGroup()
+    [Test]
+    public async Task StatusOptionDisabled_WhenActivationPlanIsInspected_ContainsNoInventoryOrStatusPatchGroup()
     {
         DeliveryTemperatureRuntimePatchPlan plan =
             DeliveryTemperatureRuntimePatchPlan.Create(
@@ -426,42 +399,40 @@ public sealed class PerformanceArchitectureContractTests
 
         foreach (string prohibitedGroupId in prohibitedGroupIds)
         {
-            Assert.IsFalse(
-                plan.OrderedPatchGroupIds.Any(group => string.Equals(
+            await Assert.That(plan.OrderedPatchGroupIds.Any(group => string.Equals(
                     group.Value,
                     prohibitedGroupId,
-                    StringComparison.Ordinal)),
-                $"Disabled status integration selected {prohibitedGroupId}.");
+                    StringComparison.Ordinal))).IsFalse().Because($"Disabled status integration selected {prohibitedGroupId}.");
         }
     }
 
-    [TestMethod]
-    public void RetainedCollections_WhenHighWaterLimitWasExceeded_ReplaceVariableCapacityStorage()
+    [Test]
+    public async Task RetainedCollections_WhenHighWaterLimitWasExceeded_ReplaceVariableCapacityStorage()
     {
-        AssertRetentionContract(
-            RequireContract("pickup-retention"),
+        await AssertRetentionContract(
+            (await RequireContract("pickup-retention")),
             "MaximumRetainedPickupClassificationCount",
             "temperatureClassesByPickupInstanceId =",
             "new Dictionary<int, TemperatureEligibilityClassKey>()");
-        AssertRetentionContract(
-            RequireContract("fasttrack-key-retention"),
+        await AssertRetentionContract(
+            (await RequireContract("fasttrack-key-retention")),
             "MaximumRetainedFastTrackGroupingKeyCount",
             "allocatedGroupingKeysByCompositeIdentity =",
             "new Dictionary<");
-        AssertRetentionContract(
-            RequireContract("fetch-retention"),
+        await AssertRetentionContract(
+            (await RequireContract("fetch-retention")),
             "MaximumRetainedFetchEligibilityEntryCount",
             "destinationRequirementsByParentWorldAndRequestedTag =",
             "new Dictionary<");
-        AssertRetentionContract(
-            RequireContract("world-tag-retention"),
+        await AssertRetentionContract(
+            (await RequireContract("world-tag-retention")),
             "MaximumRetainedWorldResourceTagCount",
             "temperatureAmountsByResourceTag =",
             "new Dictionary<Tag, TemperatureAmountSeries>()");
     }
 
-    [TestMethod]
-    public void UnusedDecisionBuckets_WhenHotMethodsAreInspected_CauseNoCompleteRangeLoop()
+    [Test]
+    public async Task UnusedDecisionBuckets_WhenHotMethodsAreInspected_CauseNoCompleteRangeLoop()
     {
         foreach (string contractId in new[]
                  {
@@ -470,61 +441,59 @@ public sealed class PerformanceArchitectureContractTests
                      "amount-query"
                  })
         {
-            MethodPerformanceContract contract = RequireContract(contractId);
-            MethodInfo method = RequireLinkedMethod(contract);
-            Assert.IsEmpty(
-                ReadBackEdgeTargets(method),
-                $"Hot method {FormatSubject(contract)} contains a loop.");
-            string sourceBody = ReadAndValidateSourceMethod(contract);
-            AssertContainsNoForbiddenReferences(contract, [sourceBody]);
+            MethodPerformanceContract contract = await RequireContract(contractId);
+            MethodInfo method = await RequireLinkedMethod(contract);
+            await Assert.That(ReadBackEdgeTargets(method)).IsEmpty().Because($"Hot method {FormatSubject(contract)} contains a loop.");
+            string sourceBody = await ReadAndValidateSourceMethod(contract);
+            await AssertContainsNoForbiddenReferences(contract, [sourceBody]);
         }
 
-        MethodPerformanceContract buildContract = RequireContract("amount-build");
-        string buildBody = ReadAndValidateSourceMethod(buildContract);
-        Assert.IsTrue(buildBody.Contains(
+        MethodPerformanceContract buildContract = await RequireContract("amount-build");
+        string buildBody = await ReadAndValidateSourceMethod(buildContract);
+        await Assert.That(buildBody.Contains(
             "touchedBucketIndex < touchedBucketCount",
-            StringComparison.Ordinal));
-        Assert.IsTrue(buildBody.Contains(
+            StringComparison.Ordinal)).IsTrue();
+        await Assert.That(buildBody.Contains(
             "occupiedBucketIndex < occupiedBucketCount",
-            StringComparison.Ordinal));
-        AssertContainsNoForbiddenReferences(buildContract, [buildBody]);
+            StringComparison.Ordinal)).IsTrue();
+        await AssertContainsNoForbiddenReferences(buildContract, [buildBody]);
 
         MethodPerformanceContract partitionContract =
-            RequireContract("partition-classification");
-        string partitionBody = ReadAndValidateSourceMethod(partitionContract);
-        Assert.IsTrue(partitionBody.Contains(
+            await RequireContract("partition-classification");
+        string partitionBody = await ReadAndValidateSourceMethod(partitionContract);
+        await Assert.That(partitionBody.Contains(
             "while (lowerEndpointIndex < upperEndpointIndex)",
-            StringComparison.Ordinal));
-        AssertContainsNoForbiddenReferences(partitionContract, [partitionBody]);
+            StringComparison.Ordinal)).IsTrue();
+        await AssertContainsNoForbiddenReferences(partitionContract, [partitionBody]);
     }
 
-    [TestMethod]
-    public void TemperatureAmountAccumulator_WhenOneBucketIsObserved_TouchesOnlyThatBucket()
+    [Test]
+    public async Task TemperatureAmountAccumulator_WhenOneBucketIsObserved_TouchesOnlyThatBucket()
     {
         var accumulator = new TemperatureAmountAccumulator();
         accumulator.BeginResourceTag();
         accumulator.AddTemperatureAmount(5017.75f, 23.0f);
-        int currentStamp = ReadPrivateField<int>(accumulator, "stamp");
+        int currentStamp = await ReadPrivateField<int>(accumulator, "stamp");
         int touchedBucketCount =
-            ReadPrivateField<int>(accumulator, "touchedBucketCount");
+            await ReadPrivateField<int>(accumulator, "touchedBucketCount");
         int[] touchedOrdinals =
-            ReadPrivateField<int[]>(accumulator, "touchedBucketOrdinals");
-        int[] stamps = ReadPrivateField<int[]>(accumulator, "stampsByBucket");
+            await ReadPrivateField<int[]>(accumulator, "touchedBucketOrdinals");
+        int[] stamps = await ReadPrivateField<int[]>(accumulator, "stampsByBucket");
         float[] amounts =
-            ReadPrivateField<float[]>(accumulator, "amountsByBucket");
+            await ReadPrivateField<float[]>(accumulator, "amountsByBucket");
         int expectedOrdinal =
             TemperatureDecisionBucket.FromTemperature(5017.75f).Ordinal;
 
-        Assert.AreEqual(1, touchedBucketCount);
-        Assert.AreEqual(expectedOrdinal, touchedOrdinals[0]);
-        Assert.AreEqual(1, stamps.Count(stamp => stamp == currentStamp));
-        Assert.AreEqual(1, amounts.Count(amount => amount != 0.0f));
-        Assert.AreEqual(currentStamp, stamps[expectedOrdinal]);
-        Assert.AreEqual(23.0f, amounts[expectedOrdinal]);
+        await Assert.That(touchedBucketCount).IsEqualTo(1);
+        await Assert.That(touchedOrdinals[0]).IsEqualTo(expectedOrdinal);
+        await Assert.That(stamps.Count(stamp => stamp == currentStamp)).IsEqualTo(1);
+        await Assert.That(amounts.Count(amount => amount != 0.0f)).IsEqualTo(1);
+        await Assert.That(stamps[expectedOrdinal]).IsEqualTo(currentStamp);
+        await Assert.That(amounts[expectedOrdinal]).IsEqualTo(23.0f);
     }
 
-    [TestMethod]
-    public void FastTrackFixture_WhenPackageBoundaryIsInspected_IsNeverPackaged()
+    [Test]
+    public async Task FastTrackFixture_WhenPackageBoundaryIsInspected_IsNeverPackaged()
     {
         string modRoot = ResolveModRoot();
         string profilePath = Path.Combine(modRoot, "oni-mod-pipeline.toml");
@@ -534,13 +503,9 @@ public sealed class PerformanceArchitectureContractTests
             @"(?m)^\[\[package-files\]\]$",
             RegexOptions.CultureInvariant);
 
-        Assert.HasCount(4, packageMappings);
-        Assert.IsFalse(
-            profile.Contains("FastTrack.dll", StringComparison.Ordinal),
-            "The static FastTrack fixture must not enter a package mapping.");
-        Assert.IsFalse(
-            profile.Contains("Fixtures/", StringComparison.Ordinal),
-            "No test-fixture directory may enter a package mapping.");
+        await Assert.That(packageMappings).Count().IsEqualTo(4);
+        await Assert.That(profile.Contains("FastTrack.dll", StringComparison.Ordinal)).IsFalse().Because("The static FastTrack fixture must not enter a package mapping.");
+        await Assert.That(profile.Contains("Fixtures/", StringComparison.Ordinal)).IsFalse().Because("No test-fixture directory may enter a package mapping.");
         string[] expectedDestinations =
         [
             "destination = \"mod.yaml\"",
@@ -550,25 +515,23 @@ public sealed class PerformanceArchitectureContractTests
         ];
         foreach (string destination in expectedDestinations)
         {
-            Assert.AreEqual(1, CountOccurrences(profile, destination));
+            await Assert.That(CountOccurrences(profile, destination)).IsEqualTo(1);
         }
 
-        Assert.IsFalse(
-            typeof(PerformanceArchitectureContractTests).Assembly
+        await Assert.That(typeof(PerformanceArchitectureContractTests).Assembly
                 .GetManifestResourceNames()
                 .Any(resourceName => resourceName.Contains(
                     "FastTrack",
-                    StringComparison.OrdinalIgnoreCase)),
-            "The fixture must not be embedded as a production resource.");
+                    StringComparison.OrdinalIgnoreCase))).IsFalse().Because("The fixture must not be embedded as a production resource.");
     }
 
-    private static void AssertRetentionContract(
+    private static async Task AssertRetentionContract(
         MethodPerformanceContract contract,
         string retentionLimitName,
         string replacementAssignment,
         string replacementConstruction)
     {
-        string methodBody = ReadAndValidateSourceMethod(contract);
+        string methodBody = await ReadAndValidateSourceMethod(contract);
         int comparisonIndex = methodBody.IndexOf(
             retentionLimitName,
             StringComparison.Ordinal);
@@ -580,27 +543,14 @@ public sealed class PerformanceArchitectureContractTests
             assignmentIndex,
             StringComparison.Ordinal);
 
-        Assert.IsGreaterThanOrEqualTo(
-            0,
-            comparisonIndex,
-            $"{FormatSubject(contract)} does not use {retentionLimitName}.");
-        Assert.IsGreaterThan(
-            comparisonIndex,
-            assignmentIndex,
-            $"{FormatSubject(contract)} replaces storage before its high-water comparison.");
-        Assert.IsGreaterThanOrEqualTo(
-            assignmentIndex,
-            constructionIndex,
-            $"{FormatSubject(contract)} does not construct replacement storage.");
-        Assert.IsTrue(
-            methodBody.Substring(0, comparisonIndex).Contains(">", StringComparison.Ordinal),
-            $"{FormatSubject(contract)} must replace only after strictly exceeding the limit.");
-        Assert.IsFalse(
-            methodBody.Substring(0, comparisonIndex).Contains(">=", StringComparison.Ordinal),
-            $"{FormatSubject(contract)} must retain storage exactly at the limit.");
+        await Assert.That(comparisonIndex).IsGreaterThanOrEqualTo(0).Because($"{FormatSubject(contract)} does not use {retentionLimitName}.");
+        await Assert.That(assignmentIndex).IsGreaterThan(comparisonIndex).Because($"{FormatSubject(contract)} replaces storage before its high-water comparison.");
+        await Assert.That(constructionIndex).IsGreaterThanOrEqualTo(assignmentIndex).Because($"{FormatSubject(contract)} does not construct replacement storage.");
+        await Assert.That(methodBody.Substring(0, comparisonIndex).Contains(">", StringComparison.Ordinal)).IsTrue().Because($"{FormatSubject(contract)} must replace only after strictly exceeding the limit.");
+        await Assert.That(methodBody.Substring(0, comparisonIndex).Contains(">=", StringComparison.Ordinal)).IsFalse().Because($"{FormatSubject(contract)} must retain storage exactly at the limit.");
     }
 
-    private static MethodPerformanceContract RequireContract(string contractId)
+    private static async Task<MethodPerformanceContract> RequireContract(string contractId)
     {
         MethodPerformanceContract[] matches = MethodContracts
             .Where(contract => string.Equals(
@@ -608,16 +558,14 @@ public sealed class PerformanceArchitectureContractTests
                 contractId,
                 StringComparison.Ordinal))
             .ToArray();
-        Assert.HasCount(1, matches, $"Performance contract ID {contractId} is not unique.");
+        await Assert.That(matches).Count().IsEqualTo(1).Because($"Performance contract ID {contractId} is not unique.");
         return matches[0];
     }
 
-    private static MethodInfo RequireLinkedMethod(
+    private static async Task<MethodInfo> RequireLinkedMethod(
         MethodPerformanceContract contract)
     {
-        Assert.IsNotNull(
-            contract.LinkedDeclaringType,
-            $"{FormatSubject(contract)} is not linked into the test assembly.");
+        if (contract.LinkedDeclaringType is null) throw new TUnit.Assertions.Exceptions.AssertionException($"{FormatSubject(contract)} is not linked into the test assembly.");
         MethodInfo? method = contract.LinkedDeclaringType.GetMethod(
             contract.MethodName,
             BindingFlags.Public | BindingFlags.NonPublic |
@@ -625,13 +573,11 @@ public sealed class PerformanceArchitectureContractTests
             binder: null,
             contract.LinkedParameterTypes ?? Type.EmptyTypes,
             modifiers: null);
-        Assert.IsNotNull(
-            method,
-            $"Missing exact linked method {FormatSubject(contract)}.");
+        if (method is null) throw new TUnit.Assertions.Exceptions.AssertionException($"Missing exact linked method {FormatSubject(contract)}.");
         return method;
     }
 
-    private static string ReadAndValidateSourceMethod(
+    private static async Task<string> ReadAndValidateSourceMethod(
         MethodPerformanceContract contract)
     {
         string sourcePath = Path.Combine(
@@ -640,12 +586,9 @@ public sealed class PerformanceArchitectureContractTests
                 '/',
                 Path.DirectorySeparatorChar));
         string source = File.ReadAllText(sourcePath);
-        string methodBody = ExtractMethodBody(source, contract.DeclarationMarker);
+        string methodBody = await ExtractMethodBody(source, contract.DeclarationMarker);
         int signatureEndIndex = methodBody.IndexOfAny(['{', '=']);
-        Assert.IsGreaterThan(
-            0,
-            signatureEndIndex,
-            $"Could not isolate signature for {FormatSubject(contract)}.");
+        await Assert.That(signatureEndIndex).IsGreaterThan(0).Because($"Could not isolate signature for {FormatSubject(contract)}.");
         string signature = methodBody.Substring(0, signatureEndIndex);
         int priorParameterIndex = -1;
         foreach (string parameterTypeName in contract.ExactParameterTypeNames)
@@ -659,10 +602,7 @@ public sealed class PerformanceArchitectureContractTests
                 sourceTypeName,
                 priorParameterIndex + 1,
                 StringComparison.Ordinal);
-            Assert.IsGreaterThan(
-                priorParameterIndex,
-                parameterIndex,
-                $"Exact parameter type {parameterTypeName} is absent or out of " +
+            await Assert.That(parameterIndex).IsGreaterThan(priorParameterIndex).Because($"Exact parameter type {parameterTypeName} is absent or out of " +
                 $"order in {FormatSubject(contract)}: {signature.Trim()}.");
             priorParameterIndex = parameterIndex;
         }
@@ -670,21 +610,15 @@ public sealed class PerformanceArchitectureContractTests
         return methodBody;
     }
 
-    private static string ExtractMethodBody(
+    private static async Task<string> ExtractMethodBody(
         string source,
         string declarationMarker)
     {
         int declarationIndex = source.IndexOf(
             declarationMarker,
             StringComparison.Ordinal);
-        Assert.IsGreaterThanOrEqualTo(
-            0,
-            declarationIndex,
-            $"Missing exact method declaration {declarationMarker}.");
-        Assert.AreEqual(
-            declarationIndex,
-            source.LastIndexOf(declarationMarker, StringComparison.Ordinal),
-            $"Method declaration is not unique: {declarationMarker}.");
+        await Assert.That(declarationIndex).IsGreaterThanOrEqualTo(0).Because($"Missing exact method declaration {declarationMarker}.");
+        await Assert.That(source.LastIndexOf(declarationMarker, StringComparison.Ordinal)).IsEqualTo(declarationIndex).Because($"Method declaration is not unique: {declarationMarker}.");
         int openingBraceIndex = source.IndexOf(
             '{',
             declarationIndex + declarationMarker.Length);
@@ -696,16 +630,13 @@ public sealed class PerformanceArchitectureContractTests
             (openingBraceIndex < 0 || expressionBodyIndex < openingBraceIndex))
         {
             int semicolonIndex = source.IndexOf(';', expressionBodyIndex + 2);
-            Assert.IsGreaterThan(expressionBodyIndex, semicolonIndex);
+            await Assert.That(semicolonIndex).IsGreaterThan(expressionBodyIndex);
             return source.Substring(
                 declarationIndex,
                 semicolonIndex - declarationIndex + 1);
         }
 
-        Assert.IsGreaterThanOrEqualTo(
-            0,
-            openingBraceIndex,
-            $"Method declaration has no body: {declarationMarker}.");
+        await Assert.That(openingBraceIndex).IsGreaterThanOrEqualTo(0).Because($"Method declaration has no body: {declarationMarker}.");
         int nestingDepth = 0;
         for (int characterIndex = openingBraceIndex;
              characterIndex < source.Length;
@@ -731,7 +662,7 @@ public sealed class PerformanceArchitectureContractTests
         return string.Empty;
     }
 
-    private static void AssertContainsEveryPermittedSourceCall(
+    private static async Task AssertContainsEveryPermittedSourceCall(
         MethodPerformanceContract contract,
         string methodBody)
     {
@@ -739,14 +670,12 @@ public sealed class PerformanceArchitectureContractTests
         {
             string simpleCallName = permittedCall[
                 (permittedCall.LastIndexOf(".", StringComparison.Ordinal) + 1)..];
-            Assert.IsTrue(
-                methodBody.Contains(simpleCallName + "(", StringComparison.Ordinal),
-                $"Required direct call {permittedCall} is absent from " +
+            await Assert.That(methodBody.Contains(simpleCallName + "(", StringComparison.Ordinal)).IsTrue().Because($"Required direct call {permittedCall} is absent from " +
                 $"{FormatSubject(contract)}.");
         }
     }
 
-    private static void AssertContainsNoForbiddenReferences(
+    private static async Task AssertContainsNoForbiddenReferences(
         MethodPerformanceContract contract,
         IReadOnlyList<string> observedReferences)
     {
@@ -757,24 +686,20 @@ public sealed class PerformanceArchitectureContractTests
                 observed => observed.Contains(
                     forbiddenReference,
                     StringComparison.Ordinal));
-            Assert.IsNull(
-                matchingReference,
-                $"Forbidden member/reference {forbiddenReference} was observed " +
+            await Assert.That(matchingReference).IsNull().Because($"Forbidden member/reference {forbiddenReference} was observed " +
                 $"in {FormatSubject(contract)}: {matchingReference}.");
         }
     }
 
-    private static void AssertSourceHasNoLoop(
+    private static async Task AssertSourceHasNoLoop(
         MethodPerformanceContract contract,
         string methodBody)
     {
-        Assert.AreEqual(BackEdgePolicy.None, contract.BackEdgePolicy);
+        await Assert.That(contract.BackEdgePolicy).IsEqualTo(BackEdgePolicy.None);
         string[] loopMarkers = ["for (", "foreach (", "while (", "do\r\n", "do\n"];
         foreach (string loopMarker in loopMarkers)
         {
-            Assert.IsFalse(
-                methodBody.Contains(loopMarker, StringComparison.Ordinal),
-                $"No-back-edge method {FormatSubject(contract)} contains " +
+            await Assert.That(methodBody.Contains(loopMarker, StringComparison.Ordinal)).IsFalse().Because($"No-back-edge method {FormatSubject(contract)} contains " +
                 $"loop marker '{loopMarker}'.");
         }
     }
@@ -945,21 +870,19 @@ public sealed class PerformanceArchitectureContractTests
         return count;
     }
 
-    private static FieldInfo RequirePrivateInstanceField(
+    private static async Task<FieldInfo> RequirePrivateInstanceField(
         Type declaringType,
         string fieldName)
     {
         FieldInfo? field = declaringType.GetField(
             fieldName,
             BindingFlags.Instance | BindingFlags.NonPublic);
-        Assert.IsNotNull(
-            field,
-            $"Missing exact private field {declaringType.FullName}.{fieldName}.");
+        if (field is null) throw new TUnit.Assertions.Exceptions.AssertionException($"Missing exact private field {declaringType.FullName}.{fieldName}.");
         return field;
     }
 
-    private static T ReadPrivateField<T>(object instance, string fieldName) =>
-        (T)RequirePrivateInstanceField(instance.GetType(), fieldName)
+    private static async Task<T> ReadPrivateField<T>(object instance, string fieldName) =>
+        (T)(await RequirePrivateInstanceField(instance.GetType(), fieldName))
             .GetValue(instance)!;
 
     private static CompleteWorldResourceTemperatureAmounts CompleteWorld(
@@ -988,30 +911,29 @@ public sealed class PerformanceArchitectureContractTests
         return accumulator.BuildSeries();
     }
 
-    private static object ReadAggregateReference(
+    private static async Task<object> ReadAggregateReference(
         WorldResourceTemperatureAmountCatalog catalog,
         int parentWorldId,
         Tag resourceTag)
     {
-        FieldInfo aggregateMapField = RequirePrivateInstanceField(
+        FieldInfo aggregateMapField = await RequirePrivateInstanceField(
             typeof(WorldResourceTemperatureAmountCatalog),
             "aggregatesByParentWorldAndResourceTag");
-        IDictionary aggregateMap = Assert.IsInstanceOfType<IDictionary>(
-            aggregateMapField.GetValue(catalog));
+        IDictionary aggregateMap = (await Assert.That(aggregateMapField.GetValue(catalog)).IsAssignableTo<IDictionary>())!;
         foreach (DictionaryEntry entry in aggregateMap)
         {
-            Assert.IsNotNull(entry.Key);
+            Assert.NotNull(entry.Key);
             object key = entry.Key;
-            FieldInfo keyParentField = RequirePrivateInstanceField(
+            FieldInfo keyParentField = await RequirePrivateInstanceField(
                 key.GetType(),
                 "parentWorldId");
-            FieldInfo keyTagField = RequirePrivateInstanceField(
+            FieldInfo keyTagField = await RequirePrivateInstanceField(
                 key.GetType(),
                 "resourceTag");
             if ((int)keyParentField.GetValue(key)! == parentWorldId &&
                 ((Tag)keyTagField.GetValue(key)!).Equals(resourceTag))
             {
-                Assert.IsNotNull(entry.Value);
+                Assert.NotNull(entry.Value);
                 return entry.Value;
             }
         }

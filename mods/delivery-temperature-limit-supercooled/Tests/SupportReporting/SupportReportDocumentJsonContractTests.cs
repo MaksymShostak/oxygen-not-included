@@ -3,8 +3,6 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
 namespace DeliveryTemperatureLimit.Tests.SupportReporting;
-
-[TestClass]
 public sealed class SupportReportDocumentJsonContractTests
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -13,8 +11,8 @@ public sealed class SupportReportDocumentJsonContractTests
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
-    [TestMethod]
-    public void Serialize_WhenNoDeclaredIntegrationOutcomesExist_UsesSchemaVersionTwoEmptyGenericCollection()
+    [Test]
+    public async Task Serialize_WhenNoDeclaredIntegrationOutcomesExist_UsesSchemaVersionTwoEmptyGenericCollection()
     {
         SupportReportDocument document = CreateDocument(
             Array.Empty<SupportExternalModIntegrationSnapshot>());
@@ -22,15 +20,13 @@ public sealed class SupportReportDocumentJsonContractTests
         JsonObject root = SerializeToObject(document);
         JsonObject runtime = root["runtime"]!.AsObject();
 
-        Assert.AreEqual(2, root["schemaVersion"]!.GetValue<int>());
-        Assert.HasCount(0, runtime["externalModIntegrations"]!.AsArray());
-        Assert.IsFalse(
-            ContainsPropertyNamed(root, "fastTrack"),
-            "Schema version 2 must not retain the singular runtime.fastTrack shape.");
+        await Assert.That(root["schemaVersion"]!.GetValue<int>()).IsEqualTo(2);
+        await Assert.That(runtime["externalModIntegrations"]!.AsArray()).Count().IsEqualTo(0);
+        await Assert.That(ContainsPropertyNamed(root, "fastTrack")).IsFalse().Because("Schema version 2 must not retain the singular runtime.fastTrack shape.");
     }
 
-    [TestMethod]
-    public void Serialize_WhenOneDeclaredIntegrationOutcomeExists_ProjectsOnlyAllowlistedGenericFacts()
+    [Test]
+    public async Task Serialize_WhenOneDeclaredIntegrationOutcomeExists_ProjectsOnlyAllowlistedGenericFacts()
     {
         var fastTrack = CreateIntegration(
             "fast-track",
@@ -54,24 +50,20 @@ public sealed class SupportReportDocumentJsonContractTests
             .AsArray()[0]!
             .AsObject();
 
-        Assert.AreEqual("fast-track", integration["integrationId"]!.GetValue<string>());
-        Assert.AreEqual("Fast Track", integration["displayName"]!.GetValue<string>());
-        CollectionAssert.AreEqual(
-            new[] { "exclusive-runtime-authority" },
-            integration["categories"]!.AsArray()
+        await Assert.That(integration["integrationId"]!.GetValue<string>()).IsEqualTo("fast-track");
+        await Assert.That(integration["displayName"]!.GetValue<string>()).IsEqualTo("Fast Track");
+        await Assert.That(integration["categories"]!.AsArray()
                 .Select(category => category!.GetValue<string>())
-                .ToArray());
-        Assert.AreEqual("matched", integration["matchState"]!.GetValue<string>());
-        Assert.AreEqual(
-            "FastTrack, Version=0.18.5.0",
-            integration["assemblyIdentity"]!["value"]!.GetValue<string>());
-        Assert.HasCount(1, integration["capabilities"]!.AsArray());
-        Assert.HasCount(0, integration["diagnostics"]!.AsArray());
-        Assert.IsFalse(ContainsPropertyNamed(root, "fastTrack"));
+                .ToArray()).IsEquivalentTo(new[] { "exclusive-runtime-authority" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(integration["matchState"]!.GetValue<string>()).IsEqualTo("matched");
+        await Assert.That(integration["assemblyIdentity"]!["value"]!.GetValue<string>()).IsEqualTo("FastTrack, Version=0.18.5.0");
+        await Assert.That(integration["capabilities"]!.AsArray()).Count().IsEqualTo(1);
+        await Assert.That(integration["diagnostics"]!.AsArray()).Count().IsEqualTo(0);
+        await Assert.That(ContainsPropertyNamed(root, "fastTrack")).IsFalse();
     }
 
-    [TestMethod]
-    public void Serialize_WhenMultipleDeclaredIntegrationOutcomesExist_PreservesCatalogAndCapabilityOrder()
+    [Test]
+    public async Task Serialize_WhenMultipleDeclaredIntegrationOutcomesExist_PreservesCatalogAndCapabilityOrder()
     {
         var first = CreateIntegration(
             "first-integration",
@@ -97,23 +89,19 @@ public sealed class SupportReportDocumentJsonContractTests
             ["externalModIntegrations"]!
             .AsArray();
 
-        CollectionAssert.AreEqual(
-            new[] { "first-integration", "second-integration" },
-            integrations
+        await Assert.That(integrations
                 .Select(integration =>
                     integration!["integrationId"]!.GetValue<string>())
-                .ToArray());
-        CollectionAssert.AreEqual(
-            new[] { "first-capability", "second-capability" },
-            integrations[0]!["capabilities"]!
+                .ToArray()).IsEquivalentTo(new[] { "first-integration", "second-integration" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(integrations[0]!["capabilities"]!
                 .AsArray()
                 .Select(capability =>
                     capability!["capabilityId"]!.GetValue<string>())
-                .ToArray());
+                .ToArray()).IsEquivalentTo(new[] { "first-capability", "second-capability" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void IntegrationSnapshot_WhenCapabilityCountExceedsSchemaLimit_RejectsUnboundedEvidence()
+    [Test]
+    public async Task IntegrationSnapshot_WhenCapabilityCountExceedsSchemaLimit_RejectsUnboundedEvidence()
     {
         SupportExternalModCapabilitySnapshot[] capabilities = Enumerable
             .Range(
@@ -125,11 +113,11 @@ public sealed class SupportReportDocumentJsonContractTests
                 "ready"))
             .ToArray();
 
-        Assert.ThrowsExactly<ArgumentException>(() => CreateIntegration(
+        await Assert.That(() => CreateIntegration(
             "bounded-integration",
             "Bounded Integration",
             "matched",
-            capabilities));
+            capabilities)).ThrowsExactly<ArgumentException>();
     }
 
     private static SupportExternalModCapabilitySnapshot CreateCapability(

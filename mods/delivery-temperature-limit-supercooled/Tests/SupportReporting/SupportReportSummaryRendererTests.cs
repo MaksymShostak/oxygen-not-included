@@ -1,10 +1,8 @@
 namespace DeliveryTemperatureLimit.Tests.SupportReporting;
-
-[TestClass]
 public sealed class SupportReportSummaryRendererTests
 {
-    [TestMethod]
-    public void Render_WhenStandardReportIsAvailable_EmitsOnlyTheAllowlistedCompactFacts()
+    [Test]
+    public async Task Render_WhenStandardReportIsAvailable_EmitsOnlyTheAllowlistedCompactFacts()
     {
         SupportReportDocument document = CreateDocument(
             playerLog: null,
@@ -27,13 +25,13 @@ public sealed class SupportReportSummaryRendererTests
             "  - Fast Track: match `not-matched`; capabilities: " +
             "`world-inventory-temperature-publication=not-applicable`\n" +
             "- Player.log excerpt: not collected";
-        Assert.AreEqual(expected, summary);
-        Assert.DoesNotContain("SECRET ACTIVE MOD TITLE", summary);
-        Assert.DoesNotContain("SECRET RAW DIAGNOSTIC", summary);
+        await Assert.That(summary).IsEqualTo(expected);
+        await Assert.That(summary).DoesNotContain("SECRET ACTIVE MOD TITLE");
+        await Assert.That(summary).DoesNotContain("SECRET RAW DIAGNOSTIC");
     }
 
-    [TestMethod]
-    public void Render_WhenExtendedLogIsUnavailable_ReportsRequestedLogWithoutClaimingInclusion()
+    [Test]
+    public async Task Render_WhenExtendedLogIsUnavailable_ReportsRequestedLogWithoutClaimingInclusion()
     {
         SupportPlayerLogSnapshot playerLog =
             SupportPlayerLogSnapshot.Unavailable(
@@ -48,27 +46,25 @@ public sealed class SupportReportSummaryRendererTests
             document,
             "temperature-limit-support-20260831T070809123Z-00112233.json");
 
-        Assert.EndsWith(
-            "- Player.log excerpt: requested but unavailable",
-            summary);
+        await Assert.That(summary).EndsWith("- Player.log excerpt: requested but unavailable");
     }
 
-    [TestMethod]
-    public void Render_WhenLogWasCollected_ExplainsLocalInclusionWithoutClaimingAnAttachment()
+    [Test]
+    public async Task Render_WhenLogWasCollected_ExplainsLocalInclusionWithoutClaimingAnAttachment()
     {
         var log = SupportPlayerLogSnapshot.Available("unity-console-log-path", 100, 100,
             false, Array.Empty<string>(), "PRIVATE LOG CONTENT");
         string summary = SupportReportSummaryRenderer.Render(
             CreateDocument(log, "Example mod", "Example diagnostic"), "report.json");
 
-        Assert.Contains("Local report file: `report.json` (not attached automatically)", summary);
-        Assert.EndsWith("Player.log excerpt: included in the local JSON report. " +
-            "Attach that report to share the log; no files are attached automatically.", summary);
-        Assert.DoesNotContain("PRIVATE LOG CONTENT", summary);
+        await Assert.That(summary).Contains("Local report file: `report.json` (not attached automatically)");
+        await Assert.That(summary).EndsWith("Player.log excerpt: included in the local JSON report. " +
+            "Attach that report to share the log; no files are attached automatically.");
+        await Assert.That(summary).DoesNotContain("PRIVATE LOG CONTENT");
     }
 
-    [TestMethod]
-    public void Render_WhenDlcDiscoveryIsUnavailable_ReportsUnavailableInsteadOfNone()
+    [Test]
+    public async Task Render_WhenDlcDiscoveryIsUnavailable_ReportsUnavailableInsteadOfNone()
     {
         SupportReportDocument document = CreateDocument(
             playerLog: null,
@@ -81,8 +77,8 @@ public sealed class SupportReportSummaryRendererTests
             document,
             "temperature-limit-support-20260831T070809123Z-00112233.json");
 
-        Assert.Contains("- DLCs: unavailable\n", summary);
-        Assert.DoesNotContain("- DLCs: none", summary);
+        await Assert.That(summary).Contains("- DLCs: unavailable\n");
+        await Assert.That(summary).DoesNotContain("- DLCs: none");
     }
 
     private static SupportReportDocument CreateDocument(

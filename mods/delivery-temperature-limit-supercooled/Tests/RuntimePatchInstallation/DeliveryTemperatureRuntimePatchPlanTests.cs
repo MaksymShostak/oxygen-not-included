@@ -1,8 +1,6 @@
 using System.Reflection;
 
 namespace DeliveryTemperatureLimit.Tests.RuntimePatchInstallation;
-
-[TestClass]
 public sealed class DeliveryTemperatureRuntimePatchPlanTests
 {
     private const string FastTrackHarmonyOwner = "PeterHan.FastTrack";
@@ -19,17 +17,17 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
         AuthoritativeFetchTemperatureEligibilityCapabilityId =
             new("authoritative-fetch-temperature-eligibility");
 
-    [TestMethod]
-    public void Create_WhenCapabilitySelectionIsNull_ThrowsArgumentNullException()
+    [Test]
+    public async Task Create_WhenCapabilitySelectionIsNull_ThrowsArgumentNullException()
     {
-        Assert.ThrowsExactly<ArgumentNullException>(() =>
+        await Assert.That(() =>
             DeliveryTemperatureRuntimePatchPlan.Create(
                 checkTemperatureForStatusItems: true,
-                capabilitySelection: null!));
+                capabilitySelection: null!)).ThrowsExactly<ArgumentNullException>();
     }
 
-    [TestMethod]
-    public void Create_WhenKleiBaselinesAreSelected_PreservesCompleteContributionOrder()
+    [Test]
+    public async Task Create_WhenKleiBaselinesAreSelected_PreservesCompleteContributionOrder()
     {
         RuntimePatchCapabilitySelection selection = CreateSelection();
 
@@ -38,7 +36,7 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
                 checkTemperatureForStatusItems: true,
                 selection);
 
-        AssertPatchGroupIds(
+        await AssertPatchGroupIds(
             plan,
             "game-session-lifecycle",
             "world-parent-topology",
@@ -47,26 +45,24 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
             "temperature-status-availability",
             "klei-pickup-temperature-grouping",
             "klei-direct-delivery-eligibility");
-        Assert.AreEqual(7, plan.SelectedContributions.Count);
-        Assert.AreEqual(7, plan.OrderedPatchBindings.Count);
-        Assert.AreEqual(7, plan.AuthorityRequirements.Count);
-        Assert.IsTrue(plan.SelectedContributions.All(
-            contribution => contribution.ImplementationIdentity.IsKleiBaseline));
-        Assert.IsNull(plan.StatusCompatibilityDiagnostic);
-        Assert.AreSame(
-            selection.ExternalModIntegrationOutcomes[0],
-            plan.ExternalModIntegrationOutcomes[0]);
+        await Assert.That(plan.SelectedContributions.Count).IsEqualTo(7);
+        await Assert.That(plan.OrderedPatchBindings.Count).IsEqualTo(7);
+        await Assert.That(plan.AuthorityRequirements.Count).IsEqualTo(7);
+        await Assert.That(plan.SelectedContributions.All(
+            contribution => contribution.ImplementationIdentity.IsKleiBaseline)).IsTrue();
+        await Assert.That(plan.StatusCompatibilityDiagnostic).IsNull();
+        await Assert.That(plan.ExternalModIntegrationOutcomes[0]).IsSameReferenceAs(selection.ExternalModIntegrationOutcomes[0]);
     }
 
-    [TestMethod]
-    public void Create_WhenFastTrackWorldInventoryIsSelected_UsesItsCompleteContribution()
+    [Test]
+    public async Task Create_WhenFastTrackWorldInventoryIsSelected_UsesItsCompleteContribution()
     {
         DeliveryTemperatureRuntimePatchPlan plan = CreatePlan(
             checkTemperatureForStatusItems: true,
             worldInventoryAuthority:
                 RuntimeAuthorityObservation.OwnsCompatible);
 
-        AssertPatchGroupIds(
+        await AssertPatchGroupIds(
             plan,
             "game-session-lifecycle",
             "world-parent-topology",
@@ -75,21 +71,21 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
             "temperature-status-availability",
             "klei-pickup-temperature-grouping",
             "klei-direct-delivery-eligibility");
-        AssertSelectedImplementation(
+        await AssertSelectedImplementation(
             plan,
             RuntimeCapabilityId.WorldInventoryTemperaturePublication,
             RuntimeAuthorityImplementationKind.DeclaredExternalIntegration);
     }
 
-    [TestMethod]
-    public void Create_WhenFastTrackPickupGroupingIsSelected_UsesItsCompleteContribution()
+    [Test]
+    public async Task Create_WhenFastTrackPickupGroupingIsSelected_UsesItsCompleteContribution()
     {
         DeliveryTemperatureRuntimePatchPlan plan = CreatePlan(
             checkTemperatureForStatusItems: true,
             pickupGroupingAuthority:
                 RuntimeAuthorityObservation.OwnsCompatible);
 
-        AssertPatchGroupIds(
+        await AssertPatchGroupIds(
             plan,
             "game-session-lifecycle",
             "world-parent-topology",
@@ -98,21 +94,21 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
             "temperature-status-availability",
             "fast-track-pickup-temperature-grouping",
             "klei-direct-delivery-eligibility");
-        AssertSelectedImplementation(
+        await AssertSelectedImplementation(
             plan,
             RuntimeCapabilityId.PickupTemperatureGrouping,
             RuntimeAuthorityImplementationKind.DeclaredExternalIntegration);
     }
 
-    [TestMethod]
-    public void Create_WhenFastTrackDirectDeliveryIsSelected_UsesItsCompleteContribution()
+    [Test]
+    public async Task Create_WhenFastTrackDirectDeliveryIsSelected_UsesItsCompleteContribution()
     {
         DeliveryTemperatureRuntimePatchPlan plan = CreatePlan(
             checkTemperatureForStatusItems: true,
             directDeliveryAuthority:
                 RuntimeAuthorityObservation.OwnsCompatible);
 
-        AssertPatchGroupIds(
+        await AssertPatchGroupIds(
             plan,
             "game-session-lifecycle",
             "world-parent-topology",
@@ -121,14 +117,14 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
             "temperature-status-availability",
             "klei-pickup-temperature-grouping",
             "fast-track-direct-delivery-eligibility");
-        AssertSelectedImplementation(
+        await AssertSelectedImplementation(
             plan,
             RuntimeCapabilityId.DirectDeliveryEligibility,
             RuntimeAuthorityImplementationKind.DeclaredExternalIntegration);
     }
 
-    [TestMethod]
-    public void Create_WhenStatusOptionIsDisabled_OmitsWorldPublicationAndStatusContributions()
+    [Test]
+    public async Task Create_WhenStatusOptionIsDisabled_OmitsWorldPublicationAndStatusContributions()
     {
         DeliveryTemperatureRuntimePatchPlan plan = CreatePlan(
             checkTemperatureForStatusItems: false,
@@ -139,23 +135,23 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
             directDeliveryAuthority:
                 RuntimeAuthorityObservation.OwnsCompatible);
 
-        AssertPatchGroupIds(
+        await AssertPatchGroupIds(
             plan,
             "game-session-lifecycle",
             "world-parent-topology",
             "klei-authoritative-fetch-temperature-eligibility",
             "fast-track-pickup-temperature-grouping",
             "fast-track-direct-delivery-eligibility");
-        Assert.IsFalse(plan.SelectedContributions.Any(contribution =>
+        await Assert.That(plan.SelectedContributions.Any(contribution =>
             contribution.CapabilityId.Equals(
                 RuntimeCapabilityId.WorldInventoryTemperaturePublication) ||
             contribution.CapabilityId.Equals(
-                RuntimeCapabilityId.TemperatureStatusAvailability)));
-        Assert.IsNull(plan.StatusCompatibilityDiagnostic);
+                RuntimeCapabilityId.TemperatureStatusAvailability))).IsFalse();
+        await Assert.That(plan.StatusCompatibilityDiagnostic).IsNull();
     }
 
-    [TestMethod]
-    public void Create_WhenStatusOptionIsDisabled_DoesNotPrepareOmittedKleiContributions()
+    [Test]
+    public async Task Create_WhenStatusOptionIsDisabled_DoesNotPrepareOmittedKleiContributions()
     {
         int worldInventoryPreparationCount = 0;
         int statusAvailabilityPreparationCount = 0;
@@ -199,13 +195,13 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
                 checkTemperatureForStatusItems: false,
                 selection);
 
-        Assert.HasCount(0, plan.SelectedContributions);
-        Assert.AreEqual(0, worldInventoryPreparationCount);
-        Assert.AreEqual(0, statusAvailabilityPreparationCount);
+        await Assert.That(plan.SelectedContributions).Count().IsEqualTo(0);
+        await Assert.That(worldInventoryPreparationCount).IsEqualTo(0);
+        await Assert.That(statusAvailabilityPreparationCount).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void Create_WhenWorldInventoryAuthorityIsIncompatible_OmitsOnlyPairedStatusResponsibilities()
+    [Test]
+    public async Task Create_WhenWorldInventoryAuthorityIsIncompatible_OmitsOnlyPairedStatusResponsibilities()
     {
         RuntimePatchCapabilitySelection selection = CreateSelection(
             worldInventoryAuthority:
@@ -220,63 +216,55 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
                 checkTemperatureForStatusItems: true,
                 selection);
 
-        AssertPatchGroupIds(
+        await AssertPatchGroupIds(
             plan,
             "game-session-lifecycle",
             "world-parent-topology",
             "klei-authoritative-fetch-temperature-eligibility",
             "fast-track-pickup-temperature-grouping",
             "fast-track-direct-delivery-eligibility");
-        Assert.IsNotNull(plan.StatusCompatibilityDiagnostic);
-        StringAssert.Contains(
-            plan.StatusCompatibilityDiagnostic,
-            RuntimeCapabilityId.WorldInventoryTemperaturePublication.Value);
-        StringAssert.Contains(
-            plan.StatusCompatibilityDiagnostic,
-            DiagnosticCode(
+        Assert.NotNull(plan.StatusCompatibilityDiagnostic);
+        await Assert.That(plan.StatusCompatibilityDiagnostic).Contains(RuntimeCapabilityId.WorldInventoryTemperaturePublication.Value);
+        await Assert.That(plan.StatusCompatibilityDiagnostic).Contains(DiagnosticCode(
                 RuntimeCapabilityId.WorldInventoryTemperaturePublication));
-        StringAssert.Contains(
-            plan.StatusCompatibilityDiagnostic,
-            "existing ONI status availability remains unchanged");
+        await Assert.That(plan.StatusCompatibilityDiagnostic).Contains("existing ONI status availability remains unchanged");
         ExternalModIntegrationCapabilityOutcome worldOutcome = selection
             .ExternalModIntegrationOutcomes[0]
             .Capabilities.Single(capability => capability.CapabilityId.Equals(
                 RuntimeCapabilityId.WorldInventoryTemperaturePublication));
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.Unavailable,
-            worldOutcome.Disposition);
+        await Assert.That(worldOutcome.Disposition).IsEqualTo(IntegrationCapabilityDisposition.Unavailable);
     }
 
-    [TestMethod]
-    public void Select_WhenRequiredPickupAuthorityIsIncompatible_BlocksBeforePlanCreation()
+    [Test]
+    public async Task Select_WhenRequiredPickupAuthorityIsIncompatible_BlocksBeforePlanCreation()
     {
         RuntimeCapabilitySelectionException exception =
-            Assert.ThrowsExactly<RuntimeCapabilitySelectionException>(() =>
+            (await Assert.That(() =>
                 CreateSelection(
                     pickupGroupingAuthority:
-                        RuntimeAuthorityObservation.OwnsIncompatible));
+                        RuntimeAuthorityObservation.OwnsIncompatible)).ThrowsExactly<RuntimeCapabilitySelectionException>())!;
 
-        AssertRequiredCapabilityBlocked(
+        await AssertRequiredCapabilityBlocked(
             exception,
             RuntimeCapabilityId.PickupTemperatureGrouping);
     }
 
-    [TestMethod]
-    public void Select_WhenRequiredDirectDeliveryAuthorityIsIncompatible_BlocksBeforePlanCreation()
+    [Test]
+    public async Task Select_WhenRequiredDirectDeliveryAuthorityIsIncompatible_BlocksBeforePlanCreation()
     {
         RuntimeCapabilitySelectionException exception =
-            Assert.ThrowsExactly<RuntimeCapabilitySelectionException>(() =>
+            (await Assert.That(() =>
                 CreateSelection(
                     directDeliveryAuthority:
-                        RuntimeAuthorityObservation.OwnsIncompatible));
+                        RuntimeAuthorityObservation.OwnsIncompatible)).ThrowsExactly<RuntimeCapabilitySelectionException>())!;
 
-        AssertRequiredCapabilityBlocked(
+        await AssertRequiredCapabilityBlocked(
             exception,
             RuntimeCapabilityId.DirectDeliveryEligibility);
     }
 
-    [TestMethod]
-    public void VerifySelectedAuthority_WhenKleiTargetHasOnlyNonSkippingObserver_ReturnsNormally()
+    [Test]
+    public async Task VerifySelectedAuthority_WhenKleiTargetHasOnlyNonSkippingObserver_ReturnsNormally()
     {
         DeliveryTemperatureRuntimePatchPlan plan = CreatePlan(
             checkTemperatureForStatusItems: true,
@@ -291,10 +279,10 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
                 priority: 400)
         ]);
 
-        Assert.AreEqual(0, plan.ExternalModIntegrationOutcomes.Count);
+        await Assert.That(plan.ExternalModIntegrationOutcomes.Count).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public void VerifySelectedAuthority_WhenExactExternalReplacementIsUnchanged_ReturnsNormally()
     {
         DeliveryTemperatureRuntimePatchPlan plan = CreatePlan(
@@ -312,8 +300,8 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
         ]);
     }
 
-    [TestMethod]
-    public void VerifySelectedAuthority_WhenSelectedExternalPrefixMethodChanges_ThrowsAffectedGroupDiagnostic()
+    [Test]
+    public async Task VerifySelectedAuthority_WhenSelectedExternalPrefixMethodChanges_ThrowsAffectedGroupDiagnostic()
     {
         DeliveryTemperatureRuntimePatchPlan plan = CreatePlan(
             checkTemperatureForStatusItems: false,
@@ -321,7 +309,7 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
                 RuntimeAuthorityObservation.OwnsCompatible);
 
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 plan.VerifySelectedAuthority(
                 [
                     new ActiveHarmonyPrefixDescriptor(
@@ -329,17 +317,15 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
                         RequireMethod(nameof(ChangedFastTrackPickupGroupingPrefix)),
                         FastTrackHarmonyOwner,
                         priority: 800)
-                ]));
+                ])).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(
-            exception.Message,
-            "fast-track-pickup-temperature-grouping");
-        StringAssert.Contains(exception.Message, "FastTrackPickupGroupingPrefix");
-        StringAssert.Contains(exception.Message, FastTrackHarmonyOwner);
+        await Assert.That(exception.Message).Contains("fast-track-pickup-temperature-grouping");
+        await Assert.That(exception.Message).Contains("FastTrackPickupGroupingPrefix");
+        await Assert.That(exception.Message).Contains(FastTrackHarmonyOwner);
     }
 
-    [TestMethod]
-    public void VerifySelectedAuthority_WhenUnknownModSkipsUnselectedTarget_DoesNotInterfereOrCreateOutcome()
+    [Test]
+    public async Task VerifySelectedAuthority_WhenUnknownModSkipsUnselectedTarget_DoesNotInterfereOrCreateOutcome()
     {
         DeliveryTemperatureRuntimePatchPlan plan = CreatePlan(
             checkTemperatureForStatusItems: false,
@@ -354,18 +340,18 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
                 priority: 900)
         ]);
 
-        Assert.AreEqual(0, plan.ExternalModIntegrationOutcomes.Count);
+        await Assert.That(plan.ExternalModIntegrationOutcomes.Count).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void VerifySelectedAuthority_WhenUndeclaredOwnerSkipsSelectedTarget_RejectsWithoutCreatingOutcome()
+    [Test]
+    public async Task VerifySelectedAuthority_WhenUndeclaredOwnerSkipsSelectedTarget_RejectsWithoutCreatingOutcome()
     {
         DeliveryTemperatureRuntimePatchPlan plan = CreatePlan(
             checkTemperatureForStatusItems: false,
             includeDeclaredIntegrationOutcome: false);
 
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 plan.VerifySelectedAuthority(
                 [
                     new ActiveHarmonyPrefixDescriptor(
@@ -373,18 +359,14 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
                         RequireMethod(nameof(UnknownSkippingPrefix)),
                         "Unknown.UndeclaredReplacement",
                         priority: 900)
-                ]));
+                ])).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        Assert.AreEqual(0, plan.ExternalModIntegrationOutcomes.Count);
-        StringAssert.Contains(
-            exception.Message,
-            "klei-pickup-temperature-grouping");
-        StringAssert.Contains(
-            exception.Message,
-            "Unknown.UndeclaredReplacement");
+        await Assert.That(plan.ExternalModIntegrationOutcomes.Count).IsEqualTo(0);
+        await Assert.That(exception.Message).Contains("klei-pickup-temperature-grouping");
+        await Assert.That(exception.Message).Contains("Unknown.UndeclaredReplacement");
     }
 
-    [TestMethod]
+    [Test]
     public void VerifySelectedAuthority_WhenStatusIsDisabled_DoesNotInspectWorldAuthority()
     {
         DeliveryTemperatureRuntimePatchPlan plan = CreatePlan(
@@ -400,8 +382,8 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
         ]);
     }
 
-    [TestMethod]
-    public void CreateSupportReportSnapshot_WhenSelectionIsGeneric_PreservesAuditIdsAndSanitizedOutcomeFacts()
+    [Test]
+    public async Task CreateSupportReportSnapshot_WhenSelectionIsGeneric_PreservesAuditIdsAndSanitizedOutcomeFacts()
     {
         DeliveryTemperatureRuntimePatchPlan plan = CreatePlan(
             checkTemperatureForStatusItems: true);
@@ -409,31 +391,27 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
         SupportRuntimeSnapshot snapshot =
             plan.CreateSupportReportSnapshot("Installed");
 
-        Assert.AreEqual("available", snapshot.State);
-        Assert.AreEqual("Installed", snapshot.InstallationState);
-        CollectionAssert.AreEqual(
-            plan.OrderedPatchGroupIds.Select(group => group.Value).ToArray(),
-            snapshot.SelectedPatchGroups.ToArray());
-        Assert.HasCount(1, snapshot.ExternalModIntegrations);
+        await Assert.That(snapshot.State).IsEqualTo("available");
+        await Assert.That(snapshot.InstallationState).IsEqualTo("Installed");
+        await Assert.That(snapshot.SelectedPatchGroups.ToArray()).IsEquivalentTo(plan.OrderedPatchGroupIds.Select(group => group.Value).ToArray(), TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(snapshot.ExternalModIntegrations).Count().IsEqualTo(1);
         SupportExternalModIntegrationSnapshot fastTrack =
             snapshot.ExternalModIntegrations[0];
-        Assert.AreEqual("fast-track", fastTrack.IntegrationId);
-        Assert.AreEqual("not-matched", fastTrack.MatchState);
-        Assert.AreEqual("unavailable", fastTrack.AssemblyIdentity.State);
-        CollectionAssert.AreEqual(
-            new[]
+        await Assert.That(fastTrack.IntegrationId).IsEqualTo("fast-track");
+        await Assert.That(fastTrack.MatchState).IsEqualTo("not-matched");
+        await Assert.That(fastTrack.AssemblyIdentity.State).IsEqualTo("unavailable");
+        await Assert.That(fastTrack.Capabilities
+                .Select(capability => capability.CapabilityId)
+                .ToArray()).IsEquivalentTo(new[]
             {
                 RuntimeCapabilityId.WorldInventoryTemperaturePublication.Value,
                 RuntimeCapabilityId.PickupTemperatureGrouping.Value,
                 RuntimeCapabilityId.DirectDeliveryEligibility.Value
-            },
-            fastTrack.Capabilities
-                .Select(capability => capability.CapabilityId)
-                .ToArray());
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void CreateSupportReportSnapshot_WhenStatusOptionDisablesCompatibleExternalWorldCapability_ReportsReadyDisposition()
+    [Test]
+    public async Task CreateSupportReportSnapshot_WhenStatusOptionDisablesCompatibleExternalWorldCapability_ReportsReadyDisposition()
     {
         DeliveryTemperatureRuntimePatchPlan plan = CreatePlan(
             checkTemperatureForStatusItems: false,
@@ -449,7 +427,7 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
                     .WorldInventoryTemperaturePublication.Value,
                 StringComparison.Ordinal));
 
-        Assert.AreEqual("ready", worldCapability.Disposition);
+        await Assert.That(worldCapability.Disposition).IsEqualTo("ready");
     }
 
     private static DeliveryTemperatureRuntimePatchPlan CreatePlan(
@@ -757,14 +735,12 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
             () => baseline,
             atomicBundleId: null);
 
-    private static void AssertPatchGroupIds(
+    private static async Task AssertPatchGroupIds(
         DeliveryTemperatureRuntimePatchPlan plan,
         params string[] expectedGroupIds) =>
-        Assert.AreSequenceEqual(
-            expectedGroupIds,
-            plan.OrderedPatchGroupIds.Select(group => group.Value));
+        await Assert.That(plan.OrderedPatchGroupIds.Select(group => group.Value)).IsEquivalentTo(expectedGroupIds, TUnit.Assertions.Enums.CollectionOrdering.Matching);
 
-    private static void AssertSelectedImplementation(
+    private static async Task AssertSelectedImplementation(
         DeliveryTemperatureRuntimePatchPlan plan,
         RuntimeCapabilityId capabilityId,
         RuntimeAuthorityImplementationKind expectedKind)
@@ -772,32 +748,26 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
         PreparedRuntimeAuthorityContribution contribution =
             plan.SelectedContributions.Single(candidate =>
                 candidate.CapabilityId.Equals(capabilityId));
-        Assert.AreEqual(expectedKind, contribution.ImplementationIdentity.Kind);
+        await Assert.That(contribution.ImplementationIdentity.Kind).IsEqualTo(expectedKind);
         if (expectedKind ==
             RuntimeAuthorityImplementationKind.DeclaredExternalIntegration)
         {
-            Assert.AreEqual(
-                FastTrackIntegrationId,
-                contribution.ImplementationIdentity
-                    .DeclaredExternalIntegrationId);
+            await Assert.That(contribution.ImplementationIdentity
+                    .DeclaredExternalIntegrationId).IsEqualTo(FastTrackIntegrationId);
         }
     }
 
-    private static void AssertRequiredCapabilityBlocked(
+    private static async Task AssertRequiredCapabilityBlocked(
         RuntimeCapabilitySelectionException exception,
         RuntimeCapabilityId expectedCapabilityId)
     {
-        Assert.AreEqual(expectedCapabilityId, exception.CapabilityId);
-        Assert.AreEqual(
-            "required-runtime-capability-unavailable",
-            exception.DiagnosticCode);
+        await Assert.That(exception.CapabilityId).IsEqualTo(expectedCapabilityId);
+        await Assert.That(exception.DiagnosticCode).IsEqualTo("required-runtime-capability-unavailable");
         ExternalModIntegrationCapabilityOutcome outcome = exception
             .ExternalModIntegrationOutcomes[0]
             .Capabilities.Single(capability =>
                 capability.CapabilityId.Equals(expectedCapabilityId));
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.ActivationBlocking,
-            outcome.Disposition);
+        await Assert.That(outcome.Disposition).IsEqualTo(IntegrationCapabilityDisposition.ActivationBlocking);
     }
 
     private static string ExternalPatchGroupId(

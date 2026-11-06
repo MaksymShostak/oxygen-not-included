@@ -11,11 +11,9 @@ using MaksymShostak.OniModPipeline.WorkshopContent;
 using System.Text.Json;
 
 namespace MaksymShostak.OniModPipeline.Tests.ModInstallation;
-
-[TestClass]
 public sealed class ModInstallerTests
 {
-    [TestMethod]
+    [Test]
     public async Task InstallCandidateAsync_WhenDestinationExistsWithoutMarker_ReturnsOnip4001AndPreservesBytes()
     {
         await using var fixture = await InstallerFixture.CreateAsync();
@@ -29,14 +27,14 @@ public sealed class ModInstallerTests
             fixture.Environment,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(DiagnosticIds.UnownedInstallDestination, result.Diagnostics[0].Id);
-        Assert.AreEqual("user-owned bytes", await File.ReadAllTextAsync(preservedPath));
-        Assert.IsFalse(File.Exists(fixture.InstallationReceiptPath));
-        fixture.AssertNoTransientSiblings();
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Diagnostics[0].Id).IsEqualTo(DiagnosticIds.UnownedInstallDestination);
+        await Assert.That(await File.ReadAllTextAsync(preservedPath)).IsEqualTo("user-owned bytes");
+        await Assert.That(File.Exists(fixture.InstallationReceiptPath)).IsFalse();
+        await fixture.AssertNoTransientSiblings();
     }
 
-    [TestMethod]
+    [Test]
     public async Task InstallCandidateAsync_WhenMarkerStaticIdDiffers_ReturnsOnip4001AndPreservesBytes()
     {
         await using var fixture = await InstallerFixture.CreateAsync();
@@ -53,14 +51,14 @@ public sealed class ModInstallerTests
             fixture.Environment,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(DiagnosticIds.UnownedInstallDestination, result.Diagnostics[0].Id);
-        Assert.AreEqual("old bytes", await File.ReadAllTextAsync(preservedPath));
-        Assert.IsFalse(File.Exists(fixture.InstallationReceiptPath));
-        fixture.AssertNoTransientSiblings();
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Diagnostics[0].Id).IsEqualTo(DiagnosticIds.UnownedInstallDestination);
+        await Assert.That(await File.ReadAllTextAsync(preservedPath)).IsEqualTo("old bytes");
+        await Assert.That(File.Exists(fixture.InstallationReceiptPath)).IsFalse();
+        await fixture.AssertNoTransientSiblings();
     }
 
-    [TestMethod]
+    [Test]
     public async Task InstallCandidateAsync_WhenOwnedDestinationExists_ReplacesItThroughVerifiedSiblingStaging()
     {
         await using var fixture = await InstallerFixture.CreateAsync();
@@ -78,24 +76,22 @@ public sealed class ModInstallerTests
             fixture.Environment,
             CancellationToken.None);
 
-        Assert.IsTrue(result.IsSuccess, InstallerFixture.Render(result.Diagnostics));
-        Assert.IsFalse(File.Exists(Path.Combine(fixture.Destination, "old.dll")));
-        CollectionAssert.AreEqual(
-            new[]
+        await Assert.That(result.IsSuccess).IsTrue().Because(InstallerFixture.Render(result.Diagnostics));
+        await Assert.That(File.Exists(Path.Combine(fixture.Destination, "old.dll"))).IsFalse();
+        await Assert.That(Directory.EnumerateFiles(fixture.Destination)
+                .Select(Path.GetFileName)
+                .OrderBy(name => name, StringComparer.Ordinal)
+                .ToArray()).IsEquivalentTo((new[]
             {
                 ".oni-mod-pipeline-owner.json",
                 "Example.dll",
                 "mod.yaml",
                 "mod_info.yaml"
-            },
-            Directory.EnumerateFiles(fixture.Destination)
-                .Select(Path.GetFileName)
-                .OrderBy(name => name, StringComparer.Ordinal)
-                .ToArray());
-        fixture.AssertNoTransientSiblings();
+            }).Cast<string?>(), TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await fixture.AssertNoTransientSiblings();
     }
 
-    [TestMethod]
+    [Test]
     public async Task InstallCandidateAsync_WhenSwapFails_RestoresOwnedPreviousInstallation()
     {
         await using var fixture = await InstallerFixture.CreateAsync(
@@ -113,14 +109,14 @@ public sealed class ModInstallerTests
             fixture.Environment,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(PipelineExitCode.InstallationFailed, result.ExitCode);
-        Assert.AreEqual("old bytes", await File.ReadAllTextAsync(oldPath));
-        Assert.IsFalse(File.Exists(fixture.InstallationReceiptPath));
-        fixture.AssertNoTransientSiblings();
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.InstallationFailed);
+        await Assert.That(await File.ReadAllTextAsync(oldPath)).IsEqualTo("old bytes");
+        await Assert.That(File.Exists(fixture.InstallationReceiptPath)).IsFalse();
+        await fixture.AssertNoTransientSiblings();
     }
 
-    [TestMethod]
+    [Test]
     public async Task InstallCandidateAsync_WhenCandidateContentDigestDiffers_FailsBeforeTouchingTarget()
     {
         await using var fixture = await InstallerFixture.CreateAsync();
@@ -134,14 +130,14 @@ public sealed class ModInstallerTests
             fixture.Environment,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(DiagnosticIds.InstalledContentMismatch, result.Diagnostics[0].Id);
-        Assert.IsFalse(Directory.Exists(fixture.LocalDestination));
-        Assert.IsFalse(File.Exists(fixture.InstallationReceiptPath));
-        fixture.AssertNoTransientSiblings(InstallTarget.Local);
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Diagnostics[0].Id).IsEqualTo(DiagnosticIds.InstalledContentMismatch);
+        await Assert.That(Directory.Exists(fixture.LocalDestination)).IsFalse();
+        await Assert.That(File.Exists(fixture.InstallationReceiptPath)).IsFalse();
+        await fixture.AssertNoTransientSiblings(InstallTarget.Local);
     }
 
-    [TestMethod]
+    [Test]
     public async Task InstallCandidateAsync_WhenBytesChangeDuringCopy_RejectsBeforeSwap()
     {
         await using var fixture = await InstallerFixture.CreateAsync(
@@ -153,14 +149,14 @@ public sealed class ModInstallerTests
             fixture.Environment,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(DiagnosticIds.InstalledContentMismatch, result.Diagnostics[0].Id);
-        Assert.IsFalse(Directory.Exists(fixture.Destination));
-        Assert.IsFalse(File.Exists(fixture.InstallationReceiptPath));
-        fixture.AssertNoTransientSiblings();
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Diagnostics[0].Id).IsEqualTo(DiagnosticIds.InstalledContentMismatch);
+        await Assert.That(Directory.Exists(fixture.Destination)).IsFalse();
+        await Assert.That(File.Exists(fixture.InstallationReceiptPath)).IsFalse();
+        await fixture.AssertNoTransientSiblings();
     }
 
-    [TestMethod]
+    [Test]
     public async Task InstallCandidateAsync_WhenInstalledBytesDiffer_RollsBackNewDestination()
     {
         await using var fixture = await InstallerFixture.CreateAsync(
@@ -172,14 +168,14 @@ public sealed class ModInstallerTests
             fixture.Environment,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(DiagnosticIds.InstalledContentMismatch, result.Diagnostics[0].Id);
-        Assert.IsFalse(Directory.Exists(fixture.Destination));
-        Assert.IsFalse(File.Exists(fixture.InstallationReceiptPath));
-        fixture.AssertNoTransientSiblings();
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Diagnostics[0].Id).IsEqualTo(DiagnosticIds.InstalledContentMismatch);
+        await Assert.That(Directory.Exists(fixture.Destination)).IsFalse();
+        await Assert.That(File.Exists(fixture.InstallationReceiptPath)).IsFalse();
+        await fixture.AssertNoTransientSiblings();
     }
 
-    [TestMethod]
+    [Test]
     public async Task InstallCandidateAsync_WhenReceiptAlreadyExists_FailsBeforeTouchingDestination()
     {
         await using var fixture = await InstallerFixture.CreateAsync();
@@ -197,15 +193,15 @@ public sealed class ModInstallerTests
             fixture.Environment,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(DiagnosticIds.InstallationReceiptExists, result.Diagnostics[0].Id);
-        Assert.AreEqual("old bytes", await File.ReadAllTextAsync(oldPath));
-        Assert.AreEqual("existing receipt\n", await File.ReadAllTextAsync(
-            fixture.InstallationReceiptPath));
-        fixture.AssertNoTransientSiblings();
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Diagnostics[0].Id).IsEqualTo(DiagnosticIds.InstallationReceiptExists);
+        await Assert.That(await File.ReadAllTextAsync(oldPath)).IsEqualTo("old bytes");
+        await Assert.That(await File.ReadAllTextAsync(
+            fixture.InstallationReceiptPath)).IsEqualTo("existing receipt\n");
+        await fixture.AssertNoTransientSiblings();
     }
 
-    [TestMethod]
+    [Test]
     public async Task InstallCandidateAsync_WhenSuccessful_WritesOneDigestBoundReceiptAndMarker()
     {
         await using var fixture = await InstallerFixture.CreateAsync();
@@ -216,28 +212,28 @@ public sealed class ModInstallerTests
             fixture.Environment,
             CancellationToken.None);
 
-        Assert.IsTrue(result.IsSuccess, InstallerFixture.Render(result.Diagnostics));
-        Assert.IsNotNull(result.Value);
-        Assert.AreEqual(fixture.LocalDestination, result.Value.AbsoluteTargetPath);
-        Assert.IsTrue(result.Value.InstallationReceiptWritten);
-        Assert.IsTrue(File.Exists(fixture.InstallationReceiptPath));
+        await Assert.That(result.IsSuccess).IsTrue().Because(InstallerFixture.Render(result.Diagnostics));
+        Assert.NotNull(result.Value);
+        await Assert.That(result.Value.AbsoluteTargetPath).IsEqualTo(fixture.LocalDestination);
+        await Assert.That(result.Value.InstallationReceiptWritten).IsTrue();
+        await Assert.That(File.Exists(fixture.InstallationReceiptPath)).IsTrue();
         var receipt = await fixture.ReadJsonAsync<InstallationReceipt>(
             fixture.InstallationReceiptPath);
-        Assert.AreEqual("Example.Mod", receipt.StaticId);
-        Assert.AreEqual("1.2.3", receipt.Version);
-        Assert.AreEqual(result.Value.ContentDigest, receipt.ContentDigest);
-        Assert.AreEqual(InstallTarget.Local, receipt.Target);
-        Assert.AreEqual(fixture.LocalDestination, receipt.AbsoluteTargetPath);
-        Assert.AreEqual(InstallerFixture.InstalledAt, receipt.InstalledAtUtc);
-        Assert.IsTrue(receipt.InstalledFilesVerified);
+        await Assert.That(receipt.StaticId).IsEqualTo("Example.Mod");
+        await Assert.That(receipt.Version).IsEqualTo("1.2.3");
+        await Assert.That(receipt.ContentDigest).IsEqualTo(result.Value.ContentDigest);
+        await Assert.That(receipt.Target).IsEqualTo(InstallTarget.Local);
+        await Assert.That(receipt.AbsoluteTargetPath).IsEqualTo(fixture.LocalDestination);
+        await Assert.That(receipt.InstalledAtUtc).IsEqualTo(InstallerFixture.InstalledAt);
+        await Assert.That(receipt.InstalledFilesVerified).IsTrue();
         var marker = await fixture.ReadJsonAsync<OwnershipMarker>(
             Path.Combine(fixture.LocalDestination, ".oni-mod-pipeline-owner.json"));
-        Assert.AreEqual(receipt.ContentDigest, marker.InstalledContentDigest);
-        Assert.IsFalse(File.Exists(Path.Combine(fixture.LocalDestination, "preview.png")));
-        fixture.AssertNoTransientSiblings(InstallTarget.Local);
+        await Assert.That(marker.InstalledContentDigest).IsEqualTo(receipt.ContentDigest);
+        await Assert.That(File.Exists(Path.Combine(fixture.LocalDestination, "preview.png"))).IsFalse();
+        await fixture.AssertNoTransientSiblings(InstallTarget.Local);
     }
 
-    [TestMethod]
+    [Test]
     public async Task InstallCandidateAsync_WhenSubscribedCopySharesStaticId_ReturnsNonBlockingOnip2005()
     {
         await using var fixture = await InstallerFixture.CreateAsync();
@@ -257,14 +253,14 @@ public sealed class ModInstallerTests
             fixture.Environment,
             CancellationToken.None);
 
-        Assert.IsTrue(result.IsSuccess);
+        await Assert.That(result.IsSuccess).IsTrue();
         var warning = result.Diagnostics.Single(diagnostic =>
             diagnostic.Id == DiagnosticIds.DuplicateInstalledMod);
-        Assert.AreEqual(DiagnosticSeverity.Warning, warning.Severity);
-        Assert.Contains(subscribedDirectory, warning.Evidence, StringComparison.Ordinal);
+        await Assert.That(warning.Severity).IsEqualTo(DiagnosticSeverity.Warning);
+        await Assert.That(warning.Evidence).Contains(subscribedDirectory, StringComparison.Ordinal);
     }
 
-    [TestMethod]
+    [Test]
     public async Task InstallCandidateAsync_WhenSubscribedMetadataIsMalformed_DoesNotBlockInstallation()
     {
         await using var fixture = await InstallerFixture.CreateAsync();
@@ -284,17 +280,17 @@ public sealed class ModInstallerTests
             fixture.Environment,
             CancellationToken.None);
 
-        Assert.IsTrue(result.IsSuccess, InstallerFixture.Render(result.Diagnostics));
-        Assert.IsEmpty(result.Diagnostics);
-        Assert.IsTrue(Directory.Exists(fixture.Destination));
+        await Assert.That(result.IsSuccess).IsTrue().Because(InstallerFixture.Render(result.Diagnostics));
+        await Assert.That(result.Diagnostics).IsEmpty();
+        await Assert.That(Directory.Exists(fixture.Destination)).IsTrue();
     }
 
-    [TestMethod]
-    [DataRow(".")]
-    [DataRow("..")]
-    [DataRow("nested/name")]
-    [DataRow("CON")]
-    [DataRow("nul.txt")]
+    [Test]
+    [Arguments(".")]
+    [Arguments("..")]
+    [Arguments("nested/name")]
+    [Arguments("CON")]
+    [Arguments("nul.txt")]
     public async Task InstallBuildAsync_WhenManagedDirectoryNameIsNotPortable_RejectsWithoutMutation(
         string unsafeDirectoryName)
     {
@@ -313,12 +309,12 @@ public sealed class ModInstallerTests
             fixture.Environment,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(DiagnosticIds.UnownedInstallDestination, result.Diagnostics[0].Id);
-        Assert.IsFalse(Directory.Exists(fixture.Environment.DevelopmentModsDirectory));
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Diagnostics[0].Id).IsEqualTo(DiagnosticIds.UnownedInstallDestination);
+        await Assert.That(Directory.Exists(fixture.Environment.DevelopmentModsDirectory)).IsFalse();
     }
 
-    [TestMethod]
+    [Test]
     public async Task InstallBuildAsync_WhenEnvironmentTargetIsNotExactDerivedRoot_RejectsWithoutMutation()
     {
         await using var fixture = await InstallerFixture.CreateAsync();
@@ -336,14 +332,14 @@ public sealed class ModInstallerTests
             unsafeEnvironment,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(DiagnosticIds.UnownedInstallDestination, result.Diagnostics[0].Id);
-        Assert.IsFalse(Directory.Exists(Path.Combine(
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Diagnostics[0].Id).IsEqualTo(DiagnosticIds.UnownedInstallDestination);
+        await Assert.That(Directory.Exists(Path.Combine(
             fixture.Environment.UserDataDirectory,
-            "ExampleMod")));
+            "ExampleMod"))).IsFalse();
     }
 
-    [TestMethod]
+    [Test]
     public async Task InstallBuildAsync_WhenRecordedInputChanged_RejectsBeforeTargetMutation()
     {
         await using var fixture = await InstallerFixture.CreateAsync();
@@ -358,12 +354,12 @@ public sealed class ModInstallerTests
             fixture.Environment,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(DiagnosticIds.InstalledContentMismatch, result.Diagnostics[0].Id);
-        Assert.IsFalse(Directory.Exists(fixture.Destination));
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Diagnostics[0].Id).IsEqualTo(DiagnosticIds.InstalledContentMismatch);
+        await Assert.That(Directory.Exists(fixture.Destination)).IsFalse();
     }
 
-    [TestMethod]
+    [Test]
     public async Task InstallBuildAsync_WhenSuccessful_NeverCreatesCandidateReceipt()
     {
         await using var fixture = await InstallerFixture.CreateAsync();
@@ -377,12 +373,12 @@ public sealed class ModInstallerTests
             fixture.Environment,
             CancellationToken.None);
 
-        Assert.IsTrue(result.IsSuccess, InstallerFixture.Render(result.Diagnostics));
-        Assert.IsFalse(result.Value!.InstallationReceiptWritten);
-        Assert.IsFalse(File.Exists(fixture.InstallationReceiptPath));
-        Assert.IsTrue(File.Exists(Path.Combine(fixture.Destination, "Example.dll")));
-        Assert.IsFalse(File.Exists(Path.Combine(fixture.Destination, "preview.png")));
-        fixture.AssertNoTransientSiblings();
+        await Assert.That(result.IsSuccess).IsTrue().Because(InstallerFixture.Render(result.Diagnostics));
+        await Assert.That(result.Value!.InstallationReceiptWritten).IsFalse();
+        await Assert.That(File.Exists(fixture.InstallationReceiptPath)).IsFalse();
+        await Assert.That(File.Exists(Path.Combine(fixture.Destination, "Example.dll"))).IsTrue();
+        await Assert.That(File.Exists(Path.Combine(fixture.Destination, "preview.png"))).IsFalse();
+        await fixture.AssertNoTransientSiblings();
     }
 }
 
@@ -443,7 +439,7 @@ internal sealed class InstallerFixture : IAsyncDisposable
         var prepared = await preparation.Preparer.PrepareAsync(
             preparation.Request,
             CancellationToken.None);
-        Assert.IsTrue(prepared.IsSuccess, Render(prepared.Diagnostics));
+        await Assert.That(prepared.IsSuccess).IsTrue().Because(Render(prepared.Diagnostics));
         return new InstallerFixture(preparation, operationFailure);
     }
 
@@ -463,7 +459,7 @@ internal sealed class InstallerFixture : IAsyncDisposable
                 Metadata.Version,
                 PreparationFixture.Commit),
             CancellationToken.None);
-        Assert.IsTrue(result.IsSuccess, Render(result.Diagnostics));
+        await Assert.That(result.IsSuccess).IsTrue().Because(Render(result.Diagnostics));
         var path = Path.Combine(runRoot, "build-result.json");
         await new Utf8ArtifactWriter().WriteJsonAtomicallyAsync(
             path,
@@ -486,7 +482,7 @@ internal sealed class InstallerFixture : IAsyncDisposable
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             })!;
 
-    internal void AssertNoTransientSiblings(
+    internal async Task AssertNoTransientSiblings(
         InstallTarget target = InstallTarget.Dev)
     {
         var root = target == InstallTarget.Dev
@@ -497,11 +493,11 @@ internal sealed class InstallerFixture : IAsyncDisposable
             return;
         }
 
-        Assert.IsFalse(Directory.EnumerateFileSystemEntries(root)
+        await Assert.That(Directory.EnumerateFileSystemEntries(root)
             .Select(Path.GetFileName)
             .Any(name => name is not null &&
                 (name.Contains(".staging-", StringComparison.Ordinal) ||
-                 name.Contains(".backup-", StringComparison.Ordinal))));
+                 name.Contains(".backup-", StringComparison.Ordinal)))).IsFalse();
     }
 
     internal static string Render(IReadOnlyList<Diagnostic> diagnostics) =>

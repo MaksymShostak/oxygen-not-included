@@ -3,35 +3,33 @@ using System.Reflection.PortableExecutable;
 using DeliveryTemperatureLimit.Tests.OniModPipelineIntegration;
 
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
-
-[TestClass]
 public sealed class RuntimeFailureBoundaryContractTests
 {
-    [TestMethod]
-    [DataRow("TemperatureLimitSideScreen", "SetTarget")]
-    [DataRow("TemperatureLimitSideScreen", "OnPrefabInit")]
-    [DataRow("TemperatureLimitWidget", "OnPrefabInit")]
-    [DataRow("TemperatureLimitInputScreen", "OnSpawn")]
-    [DataRow("DeliveryTemperatureLimitMod", "OnLoad")]
-    [DataRow("DeliveryTemperatureLimitMod", "OnAllModsLoaded")]
-    [DataRow("DeliveryTemperatureGameLoadAuthorityPatches", "GameOnPrefabInitPrefix")]
-    [DataRow("TemperatureLimit", "OnSpawn")]
-    [DataRow("TemperatureLimit", "OnCleanUp")]
-    [DataRow("DeliveryTemperatureGameSessionShutdownPatches", "GameDestroyInstancesFinalizer")]
-    [DataRow("WorldParentTopologyPatches", "RegisterWorldContainerPostfix")]
-    [DataRow("ConstructionMaterialTemperatureLimit", "BuildingDefinitionInstantiationPostfix")]
-    [DataRow("TemperatureLimitSideScreenRegistrationPatches", "DetailsScreenPrefabInitializationPostfix")]
-    [DataRow("TemperatureLimitedDeliveryTargetPrefabConfigurator", "ConfigureTemperatureLimitedDeliveryTargetPrefabsPostfix")]
-    [DataRow("KleiWorldInventoryTemperaturePatches", "RecordFilteredPickupTemperatureAmount")]
-    [DataRow("KleiWorldInventoryTemperaturePatches", "WorldInventoryUpdateFinalizer")]
-    [DataRow("KleiAuthoritativeFetchTemperatureEligibilityPatches", "UpdateStorageFetchableBitsPrefix")]
-    [DataRow("KleiAuthoritativeFetchTemperatureEligibilityPatches", "UpdateStorageFetchableBitsFinalizer")]
-    [DataRow("KleiDirectDeliveryEligibilityPatches", "IsPickupAllowedForDestination")]
-    [DataRow("FastTrackDirectDeliveryEligibilityPatches", "IsPickupAllowedForFetchChore")]
-    [DataRow("FastTrackWorldInventoryTemperaturePatches", "RecordFilteredPickupTemperatureAmount")]
-    [DataRow("FastTrackWorldInventoryTemperaturePatches", "BackgroundWorldInventoryRunUpdateFinalizer")]
-    [DataRow("FastTrackPickupTemperaturePatches", "BeforeUpdatePickupsFinalizer")]
-    public void GameEntryPoint_ContainsModFailure(string typeName, string methodName)
+    [Test]
+    [Arguments("TemperatureLimitSideScreen", "SetTarget")]
+    [Arguments("TemperatureLimitSideScreen", "OnPrefabInit")]
+    [Arguments("TemperatureLimitWidget", "OnPrefabInit")]
+    [Arguments("TemperatureLimitInputScreen", "OnSpawn")]
+    [Arguments("DeliveryTemperatureLimitMod", "OnLoad")]
+    [Arguments("DeliveryTemperatureLimitMod", "OnAllModsLoaded")]
+    [Arguments("DeliveryTemperatureGameLoadAuthorityPatches", "GameOnPrefabInitPrefix")]
+    [Arguments("TemperatureLimit", "OnSpawn")]
+    [Arguments("TemperatureLimit", "OnCleanUp")]
+    [Arguments("DeliveryTemperatureGameSessionShutdownPatches", "GameDestroyInstancesFinalizer")]
+    [Arguments("WorldParentTopologyPatches", "RegisterWorldContainerPostfix")]
+    [Arguments("ConstructionMaterialTemperatureLimit", "BuildingDefinitionInstantiationPostfix")]
+    [Arguments("TemperatureLimitSideScreenRegistrationPatches", "DetailsScreenPrefabInitializationPostfix")]
+    [Arguments("TemperatureLimitedDeliveryTargetPrefabConfigurator", "ConfigureTemperatureLimitedDeliveryTargetPrefabsPostfix")]
+    [Arguments("KleiWorldInventoryTemperaturePatches", "RecordFilteredPickupTemperatureAmount")]
+    [Arguments("KleiWorldInventoryTemperaturePatches", "WorldInventoryUpdateFinalizer")]
+    [Arguments("KleiAuthoritativeFetchTemperatureEligibilityPatches", "UpdateStorageFetchableBitsPrefix")]
+    [Arguments("KleiAuthoritativeFetchTemperatureEligibilityPatches", "UpdateStorageFetchableBitsFinalizer")]
+    [Arguments("KleiDirectDeliveryEligibilityPatches", "IsPickupAllowedForDestination")]
+    [Arguments("FastTrackDirectDeliveryEligibilityPatches", "IsPickupAllowedForFetchChore")]
+    [Arguments("FastTrackWorldInventoryTemperaturePatches", "RecordFilteredPickupTemperatureAmount")]
+    [Arguments("FastTrackWorldInventoryTemperaturePatches", "BackgroundWorldInventoryRunUpdateFinalizer")]
+    [Arguments("FastTrackPickupTemperaturePatches", "BeforeUpdatePickupsFinalizer")]
+    public async Task GameEntryPoint_ContainsModFailure(string typeName, string methodName)
     {
         string path = PipelineProvenanceBoundAssemblyLocator.CreateForCurrentPipelineEnvironment()
             .ResolvePipelineBuildOrInconclusive().AssemblyPath;
@@ -43,14 +41,12 @@ public sealed class RuntimeFailureBoundaryContractTests
             metadata.GetString(t.Name) == typeName);
         var method = type.GetMethods().Select(metadata.GetMethodDefinition).Single(m =>
             metadata.GetString(m.Name) == methodName);
-        Assert.IsTrue(pe.GetMethodBody(method.RelativeVirtualAddress).ExceptionRegions.Any(region =>
-            region.Kind == ExceptionRegionKind.Catch),
-            $"{typeName}.{methodName} must contain its own failures at the game boundary.");
+        await Assert.That(pe.GetMethodBody(method.RelativeVirtualAddress).ExceptionRegions.Any(region =>
+            region.Kind == ExceptionRegionKind.Catch)).IsTrue().Because($"{typeName}.{methodName} must contain its own failures at the game boundary.");
         var instructions = DeliveryTemperatureAssemblyMetadataReader.ReadMethodBodies(
             path, "DeliveryTemperatureLimit." + typeName, methodName).Single().Instructions;
-        Assert.IsTrue(instructions.Any(instruction => instruction.ResolvedOperand is
+        await Assert.That(instructions.Any(instruction => instruction.ResolvedOperand is
             "DeliveryTemperatureLimit.RuntimeFailureReporting.DisableGameplay" or "DeliveryTemperatureLimit.RuntimeFailureReporting.DisableUserInterface" or
-            "DeliveryTemperatureLimit.DeliveryTemperatureGameSessionHost.TryDisableRuntime"),
-            "Catching alone is insufficient: a failed feature must stop and report its loss of functionality.");
+            "DeliveryTemperatureLimit.DeliveryTemperatureGameSessionHost.TryDisableRuntime")).IsTrue().Because("Catching alone is insufficient: a failed feature must stop and report its loss of functionality.");
     }
 }

@@ -1,8 +1,6 @@
 using System.Reflection;
 
 namespace DeliveryTemperatureLimit.Tests.FastTrackCompatibility;
-
-[TestClass]
 public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
 {
     private static readonly Version SupportedFileVersion =
@@ -14,39 +12,31 @@ public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
     private const string UnsupportedDigest =
         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
-    [TestMethod]
-    public void DeclaredIntegrationDescriptor_UsesExactSupportedFastTrackIdentityAndCapabilities()
+    [Test]
+    public async Task DeclaredIntegrationDescriptor_UsesExactSupportedFastTrackIdentityAndCapabilities()
     {
         DeclaredModIntegrationDescriptor descriptor =
             FastTrackRuntimeAuthorityIntegrationInspector
                 .DeclaredIntegrationDescriptor;
 
-        Assert.AreEqual("fast-track", descriptor.IntegrationId.Value);
-        Assert.AreEqual("Fast Track", descriptor.DisplayName);
-        CollectionAssert.AreEqual(
-            new[] { "PeterHan.FastTrack" },
-            descriptor.AcceptedStaticIds.ToArray());
-        CollectionAssert.AreEqual(
-            new[] { "FastTrack" },
-            descriptor.AcceptedAssemblySimpleNames.ToArray());
-        Assert.AreEqual(
-            "https://github.com/peterhaneve/ONIMods/releases/tag/FastTrackBeta",
-            descriptor.UpstreamEvidenceReference);
-        CollectionAssert.AreEqual(
-            new[]
+        await Assert.That(descriptor.IntegrationId.Value).IsEqualTo("fast-track");
+        await Assert.That(descriptor.DisplayName).IsEqualTo("Fast Track");
+        await Assert.That(descriptor.AcceptedStaticIds.ToArray()).IsEquivalentTo(new[] { "PeterHan.FastTrack" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(descriptor.AcceptedAssemblySimpleNames.ToArray()).IsEquivalentTo(new[] { "FastTrack" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(descriptor.UpstreamEvidenceReference).IsEqualTo("https://github.com/peterhaneve/ONIMods/releases/tag/FastTrackBeta");
+        await Assert.That(descriptor.DeclaredCapabilityIds.ToArray()).IsEquivalentTo(new[]
             {
                 RuntimeCapabilityId.WorldInventoryTemperaturePublication,
                 RuntimeCapabilityId.PickupTemperatureGrouping,
                 RuntimeCapabilityId.DirectDeliveryEligibility
-            },
-            descriptor.DeclaredCapabilityIds.ToArray());
-        Assert.IsTrue(descriptor.DeclaredCapabilities.All(capability =>
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(descriptor.DeclaredCapabilities.All(capability =>
             capability.Category ==
-                ExternalModIntegrationCategory.ExclusiveRuntimeAuthority));
+                ExternalModIntegrationCategory.ExclusiveRuntimeAuthority)).IsTrue();
     }
 
-    [TestMethod]
-    public void Prepare_WhenFastTrackIsAbsent_ProjectsEveryCapabilityAsNotApplicable()
+    [Test]
+    public async Task Prepare_WhenFastTrackIsAbsent_ProjectsEveryCapabilityAsNotApplicable()
     {
         var identityReader = new RecordingAssemblyFileIdentityReader(
             SuccessfulFileIdentity());
@@ -57,29 +47,29 @@ public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
                 Array.Empty<ActiveHarmonyPrefixDescriptor>()),
             identityReader);
 
-        ExternalModIntegrationOutcome outcome = AssertSingleOutcome(result);
-        Assert.AreEqual(DeclaredModMatchState.NotMatched, outcome.MatchState);
-        Assert.IsNull(outcome.AssemblyIdentity);
-        Assert.IsNull(outcome.AssemblyVersion);
-        Assert.IsNull(outcome.FileVersion);
-        Assert.IsNull(outcome.AssemblySha256);
-        Assert.AreEqual(0, result.RuntimeAuthorityContributions.Count);
-        Assert.AreEqual(0, identityReader.ReadCallCount);
-        AssertCapabilityOutcome(
+        ExternalModIntegrationOutcome outcome = await AssertSingleOutcome(result);
+        await Assert.That(outcome.MatchState).IsEqualTo(DeclaredModMatchState.NotMatched);
+        await Assert.That(outcome.AssemblyIdentity).IsNull();
+        await Assert.That(outcome.AssemblyVersion).IsNull();
+        await Assert.That(outcome.FileVersion).IsNull();
+        await Assert.That(outcome.AssemblySha256).IsNull();
+        await Assert.That(result.RuntimeAuthorityContributions.Count).IsEqualTo(0);
+        await Assert.That(identityReader.ReadCallCount).IsEqualTo(0);
+        await AssertCapabilityOutcome(
             outcome.Capabilities[0],
             RuntimeCapabilityId.WorldInventoryTemperaturePublication,
             RuntimeAuthorityObservation.DoesNotOwn,
             IntegrationContractState.NotEvaluated,
             IntegrationCapabilityDisposition.NotApplicable,
             expectedDiagnosticCode: null);
-        AssertCapabilityOutcome(
+        await AssertCapabilityOutcome(
             outcome.Capabilities[1],
             RuntimeCapabilityId.PickupTemperatureGrouping,
             RuntimeAuthorityObservation.DoesNotOwn,
             IntegrationContractState.NotEvaluated,
             IntegrationCapabilityDisposition.NotApplicable,
             expectedDiagnosticCode: null);
-        AssertCapabilityOutcome(
+        await AssertCapabilityOutcome(
             outcome.Capabilities[2],
             RuntimeCapabilityId.DirectDeliveryEligibility,
             RuntimeAuthorityObservation.DoesNotOwn,
@@ -88,8 +78,8 @@ public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
             expectedDiagnosticCode: null);
     }
 
-    [TestMethod]
-    public void Prepare_WhenFastTrackReplacementsAreInactive_ProjectsEveryCapabilityAsNotApplicable()
+    [Test]
+    public async Task Prepare_WhenFastTrackReplacementsAreInactive_ProjectsEveryCapabilityAsNotApplicable()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract("FastTrack");
@@ -102,29 +92,29 @@ public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
                 Array.Empty<ActiveHarmonyPrefixDescriptor>()),
             identityReader);
 
-        ExternalModIntegrationOutcome outcome = AssertSingleOutcome(result);
-        Assert.AreEqual(DeclaredModMatchState.Matched, outcome.MatchState);
-        Assert.AreEqual(fixture.Assembly.FullName, outcome.AssemblyIdentity);
-        Assert.AreEqual("0.18.0.0", outcome.AssemblyVersion);
-        Assert.AreEqual("0.18.4.0", outcome.FileVersion);
-        Assert.AreEqual(SupportedDigest, outcome.AssemblySha256);
-        Assert.AreEqual(0, result.RuntimeAuthorityContributions.Count);
-        Assert.AreEqual(1, identityReader.ReadCallCount);
-        AssertCapabilityOutcome(
+        ExternalModIntegrationOutcome outcome = await AssertSingleOutcome(result);
+        await Assert.That(outcome.MatchState).IsEqualTo(DeclaredModMatchState.Matched);
+        await Assert.That(outcome.AssemblyIdentity).IsEqualTo(fixture.Assembly.FullName);
+        await Assert.That(outcome.AssemblyVersion).IsEqualTo("0.18.0.0");
+        await Assert.That(outcome.FileVersion).IsEqualTo("0.18.4.0");
+        await Assert.That(outcome.AssemblySha256).IsEqualTo(SupportedDigest);
+        await Assert.That(result.RuntimeAuthorityContributions.Count).IsEqualTo(0);
+        await Assert.That(identityReader.ReadCallCount).IsEqualTo(1);
+        await AssertCapabilityOutcome(
             outcome.Capabilities[0],
             RuntimeCapabilityId.WorldInventoryTemperaturePublication,
             RuntimeAuthorityObservation.DoesNotOwn,
             IntegrationContractState.NotEvaluated,
             IntegrationCapabilityDisposition.NotApplicable,
             expectedDiagnosticCode: null);
-        AssertCapabilityOutcome(
+        await AssertCapabilityOutcome(
             outcome.Capabilities[1],
             RuntimeCapabilityId.PickupTemperatureGrouping,
             RuntimeAuthorityObservation.DoesNotOwn,
             IntegrationContractState.NotEvaluated,
             IntegrationCapabilityDisposition.NotApplicable,
             expectedDiagnosticCode: null);
-        AssertCapabilityOutcome(
+        await AssertCapabilityOutcome(
             outcome.Capabilities[2],
             RuntimeCapabilityId.DirectDeliveryEligibility,
             RuntimeAuthorityObservation.DoesNotOwn,
@@ -133,8 +123,8 @@ public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
             expectedDiagnosticCode: null);
     }
 
-    [TestMethod]
-    public void Prepare_WhenEveryFastTrackReplacementIsReady_ProjectsReadyCompleteContributions()
+    [Test]
+    public async Task Prepare_WhenEveryFastTrackReplacementIsReady_ProjectsReadyCompleteContributions()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract("FastTrack");
@@ -145,26 +135,26 @@ public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
             CreateMatchedContext(fixture, CopyActivePrefixes(fixture)),
             identityReader);
 
-        ExternalModIntegrationOutcome outcome = AssertSingleOutcome(result);
-        Assert.AreEqual(DeclaredModMatchState.Matched, outcome.MatchState);
-        Assert.AreEqual(SupportedDigest, outcome.AssemblySha256);
-        Assert.AreEqual(1, identityReader.ReadCallCount);
-        Assert.AreEqual(3, result.RuntimeAuthorityContributions.Count);
-        AssertCapabilityOutcome(
+        ExternalModIntegrationOutcome outcome = await AssertSingleOutcome(result);
+        await Assert.That(outcome.MatchState).IsEqualTo(DeclaredModMatchState.Matched);
+        await Assert.That(outcome.AssemblySha256).IsEqualTo(SupportedDigest);
+        await Assert.That(identityReader.ReadCallCount).IsEqualTo(1);
+        await Assert.That(result.RuntimeAuthorityContributions.Count).IsEqualTo(3);
+        await AssertCapabilityOutcome(
             outcome.Capabilities[0],
             RuntimeCapabilityId.WorldInventoryTemperaturePublication,
             RuntimeAuthorityObservation.OwnsCompatible,
             IntegrationContractState.Compatible,
             IntegrationCapabilityDisposition.Ready,
             expectedDiagnosticCode: null);
-        AssertCapabilityOutcome(
+        await AssertCapabilityOutcome(
             outcome.Capabilities[1],
             RuntimeCapabilityId.PickupTemperatureGrouping,
             RuntimeAuthorityObservation.OwnsCompatible,
             IntegrationContractState.Compatible,
             IntegrationCapabilityDisposition.Ready,
             expectedDiagnosticCode: null);
-        AssertCapabilityOutcome(
+        await AssertCapabilityOutcome(
             outcome.Capabilities[2],
             RuntimeCapabilityId.DirectDeliveryEligibility,
             RuntimeAuthorityObservation.OwnsCompatible,
@@ -172,19 +162,19 @@ public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
             IntegrationCapabilityDisposition.Ready,
             expectedDiagnosticCode: null);
 
-        AssertCompleteCompatibleContribution(
+        await AssertCompleteCompatibleContribution(
             result.RuntimeAuthorityContributions[0],
             RuntimeCapabilityId.WorldInventoryTemperaturePublication);
-        AssertCompleteCompatibleContribution(
+        await AssertCompleteCompatibleContribution(
             result.RuntimeAuthorityContributions[1],
             RuntimeCapabilityId.PickupTemperatureGrouping);
-        AssertCompleteCompatibleContribution(
+        await AssertCompleteCompatibleContribution(
             result.RuntimeAuthorityContributions[2],
             RuntimeCapabilityId.DirectDeliveryEligibility);
     }
 
-    [TestMethod]
-    public void Select_WhenFastTrackDoesNotOwnCapabilities_PreservesNotApplicableOutcomesAndSelectsKleiBaselines()
+    [Test]
+    public async Task Select_WhenFastTrackDoesNotOwnCapabilities_PreservesNotApplicableOutcomesAndSelectsKleiBaselines()
     {
         DeclaredIntegrationPreparationResult preparation = Prepare(
             new LoadedModInspectionContext(
@@ -195,22 +185,20 @@ public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
 
         RuntimePatchCapabilitySelection selection = Select(preparation);
 
-        AssertEveryCapabilityUsesImplementation(
+        await AssertEveryCapabilityUsesImplementation(
             selection,
             RuntimeAuthorityImplementationKind.KleiBaseline);
         ExternalModIntegrationOutcome outcome =
-            AssertSingleFinalOutcome(selection);
+            await AssertSingleFinalOutcome(selection);
         foreach (ExternalModIntegrationCapabilityOutcome capability in
                  outcome.Capabilities)
         {
-            Assert.AreEqual(
-                IntegrationCapabilityDisposition.NotApplicable,
-                capability.Disposition);
+            await Assert.That(capability.Disposition).IsEqualTo(IntegrationCapabilityDisposition.NotApplicable);
         }
     }
 
-    [TestMethod]
-    public void Select_WhenEveryFastTrackReplacementIsReady_SelectsEveryExternalContribution()
+    [Test]
+    public async Task Select_WhenEveryFastTrackReplacementIsReady_SelectsEveryExternalContribution()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract("FastTrack");
@@ -221,22 +209,20 @@ public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
 
         RuntimePatchCapabilitySelection selection = Select(preparation);
 
-        AssertEveryCapabilityUsesImplementation(
+        await AssertEveryCapabilityUsesImplementation(
             selection,
             RuntimeAuthorityImplementationKind.DeclaredExternalIntegration);
         ExternalModIntegrationOutcome outcome =
-            AssertSingleFinalOutcome(selection);
+            await AssertSingleFinalOutcome(selection);
         foreach (ExternalModIntegrationCapabilityOutcome capability in
                  outcome.Capabilities)
         {
-            Assert.AreEqual(
-                IntegrationCapabilityDisposition.Selected,
-                capability.Disposition);
+            await Assert.That(capability.Disposition).IsEqualTo(IntegrationCapabilityDisposition.Selected);
         }
     }
 
-    [TestMethod]
-    public void Select_WhenOptionalWorldInventoryReplacementIsIncompatible_OmitsCapabilityWithoutKleiFallback()
+    [Test]
+    public async Task Select_WhenOptionalWorldInventoryReplacementIsIncompatible_OmitsCapabilityWithoutKleiFallback()
     {
         FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
             .CreateWithRunUpdateSignatureChanged("FastTrack");
@@ -250,25 +236,17 @@ public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
         RuntimeCapabilitySelectionEntry worldInventory =
             selection.GetCapabilitySelection(
                 RuntimeCapabilityId.WorldInventoryTemperaturePublication);
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.Unavailable,
-            worldInventory.Disposition);
-        Assert.IsFalse(worldInventory.HasSelectedContribution);
+        await Assert.That(worldInventory.Disposition).IsEqualTo(IntegrationCapabilityDisposition.Unavailable);
+        await Assert.That(worldInventory.HasSelectedContribution).IsFalse();
         ExternalModIntegrationOutcome outcome =
-            AssertSingleFinalOutcome(selection);
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.Unavailable,
-            outcome.Capabilities[0].Disposition);
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.Selected,
-            outcome.Capabilities[1].Disposition);
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.Selected,
-            outcome.Capabilities[2].Disposition);
+            await AssertSingleFinalOutcome(selection);
+        await Assert.That(outcome.Capabilities[0].Disposition).IsEqualTo(IntegrationCapabilityDisposition.Unavailable);
+        await Assert.That(outcome.Capabilities[1].Disposition).IsEqualTo(IntegrationCapabilityDisposition.Selected);
+        await Assert.That(outcome.Capabilities[2].Disposition).IsEqualTo(IntegrationCapabilityDisposition.Selected);
     }
 
-    [TestMethod]
-    public void Select_WhenRequiredDirectDeliveryReplacementIsIncompatible_BlocksActivationWithoutKleiFallback()
+    [Test]
+    public async Task Select_WhenRequiredDirectDeliveryReplacementIsIncompatible_BlocksActivationWithoutKleiFallback()
     {
         FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
             .CreateWithDirectComparatorContractChanged("FastTrack");
@@ -277,31 +255,21 @@ public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
             new RecordingAssemblyFileIdentityReader(
                 SuccessfulFileIdentity()));
 
-        RuntimeCapabilitySelectionException exception = Assert.ThrowsExactly<
-            RuntimeCapabilitySelectionException>(() => Select(preparation));
+        RuntimeCapabilitySelectionException exception = (await Assert.That(() => Select(preparation)).ThrowsExactly<
+            RuntimeCapabilitySelectionException>())!;
 
-        Assert.AreEqual(
-            RuntimeCapabilityId.DirectDeliveryEligibility,
-            exception.CapabilityId);
-        Assert.AreEqual(
-            "required-runtime-capability-unavailable",
-            exception.DiagnosticCode);
-        Assert.AreEqual(1, exception.ExternalModIntegrationOutcomes.Count);
+        await Assert.That(exception.CapabilityId).IsEqualTo(RuntimeCapabilityId.DirectDeliveryEligibility);
+        await Assert.That(exception.DiagnosticCode).IsEqualTo("required-runtime-capability-unavailable");
+        await Assert.That(exception.ExternalModIntegrationOutcomes.Count).IsEqualTo(1);
         ExternalModIntegrationOutcome outcome =
             exception.ExternalModIntegrationOutcomes[0];
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.Selected,
-            outcome.Capabilities[0].Disposition);
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.Selected,
-            outcome.Capabilities[1].Disposition);
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.ActivationBlocking,
-            outcome.Capabilities[2].Disposition);
+        await Assert.That(outcome.Capabilities[0].Disposition).IsEqualTo(IntegrationCapabilityDisposition.Selected);
+        await Assert.That(outcome.Capabilities[1].Disposition).IsEqualTo(IntegrationCapabilityDisposition.Selected);
+        await Assert.That(outcome.Capabilities[2].Disposition).IsEqualTo(IntegrationCapabilityDisposition.ActivationBlocking);
     }
 
-    [TestMethod]
-    public void Prepare_WhenEveryActiveFastTrackReplacementUsesAnUnsupportedBuild_ProjectsRequiredAndOptionalFailurePolicies()
+    [Test]
+    public async Task Prepare_WhenEveryActiveFastTrackReplacementUsesAnUnsupportedBuild_ProjectsRequiredAndOptionalFailurePolicies()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract("FastTrack");
@@ -312,55 +280,51 @@ public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
             CreateMatchedContext(fixture, CopyActivePrefixes(fixture)),
             identityReader);
 
-        ExternalModIntegrationOutcome outcome = AssertSingleOutcome(result);
-        Assert.AreEqual(DeclaredModMatchState.Matched, outcome.MatchState);
-        Assert.AreEqual(1, identityReader.ReadCallCount);
-        Assert.AreEqual(3, result.RuntimeAuthorityContributions.Count);
-        AssertCapabilityOutcome(
+        ExternalModIntegrationOutcome outcome = await AssertSingleOutcome(result);
+        await Assert.That(outcome.MatchState).IsEqualTo(DeclaredModMatchState.Matched);
+        await Assert.That(identityReader.ReadCallCount).IsEqualTo(1);
+        await Assert.That(result.RuntimeAuthorityContributions.Count).IsEqualTo(3);
+        await AssertCapabilityOutcome(
             outcome.Capabilities[0],
             RuntimeCapabilityId.WorldInventoryTemperaturePublication,
             RuntimeAuthorityObservation.OwnsIncompatible,
             IntegrationContractState.Incompatible,
             IntegrationCapabilityDisposition.Unavailable,
             "fast-track-world-inventory-build-unsupported");
-        AssertCapabilityOutcome(
+        await AssertCapabilityOutcome(
             outcome.Capabilities[1],
             RuntimeCapabilityId.PickupTemperatureGrouping,
             RuntimeAuthorityObservation.OwnsIncompatible,
             IntegrationContractState.Incompatible,
             IntegrationCapabilityDisposition.Unavailable,
             "fast-track-pickup-grouping-build-unsupported");
-        AssertCapabilityOutcome(
+        await AssertCapabilityOutcome(
             outcome.Capabilities[2],
             RuntimeCapabilityId.DirectDeliveryEligibility,
             RuntimeAuthorityObservation.OwnsIncompatible,
             IntegrationContractState.Incompatible,
             IntegrationCapabilityDisposition.Unavailable,
             "fast-track-direct-delivery-build-unsupported");
-        Assert.AreEqual(3, outcome.Diagnostics.Count);
-        Assert.AreEqual(
-            "The active WorldInventory FastTrack replacement reports an " +
+        await Assert.That(outcome.Diagnostics.Count).IsEqualTo(3);
+        await Assert.That(outcome.Capabilities[0].DiagnosticMessage).IsEqualTo("The active WorldInventory FastTrack replacement reports an " +
             "unsupported assembly build. Observed file version: 0.18.4.0; " +
             "observed DLL SHA-256: " + UnsupportedDigest + ". Compatibility " +
-            "requires one exact admitted version-and-digest pair.",
-            outcome.Capabilities[0].DiagnosticMessage);
+            "requires one exact admitted version-and-digest pair.");
 
         foreach (PreparedRuntimeAuthorityContribution contribution in
                  result.RuntimeAuthorityContributions)
         {
-            Assert.AreEqual(
-                RuntimeAuthorityObservation.OwnsIncompatible,
-                contribution.AuthorityObservation);
-            Assert.AreEqual(0, contribution.PatchGroupIds.Count);
-            Assert.AreEqual(0, contribution.PatchBindings.Count);
-            Assert.AreEqual(0, contribution.AuthorityRequirements.Count);
-            Assert.IsNotNull(contribution.DiagnosticCode);
-            Assert.IsNotNull(contribution.DiagnosticMessage);
+            await Assert.That(contribution.AuthorityObservation).IsEqualTo(RuntimeAuthorityObservation.OwnsIncompatible);
+            await Assert.That(contribution.PatchGroupIds.Count).IsEqualTo(0);
+            await Assert.That(contribution.PatchBindings.Count).IsEqualTo(0);
+            await Assert.That(contribution.AuthorityRequirements.Count).IsEqualTo(0);
+            Assert.NotNull(contribution.DiagnosticCode);
+            Assert.NotNull(contribution.DiagnosticMessage);
         }
     }
 
-    [TestMethod]
-    public void Prepare_WhenExactFastTrackEntryHasNoAssembly_DoesNotBorrowAnotherModsAssembly()
+    [Test]
+    public async Task Prepare_WhenExactFastTrackEntryHasNoAssembly_DoesNotBorrowAnotherModsAssembly()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract("FastTrack");
@@ -384,29 +348,19 @@ public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
             context,
             identityReader);
 
-        ExternalModIntegrationOutcome outcome = AssertSingleOutcome(result);
-        Assert.AreEqual(DeclaredModMatchState.Matched, outcome.MatchState);
-        Assert.AreEqual(0, identityReader.ReadCallCount);
-        Assert.AreEqual(3, result.RuntimeAuthorityContributions.Count);
-        Assert.AreEqual(1, outcome.Diagnostics.Count);
-        Assert.AreEqual(
-            "declared-integration-assembly-missing",
-            outcome.Diagnostics[0].Code);
+        ExternalModIntegrationOutcome outcome = await AssertSingleOutcome(result);
+        await Assert.That(outcome.MatchState).IsEqualTo(DeclaredModMatchState.Matched);
+        await Assert.That(identityReader.ReadCallCount).IsEqualTo(0);
+        await Assert.That(result.RuntimeAuthorityContributions.Count).IsEqualTo(3);
+        await Assert.That(outcome.Diagnostics.Count).IsEqualTo(1);
+        await Assert.That(outcome.Diagnostics[0].Code).IsEqualTo("declared-integration-assembly-missing");
         foreach (ExternalModIntegrationCapabilityOutcome capability in
                  outcome.Capabilities)
         {
-            Assert.AreEqual(
-                RuntimeAuthorityObservation.OwnershipUnavailable,
-                capability.AuthorityObservation);
-            Assert.AreEqual(
-                IntegrationContractState.VerificationUnavailable,
-                capability.ContractState);
-            Assert.AreEqual(
-                IntegrationCapabilityDisposition.Unavailable,
-                capability.Disposition);
-            Assert.AreEqual(
-                "declared-integration-assembly-missing",
-                capability.DiagnosticCode);
+            await Assert.That(capability.AuthorityObservation).IsEqualTo(RuntimeAuthorityObservation.OwnershipUnavailable);
+            await Assert.That(capability.ContractState).IsEqualTo(IntegrationContractState.VerificationUnavailable);
+            await Assert.That(capability.Disposition).IsEqualTo(IntegrationCapabilityDisposition.Unavailable);
+            await Assert.That(capability.DiagnosticCode).IsEqualTo("declared-integration-assembly-missing");
         }
     }
 
@@ -505,28 +459,24 @@ public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
             diagnosticMessage: null);
     }
 
-    private static void AssertEveryCapabilityUsesImplementation(
+    private static async Task AssertEveryCapabilityUsesImplementation(
         RuntimePatchCapabilitySelection selection,
         RuntimeAuthorityImplementationKind expectedImplementationKind)
     {
-        Assert.AreEqual(3, selection.CapabilitySelections.Count);
+        await Assert.That(selection.CapabilitySelections.Count).IsEqualTo(3);
         foreach (RuntimeCapabilitySelectionEntry capabilitySelection in
                  selection.CapabilitySelections)
         {
-            Assert.AreEqual(
-                IntegrationCapabilityDisposition.Selected,
-                capabilitySelection.Disposition);
-            Assert.AreEqual(
-                expectedImplementationKind,
-                capabilitySelection.PrepareSelectedContribution()
-                    .ImplementationIdentity.Kind);
+            await Assert.That(capabilitySelection.Disposition).IsEqualTo(IntegrationCapabilityDisposition.Selected);
+            await Assert.That(capabilitySelection.PrepareSelectedContribution()
+                    .ImplementationIdentity.Kind).IsEqualTo(expectedImplementationKind);
         }
     }
 
-    private static ExternalModIntegrationOutcome AssertSingleFinalOutcome(
+    private static async Task<ExternalModIntegrationOutcome> AssertSingleFinalOutcome(
         RuntimePatchCapabilitySelection selection)
     {
-        Assert.AreEqual(1, selection.ExternalModIntegrationOutcomes.Count);
+        await Assert.That(selection.ExternalModIntegrationOutcomes.Count).IsEqualTo(1);
         return selection.ExternalModIntegrationOutcomes[0];
     }
 
@@ -561,23 +511,21 @@ public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
                 replacement.Priority))
             .ToArray();
 
-    private static ExternalModIntegrationOutcome AssertSingleOutcome(
+    private static async Task<ExternalModIntegrationOutcome> AssertSingleOutcome(
         DeclaredIntegrationPreparationResult result)
     {
-        Assert.AreEqual(1, result.ExternalModIntegrationOutcomes.Count);
+        await Assert.That(result.ExternalModIntegrationOutcomes.Count).IsEqualTo(1);
         ExternalModIntegrationOutcome outcome =
             result.ExternalModIntegrationOutcomes[0];
-        Assert.AreEqual("fast-track", outcome.IntegrationId.Value);
-        Assert.AreEqual("Fast Track", outcome.DisplayName);
-        Assert.AreEqual(1, outcome.Categories.Count);
-        Assert.AreEqual(
-            ExternalModIntegrationCategory.ExclusiveRuntimeAuthority,
-            outcome.Categories[0]);
-        Assert.AreEqual(3, outcome.Capabilities.Count);
+        await Assert.That(outcome.IntegrationId.Value).IsEqualTo("fast-track");
+        await Assert.That(outcome.DisplayName).IsEqualTo("Fast Track");
+        await Assert.That(outcome.Categories.Count).IsEqualTo(1);
+        await Assert.That(outcome.Categories[0]).IsEqualTo(ExternalModIntegrationCategory.ExclusiveRuntimeAuthority);
+        await Assert.That(outcome.Capabilities.Count).IsEqualTo(3);
         return outcome;
     }
 
-    private static void AssertCapabilityOutcome(
+    private static async Task AssertCapabilityOutcome(
         ExternalModIntegrationCapabilityOutcome actual,
         RuntimeCapabilityId expectedCapabilityId,
         RuntimeAuthorityObservation expectedAuthority,
@@ -585,44 +533,36 @@ public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
         IntegrationCapabilityDisposition expectedDisposition,
         string? expectedDiagnosticCode)
     {
-        Assert.AreEqual(expectedCapabilityId, actual.CapabilityId);
-        Assert.AreEqual(
-            ExternalModIntegrationCategory.ExclusiveRuntimeAuthority,
-            actual.Category);
-        Assert.AreEqual(expectedAuthority, actual.AuthorityObservation);
-        Assert.AreEqual(expectedContract, actual.ContractState);
-        Assert.AreEqual(expectedDisposition, actual.Disposition);
-        Assert.AreEqual(expectedDiagnosticCode, actual.DiagnosticCode);
+        await Assert.That(actual.CapabilityId).IsEqualTo(expectedCapabilityId);
+        await Assert.That(actual.Category).IsEqualTo(ExternalModIntegrationCategory.ExclusiveRuntimeAuthority);
+        await Assert.That(actual.AuthorityObservation).IsEqualTo(expectedAuthority);
+        await Assert.That(actual.ContractState).IsEqualTo(expectedContract);
+        await Assert.That(actual.Disposition).IsEqualTo(expectedDisposition);
+        await Assert.That(actual.DiagnosticCode).IsEqualTo(expectedDiagnosticCode);
         if (expectedDiagnosticCode == null)
         {
-            Assert.IsNull(actual.DiagnosticMessage);
+            await Assert.That(actual.DiagnosticMessage).IsNull();
         }
         else
         {
-            Assert.IsNotNull(actual.DiagnosticMessage);
+            Assert.NotNull(actual.DiagnosticMessage);
         }
     }
 
-    private static void AssertCompleteCompatibleContribution(
+    private static async Task AssertCompleteCompatibleContribution(
         PreparedRuntimeAuthorityContribution contribution,
         RuntimeCapabilityId expectedCapabilityId)
     {
-        Assert.AreEqual(expectedCapabilityId, contribution.CapabilityId);
-        Assert.AreEqual(
-            RuntimeAuthorityImplementationKind.DeclaredExternalIntegration,
-            contribution.ImplementationIdentity.Kind);
-        Assert.AreEqual(
-            "fast-track",
-            contribution.ImplementationIdentity.DeclaredExternalIntegrationId
-                ?.Value);
-        Assert.AreEqual(
-            RuntimeAuthorityObservation.OwnsCompatible,
-            contribution.AuthorityObservation);
-        Assert.AreEqual(1, contribution.PatchGroupIds.Count);
-        Assert.AreEqual(1, contribution.PatchBindings.Count);
-        Assert.AreEqual(2, contribution.AuthorityRequirements.Count);
-        Assert.IsNull(contribution.DiagnosticCode);
-        Assert.IsNull(contribution.DiagnosticMessage);
+        await Assert.That(contribution.CapabilityId).IsEqualTo(expectedCapabilityId);
+        await Assert.That(contribution.ImplementationIdentity.Kind).IsEqualTo(RuntimeAuthorityImplementationKind.DeclaredExternalIntegration);
+        await Assert.That(contribution.ImplementationIdentity.DeclaredExternalIntegrationId
+                ?.Value).IsEqualTo("fast-track");
+        await Assert.That(contribution.AuthorityObservation).IsEqualTo(RuntimeAuthorityObservation.OwnsCompatible);
+        await Assert.That(contribution.PatchGroupIds.Count).IsEqualTo(1);
+        await Assert.That(contribution.PatchBindings.Count).IsEqualTo(1);
+        await Assert.That(contribution.AuthorityRequirements.Count).IsEqualTo(2);
+        await Assert.That(contribution.DiagnosticCode).IsNull();
+        await Assert.That(contribution.DiagnosticMessage).IsNull();
     }
 
     private static FastTrackAssemblyFileIdentity SuccessfulFileIdentity(
@@ -659,9 +599,9 @@ public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
                     "the requested runtime capability.");
             }
 
-            MethodInfo requiredPrefix = Assert.IsInstanceOfType<MethodInfo>(
-                readyFeature.GetVerifiedMember(
-                    ReplacementPrefixRole(readyFeature.Feature)));
+            MethodInfo requiredPrefix = readyFeature.GetVerifiedMember(
+                    ReplacementPrefixRole(readyFeature.Feature)) as MethodInfo
+                ?? throw new InvalidOperationException("The verified replacement prefix must be a method.");
             ActiveHarmonyPrefixDescriptor selectedAuthority = activePrefixes
                 .Single(prefix =>
                     Equals(prefix.PrefixMethod, requiredPrefix) &&

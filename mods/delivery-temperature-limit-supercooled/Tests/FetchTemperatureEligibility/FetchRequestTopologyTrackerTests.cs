@@ -1,31 +1,29 @@
 using System.Reflection;
 
 namespace DeliveryTemperatureLimit.Tests.FetchTemperatureEligibility;
-
-[TestClass]
 public sealed class FetchRequestTopologyTrackerTests
 {
-    [TestMethod]
-    public void CaptureVersion_WhenTrackerIsNew_ReturnsInitialZeroVersion()
+    [Test]
+    public async Task CaptureVersion_WhenTrackerIsNew_ReturnsInitialZeroVersion()
     {
         var tracker = new FetchRequestTopologyTracker();
 
-        Assert.AreEqual(0L, tracker.CaptureVersion().Value);
+        await Assert.That(tracker.CaptureVersion().Value).IsEqualTo(0L);
     }
 
-    [TestMethod]
-    public void RecordEffectiveChange_WhenCalledOnce_IncrementsVersionOnce()
+    [Test]
+    public async Task RecordEffectiveChange_WhenCalledOnce_IncrementsVersionOnce()
     {
         var tracker = new FetchRequestTopologyTracker();
 
         var changedVersion = tracker.RecordEffectiveChange();
 
-        Assert.AreEqual(1L, changedVersion.Value);
-        Assert.AreEqual(changedVersion, tracker.CaptureVersion());
+        await Assert.That(changedVersion.Value).IsEqualTo(1L);
+        await Assert.That(tracker.CaptureVersion()).IsEqualTo(changedVersion);
     }
 
-    [TestMethod]
-    public void RecordEffectiveChange_WhenRepeated_AlwaysAdvancesMonotonically()
+    [Test]
+    public async Task RecordEffectiveChange_WhenRepeated_AlwaysAdvancesMonotonically()
     {
         var tracker = new FetchRequestTopologyTracker();
         var priorVersion = tracker.CaptureVersion();
@@ -34,37 +32,35 @@ public sealed class FetchRequestTopologyTrackerTests
         {
             var changedVersion = tracker.RecordEffectiveChange();
 
-            Assert.AreEqual(priorVersion.Value + 1, changedVersion.Value);
-            Assert.AreEqual(changedVersion, tracker.CaptureVersion());
+            await Assert.That(changedVersion.Value).IsEqualTo(priorVersion.Value + 1);
+            await Assert.That(tracker.CaptureVersion()).IsEqualTo(changedVersion);
             priorVersion = changedVersion;
         }
     }
 
-    [TestMethod]
-    public void RecordEffectiveChange_WhenVersionIsExhausted_ThrowsWithoutChangingCurrentVersion()
+    [Test]
+    public async Task RecordEffectiveChange_WhenVersionIsExhausted_ThrowsWithoutChangingCurrentVersion()
     {
         var tracker = new FetchRequestTopologyTracker();
         var versionField = typeof(FetchRequestTopologyTracker).GetField(
             "version",
             BindingFlags.Instance | BindingFlags.NonPublic);
-        Assert.IsNotNull(
-            versionField,
-            "The representation contract requires the exact private field " +
+        if (versionField is null) throw new TUnit.Assertions.Exceptions.AssertionException("The representation contract requires the exact private field " +
             "FetchRequestTopologyTracker.version.");
-        Assert.AreEqual(typeof(long), versionField.FieldType);
+        await Assert.That(versionField.FieldType).IsEqualTo(typeof(long));
         versionField.SetValue(tracker, long.MaxValue);
 
-        var exception = Assert.ThrowsExactly<InvalidOperationException>(() =>
-            tracker.RecordEffectiveChange());
+        var exception = (await Assert.That(() =>
+            tracker.RecordEffectiveChange()).ThrowsExactly<InvalidOperationException>())!;
 
-        StringAssert.Contains(exception.Message, "exhausted");
-        Assert.AreEqual(long.MaxValue, tracker.CaptureVersion().Value);
+        await Assert.That(exception.Message).Contains("exhausted");
+        await Assert.That(tracker.CaptureVersion().Value).IsEqualTo(long.MaxValue);
     }
 
-    [TestMethod]
-    public void FetchRequestTopologyVersion_WhenValueIsNegative_ThrowsArgumentOutOfRangeException()
+    [Test]
+    public async Task FetchRequestTopologyVersion_WhenValueIsNegative_ThrowsArgumentOutOfRangeException()
     {
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
-            new FetchRequestTopologyVersion(-1));
+        await Assert.That(() =>
+            new FetchRequestTopologyVersion(-1)).ThrowsExactly<ArgumentOutOfRangeException>();
     }
 }

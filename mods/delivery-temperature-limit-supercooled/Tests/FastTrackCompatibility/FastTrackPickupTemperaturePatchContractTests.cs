@@ -1,58 +1,47 @@
 namespace DeliveryTemperatureLimit.Tests.FastTrackCompatibility;
-
-[TestClass]
 public sealed class FastTrackPickupTemperaturePatchContractTests
 {
-    [TestMethod]
-    public void AdapterSource_WhenInspected_BindsReadyFeatureAndChangesOnlyConstructorHashArgument()
+    [Test]
+    public async Task AdapterSource_WhenInspected_BindsReadyFeatureAndChangesOnlyConstructorHashArgument()
     {
         string sourcePath = ResolveProductionSourcePath(
             "PickupGroupingAdapters",
             "FastTrackPickupTemperaturePatches.cs");
-        Assert.IsTrue(
-            File.Exists(sourcePath),
-            $"Missing inactive FastTrack pickup adapter {sourcePath}.");
+        await Assert.That(File.Exists(sourcePath)).IsTrue().Because($"Missing inactive FastTrack pickup adapter {sourcePath}.");
         string source = File.ReadAllText(sourcePath);
 
-        StringAssert.Contains(source, "BindVerifiedPickupGroupingFeature");
-        StringAssert.Contains(source, "FastTrackFeature.PickupGrouping");
-        StringAssert.Contains(
-            source,
-            "FastTrackFeatureCompatibilityState.Ready");
-        StringAssert.Contains(
-            source,
-            "ResolveFetchManagerBeforeUpdatePickupsTarget");
-        StringAssert.Contains(source, "ResolvePickupTagDictionaryAddItemTarget");
-        StringAssert.Contains(source, "BeforeUpdatePickupsPrefix");
-        StringAssert.Contains(source, "BeforeUpdatePickupsPostfix");
-        StringAssert.Contains(source, "BeforeUpdatePickupsFinalizer");
-        StringAssert.Contains(source, "PickupTagDictionaryAddItemTranspiler");
-        StringAssert.Contains(source, "PickupTemperatureGroupingSession");
-        StringAssert.Contains(source, "FastTrackPickupGroupingKeyAllocator");
-        StringAssert.Contains(source, "ThreadConfinedSessionSlot");
-        StringAssert.Contains(source, "PickupTagIdentity");
-        StringAssert.Contains(
-            source,
-            "ClassifyUsingApplicableRequestedTagResolver");
-        StringAssert.Contains(source, "originalTagBitsHash");
-        StringAssert.Contains(source, "allocatedGroupingKey");
-        StringAssert.Contains(source, "PickupGroupingKeyConstructor");
-        StringAssert.Contains(source, "PickupablePrefabIdentityField");
-        Assert.IsFalse(source.Contains("[HarmonyPatch", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("AccessTools", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("Type.GetType", StringComparison.Ordinal));
-        Assert.IsFalse(
-            source.Contains("Assembly.GetAssemblies", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("FileVersionInfo", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("SHA256", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("operand.ToString", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("GetComponent", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("FastTrackOptions", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("Unpatch", StringComparison.Ordinal));
+        await Assert.That(source).Contains("BindVerifiedPickupGroupingFeature");
+        await Assert.That(source).Contains("FastTrackFeature.PickupGrouping");
+        await Assert.That(source).Contains("FastTrackFeatureCompatibilityState.Ready");
+        await Assert.That(source).Contains("ResolveFetchManagerBeforeUpdatePickupsTarget");
+        await Assert.That(source).Contains("ResolvePickupTagDictionaryAddItemTarget");
+        await Assert.That(source).Contains("BeforeUpdatePickupsPrefix");
+        await Assert.That(source).Contains("BeforeUpdatePickupsPostfix");
+        await Assert.That(source).Contains("BeforeUpdatePickupsFinalizer");
+        await Assert.That(source).Contains("PickupTagDictionaryAddItemTranspiler");
+        await Assert.That(source).Contains("PickupTemperatureGroupingSession");
+        await Assert.That(source).Contains("FastTrackPickupGroupingKeyAllocator");
+        await Assert.That(source).Contains("ThreadConfinedSessionSlot");
+        await Assert.That(source).Contains("PickupTagIdentity");
+        await Assert.That(source).Contains("ClassifyUsingApplicableRequestedTagResolver");
+        await Assert.That(source).Contains("originalTagBitsHash");
+        await Assert.That(source).Contains("allocatedGroupingKey");
+        await Assert.That(source).Contains("PickupGroupingKeyConstructor");
+        await Assert.That(source).Contains("PickupablePrefabIdentityField");
+        await Assert.That(source.Contains("[HarmonyPatch", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("AccessTools", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("Type.GetType", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("Assembly.GetAssemblies", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("FileVersionInfo", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("SHA256", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("operand.ToString", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("GetComponent", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("FastTrackOptions", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("Unpatch", StringComparison.Ordinal)).IsFalse();
     }
 
-    [TestMethod]
-    public void AcceptedPickupHook_WhenInspected_UsesCachedManagedFieldsAndNoPerCandidateDiscovery()
+    [Test]
+    public async Task AcceptedPickupHook_WhenInspected_UsesCachedManagedFieldsAndNoPerCandidateDiscovery()
     {
         string source = File.ReadAllText(ResolveProductionSourcePath(
             "PickupGroupingAdapters",
@@ -65,40 +54,37 @@ public sealed class FastTrackPickupTemperaturePatchContractTests
             hookStartIndex + 1,
             StringComparison.Ordinal);
 
-        Assert.IsGreaterThanOrEqualTo(0, hookStartIndex);
-        Assert.IsTrue(nextMethodIndex > hookStartIndex);
+        await Assert.That(hookStartIndex).IsGreaterThanOrEqualTo(0);
+        await Assert.That(nextMethodIndex > hookStartIndex).IsTrue();
         string hookSource = source.Substring(
             hookStartIndex,
             nextMethodIndex - hookStartIndex);
-        StringAssert.Contains(
-            hookSource,
-            "PrimaryElement primaryElement = pickupable.PrimaryElement");
-        StringAssert.Contains(hookSource, "primaryElement!.InternalTemperature");
-        StringAssert.Contains(hookSource, "kPrefabId.InstanceID");
-        StringAssert.Contains(hookSource, "kPrefabId.PrefabTag");
-        Assert.IsFalse(hookSource.Contains(".Temperature", StringComparison.Ordinal));
-        Assert.IsFalse(hookSource.Contains("TryCaptureCurrent", StringComparison.Ordinal));
-        Assert.IsFalse(hookSource.Contains("CaptureSnapshot", StringComparison.Ordinal));
-        Assert.IsFalse(hookSource.Contains("TryGetCurrent", StringComparison.Ordinal));
-        Assert.IsFalse(hookSource.Contains("GetComponent", StringComparison.Ordinal));
+        await Assert.That(hookSource).Contains("PrimaryElement primaryElement = pickupable.PrimaryElement");
+        await Assert.That(hookSource).Contains("primaryElement!.InternalTemperature");
+        await Assert.That(hookSource).Contains("kPrefabId.InstanceID");
+        await Assert.That(hookSource).Contains("kPrefabId.PrefabTag");
+        await Assert.That(hookSource.Contains(".Temperature", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(hookSource.Contains("TryCaptureCurrent", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(hookSource.Contains("CaptureSnapshot", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(hookSource.Contains("TryGetCurrent", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(hookSource.Contains("GetComponent", StringComparison.Ordinal)).IsFalse();
     }
 
-    [TestMethod]
-    public void AdapterLifecycleSource_WhenInspected_CompletesAndDiscardsBothOwnedSessions()
+    [Test]
+    public async Task AdapterLifecycleSource_WhenInspected_CompletesAndDiscardsBothOwnedSessions()
     {
         string source = File.ReadAllText(ResolveProductionSourcePath(
             "PickupGroupingAdapters",
             "FastTrackPickupTemperaturePatches.cs"));
 
-        StringAssert.Contains(source, "GroupingSession.Complete()");
-        StringAssert.Contains(source, "GroupingKeyAllocator.Complete()");
-        StringAssert.Contains(source, "GroupingSession.Discard()");
-        StringAssert.Contains(source, "GroupingKeyAllocator.Discard()");
-        StringAssert.Contains(source, "SessionScopeToken");
-        StringAssert.Contains(source, "return __exception;");
-        StringAssert.Contains(source, "RuntimeFailureReporting.DisableGameplay(nameof(BeforeUpdatePickupsFinalizer), cleanupException)");
-        Assert.IsFalse(source.Contains("return __exception ?? cleanupException", StringComparison.Ordinal),
-            "Mod cleanup failures must disable enforcement instead of becoming game exceptions.");
+        await Assert.That(source).Contains("GroupingSession.Complete()");
+        await Assert.That(source).Contains("GroupingKeyAllocator.Complete()");
+        await Assert.That(source).Contains("GroupingSession.Discard()");
+        await Assert.That(source).Contains("GroupingKeyAllocator.Discard()");
+        await Assert.That(source).Contains("SessionScopeToken");
+        await Assert.That(source).Contains("return __exception;");
+        await Assert.That(source).Contains("RuntimeFailureReporting.DisableGameplay(nameof(BeforeUpdatePickupsFinalizer), cleanupException)");
+        await Assert.That(source.Contains("return __exception ?? cleanupException", StringComparison.Ordinal)).IsFalse().Because("Mod cleanup failures must disable enforcement instead of becoming game exceptions.");
     }
 
     private static string ResolveProductionSourcePath(

@@ -1,10 +1,8 @@
 namespace DeliveryTemperatureLimit.Tests.WorldResourceTemperatureAmounts;
-
-[TestClass]
 public sealed class WorldResourceTemperaturePublicationTests
 {
-    [TestMethod]
-    public void CreateCoverage_WhenInputContainsDuplicateTags_PublishesFirstSeenUniquePresentTags()
+    [Test]
+    public async Task CreateCoverage_WhenInputContainsDuplicateTags_PublishesFirstSeenUniquePresentTags()
     {
         var iron = new Tag("Iron");
         var copper = new Tag("Copper");
@@ -12,13 +10,11 @@ public sealed class WorldResourceTemperaturePublicationTests
             new WorldInventoryCollectionGeneration(4),
             new[] { iron, copper, iron, copper });
 
-        Assert.AreSequenceEqual(
-            new[] { iron, copper },
-            coverage.PresentResourceTags);
+        await Assert.That(coverage.PresentResourceTags).IsEquivalentTo(new[] { iron, copper }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void CreateCoverage_WhenSourceCollectionMutates_PublishedCoverageDoesNotChange()
+    [Test]
+    public async Task CreateCoverage_WhenSourceCollectionMutates_PublishedCoverageDoesNotChange()
     {
         var iron = new Tag("Iron");
         var copper = new Tag("Copper");
@@ -30,58 +26,55 @@ public sealed class WorldResourceTemperaturePublicationTests
         sourcePresentResourceTags[0] = copper;
         sourcePresentResourceTags.Add(copper);
 
-        Assert.AreSequenceEqual(
-            new[] { iron },
-            coverage.PresentResourceTags);
-        Assert.IsTrue(coverage.Contains(iron));
-        Assert.IsFalse(coverage.Contains(copper));
-        Assert.IsFalse(coverage.PresentResourceTags is Tag[]);
-        Assert.IsFalse(
-            coverage.PresentResourceTags is ICollection<Tag> mutableTags &&
-            !mutableTags.IsReadOnly);
+        await Assert.That(coverage.PresentResourceTags).IsEquivalentTo(new[] { iron }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(coverage.Contains(iron)).IsTrue();
+        await Assert.That(coverage.Contains(copper)).IsFalse();
+        await Assert.That(coverage.PresentResourceTags is Tag[]).IsFalse();
+        await Assert.That(coverage.PresentResourceTags is ICollection<Tag> mutableTags &&
+            !mutableTags.IsReadOnly).IsFalse();
     }
 
-    [TestMethod]
-    public void Contains_WhenTagWasPresent_ReturnsTrue()
+    [Test]
+    public async Task Contains_WhenTagWasPresent_ReturnsTrue()
     {
         var coverage = WorldResourceTagCoverage.Create(
             new WorldInventoryCollectionGeneration(4),
             new[] { new Tag("Iron"), new Tag("Copper") });
 
-        Assert.IsTrue(coverage.Contains(new Tag("Iron")));
+        await Assert.That(coverage.Contains(new Tag("Iron"))).IsTrue();
     }
 
-    [TestMethod]
-    public void Contains_WhenTagWasAbsent_ReturnsFalse()
+    [Test]
+    public async Task Contains_WhenTagWasAbsent_ReturnsFalse()
     {
         var coverage = WorldResourceTagCoverage.Create(
             new WorldInventoryCollectionGeneration(4),
             new[] { new Tag("Iron") });
 
-        Assert.IsFalse(coverage.Contains(new Tag("Copper")));
+        await Assert.That(coverage.Contains(new Tag("Copper"))).IsFalse();
     }
 
-    [TestMethod]
-    public void CreateCoverage_WhenPresentTagsIsNull_ThrowsArgumentNullException()
+    [Test]
+    public async Task CreateCoverage_WhenPresentTagsIsNull_ThrowsArgumentNullException()
     {
-        Assert.ThrowsExactly<ArgumentNullException>(() =>
+        await Assert.That(() =>
             WorldResourceTagCoverage.Create(
                 new WorldInventoryCollectionGeneration(4),
-                null!));
+                null!)).ThrowsExactly<ArgumentNullException>();
     }
 
-    [TestMethod]
-    public void CreateSeriesPublication_WhenSeriesIsNull_ThrowsArgumentNullException()
+    [Test]
+    public async Task CreateSeriesPublication_WhenSeriesIsNull_ThrowsArgumentNullException()
     {
-        Assert.ThrowsExactly<ArgumentNullException>(() =>
+        await Assert.That(() =>
             new WorldResourceTemperatureSeriesPublication(
                 new WorldInventoryCollectionGeneration(4),
                 new Tag("Iron"),
-                null!));
+                null!)).ThrowsExactly<ArgumentNullException>();
     }
 
-    [TestMethod]
-    public void CreateSeriesPublication_WhenConstructed_PreservesGenerationTagAndSeriesIdentity()
+    [Test]
+    public async Task CreateSeriesPublication_WhenConstructed_PreservesGenerationTagAndSeriesIdentity()
     {
         var collectionGeneration = new WorldInventoryCollectionGeneration(4);
         var resourceTag = new Tag("Iron");
@@ -92,20 +85,18 @@ public sealed class WorldResourceTemperaturePublicationTests
             resourceTag,
             temperatureAmounts);
 
-        Assert.AreEqual(
-            collectionGeneration,
-            publication.CollectionGeneration);
-        Assert.AreEqual(resourceTag, publication.ResourceTag);
-        Assert.AreSame(temperatureAmounts, publication.TemperatureAmounts);
+        await Assert.That(publication.CollectionGeneration).IsEqualTo(collectionGeneration);
+        await Assert.That(publication.ResourceTag).IsEqualTo(resourceTag);
+        await Assert.That(publication.TemperatureAmounts).IsSameReferenceAs(temperatureAmounts);
     }
 
-    [TestMethod]
-    public void CollectionGeneration_WhenValueIsNotPositive_ThrowsArgumentOutOfRangeException()
+    [Test]
+    public async Task CollectionGeneration_WhenValueIsNotPositive_ThrowsArgumentOutOfRangeException()
     {
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
-            new WorldInventoryCollectionGeneration(0));
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
-            new WorldInventoryCollectionGeneration(-1));
+        await Assert.That(() =>
+            new WorldInventoryCollectionGeneration(0)).ThrowsExactly<ArgumentOutOfRangeException>();
+        await Assert.That(() =>
+            new WorldInventoryCollectionGeneration(-1)).ThrowsExactly<ArgumentOutOfRangeException>();
     }
 
     private static TemperatureAmountSeries CreateSeries(

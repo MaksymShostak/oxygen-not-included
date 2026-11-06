@@ -5,11 +5,9 @@ using MaksymShostak.OniModPipeline.ModInstallation;
 using MaksymShostak.OniModPipeline.ModProfiles;
 
 namespace MaksymShostak.OniModPipeline.Tests.Cli;
-
-[TestClass]
 public sealed class InstallCommandTests
 {
-    [TestMethod]
+    [Test]
     public async Task Install_WhenHelpIsRequested_DocumentsOnlyExactGuardedSourceForms()
     {
         using var fixture = new PipelineCommandFixture(includeTests: false);
@@ -21,18 +19,18 @@ public sealed class InstallCommandTests
             command,
             ["install", "--help"]);
 
-        Assert.AreEqual(0, invocation.ExitCode);
-        Assert.Contains("--candidate", invocation.StandardOutput, StringComparison.Ordinal);
-        Assert.Contains("--mod", invocation.StandardOutput, StringComparison.Ordinal);
-        Assert.Contains("--build-result", invocation.StandardOutput, StringComparison.Ordinal);
-        Assert.Contains("--target", invocation.StandardOutput, StringComparison.Ordinal);
-        Assert.Contains("dev", invocation.StandardOutput, StringComparison.Ordinal);
-        Assert.Contains("local", invocation.StandardOutput, StringComparison.Ordinal);
-        Assert.DoesNotContain("latest", invocation.StandardOutput, StringComparison.OrdinalIgnoreCase);
-        Assert.AreEqual(0, installer.CallCount);
+        await Assert.That(invocation.ExitCode).IsEqualTo(0);
+        await Assert.That(invocation.StandardOutput).Contains("--candidate", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardOutput).Contains("--mod", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardOutput).Contains("--build-result", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardOutput).Contains("--target", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardOutput).Contains("dev", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardOutput).Contains("local", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardOutput).DoesNotContain("latest", StringComparison.OrdinalIgnoreCase);
+        await Assert.That(installer.CallCount).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public async Task Install_WhenCandidateAndDevTargetAreExplicit_InstallsExactCandidate()
     {
         using var fixture = new PipelineCommandFixture(includeTests: false);
@@ -51,22 +49,19 @@ public sealed class InstallCommandTests
             command,
             CreateCandidateArguments(fixture, candidateDirectory, "dev"));
 
-        Assert.AreEqual(0, invocation.ExitCode);
-        Assert.AreEqual(string.Empty, invocation.StandardError);
-        Assert.AreEqual(Path.GetFullPath(candidateDirectory), installer.CandidateDirectory);
-        Assert.AreEqual(InstallTarget.Dev, installer.Target);
-        Assert.IsNotNull(installer.Environment);
-        Assert.AreEqual(fixture.UserDataDirectory, installer.Environment.UserDataDirectory);
-        Assert.IsNull(installer.Profile);
-        Assert.IsNull(installer.BuildResultPath);
-        Assert.Contains("Target: dev", invocation.StandardOutput, StringComparison.Ordinal);
-        Assert.Contains(
-            "Candidate receipt written: true",
-            invocation.StandardOutput,
-            StringComparison.Ordinal);
+        await Assert.That(invocation.ExitCode).IsEqualTo(0);
+        await Assert.That(invocation.StandardError).IsEqualTo(string.Empty);
+        await Assert.That(installer.CandidateDirectory).IsEqualTo(Path.GetFullPath(candidateDirectory));
+        await Assert.That(installer.Target).IsEqualTo(InstallTarget.Dev);
+        Assert.NotNull(installer.Environment);
+        await Assert.That(installer.Environment.UserDataDirectory).IsEqualTo(fixture.UserDataDirectory);
+        await Assert.That(installer.Profile).IsNull();
+        await Assert.That(installer.BuildResultPath).IsNull();
+        await Assert.That(invocation.StandardOutput).Contains("Target: dev", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardOutput).Contains("Candidate receipt written: true", StringComparison.Ordinal);
     }
 
-    [TestMethod]
+    [Test]
     public async Task Install_WhenModBuildResultAndLocalTargetAreExplicit_InstallsExactDevelopmentBuild()
     {
         using var fixture = new PipelineCommandFixture(includeTests: false);
@@ -89,28 +84,25 @@ public sealed class InstallCommandTests
                 "--target",
                 "local"));
 
-        Assert.AreEqual(0, invocation.ExitCode);
-        Assert.AreEqual(string.Empty, invocation.StandardError);
-        Assert.IsNotNull(installer.Profile);
-        Assert.AreEqual(fixture.ModRoot, installer.Profile.ModRoot);
-        Assert.IsNotNull(installer.Metadata);
-        Assert.AreEqual("Example.Mod", installer.Metadata.StaticId);
-        Assert.AreEqual(Path.GetFullPath(buildResultPath), installer.BuildResultPath);
-        Assert.AreEqual(InstallTarget.Local, installer.Target);
-        Assert.IsNull(installer.CandidateDirectory);
-        Assert.Contains("Target: local", invocation.StandardOutput, StringComparison.Ordinal);
-        Assert.Contains(
-            "Candidate receipt written: false",
-            invocation.StandardOutput,
-            StringComparison.Ordinal);
+        await Assert.That(invocation.ExitCode).IsEqualTo(0);
+        await Assert.That(invocation.StandardError).IsEqualTo(string.Empty);
+        Assert.NotNull(installer.Profile);
+        await Assert.That(installer.Profile.ModRoot).IsEqualTo(fixture.ModRoot);
+        Assert.NotNull(installer.Metadata);
+        await Assert.That(installer.Metadata.StaticId).IsEqualTo("Example.Mod");
+        await Assert.That(installer.BuildResultPath).IsEqualTo(Path.GetFullPath(buildResultPath));
+        await Assert.That(installer.Target).IsEqualTo(InstallTarget.Local);
+        await Assert.That(installer.CandidateDirectory).IsNull();
+        await Assert.That(invocation.StandardOutput).Contains("Target: local", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardOutput).Contains("Candidate receipt written: false", StringComparison.Ordinal);
     }
 
-    [TestMethod]
-    [DataRow("none")]
-    [DataRow("candidate-and-mod")]
-    [DataRow("candidate-and-build-result")]
-    [DataRow("mod-only")]
-    [DataRow("build-result-only")]
+    [Test]
+    [Arguments("none")]
+    [Arguments("candidate-and-mod")]
+    [Arguments("candidate-and-build-result")]
+    [Arguments("mod-only")]
+    [Arguments("build-result-only")]
     public async Task Install_WhenSourceFormIsIncompleteOrMixed_RejectsAtParseTime(
         string scenario)
     {
@@ -129,7 +121,7 @@ public sealed class InstallCommandTests
                 ["--candidate", candidateDirectory, "--build-result", buildResultPath],
             "mod-only" => ["--mod", fixture.ModRoot],
             "build-result-only" => ["--build-result", buildResultPath],
-            _ => throw new AssertFailedException($"Unknown scenario '{scenario}'.")
+            _ => throw new TUnit.Assertions.Exceptions.AssertionException($"Unknown scenario '{scenario}'.")
         };
 
         var invocation = await DiagnoseCommandTests.InvokeAsync(
@@ -147,18 +139,15 @@ public sealed class InstallCommandTests
                 fixture.ArtifactsDirectory
             ]);
 
-        Assert.AreEqual((int)PipelineExitCode.InvalidInput, invocation.ExitCode);
-        Assert.Contains(
-            "exactly one source form",
-            invocation.StandardError,
-            StringComparison.OrdinalIgnoreCase);
-        Assert.AreEqual(0, installer.CallCount);
+        await Assert.That(invocation.ExitCode).IsEqualTo((int)PipelineExitCode.InvalidInput);
+        await Assert.That(invocation.StandardError).Contains("exactly one source form", StringComparison.OrdinalIgnoreCase);
+        await Assert.That(installer.CallCount).IsEqualTo(0);
     }
 
-    [TestMethod]
-    [DataRow("development")]
-    [DataRow("steam")]
-    [DataRow("Dev")]
+    [Test]
+    [Arguments("development")]
+    [Arguments("steam")]
+    [Arguments("Dev")]
     public async Task Install_WhenTargetIsNotCanonical_RejectsAtParseTime(string target)
     {
         using var fixture = new PipelineCommandFixture(includeTests: false);
@@ -171,16 +160,16 @@ public sealed class InstallCommandTests
             command,
             CreateCandidateArguments(fixture, candidateDirectory, target));
 
-        Assert.AreEqual((int)PipelineExitCode.InvalidInput, invocation.ExitCode);
-        Assert.Contains("dev", invocation.StandardError, StringComparison.Ordinal);
-        Assert.Contains("local", invocation.StandardError, StringComparison.Ordinal);
-        Assert.AreEqual(0, installer.CallCount);
+        await Assert.That(invocation.ExitCode).IsEqualTo((int)PipelineExitCode.InvalidInput);
+        await Assert.That(invocation.StandardError).Contains("dev", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardError).Contains("local", StringComparison.Ordinal);
+        await Assert.That(installer.CallCount).IsEqualTo(0);
     }
 
-    [TestMethod]
-    [DataRow("candidate")]
-    [DataRow("mod")]
-    [DataRow("build-result")]
+    [Test]
+    [Arguments("candidate")]
+    [Arguments("mod")]
+    [Arguments("build-result")]
     public async Task Install_WhenExplicitSourcePathIsEmpty_RejectsAtParseTime(
         string emptyOption)
     {
@@ -195,19 +184,19 @@ public sealed class InstallCommandTests
                 ["--mod", string.Empty, "--build-result", "build-result.json"],
             "build-result" =>
                 ["--mod", fixture.ModRoot, "--build-result", string.Empty],
-            _ => throw new AssertFailedException($"Unknown option '{emptyOption}'.")
+            _ => throw new TUnit.Assertions.Exceptions.AssertionException($"Unknown option '{emptyOption}'.")
         };
 
         var invocation = await DiagnoseCommandTests.InvokeAsync(
             command,
             ["install", .. sourceArguments, "--target", "dev"]);
 
-        Assert.AreEqual((int)PipelineExitCode.InvalidInput, invocation.ExitCode);
-        Assert.Contains("nonempty path", invocation.StandardError, StringComparison.Ordinal);
-        Assert.AreEqual(0, installer.CallCount);
+        await Assert.That(invocation.ExitCode).IsEqualTo((int)PipelineExitCode.InvalidInput);
+        await Assert.That(invocation.StandardError).Contains("nonempty path", StringComparison.Ordinal);
+        await Assert.That(installer.CallCount).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public async Task Install_WhenTargetIsMissing_RejectsAtParseTime()
     {
         using var fixture = new PipelineCommandFixture(includeTests: false);
@@ -220,10 +209,10 @@ public sealed class InstallCommandTests
             command,
             ["install", "--candidate", candidateDirectory]);
 
-        Assert.AreEqual((int)PipelineExitCode.InvalidInput, invocation.ExitCode);
-        Assert.Contains("--target dev", invocation.StandardError, StringComparison.Ordinal);
-        Assert.Contains("--target local", invocation.StandardError, StringComparison.Ordinal);
-        Assert.AreEqual(0, installer.CallCount);
+        await Assert.That(invocation.ExitCode).IsEqualTo((int)PipelineExitCode.InvalidInput);
+        await Assert.That(invocation.StandardError).Contains("--target dev", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardError).Contains("--target local", StringComparison.Ordinal);
+        await Assert.That(installer.CallCount).IsEqualTo(0);
     }
 
     private static string[] CreateCandidateArguments(

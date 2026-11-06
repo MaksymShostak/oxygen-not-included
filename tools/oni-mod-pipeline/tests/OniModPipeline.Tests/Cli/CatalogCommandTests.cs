@@ -9,16 +9,14 @@ using MaksymShostak.OniModPipeline.SourceControl;
 using MaksymShostak.OniModPipeline.Tests.ReleaseCandidates;
 
 namespace MaksymShostak.OniModPipeline.Tests.Cli;
-
-[TestClass]
 public sealed class CatalogCommandTests
 {
     private const string Success = """{"schemaVersion":1,"operation":"check","runtimeVersion":[3,14,8],"success":true,"value":{"keyCount":1,"localeCount":1},"diagnostics":[]}""";
     private const string Rejected = """{"schemaVersion":1,"operation":"check","runtimeVersion":[3,14,8],"success":false,"value":null,"diagnostics":["uk.po: source text"]}""";
 
-    [TestMethod]
-    [DataRow("validate")]
-    [DataRow("build")]
+    [Test]
+    [Arguments("validate")]
+    [Arguments("build")]
     public async Task CatalogFailureBlocksCliBeforeArtifactCreation(string command)
     {
         using var fixture = new PipelineCommandFixture(includeTests: false);
@@ -28,16 +26,16 @@ public sealed class CatalogCommandTests
         var before = SourceSnapshot.CaptureTree(fixture.WorktreeRoot);
         var invocation = await DiagnoseCommandTests.InvokeAsync(CliApplication.CreateRootCommand(services),
             fixture.CreateArguments(command, "--python", PythonSelection(), "--format", "json"));
-        Assert.AreEqual(2, invocation.ExitCode);
+        await Assert.That(invocation.ExitCode).IsEqualTo(2);
         using var output = JsonDocument.Parse(invocation.StandardOutput);
-        Assert.AreEqual("ONIP1010", output.RootElement.GetProperty("diagnostics")[0].GetProperty("id").GetString());
-        Assert.IsFalse(Directory.Exists(fixture.ArtifactsDirectory));
-        Assert.AreEqual(0, before.ChangedPathsComparedWith(SourceSnapshot.CaptureTree(fixture.WorktreeRoot)).Count);
-        Assert.IsNotNull(runner.ScriptPath);
-        Assert.IsFalse(File.Exists(runner.ScriptPath));
+        await Assert.That(output.RootElement.GetProperty("diagnostics")[0].GetProperty("id").GetString()).IsEqualTo("ONIP1010");
+        await Assert.That(Directory.Exists(fixture.ArtifactsDirectory)).IsFalse();
+        await Assert.That(before.ChangedPathsComparedWith(SourceSnapshot.CaptureTree(fixture.WorktreeRoot)).Count).IsEqualTo(0);
+        Assert.NotNull(runner.ScriptPath);
+        await Assert.That(File.Exists(runner.ScriptPath)).IsFalse();
     }
 
-    [TestMethod]
+    [Test]
     public async Task NativeReleaseGateRunsBeforeBuildersOrArtifacts()
     {
         using var fixture = new PreparationFixture();
@@ -47,12 +45,12 @@ public sealed class CatalogCommandTests
         profile = profile with { Catalogs = new CatalogsProfile("translations", "example.pot", "Options.cs", "STRINGS.EXAMPLE.OPTIONS.") };
         var request = fixture.Request with { Profile = profile, PythonExecutablePath = Path.Combine(profile.ModRoot, "missing-python.exe") };
         var result = await fixture.Preparer.PrepareAsync(request, CancellationToken.None);
-        Assert.AreEqual(PipelineExitCode.EnvironmentUnavailable, result.ExitCode);
-        Assert.AreEqual(0, fixture.Trace.Count);
-        Assert.IsFalse(Directory.Exists(fixture.Layout.CandidateDirectory));
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.EnvironmentUnavailable);
+        await Assert.That(fixture.Trace.Count).IsEqualTo(0);
+        await Assert.That(Directory.Exists(fixture.Layout.CandidateDirectory)).IsFalse();
     }
 
-    [TestMethod]
+    [Test]
     public async Task InspectionNeedsNoGameEnvironmentAndExportsRawBlocks()
     {
         using var fixture = new PipelineCommandFixture(includeTests: false);
@@ -61,13 +59,13 @@ public sealed class CatalogCommandTests
         var runner = new CatalogProcessRunner(fixture.Services.ProcessRunner, json, 0);
         var result = await DiagnoseCommandTests.InvokeAsync(CliApplication.CreateRootCommand(fixture.Services with { ProcessRunner = runner }),
             ["inspect-catalogs", "--mod", fixture.ModRoot, "--python", PythonSelection(), "--format", "json"]);
-        Assert.AreEqual(0, result.ExitCode);
+        await Assert.That(result.ExitCode).IsEqualTo(0);
         using var output = JsonDocument.Parse(result.StandardOutput);
-        Assert.AreEqual("literal block", output.RootElement.GetProperty("value").GetProperty("uk.po").GetProperty("SAVE").GetProperty("block").GetString());
-        Assert.IsFalse(Directory.Exists(fixture.ArtifactsDirectory));
+        await Assert.That(output.RootElement.GetProperty("value").GetProperty("uk.po").GetProperty("SAVE").GetProperty("block").GetString()).IsEqualTo("literal block");
+        await Assert.That(Directory.Exists(fixture.ArtifactsDirectory)).IsFalse();
     }
 
-    [TestMethod]
+    [Test]
     public async Task InvalidCatalogBlocksNativeReleaseEvenWithoutCli()
     {
         var runner = new CatalogProcessRunner(new ExternalProcessRunner(), Rejected, 1);
@@ -79,13 +77,13 @@ public sealed class CatalogCommandTests
             PythonExecutablePath = PythonSelection()
         };
         var result = await fixture.Preparer.PrepareAsync(request, CancellationToken.None);
-        Assert.AreEqual(PipelineExitCode.InvalidInput, result.ExitCode);
-        Assert.AreEqual(0, fixture.Trace.Count);
-        Assert.IsFalse(Directory.Exists(fixture.Layout.CandidateDirectory));
-        Assert.IsFalse(File.Exists(runner.ScriptPath));
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.InvalidInput);
+        await Assert.That(fixture.Trace.Count).IsEqualTo(0);
+        await Assert.That(Directory.Exists(fixture.Layout.CandidateDirectory)).IsFalse();
+        await Assert.That(File.Exists(runner.ScriptPath)).IsFalse();
     }
 
-    [TestMethod]
+    [Test]
     public async Task SuccessfulGateReportsCountsAndRejectsOldRuntimeAndBadInspectionShape()
     {
         using var fixture = new PipelineCommandFixture(includeTests: false);
@@ -94,22 +92,22 @@ public sealed class CatalogCommandTests
         var runner = new CatalogProcessRunner(fixture.Services.ProcessRunner, Success, 0);
         var invocation = await DiagnoseCommandTests.InvokeAsync(CliApplication.CreateRootCommand(fixture.Services with { ProcessRunner = runner }),
             fixture.CreateArguments("validate", "--python", PythonSelection(), "--format", "json"));
-        Assert.AreEqual(0, invocation.ExitCode, invocation.StandardOutput + invocation.StandardError);
+        await Assert.That(invocation.ExitCode).IsEqualTo(0).Because(invocation.StandardOutput + invocation.StandardError);
         using var output = JsonDocument.Parse(invocation.StandardOutput);
-        Assert.AreEqual(1, output.RootElement.GetProperty("value").GetProperty("catalogs").GetProperty("localeCount").GetInt32());
+        await Assert.That(output.RootElement.GetProperty("value").GetProperty("catalogs").GetProperty("localeCount").GetInt32()).IsEqualTo(1);
         var profile = new ModProfileLoader().Load(Path.Combine(fixture.ModRoot, "oni-mod-pipeline.toml")).Value!;
         foreach (var json in new[] { Success.Replace("[3,14,8]", "[3,9,9]"), Success.Replace("\"keyCount\":1", "\"keyCount\":1.5") })
-            Assert.AreEqual(PipelineExitCode.EnvironmentUnavailable, (await new CatalogRunner(new CatalogProcessRunner(fixture.Services.ProcessRunner, json, 0))
-                .RunAsync(profile, "check", PythonSelection(), CancellationToken.None)).ExitCode);
-        Assert.AreEqual(PipelineExitCode.EnvironmentUnavailable, (await new CatalogRunner(new CatalogProcessRunner(fixture.Services.ProcessRunner,
-            Success.Replace("\"check\"", "\"inspect\""), 0)).RunAsync(profile, "inspect", PythonSelection(), CancellationToken.None)).ExitCode);
+            await Assert.That((await new CatalogRunner(new CatalogProcessRunner(fixture.Services.ProcessRunner, json, 0))
+                .RunAsync(profile, "check", PythonSelection(), CancellationToken.None)).ExitCode).IsEqualTo(PipelineExitCode.EnvironmentUnavailable);
+        await Assert.That((await new CatalogRunner(new CatalogProcessRunner(fixture.Services.ProcessRunner,
+            Success.Replace("\"check\"", "\"inspect\""), 0)).RunAsync(profile, "inspect", PythonSelection(), CancellationToken.None)).ExitCode).IsEqualTo(PipelineExitCode.EnvironmentUnavailable);
     }
 
-    [TestMethod]
-    [DataRow("not json", 0)]
-    [DataRow(Success, 1)]
-    [DataRow(Rejected, 0)]
-    [DataRow("{\"schemaVersion\":1}", 0)]
+    [Test]
+    [Arguments("not json", 0)]
+    [Arguments(Success, 1)]
+    [Arguments(Rejected, 0)]
+    [Arguments("{\"schemaVersion\":1}", 0)]
     public async Task UntrustedBackendResultsFailClosed(string json, int exit)
     {
         using var fixture = new PipelineCommandFixture(includeTests: false);
@@ -117,11 +115,11 @@ public sealed class CatalogCommandTests
         var profile = new ModProfileLoader().Load(Path.Combine(fixture.ModRoot, "oni-mod-pipeline.toml")).Value!;
         var runner = new CatalogProcessRunner(fixture.Services.ProcessRunner, json, exit);
         var result = await new CatalogRunner(runner).RunAsync(profile, "check", PythonSelection(), CancellationToken.None);
-        Assert.AreEqual(PipelineExitCode.EnvironmentUnavailable, result.ExitCode);
-        Assert.IsFalse(File.Exists(runner.ScriptPath));
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.EnvironmentUnavailable);
+        await Assert.That(File.Exists(runner.ScriptPath)).IsFalse();
     }
 
-    [TestMethod]
+    [Test]
     public async Task DeadlineAndCallerCancellationCleanCompletedBackendCopies()
     {
         using var fixture = new PipelineCommandFixture(includeTests: false);
@@ -129,29 +127,29 @@ public sealed class CatalogCommandTests
         var profile = new ModProfileLoader().Load(Path.Combine(fixture.ModRoot, "oni-mod-pipeline.toml")).Value!;
         var runner = new CatalogProcessRunner(fixture.Services.ProcessRunner, Success, 0, waitForCancellation: true);
         var result = await new CatalogRunner(runner, TimeSpan.FromMilliseconds(100)).RunAsync(profile, "check", PythonSelection(), CancellationToken.None);
-        Assert.AreEqual(PipelineExitCode.EnvironmentUnavailable, result.ExitCode);
-        Assert.IsFalse(File.Exists(runner.ScriptPath));
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.EnvironmentUnavailable);
+        await Assert.That(File.Exists(runner.ScriptPath)).IsFalse();
         using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
-        await Assert.ThrowsAsync<OperationCanceledException>(() => new CatalogRunner(runner).RunAsync(profile, "check", PythonSelection(), cancellation.Token));
-        Assert.IsFalse(File.Exists(runner.ScriptPath));
+        await Assert.That(async () => {await new CatalogRunner(runner).RunAsync(profile, "check", PythonSelection(), cancellation.Token);}).Throws<OperationCanceledException>();
+        await Assert.That(File.Exists(runner.ScriptPath)).IsFalse();
     }
 
-    [TestMethod]
+    [Test]
     public async Task NoDeclarationRequiresNoPythonAndNoInspectionResult()
     {
         using var fixture = new PipelineCommandFixture(includeTests: false);
         var profile = new ModProfileLoader().Load(Path.Combine(fixture.ModRoot, "oni-mod-pipeline.toml")).Value!;
         var runner = new CatalogProcessRunner(fixture.Services.ProcessRunner, "", 42);
-        Assert.IsTrue((await new CatalogRunner(runner).RunAsync(profile, "check", "nonexistent", CancellationToken.None)).IsSuccess);
-        Assert.IsNull(runner.ScriptPath);
+        await Assert.That((await new CatalogRunner(runner).RunAsync(profile, "check", "nonexistent", CancellationToken.None)).IsSuccess).IsTrue();
+        await Assert.That(runner.ScriptPath).IsNull();
         var invocation = await DiagnoseCommandTests.InvokeAsync(CliApplication.CreateRootCommand(fixture.Services), ["inspect-catalogs", "--mod", fixture.ModRoot, "--format", "json"]);
-        Assert.AreEqual(2, invocation.ExitCode);
+        await Assert.That(invocation.ExitCode).IsEqualTo(2);
         using var output = JsonDocument.Parse(invocation.StandardOutput);
-        Assert.AreEqual(JsonValueKind.Null, output.RootElement.GetProperty("value").ValueKind);
+        await Assert.That(output.RootElement.GetProperty("value").ValueKind).IsEqualTo(JsonValueKind.Null);
     }
 
-    [TestMethod]
-    public void CatalogInputsContributeEvenWhenNotPackagedAndRejectTraversal()
+    [Test]
+    public async Task CatalogInputsContributeEvenWhenNotPackagedAndRejectTraversal()
     {
         using var fixture = new PipelineCommandFixture(includeTests: false);
         Declare(fixture.ModRoot);
@@ -159,12 +157,12 @@ public sealed class CatalogCommandTests
         var paths = Directory.EnumerateFiles(fixture.ModRoot, "*", SearchOption.AllDirectories)
             .Select(path => Path.GetRelativePath(fixture.WorktreeRoot, path).Replace('\\', '/')).ToArray();
         var result = RelevantSourceSet.Create(profile, fixture.WorktreeRoot, paths, null);
-        Assert.IsTrue(result.IsSuccess);
-        CollectionAssert.Contains(result.Value!.WorktreeRelativePaths.ToArray(), "mods/example/translations/example.pot");
-        CollectionAssert.Contains(result.Value!.WorktreeRelativePaths.ToArray(), "mods/example/Options.cs");
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value!.WorktreeRelativePaths.ToArray()).Contains("mods/example/translations/example.pot");
+        await Assert.That(result.Value!.WorktreeRelativePaths.ToArray()).Contains("mods/example/Options.cs");
         var metadata = new OniMetadataReader().Read(profile).Value!;
-        Assert.IsTrue(new ModProfileValidator().Validate(profile, metadata).IsSuccess);
-        Assert.IsFalse(new ModProfileValidator().Validate(profile with { Catalogs = profile.Catalogs! with { Directory = "../escape" } }, metadata).IsSuccess);
+        await Assert.That(new ModProfileValidator().Validate(profile, metadata).IsSuccess).IsTrue();
+        await Assert.That(new ModProfileValidator().Validate(profile with { Catalogs = profile.Catalogs! with { Directory = "../escape" } }, metadata).IsSuccess).IsFalse();
     }
 
     private static string PythonSelection() => typeof(CatalogCommandTests).Assembly.Location;
@@ -183,10 +181,10 @@ public sealed class CatalogCommandTests
         public async Task<ProcessResult> RunAsync(ProcessRequest request, CancellationToken cancellationToken)
         {
             if (!request.Arguments.Contains("-I")) return await inner.RunAsync(request, cancellationToken);
-            Assert.IsTrue(Path.IsPathFullyQualified(request.FileName));
-            Assert.AreEqual("-B", request.Arguments[1]);
+            await Assert.That(Path.IsPathFullyQualified(request.FileName)).IsTrue();
+            await Assert.That(request.Arguments[1]).IsEqualTo("-B");
             ScriptPath = request.Arguments[2];
-            StringAssert.Contains(await File.ReadAllTextAsync(ScriptPath, cancellationToken), "class CatalogError");
+            await Assert.That(await File.ReadAllTextAsync(ScriptPath, cancellationToken)).Contains("class CatalogError");
             if (waitForCancellation) await Task.Delay(Timeout.Infinite, cancellationToken);
             return new ProcessResult(exit, json, "");
         }

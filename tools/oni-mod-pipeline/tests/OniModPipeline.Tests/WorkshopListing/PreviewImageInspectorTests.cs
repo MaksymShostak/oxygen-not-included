@@ -2,12 +2,10 @@ using MaksymShostak.OniModPipeline.Tests.Fixtures;
 using MaksymShostak.OniModPipeline.WorkshopListing;
 
 namespace MaksymShostak.OniModPipeline.Tests.WorkshopListing;
-
-[TestClass]
 public sealed class PreviewImageInspectorTests
 {
-    [TestMethod]
-    public void Inspect_WhenExtensionAndSignatureAgree_AcceptsSupportedFormats()
+    [Test]
+    public async Task Inspect_WhenExtensionAndSignatureAgree_AcceptsSupportedFormats()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var fixtures = new[]
@@ -27,15 +25,15 @@ public sealed class PreviewImageInspectorTests
 
             var result = inspector.Inspect(path);
 
-            Assert.IsTrue(result.IsSuccess, fixture.Item1);
-            Assert.AreEqual(fixture.Item3, result.Value?.CandidateExtension);
-            Assert.AreEqual(fixture.Item4, result.Value?.Format);
-            Assert.AreEqual((long)fixture.Item2.Length, result.Value?.ByteLength);
+            await Assert.That(result.IsSuccess).IsTrue().Because(fixture.Item1);
+            await Assert.That(result.Value?.CandidateExtension).IsEqualTo(fixture.Item3);
+            await Assert.That(result.Value?.Format).IsEqualTo(fixture.Item4);
+            await Assert.That(result.Value?.ByteLength).IsEqualTo((long)fixture.Item2.Length);
         }
     }
 
-    [TestMethod]
-    public void Inspect_WhenExtensionAndSignatureDisagree_ReturnsOnip1006()
+    [Test]
+    public async Task Inspect_WhenExtensionAndSignatureDisagree_ReturnsOnip1006()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var path = temporaryDirectory.GetPath("preview.png");
@@ -43,12 +41,12 @@ public sealed class PreviewImageInspectorTests
 
         var result = new PreviewImageInspector().Inspect(path);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual("ONIP1006", result.Diagnostics.Single().Id);
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Diagnostics.Single().Id).IsEqualTo("ONIP1006");
     }
 
-    [TestMethod]
-    public void Inspect_WhenExtensionIsUnsupported_ReturnsOnip1006()
+    [Test]
+    public async Task Inspect_WhenExtensionIsUnsupported_ReturnsOnip1006()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var path = temporaryDirectory.GetPath("preview.bmp");
@@ -56,7 +54,7 @@ public sealed class PreviewImageInspectorTests
 
         var result = new PreviewImageInspector().Inspect(path);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual("ONIP1006", result.Diagnostics.Single().Id);
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Diagnostics.Single().Id).IsEqualTo("ONIP1006");
     }
 }

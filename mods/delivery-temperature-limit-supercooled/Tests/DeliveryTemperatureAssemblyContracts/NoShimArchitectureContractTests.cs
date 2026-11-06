@@ -4,13 +4,6 @@ using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
-
-/// <summary>
-/// Makes the specification's authoritative removal registry executable. Keeping
-/// every removed identity in one table prevents source, metadata, forwarding,
-/// and deleted-file checks from drifting into subtly different shim policies.
-/// </summary>
-[TestClass]
 public sealed class NoShimArchitectureContractTests
 {
     private enum RemovedArchitectureCategory
@@ -118,31 +111,23 @@ public sealed class NoShimArchitectureContractTests
         RemovedFile("Harmony.cs")
     ];
 
-    [TestMethod]
-    public void RemovedArchitectureRegistry_WhenCompletenessIsInspected_CoversEveryAuthoritativeCategory()
+    [Test]
+    public async Task RemovedArchitectureRegistry_WhenCompletenessIsInspected_CoversEveryAuthoritativeCategory()
     {
-        Assert.HasCount(15, RemovedArchitectureIdentities);
-        Assert.HasCount(
-            6,
-            RemovedArchitectureIdentities.Where(identity =>
-                identity.Category == RemovedArchitectureCategory.MemberOrType));
-        Assert.HasCount(
-            4,
-            RemovedArchitectureIdentities.Where(identity =>
-                identity.Category == RemovedArchitectureCategory.RepresentationOrBehavior));
-        Assert.HasCount(
-            5,
-            RemovedArchitectureIdentities.Where(identity =>
-                identity.Category == RemovedArchitectureCategory.SupersededProductionFile));
-        Assert.HasCount(
-            RemovedArchitectureIdentities.Length,
-            RemovedArchitectureIdentities
+        await Assert.That(RemovedArchitectureIdentities).Count().IsEqualTo(15);
+        await Assert.That(RemovedArchitectureIdentities.Where(identity =>
+                identity.Category == RemovedArchitectureCategory.MemberOrType)).Count().IsEqualTo(6);
+        await Assert.That(RemovedArchitectureIdentities.Where(identity =>
+                identity.Category == RemovedArchitectureCategory.RepresentationOrBehavior)).Count().IsEqualTo(4);
+        await Assert.That(RemovedArchitectureIdentities.Where(identity =>
+                identity.Category == RemovedArchitectureCategory.SupersededProductionFile)).Count().IsEqualTo(5);
+        await Assert.That(RemovedArchitectureIdentities
                 .Select(identity => identity.SemanticIdentity)
-                .Distinct(StringComparer.Ordinal));
+                .Distinct(StringComparer.Ordinal)).Count().IsEqualTo(RemovedArchitectureIdentities.Length);
     }
 
-    [TestMethod]
-    public void ProductionSources_WhenRemovedIdentitiesAreInspected_ContainNoLegacyArchitecture()
+    [Test]
+    public async Task ProductionSources_WhenRemovedIdentitiesAreInspected_ContainNoLegacyArchitecture()
     {
         string sourceRoot = ResolveSourceRoot();
         string[] productionSourcePaths = Directory
@@ -157,9 +142,7 @@ public sealed class NoShimArchitectureContractTests
                 string removedPath = Path.Combine(
                     sourceRoot,
                     identity.SupersededProductionFileName!);
-                Assert.IsFalse(
-                    File.Exists(removedPath),
-                    $"Superseded production file returned: {removedPath}");
+                await Assert.That(File.Exists(removedPath)).IsFalse().Because($"Superseded production file returned: {removedPath}");
                 continue;
             }
 
@@ -167,36 +150,28 @@ public sealed class NoShimArchitectureContractTests
             {
                 string? containingPath = productionSourcePaths.FirstOrDefault(path =>
                     File.ReadAllText(path).Contains(sourceSymbol, StringComparison.Ordinal));
-                Assert.IsNull(
-                    containingPath,
-                    $"Removed architecture identity '{identity.SemanticIdentity}' " +
+                await Assert.That(containingPath).IsNull().Because($"Removed architecture identity '{identity.SemanticIdentity}' " +
                     $"returned as source symbol '{sourceSymbol}' in {containingPath}.");
             }
         }
     }
 
-    internal static void AssertMergedAssembly(string assemblyPath)
+    internal static async Task AssertMergedAssembly(string assemblyPath)
     {
-        ManagedMetadataIdentities metadata = ReadManagedMetadataIdentities(assemblyPath);
+        ManagedMetadataIdentities metadata = await ReadManagedMetadataIdentities(assemblyPath);
         foreach (RemovedArchitectureIdentity identity in RemovedArchitectureIdentities)
         {
             foreach (string removedTypeName in identity.MetadataTypeNames)
             {
-                Assert.IsFalse(
-                    metadata.DefinedTypeNames.Contains(removedTypeName),
-                    $"Removed type '{identity.SemanticIdentity}' returned in {assemblyPath} " +
+                await Assert.That(metadata.DefinedTypeNames.Contains(removedTypeName)).IsFalse().Because($"Removed type '{identity.SemanticIdentity}' returned in {assemblyPath} " +
                     $"as {removedTypeName}.");
-                Assert.IsFalse(
-                    metadata.ExportedTypeNames.Contains(removedTypeName),
-                    $"Removed type '{identity.SemanticIdentity}' returned as an exported " +
+                await Assert.That(metadata.ExportedTypeNames.Contains(removedTypeName)).IsFalse().Because($"Removed type '{identity.SemanticIdentity}' returned as an exported " +
                     $"forwarder in {assemblyPath}: {removedTypeName}.");
             }
 
             foreach (RemovedMetadataMember removedMember in identity.MetadataMembers)
             {
-                Assert.IsFalse(
-                    metadata.DeclaredMembers.Contains(removedMember),
-                    $"Removed member '{identity.SemanticIdentity}' returned in {assemblyPath} " +
+                await Assert.That(metadata.DeclaredMembers.Contains(removedMember)).IsFalse().Because($"Removed member '{identity.SemanticIdentity}' returned in {assemblyPath} " +
                     $"as {removedMember.DeclaringTypeName}.{removedMember.MemberName}.");
             }
         }
@@ -211,7 +186,7 @@ public sealed class NoShimArchitectureContractTests
             [],
             fileName);
 
-    private static ManagedMetadataIdentities ReadManagedMetadataIdentities(
+    private static async Task<ManagedMetadataIdentities> ReadManagedMetadataIdentities(
         string assemblyPath)
     {
         using var stream = new FileStream(
@@ -222,9 +197,7 @@ public sealed class NoShimArchitectureContractTests
             bufferSize: 64 * 1024,
             FileOptions.SequentialScan);
         using var portableExecutableReader = new PEReader(stream);
-        Assert.IsTrue(
-            portableExecutableReader.HasMetadata,
-            $"Managed metadata is absent from {assemblyPath}.");
+        await Assert.That(portableExecutableReader.HasMetadata).IsTrue().Because($"Managed metadata is absent from {assemblyPath}.");
         MetadataReader metadataReader = portableExecutableReader.GetMetadataReader();
 
         var definedTypeNames = new HashSet<string>(StringComparer.Ordinal);

@@ -1,8 +1,6 @@
 using System.Reflection;
 
 namespace DeliveryTemperatureLimit.Tests.GameplayActivation.ExternalModIntegration;
-
-[TestClass]
 public sealed class RuntimePatchCapabilitySelectorTests
 {
     private static readonly DeclaredModIntegrationId
@@ -13,8 +11,8 @@ public sealed class RuntimePatchCapabilitySelectorTests
     private static readonly DeclaredModIntegrationId SyntheticAuthorityId =
         new("synthetic-runtime-authority");
 
-    [TestMethod]
-    public void Select_WhenNoExternalIntegrationClaimsCapability_SelectsKleiBaseline()
+    [Test]
+    public async Task Select_WhenNoExternalIntegrationClaimsCapability_SelectsKleiBaseline()
     {
         RuntimeCapabilityDefinition definition = Definition(
             RuntimeCapabilityId.DirectDeliveryEligibility,
@@ -26,16 +24,14 @@ public sealed class RuntimePatchCapabilitySelectorTests
                 Array.Empty<PreparedRuntimeAuthorityContribution>(),
                 Array.Empty<ExternalModIntegrationOutcome>());
 
-        Assert.AreEqual(
-            RuntimeAuthorityImplementationIdentity.KleiBaseline,
-            selection.GetCapabilitySelection(
+        await Assert.That(selection.GetCapabilitySelection(
                 RuntimeCapabilityId.DirectDeliveryEligibility)
                 .PrepareSelectedContribution()
-                .ImplementationIdentity);
+                .ImplementationIdentity).IsEqualTo(RuntimeAuthorityImplementationIdentity.KleiBaseline);
     }
 
-    [TestMethod]
-    public void Select_WhenOneCompatibleExternalOwnerClaimsCapability_SelectsIt()
+    [Test]
+    public async Task Select_WhenOneCompatibleExternalOwnerClaimsCapability_SelectsIt()
     {
         PreparedRuntimeAuthorityContribution fastTrack = CompatibleContribution(
             FastTrackId,
@@ -52,20 +48,16 @@ public sealed class RuntimePatchCapabilitySelectorTests
                 new[] { fastTrack },
                 new[] { Outcome(fastTrack) });
 
-        Assert.AreSame(
-            fastTrack,
-            selection.GetCapabilitySelection(
+        await Assert.That(selection.GetCapabilitySelection(
                 RuntimeCapabilityId.DirectDeliveryEligibility)
-                .PrepareSelectedContribution());
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.Selected,
-            selection.ExternalModIntegrationOutcomes[0]
+                .PrepareSelectedContribution()).IsSameReferenceAs(fastTrack);
+        await Assert.That(selection.ExternalModIntegrationOutcomes[0]
                 .Capabilities[0]
-                .Disposition);
+                .Disposition).IsEqualTo(IntegrationCapabilityDisposition.Selected);
     }
 
-    [TestMethod]
-    public void Select_WhenCompatibleExternalOwnerIsSelected_DoesNotPrepareKleiBaselineAlternative()
+    [Test]
+    public async Task Select_WhenCompatibleExternalOwnerIsSelected_DoesNotPrepareKleiBaselineAlternative()
     {
         bool kleiBaselineWasPrepared = false;
         var definition = new RuntimeCapabilityDefinition(
@@ -88,18 +80,16 @@ public sealed class RuntimePatchCapabilitySelectorTests
                 new[] { fastTrack },
                 new[] { Outcome(fastTrack) });
 
-        Assert.AreSame(
-            fastTrack,
-            selection.GetCapabilitySelection(
+        await Assert.That(selection.GetCapabilitySelection(
                 RuntimeCapabilityId.DirectDeliveryEligibility)
-                .PrepareSelectedContribution());
-        Assert.IsFalse(kleiBaselineWasPrepared);
+                .PrepareSelectedContribution()).IsSameReferenceAs(fastTrack);
+        await Assert.That(kleiBaselineWasPrepared).IsFalse();
     }
 
-    [TestMethod]
-    [DataRow((int)RuntimeAuthorityObservation.OwnsIncompatible)]
-    [DataRow((int)RuntimeAuthorityObservation.OwnershipUnavailable)]
-    public void Select_WhenRequiredOwnerCannotProveCompatibleContribution_BlocksActivation(
+    [Test]
+    [Arguments((int)RuntimeAuthorityObservation.OwnsIncompatible)]
+    [Arguments((int)RuntimeAuthorityObservation.OwnershipUnavailable)]
+    public async Task Select_WhenRequiredOwnerCannotProveCompatibleContribution_BlocksActivation(
         int observationValue)
     {
         var observation = (RuntimeAuthorityObservation)observationValue;
@@ -109,7 +99,7 @@ public sealed class RuntimePatchCapabilitySelectorTests
             observation);
 
         RuntimeCapabilitySelectionException exception =
-            Assert.ThrowsExactly<RuntimeCapabilitySelectionException>(() =>
+            (await Assert.That(() =>
                 RuntimePatchCapabilitySelector.Select(
                     new[]
                     {
@@ -118,24 +108,18 @@ public sealed class RuntimePatchCapabilitySelectorTests
                             RuntimeCapabilityCriticality.Required)
                     },
                     new[] { claim },
-                    new[] { Outcome(claim) }));
+                    new[] { Outcome(claim) })).ThrowsExactly<RuntimeCapabilitySelectionException>())!;
 
-        Assert.AreEqual(
-            "required-runtime-capability-unavailable",
-            exception.DiagnosticCode);
-        Assert.AreEqual(
-            RuntimeCapabilityId.DirectDeliveryEligibility,
-            exception.CapabilityId);
-        Assert.HasCount(1, exception.ExternalModIntegrationOutcomes);
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.ActivationBlocking,
-            exception.ExternalModIntegrationOutcomes[0]
+        await Assert.That(exception.DiagnosticCode).IsEqualTo("required-runtime-capability-unavailable");
+        await Assert.That(exception.CapabilityId).IsEqualTo(RuntimeCapabilityId.DirectDeliveryEligibility);
+        await Assert.That(exception.ExternalModIntegrationOutcomes).Count().IsEqualTo(1);
+        await Assert.That(exception.ExternalModIntegrationOutcomes[0]
                 .Capabilities[0]
-                .Disposition);
+                .Disposition).IsEqualTo(IntegrationCapabilityDisposition.ActivationBlocking);
     }
 
-    [TestMethod]
-    public void Select_WhenUnavailableAuthorityOutcomeLacksContribution_RejectsFailClosed()
+    [Test]
+    public async Task Select_WhenUnavailableAuthorityOutcomeLacksContribution_RejectsFailClosed()
     {
         PreparedRuntimeAuthorityContribution unavailable =
             UnavailableContribution(
@@ -144,7 +128,7 @@ public sealed class RuntimePatchCapabilitySelectorTests
                 RuntimeAuthorityObservation.OwnershipUnavailable);
 
         RuntimeCapabilitySelectionException exception =
-            Assert.ThrowsExactly<RuntimeCapabilitySelectionException>(() =>
+            (await Assert.That(() =>
                 RuntimePatchCapabilitySelector.Select(
                     new[]
                     {
@@ -153,17 +137,15 @@ public sealed class RuntimePatchCapabilitySelectorTests
                             RuntimeCapabilityCriticality.Required)
                     },
                     Array.Empty<PreparedRuntimeAuthorityContribution>(),
-                    new[] { Outcome(unavailable) }));
+                    new[] { Outcome(unavailable) })).ThrowsExactly<RuntimeCapabilitySelectionException>())!;
 
-        Assert.AreEqual(
-            "missing-runtime-authority-contribution",
-            exception.DiagnosticCode);
+        await Assert.That(exception.DiagnosticCode).IsEqualTo("missing-runtime-authority-contribution");
     }
 
-    [TestMethod]
-    [DataRow((int)IntegrationContractState.Incompatible)]
-    [DataRow((int)IntegrationContractState.VerificationUnavailable)]
-    public void Select_WhenCompatibleContributionReportsNonCompatibleContractState_RejectsContradiction(
+    [Test]
+    [Arguments((int)IntegrationContractState.Incompatible)]
+    [Arguments((int)IntegrationContractState.VerificationUnavailable)]
+    public async Task Select_WhenCompatibleContributionReportsNonCompatibleContractState_RejectsContradiction(
         int contractStateValue)
     {
         PreparedRuntimeAuthorityContribution contribution =
@@ -172,7 +154,7 @@ public sealed class RuntimePatchCapabilitySelectorTests
                 RuntimeCapabilityId.DirectDeliveryEligibility);
 
         RuntimeCapabilitySelectionException exception =
-            Assert.ThrowsExactly<RuntimeCapabilitySelectionException>(() =>
+            (await Assert.That(() =>
                 RuntimePatchCapabilitySelector.Select(
                     new[]
                     {
@@ -186,15 +168,13 @@ public sealed class RuntimePatchCapabilitySelectorTests
                         OutcomeWithContractState(
                             contribution,
                             (IntegrationContractState)contractStateValue)
-                    }));
+                    })).ThrowsExactly<RuntimeCapabilitySelectionException>())!;
 
-        Assert.AreEqual(
-            "contradictory-runtime-authority-contract-state",
-            exception.DiagnosticCode);
+        await Assert.That(exception.DiagnosticCode).IsEqualTo("contradictory-runtime-authority-contract-state");
     }
 
-    [TestMethod]
-    public void Select_WhenCompatibleContributionReportsUnavailableDisposition_RejectsContradiction()
+    [Test]
+    public async Task Select_WhenCompatibleContributionReportsUnavailableDisposition_RejectsContradiction()
     {
         PreparedRuntimeAuthorityContribution contribution =
             CompatibleContribution(
@@ -202,7 +182,7 @@ public sealed class RuntimePatchCapabilitySelectorTests
                 RuntimeCapabilityId.DirectDeliveryEligibility);
 
         RuntimeCapabilitySelectionException exception =
-            Assert.ThrowsExactly<RuntimeCapabilitySelectionException>(() =>
+            (await Assert.That(() =>
                 RuntimePatchCapabilitySelector.Select(
                     new[]
                     {
@@ -217,15 +197,13 @@ public sealed class RuntimePatchCapabilitySelectorTests
                             contribution,
                             IntegrationContractState.Compatible,
                             IntegrationCapabilityDisposition.Unavailable)
-                    }));
+                    })).ThrowsExactly<RuntimeCapabilitySelectionException>())!;
 
-        Assert.AreEqual(
-            "contradictory-runtime-authority-disposition",
-            exception.DiagnosticCode);
+        await Assert.That(exception.DiagnosticCode).IsEqualTo("contradictory-runtime-authority-disposition");
     }
 
-    [TestMethod]
-    public void Select_WhenOptionalOwnedCapabilityIsIncompatible_OmitsWithoutKleiFallback()
+    [Test]
+    public async Task Select_WhenOptionalOwnedCapabilityIsIncompatible_OmitsWithoutKleiFallback()
     {
         PreparedRuntimeAuthorityContribution claim = UnavailableContribution(
             FastTrackId,
@@ -246,25 +224,17 @@ public sealed class RuntimePatchCapabilitySelectorTests
         RuntimeCapabilitySelectionEntry omission =
             selection.GetCapabilitySelection(
                 RuntimeCapabilityId.TemperatureStatusAvailability);
-        Assert.IsFalse(omission.HasSelectedContribution);
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.Unavailable,
-            omission.Disposition);
-        Assert.AreEqual(
-            claim.DiagnosticCode,
-            omission.DiagnosticCode);
-        Assert.AreEqual(
-            claim.DiagnosticMessage,
-            omission.DiagnosticMessage);
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.Unavailable,
-            selection.ExternalModIntegrationOutcomes[0]
+        await Assert.That(omission.HasSelectedContribution).IsFalse();
+        await Assert.That(omission.Disposition).IsEqualTo(IntegrationCapabilityDisposition.Unavailable);
+        await Assert.That(omission.DiagnosticCode).IsEqualTo(claim.DiagnosticCode);
+        await Assert.That(omission.DiagnosticMessage).IsEqualTo(claim.DiagnosticMessage);
+        await Assert.That(selection.ExternalModIntegrationOutcomes[0]
                 .Capabilities[0]
-                .Disposition);
+                .Disposition).IsEqualTo(IntegrationCapabilityDisposition.Unavailable);
     }
 
-    [TestMethod]
-    public void Select_WhenOptionalCapabilityHasNoImplementation_ReportsExplicitOmission()
+    [Test]
+    public async Task Select_WhenOptionalCapabilityHasNoImplementation_ReportsExplicitOmission()
     {
         var definition = new RuntimeCapabilityDefinition(
             RuntimeCapabilityId.TemperatureStatusAvailability,
@@ -281,18 +251,14 @@ public sealed class RuntimePatchCapabilitySelectorTests
         RuntimeCapabilitySelectionEntry omission =
             selection.GetCapabilitySelection(
                 RuntimeCapabilityId.TemperatureStatusAvailability);
-        Assert.IsFalse(omission.HasSelectedContribution);
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.Unavailable,
-            omission.Disposition);
-        Assert.AreEqual(
-            "optional-runtime-capability-without-implementation",
-            omission.DiagnosticCode);
-        Assert.IsFalse(string.IsNullOrWhiteSpace(omission.DiagnosticMessage));
+        await Assert.That(omission.HasSelectedContribution).IsFalse();
+        await Assert.That(omission.Disposition).IsEqualTo(IntegrationCapabilityDisposition.Unavailable);
+        await Assert.That(omission.DiagnosticCode).IsEqualTo("optional-runtime-capability-without-implementation");
+        await Assert.That(string.IsNullOrWhiteSpace(omission.DiagnosticMessage)).IsFalse();
     }
 
-    [TestMethod]
-    public void Select_WhenTwoCompatibleOwnersClaimCapability_RejectsConflict()
+    [Test]
+    public async Task Select_WhenTwoCompatibleOwnersClaimCapability_RejectsConflict()
     {
         PreparedRuntimeAuthorityContribution fastTrack = CompatibleContribution(
             FastTrackId,
@@ -302,7 +268,7 @@ public sealed class RuntimePatchCapabilitySelectorTests
             RuntimeCapabilityId.PickupTemperatureGrouping);
 
         RuntimeCapabilitySelectionException exception =
-            Assert.ThrowsExactly<RuntimeCapabilitySelectionException>(() =>
+            (await Assert.That(() =>
                 RuntimePatchCapabilitySelector.Select(
                     new[]
                     {
@@ -311,13 +277,13 @@ public sealed class RuntimePatchCapabilitySelectorTests
                             RuntimeCapabilityCriticality.Required)
                     },
                     new[] { fastTrack, synthetic },
-                    new[] { Outcome(fastTrack), Outcome(synthetic) }));
+                    new[] { Outcome(fastTrack), Outcome(synthetic) })).ThrowsExactly<RuntimeCapabilitySelectionException>())!;
 
-        Assert.AreEqual("conflicting-runtime-authority-owners", exception.DiagnosticCode);
+        await Assert.That(exception.DiagnosticCode).IsEqualTo("conflicting-runtime-authority-owners");
     }
 
-    [TestMethod]
-    public void Select_WhenTwoOwnersClaimAndOneIsIncompatible_StillRejectsConflict()
+    [Test]
+    public async Task Select_WhenTwoOwnersClaimAndOneIsIncompatible_StillRejectsConflict()
     {
         PreparedRuntimeAuthorityContribution compatible =
             CompatibleContribution(
@@ -330,7 +296,7 @@ public sealed class RuntimePatchCapabilitySelectorTests
                 RuntimeAuthorityObservation.OwnsIncompatible);
 
         RuntimeCapabilitySelectionException exception =
-            Assert.ThrowsExactly<RuntimeCapabilitySelectionException>(() =>
+            (await Assert.That(() =>
                 RuntimePatchCapabilitySelector.Select(
                     new[]
                     {
@@ -339,13 +305,13 @@ public sealed class RuntimePatchCapabilitySelectorTests
                             RuntimeCapabilityCriticality.Required)
                     },
                     new[] { compatible, incompatible },
-                    new[] { Outcome(compatible), Outcome(incompatible) }));
+                    new[] { Outcome(compatible), Outcome(incompatible) })).ThrowsExactly<RuntimeCapabilitySelectionException>())!;
 
-        Assert.AreEqual("conflicting-runtime-authority-owners", exception.DiagnosticCode);
+        await Assert.That(exception.DiagnosticCode).IsEqualTo("conflicting-runtime-authority-owners");
     }
 
-    [TestMethod]
-    public void Select_WhenOutcomeNamesUndefinedCapability_RejectsInput()
+    [Test]
+    public async Task Select_WhenOutcomeNamesUndefinedCapability_RejectsInput()
     {
         ExternalModIntegrationOutcome outcome = Outcome(
             UnavailableContribution(
@@ -354,7 +320,7 @@ public sealed class RuntimePatchCapabilitySelectorTests
                 RuntimeAuthorityObservation.DoesNotOwn));
 
         RuntimeCapabilitySelectionException exception =
-            Assert.ThrowsExactly<RuntimeCapabilitySelectionException>(() =>
+            (await Assert.That(() =>
                 RuntimePatchCapabilitySelector.Select(
                     new[]
                     {
@@ -363,13 +329,13 @@ public sealed class RuntimePatchCapabilitySelectorTests
                             RuntimeCapabilityCriticality.Required)
                     },
                     Array.Empty<PreparedRuntimeAuthorityContribution>(),
-                    new[] { outcome }));
+                    new[] { outcome })).ThrowsExactly<RuntimeCapabilitySelectionException>())!;
 
-        Assert.AreEqual("undeclared-runtime-capability-outcome", exception.DiagnosticCode);
+        await Assert.That(exception.DiagnosticCode).IsEqualTo("undeclared-runtime-capability-outcome");
     }
 
-    [TestMethod]
-    public void Select_WhenOutcomeContainsAdditiveOnlyCapability_PreservesItWithoutRuntimeDefinition()
+    [Test]
+    public async Task Select_WhenOutcomeContainsAdditiveOnlyCapability_PreservesItWithoutRuntimeDefinition()
     {
         RuntimePatchCapabilitySelection selection =
             RuntimePatchCapabilitySelector.Select(
@@ -386,17 +352,15 @@ public sealed class RuntimePatchCapabilitySelectorTests
                         RuntimeCapabilityId.TemperatureStatusAvailability)
                 });
 
-        Assert.HasCount(1, selection.CapabilitySelections);
-        Assert.HasCount(1, selection.ExternalModIntegrationOutcomes);
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.Ready,
-            selection.ExternalModIntegrationOutcomes[0]
+        await Assert.That(selection.CapabilitySelections).Count().IsEqualTo(1);
+        await Assert.That(selection.ExternalModIntegrationOutcomes).Count().IsEqualTo(1);
+        await Assert.That(selection.ExternalModIntegrationOutcomes[0]
                 .Capabilities[0]
-                .Disposition);
+                .Disposition).IsEqualTo(IntegrationCapabilityDisposition.Ready);
     }
 
-    [TestMethod]
-    public void Select_WhenAtomicBundleWouldMixKleiAndExternalOwners_RejectsSelection()
+    [Test]
+    public async Task Select_WhenAtomicBundleWouldMixKleiAndExternalOwners_RejectsSelection()
     {
         var bundleId = new RuntimeCapabilityBundleId("delivery-correctness");
         PreparedRuntimeAuthorityContribution externalDoesNotOwn =
@@ -409,7 +373,7 @@ public sealed class RuntimePatchCapabilitySelectorTests
             RuntimeCapabilityId.DirectDeliveryEligibility);
 
         RuntimeCapabilitySelectionException exception =
-            Assert.ThrowsExactly<RuntimeCapabilitySelectionException>(() =>
+            (await Assert.That(() =>
                 RuntimePatchCapabilitySelector.Select(
                     new[]
                     {
@@ -423,24 +387,24 @@ public sealed class RuntimePatchCapabilitySelectorTests
                             bundleId)
                     },
                     new[] { externalDoesNotOwn, external },
-                    new[] { Outcome(externalDoesNotOwn, external) }));
+                    new[] { Outcome(externalDoesNotOwn, external) })).ThrowsExactly<RuntimeCapabilitySelectionException>())!;
 
-        Assert.AreEqual("mixed-runtime-capability-bundle", exception.DiagnosticCode);
-        Assert.IsTrue(exception.ExternalModIntegrationOutcomes[0]
+        await Assert.That(exception.DiagnosticCode).IsEqualTo("mixed-runtime-capability-bundle");
+        await Assert.That(exception.ExternalModIntegrationOutcomes[0]
             .Capabilities
             .All(capability =>
                 capability.Disposition ==
-                    IntegrationCapabilityDisposition.ActivationBlocking));
-        Assert.IsTrue(exception.ExternalModIntegrationOutcomes[0]
+                    IntegrationCapabilityDisposition.ActivationBlocking)).IsTrue();
+        await Assert.That(exception.ExternalModIntegrationOutcomes[0]
             .Capabilities
             .All(capability => string.Equals(
                 capability.DiagnosticCode,
                 "mixed-runtime-capability-bundle",
-                StringComparison.Ordinal)));
+                StringComparison.Ordinal))).IsTrue();
     }
 
-    [TestMethod]
-    public void Select_WhenMixedRuntimeBundleSharesCapabilityIdWithAdditiveOutcome_PreservesAdditiveReadiness()
+    [Test]
+    public async Task Select_WhenMixedRuntimeBundleSharesCapabilityIdWithAdditiveOutcome_PreservesAdditiveReadiness()
     {
         var bundleId = new RuntimeCapabilityBundleId("delivery-correctness");
         PreparedRuntimeAuthorityContribution external = CompatibleContribution(
@@ -448,7 +412,7 @@ public sealed class RuntimePatchCapabilitySelectorTests
             RuntimeCapabilityId.DirectDeliveryEligibility);
 
         RuntimeCapabilitySelectionException exception =
-            Assert.ThrowsExactly<RuntimeCapabilitySelectionException>(() =>
+            (await Assert.That(() =>
                 RuntimePatchCapabilitySelector.Select(
                     new[]
                     {
@@ -467,7 +431,7 @@ public sealed class RuntimePatchCapabilitySelectorTests
                         Outcome(external),
                         AdditiveOutcome(
                             RuntimeCapabilityId.PickupTemperatureGrouping)
-                    }));
+                    })).ThrowsExactly<RuntimeCapabilitySelectionException>())!;
 
         ExternalModIntegrationCapabilityOutcome additiveCapability =
             exception.ExternalModIntegrationOutcomes
@@ -476,18 +440,14 @@ public sealed class RuntimePatchCapabilitySelectorTests
                         "synthetic-additive-protocol")))
                 .Capabilities
                 .Single();
-        Assert.AreEqual(
-            ExternalModIntegrationCategory.AdditiveInteroperability,
-            additiveCapability.Category);
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.Ready,
-            additiveCapability.Disposition);
-        Assert.IsNull(additiveCapability.DiagnosticCode);
-        Assert.IsNull(additiveCapability.DiagnosticMessage);
+        await Assert.That(additiveCapability.Category).IsEqualTo(ExternalModIntegrationCategory.AdditiveInteroperability);
+        await Assert.That(additiveCapability.Disposition).IsEqualTo(IntegrationCapabilityDisposition.Ready);
+        await Assert.That(additiveCapability.DiagnosticCode).IsNull();
+        await Assert.That(additiveCapability.DiagnosticMessage).IsNull();
     }
 
-    [TestMethod]
-    public void Select_WhenBundleOriginsShareTextualId_StillRejectsMixedImplementations()
+    [Test]
+    public async Task Select_WhenBundleOriginsShareTextualId_StillRejectsMixedImplementations()
     {
         var bundleId = new RuntimeCapabilityBundleId("delivery-correctness");
         PreparedRuntimeAuthorityContribution external = CompatibleContribution(
@@ -495,7 +455,7 @@ public sealed class RuntimePatchCapabilitySelectorTests
             RuntimeCapabilityId.DirectDeliveryEligibility);
 
         RuntimeCapabilitySelectionException exception =
-            Assert.ThrowsExactly<RuntimeCapabilitySelectionException>(() =>
+            (await Assert.That(() =>
                 RuntimePatchCapabilitySelector.Select(
                     new[]
                     {
@@ -509,20 +469,16 @@ public sealed class RuntimePatchCapabilitySelectorTests
                             bundleId)
                     },
                     new[] { external },
-                    new[] { Outcome(external) }));
+                    new[] { Outcome(external) })).ThrowsExactly<RuntimeCapabilitySelectionException>())!;
 
-        Assert.AreEqual(
-            "mixed-runtime-capability-bundle",
-            exception.DiagnosticCode);
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.ActivationBlocking,
-            exception.ExternalModIntegrationOutcomes[0]
+        await Assert.That(exception.DiagnosticCode).IsEqualTo("mixed-runtime-capability-bundle");
+        await Assert.That(exception.ExternalModIntegrationOutcomes[0]
                 .Capabilities[0]
-                .Disposition);
+                .Disposition).IsEqualTo(IntegrationCapabilityDisposition.ActivationBlocking);
     }
 
-    [TestMethod]
-    public void Select_WhenAtomicBundleUsesOnlyKleiOwner_AcceptsSelection()
+    [Test]
+    public async Task Select_WhenAtomicBundleUsesOnlyKleiOwner_AcceptsSelection()
     {
         var bundleId = new RuntimeCapabilityBundleId("delivery-correctness");
 
@@ -542,13 +498,13 @@ public sealed class RuntimePatchCapabilitySelectorTests
                 Array.Empty<PreparedRuntimeAuthorityContribution>(),
                 Array.Empty<ExternalModIntegrationOutcome>());
 
-        Assert.IsTrue(selection.CapabilitySelections.All(entry =>
+        await Assert.That(selection.CapabilitySelections.All(entry =>
             entry.PrepareSelectedContribution().ImplementationIdentity.Equals(
-                RuntimeAuthorityImplementationIdentity.KleiBaseline)));
+                RuntimeAuthorityImplementationIdentity.KleiBaseline))).IsTrue();
     }
 
-    [TestMethod]
-    public void Select_WhenAtomicBundleUsesOnlyOneExternalOwner_AcceptsSelection()
+    [Test]
+    public async Task Select_WhenAtomicBundleUsesOnlyOneExternalOwner_AcceptsSelection()
     {
         var bundleId = new RuntimeCapabilityBundleId("delivery-correctness");
         PreparedRuntimeAuthorityContribution pickup = CompatibleContribution(
@@ -574,14 +530,14 @@ public sealed class RuntimePatchCapabilitySelectorTests
                 new[] { pickup, direct },
                 new[] { Outcome(pickup, direct) });
 
-        Assert.IsTrue(selection.CapabilitySelections.All(entry =>
+        await Assert.That(selection.CapabilitySelections.All(entry =>
             entry.PrepareSelectedContribution().ImplementationIdentity
                 .DeclaredExternalIntegrationId
-                .Equals(FastTrackId)));
+                .Equals(FastTrackId))).IsTrue();
     }
 
-    [TestMethod]
-    public void Select_WhenSyntheticAuthorityOwnsExistingCapability_UsesGenericPath()
+    [Test]
+    public async Task Select_WhenSyntheticAuthorityOwnsExistingCapability_UsesGenericPath()
     {
         PreparedRuntimeAuthorityContribution synthetic = CompatibleContribution(
             SyntheticAuthorityId,
@@ -598,13 +554,11 @@ public sealed class RuntimePatchCapabilitySelectorTests
                 new[] { synthetic },
                 new[] { Outcome(synthetic) });
 
-        Assert.AreEqual(
-            SyntheticAuthorityId,
-            selection.GetCapabilitySelection(
+        await Assert.That(selection.GetCapabilitySelection(
                 RuntimeCapabilityId.PickupTemperatureGrouping)
                 .PrepareSelectedContribution()
                 .ImplementationIdentity
-                .DeclaredExternalIntegrationId);
+                .DeclaredExternalIntegrationId).IsEqualTo(SyntheticAuthorityId);
     }
 
     private static RuntimeCapabilityDefinition Definition(

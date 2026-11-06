@@ -2,12 +2,10 @@ using System.Reflection;
 using HarmonyLib;
 
 namespace DeliveryTemperatureLimit.Tests.HarmonyTranspilerInfrastructure;
-
-[TestClass]
 public sealed class HarmonyPatchContractBindingVerifierTests
 {
-    [TestMethod]
-    public void NamedTargetArgument_WhenMetadataNameChanges_IsRejectedDuringPreparation()
+    [Test]
+    public async Task NamedTargetArgument_WhenMetadataNameChanges_IsRejectedDuringPreparation()
     {
         MethodInfo targetMethod = RequireMethod(
             nameof(UpdatePickupsWithRenamedNavigator));
@@ -15,38 +13,34 @@ public sealed class HarmonyPatchContractBindingVerifierTests
             nameof(UpdatePickupsPrefixWithStaleNavigatorName));
 
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 HarmonyPatchContractBindingVerifier.VerifyAll(
                     [
                         new HarmonyPatchContractBinding(
                             targetMethod,
                             patchMethod,
                             HarmonyPatchContractKind.Prefix)
-                    ]));
+                    ])).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "navigator");
-        StringAssert.Contains(
-            exception.Message,
-            nameof(UpdatePickupsWithRenamedNavigator));
-        StringAssert.Contains(
-            exception.Message,
-            nameof(UpdatePickupsPrefixWithStaleNavigatorName));
+        await Assert.That(exception.Message).Contains("navigator");
+        await Assert.That(exception.Message).Contains(nameof(UpdatePickupsWithRenamedNavigator));
+        await Assert.That(exception.Message).Contains(nameof(UpdatePickupsPrefixWithStaleNavigatorName));
     }
 
-    [TestMethod]
-    public void PositionalTargetArgument_WhenIndexIsOutsideTarget_IsRejectedDuringPreparation()
+    [Test]
+    public async Task PositionalTargetArgument_WhenIndexIsOutsideTarget_IsRejectedDuringPreparation()
     {
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 VerifySingle(
                     nameof(UpdatePickupsWithRenamedNavigator),
-                    nameof(UpdatePickupsPrefixWithOutOfRangePosition)));
+                    nameof(UpdatePickupsPrefixWithOutOfRangePosition))).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "__2");
-        StringAssert.Contains(exception.Message, "index 2");
+        await Assert.That(exception.Message).Contains("__2");
+        await Assert.That(exception.Message).Contains("index 2");
     }
 
-    [TestMethod]
+    [Test]
     public void HarmonyArgumentIndex_WhenTargetMetadataNameDiffers_BindsByPosition()
     {
         VerifySingle(
@@ -54,7 +48,7 @@ public sealed class HarmonyPatchContractBindingVerifierTests
             nameof(UpdatePickupsPrefixWithHarmonyArgumentIndex));
     }
 
-    [TestMethod]
+    [Test]
     public void HarmonyArgumentName_WhenPatchParameterIsRenamed_BindsOriginalName()
     {
         VerifySingle(
@@ -62,7 +56,7 @@ public sealed class HarmonyPatchContractBindingVerifierTests
             nameof(UpdatePickupsPrefixWithHarmonyArgumentName));
     }
 
-    [TestMethod]
+    [Test]
     public void HarmonyArgumentMethodMapping_WhenPatchParameterIsRenamed_BindsOriginalName()
     {
         VerifySingle(
@@ -70,7 +64,7 @@ public sealed class HarmonyPatchContractBindingVerifierTests
             nameof(UpdatePickupsPrefixWithMethodHarmonyArgument));
     }
 
-    [TestMethod]
+    [Test]
     public void HarmonyArgumentTypeMapping_WhenPatchParameterIsRenamed_BindsOriginalName()
     {
         HarmonyPatchContractBindingVerifier.VerifyAll(
@@ -82,19 +76,19 @@ public sealed class HarmonyPatchContractBindingVerifierTests
             ]);
     }
 
-    [TestMethod]
-    public void HarmonyArgumentIndex_WhenIndexIsOutsideTarget_IsRejectedWithIndexDiagnostic()
+    [Test]
+    public async Task HarmonyArgumentIndex_WhenIndexIsOutsideTarget_IsRejectedWithIndexDiagnostic()
     {
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 VerifySingle(
                     nameof(UpdatePickupsWithRenamedNavigator),
-                    nameof(UpdatePickupsPrefixWithOutOfRangeHarmonyArgument)));
+                    nameof(UpdatePickupsPrefixWithOutOfRangeHarmonyArgument))).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "index 4");
+        await Assert.That(exception.Message).Contains("index 4");
     }
 
-    [TestMethod]
+    [Test]
     public void PositionalTargetArgument_WhenMetadataNameChanges_BindsVerifiedPosition()
     {
         VerifySingle(
@@ -102,61 +96,61 @@ public sealed class HarmonyPatchContractBindingVerifierTests
             nameof(UpdatePickupsPrefixWithVerifiedPosition));
     }
 
-    [TestMethod]
-    public void NamedTargetArgument_WhenPatchTypeCannotReceiveTargetType_IsRejected()
+    [Test]
+    public async Task NamedTargetArgument_WhenPatchTypeCannotReceiveTargetType_IsRejected()
     {
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 VerifySingle(
                     nameof(TargetWithWorkerNumber),
-                    nameof(PrefixWithIncompatibleWorkerType)));
+                    nameof(PrefixWithIncompatibleWorkerType))).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "worker");
-        StringAssert.Contains(exception.Message, "System.Int32");
-        StringAssert.Contains(exception.Message, "System.String");
+        await Assert.That(exception.Message).Contains("worker");
+        await Assert.That(exception.Message).Contains("System.Int32");
+        await Assert.That(exception.Message).Contains("System.String");
     }
 
-    [TestMethod]
-    public void NamedTargetArgument_WhenPatchByRefTypeDiffers_IsRejected()
+    [Test]
+    public async Task NamedTargetArgument_WhenPatchByRefTypeDiffers_IsRejected()
     {
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 VerifySingle(
                     nameof(TargetWithWorkerNumber),
-                    nameof(PrefixWithIncompatibleByRefWorkerType)));
+                    nameof(PrefixWithIncompatibleByRefWorkerType))).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "worker");
-        StringAssert.Contains(exception.Message, "by-reference");
+        await Assert.That(exception.Message).Contains("worker");
+        await Assert.That(exception.Message).Contains("by-reference");
     }
 
-    [TestMethod]
-    public void InstanceInjection_WhenTargetIsStatic_IsRejected()
+    [Test]
+    public async Task InstanceInjection_WhenTargetIsStatic_IsRejected()
     {
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 VerifySingle(
                     nameof(TargetWithWorkerNumber),
-                    nameof(PrefixWithInstance)));
+                    nameof(PrefixWithInstance))).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "__instance");
-        StringAssert.Contains(exception.Message, "static target");
+        await Assert.That(exception.Message).Contains("__instance");
+        await Assert.That(exception.Message).Contains("static target");
     }
 
-    [TestMethod]
-    public void InstanceInjection_WhenStructWouldNeedInterfaceBoxing_IsRejected()
+    [Test]
+    public async Task InstanceInjection_WhenStructWouldNeedInterfaceBoxing_IsRejected()
     {
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 VerifySingle(
                     RequireStructTargetMethod(),
                     RequireMethod(nameof(PrefixWithStructInterfaceInstance)),
-                    HarmonyPatchContractKind.Prefix));
+                    HarmonyPatchContractKind.Prefix)).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "__instance");
-        StringAssert.Contains(exception.Message, nameof(StructTargetFixture));
+        await Assert.That(exception.Message).Contains("__instance");
+        await Assert.That(exception.Message).Contains(nameof(StructTargetFixture));
     }
 
-    [TestMethod]
+    [Test]
     public void InstanceInjection_WhenStructIsReceivedAsObject_IsAccepted()
     {
         VerifySingle(
@@ -165,50 +159,50 @@ public sealed class HarmonyPatchContractBindingVerifierTests
             HarmonyPatchContractKind.Prefix);
     }
 
-    [TestMethod]
-    public void ResultInjection_WhenTargetReturnsVoid_IsRejected()
+    [Test]
+    public async Task ResultInjection_WhenTargetReturnsVoid_IsRejected()
     {
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 VerifySingle(
                     nameof(TargetWithWorkerNumber),
                     nameof(PostfixWithResult),
-                    HarmonyPatchContractKind.Postfix));
+                    HarmonyPatchContractKind.Postfix)).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "__result");
-        StringAssert.Contains(exception.Message, "void target");
+        await Assert.That(exception.Message).Contains("__result");
+        await Assert.That(exception.Message).Contains("void target");
     }
 
-    [TestMethod]
-    public void ResultInjection_WhenPatchTypeCannotReceiveReturnType_IsRejected()
+    [Test]
+    public async Task ResultInjection_WhenPatchTypeCannotReceiveReturnType_IsRejected()
     {
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 VerifySingle(
                     nameof(TargetReturningWorkerNumber),
                     nameof(PostfixWithIncompatibleResult),
-                    HarmonyPatchContractKind.Postfix));
+                    HarmonyPatchContractKind.Postfix)).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "__result");
-        StringAssert.Contains(exception.Message, "System.Int32");
-        StringAssert.Contains(exception.Message, "System.String");
+        await Assert.That(exception.Message).Contains("__result");
+        await Assert.That(exception.Message).Contains("System.Int32");
+        await Assert.That(exception.Message).Contains("System.String");
     }
 
-    [TestMethod]
-    public void ResultInjection_WhenValueTypeWouldNeedInterfaceBoxing_IsRejected()
+    [Test]
+    public async Task ResultInjection_WhenValueTypeWouldNeedInterfaceBoxing_IsRejected()
     {
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 VerifySingle(
                     nameof(TargetReturningResultStruct),
                     nameof(PostfixWithResultInterface),
-                    HarmonyPatchContractKind.Postfix));
+                    HarmonyPatchContractKind.Postfix)).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "__result");
-        StringAssert.Contains(exception.Message, nameof(ResultStructFixture));
+        await Assert.That(exception.Message).Contains("__result");
+        await Assert.That(exception.Message).Contains(nameof(ResultStructFixture));
     }
 
-    [TestMethod]
+    [Test]
     public void ResultInjection_WhenValueTypeIsReceivedAsObject_IsAccepted()
     {
         VerifySingle(
@@ -217,117 +211,117 @@ public sealed class HarmonyPatchContractBindingVerifierTests
             HarmonyPatchContractKind.Postfix);
     }
 
-    [TestMethod]
-    public void FieldInjection_WhenFieldDoesNotExist_IsRejected()
+    [Test]
+    public async Task FieldInjection_WhenFieldDoesNotExist_IsRejected()
     {
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 VerifySingle(
                     RequireFieldTargetMethod(),
                     RequireMethod(nameof(PrefixWithMissingField)),
-                    HarmonyPatchContractKind.Prefix));
+                    HarmonyPatchContractKind.Prefix)).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "___missing");
-        StringAssert.Contains(exception.Message, "field 'missing'");
+        await Assert.That(exception.Message).Contains("___missing");
+        await Assert.That(exception.Message).Contains("field 'missing'");
     }
 
-    [TestMethod]
-    public void FieldInjection_WhenPatchTypeCannotReceiveFieldType_IsRejected()
+    [Test]
+    public async Task FieldInjection_WhenPatchTypeCannotReceiveFieldType_IsRejected()
     {
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 VerifySingle(
                     RequireFieldTargetMethod(),
                     RequireMethod(nameof(PrefixWithIncompatibleFieldType)),
-                    HarmonyPatchContractKind.Prefix));
+                    HarmonyPatchContractKind.Prefix)).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "___counter");
-        StringAssert.Contains(exception.Message, "System.Int32");
-        StringAssert.Contains(exception.Message, "System.String");
+        await Assert.That(exception.Message).Contains("___counter");
+        await Assert.That(exception.Message).Contains("System.Int32");
+        await Assert.That(exception.Message).Contains("System.String");
     }
 
-    [TestMethod]
-    public void FieldInjection_WhenValueTypeWouldNeedBoxing_IsRejected()
+    [Test]
+    public async Task FieldInjection_WhenValueTypeWouldNeedBoxing_IsRejected()
     {
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 VerifySingle(
                     RequireFieldTargetMethod(),
                     RequireMethod(nameof(PrefixWithBoxedFieldType)),
-                    HarmonyPatchContractKind.Prefix));
+                    HarmonyPatchContractKind.Prefix)).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "___counter");
-        StringAssert.Contains(exception.Message, "System.Int32");
-        StringAssert.Contains(exception.Message, "System.Object");
+        await Assert.That(exception.Message).Contains("___counter");
+        await Assert.That(exception.Message).Contains("System.Int32");
+        await Assert.That(exception.Message).Contains("System.Object");
     }
 
-    [TestMethod]
-    public void ArgsInjection_WhenPatchTypeIsNotObjectArray_IsRejected()
+    [Test]
+    public async Task ArgsInjection_WhenPatchTypeIsNotObjectArray_IsRejected()
     {
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 VerifySingle(
                     nameof(TargetWithWorkerNumber),
-                    nameof(PrefixWithInvalidArgsArray)));
+                    nameof(PrefixWithInvalidArgsArray))).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "__args");
-        StringAssert.Contains(exception.Message, "System.Object[]");
+        await Assert.That(exception.Message).Contains("__args");
+        await Assert.That(exception.Message).Contains("System.Object[]");
     }
 
-    [TestMethod]
-    public void RunOriginalInjection_WhenPatchTypeIsNotBoolean_IsRejected()
+    [Test]
+    public async Task RunOriginalInjection_WhenPatchTypeIsNotBoolean_IsRejected()
     {
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 VerifySingle(
                     nameof(TargetWithWorkerNumber),
-                    nameof(PrefixWithInvalidRunOriginal)));
+                    nameof(PrefixWithInvalidRunOriginal))).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "__runOriginal");
-        StringAssert.Contains(exception.Message, "System.Boolean");
+        await Assert.That(exception.Message).Contains("__runOriginal");
+        await Assert.That(exception.Message).Contains("System.Boolean");
     }
 
-    [TestMethod]
-    public void OriginalMethodInjection_WhenPatchTypeCannotReceiveMethodBase_IsRejected()
+    [Test]
+    public async Task OriginalMethodInjection_WhenPatchTypeCannotReceiveMethodBase_IsRejected()
     {
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 VerifySingle(
                     nameof(TargetWithWorkerNumber),
-                    nameof(PrefixWithInvalidOriginalMethod)));
+                    nameof(PrefixWithInvalidOriginalMethod))).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "__originalMethod");
-        StringAssert.Contains(exception.Message, "System.Reflection.MethodBase");
+        await Assert.That(exception.Message).Contains("__originalMethod");
+        await Assert.That(exception.Message).Contains("System.Reflection.MethodBase");
     }
 
-    [TestMethod]
-    public void ExceptionInjection_WhenPatchIsNotFinalizer_IsRejected()
+    [Test]
+    public async Task ExceptionInjection_WhenPatchIsNotFinalizer_IsRejected()
     {
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 VerifySingle(
                     nameof(TargetWithWorkerNumber),
-                    nameof(PrefixWithException)));
+                    nameof(PrefixWithException))).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "__exception");
-        StringAssert.Contains(exception.Message, "Finalizer");
+        await Assert.That(exception.Message).Contains("__exception");
+        await Assert.That(exception.Message).Contains("Finalizer");
     }
 
-    [TestMethod]
-    public void ResultReferenceInjection_WhenTargetDoesNotReturnByReference_IsRejected()
+    [Test]
+    public async Task ResultReferenceInjection_WhenTargetDoesNotReturnByReference_IsRejected()
     {
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 VerifySingle(
                     nameof(TargetReturningWorkerNumber),
                     nameof(PostfixWithResultReference),
-                    HarmonyPatchContractKind.Postfix));
+                    HarmonyPatchContractKind.Postfix)).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "__resultRef");
-        StringAssert.Contains(exception.Message, "by-reference return");
+        await Assert.That(exception.Message).Contains("__resultRef");
+        await Assert.That(exception.Message).Contains("by-reference return");
     }
 
-    [TestMethod]
+    [Test]
     public void ResultReferenceInjection_WhenReferenceTypesMatch_IsAccepted()
     {
         VerifySingle(
@@ -336,21 +330,21 @@ public sealed class HarmonyPatchContractBindingVerifierTests
             HarmonyPatchContractKind.Postfix);
     }
 
-    [TestMethod]
-    public void ResultInjection_WhenRefReturnIsRequestedByValue_IsRejected()
+    [Test]
+    public async Task ResultInjection_WhenRefReturnIsRequestedByValue_IsRejected()
     {
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 VerifySingle(
                     nameof(TargetReturningWorkerReference),
                     nameof(PostfixWithByValueRefReturnResult),
-                    HarmonyPatchContractKind.Postfix));
+                    HarmonyPatchContractKind.Postfix)).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "__result");
-        StringAssert.Contains(exception.Message, "by-reference return");
+        await Assert.That(exception.Message).Contains("__result");
+        await Assert.That(exception.Message).Contains("by-reference return");
     }
 
-    [TestMethod]
+    [Test]
     public void ResultInjection_WhenRefReturnIsRequestedByReference_IsAccepted()
     {
         VerifySingle(
@@ -359,27 +353,27 @@ public sealed class HarmonyPatchContractBindingVerifierTests
             HarmonyPatchContractKind.Postfix);
     }
 
-    [TestMethod]
-    public void ResultReferenceInjection_WhenReferenceElementTypeDiffers_IsRejected()
+    [Test]
+    public async Task ResultReferenceInjection_WhenReferenceElementTypeDiffers_IsRejected()
     {
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 VerifySingle(
                     nameof(TargetReturningWorkerReference),
                     nameof(PostfixWithWrongResultReference),
-                    HarmonyPatchContractKind.Postfix));
+                    HarmonyPatchContractKind.Postfix)).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "__resultRef");
-        StringAssert.Contains(exception.Message, "System.Int32");
+        await Assert.That(exception.Message).Contains("__resultRef");
+        await Assert.That(exception.Message).Contains("System.Int32");
     }
 
-    [TestMethod]
-    public void SharedState_WhenPatchTypesDiffer_IsRejectedBeforeMutation()
+    [Test]
+    public async Task SharedState_WhenPatchTypesDiffer_IsRejectedBeforeMutation()
     {
         MethodInfo targetMethod = RequireMethod(nameof(TargetWithWorkerNumber));
 
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 HarmonyPatchContractBindingVerifier.VerifyAll(
                     [
                         new HarmonyPatchContractBinding(
@@ -390,46 +384,46 @@ public sealed class HarmonyPatchContractBindingVerifierTests
                             targetMethod,
                             RequireMethod(nameof(PostfixWithStringState)),
                             HarmonyPatchContractKind.Postfix)
-                    ]));
+                    ])).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "__state");
-        StringAssert.Contains(exception.Message, "System.Int32");
-        StringAssert.Contains(exception.Message, "System.String");
+        await Assert.That(exception.Message).Contains("__state");
+        await Assert.That(exception.Message).Contains("System.Int32");
+        await Assert.That(exception.Message).Contains("System.String");
     }
 
-    [TestMethod]
-    public void PatchMethod_WhenItIsNotStatic_IsRejected()
+    [Test]
+    public async Task PatchMethod_WhenItIsNotStatic_IsRejected()
     {
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 VerifySingle(
                     RequireMethod(nameof(TargetWithWorkerNumber)),
                     RequireInstancePatchMethod(),
-                    HarmonyPatchContractKind.Prefix));
+                    HarmonyPatchContractKind.Prefix)).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "must be static");
+        await Assert.That(exception.Message).Contains("must be static");
     }
 
-    [TestMethod]
-    [DataRow(nameof(PrefixWithInvalidReturn), 0)]
-    [DataRow(nameof(PostfixWithInvalidReturn), 1)]
-    [DataRow(nameof(FinalizerWithInvalidReturn), 3)]
-    public void PatchReturn_WhenKindContractIsInvalid_IsRejected(
+    [Test]
+    [Arguments(nameof(PrefixWithInvalidReturn), 0)]
+    [Arguments(nameof(PostfixWithInvalidReturn), 1)]
+    [Arguments(nameof(FinalizerWithInvalidReturn), 3)]
+    public async Task PatchReturn_WhenKindContractIsInvalid_IsRejected(
         string patchMethodName,
         int patchKindValue)
     {
         var patchKind = (HarmonyPatchContractKind)patchKindValue;
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 VerifySingle(
                     nameof(TargetReturningWorkerNumber),
                     patchMethodName,
-                    patchKind));
+                    patchKind)).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "return type");
+        await Assert.That(exception.Message).Contains("return type");
     }
 
-    [TestMethod]
+    [Test]
     public void PassThroughPostfix_WhenFirstParameterHasArbitraryName_IsAccepted()
     {
         VerifySingle(
@@ -438,36 +432,36 @@ public sealed class HarmonyPatchContractBindingVerifierTests
             HarmonyPatchContractKind.Postfix);
     }
 
-    [TestMethod]
-    public void Transpiler_WhenReturnTypeIsNotInstructionSequence_IsRejected()
+    [Test]
+    public async Task Transpiler_WhenReturnTypeIsNotInstructionSequence_IsRejected()
     {
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 VerifySingle(
                     nameof(TargetWithWorkerNumber),
                     nameof(TranspilerWithVoidReturn),
-                    HarmonyPatchContractKind.Transpiler));
+                    HarmonyPatchContractKind.Transpiler)).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "Transpiler");
-        StringAssert.Contains(exception.Message, "IEnumerable");
+        await Assert.That(exception.Message).Contains("Transpiler");
+        await Assert.That(exception.Message).Contains("IEnumerable");
     }
 
-    [TestMethod]
-    public void Transpiler_WhenParameterTypeIsUnsupported_IsRejected()
+    [Test]
+    public async Task Transpiler_WhenParameterTypeIsUnsupported_IsRejected()
     {
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 VerifySingle(
                     nameof(TargetWithWorkerNumber),
                     nameof(TranspilerWithUnsupportedParameter),
-                    HarmonyPatchContractKind.Transpiler));
+                    HarmonyPatchContractKind.Transpiler)).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "instructions");
-        StringAssert.Contains(exception.Message, "unsupported transpiler parameter");
+        await Assert.That(exception.Message).Contains("instructions");
+        await Assert.That(exception.Message).Contains("unsupported transpiler parameter");
     }
 
-    [TestMethod]
-    public void VerifyAll_WhenSourceListChanges_ReturnsImmutableVerifiedSnapshot()
+    [Test]
+    public async Task VerifyAll_WhenSourceListChanges_ReturnsImmutableVerifiedSnapshot()
     {
         var binding = new HarmonyPatchContractBinding(
             RequireMethod(nameof(UpdatePickupsWithRenamedNavigator)),
@@ -482,11 +476,11 @@ public sealed class HarmonyPatchContractBindingVerifierTests
             HarmonyPatchContractBindingVerifier.VerifyAll(sourceBindings);
         sourceBindings.Clear();
 
-        Assert.AreEqual(1, verifiedBindings.Count);
-        Assert.AreSame(binding, verifiedBindings[0]);
+        await Assert.That(verifiedBindings.Count).IsEqualTo(1);
+        await Assert.That(verifiedBindings[0]).IsSameReferenceAs(binding);
     }
 
-    [TestMethod]
+    [Test]
     public void ValidSpecialInjections_WhenVerified_AreAccepted()
     {
         VerifySingle(
@@ -512,7 +506,7 @@ public sealed class HarmonyPatchContractBindingVerifierTests
             HarmonyPatchContractKind.Finalizer);
     }
 
-    [TestMethod]
+    [Test]
     public void FieldInjection_WhenPrivateInstanceFieldTypeMatches_IsAccepted()
     {
         VerifySingle(
@@ -521,7 +515,7 @@ public sealed class HarmonyPatchContractBindingVerifierTests
             HarmonyPatchContractKind.Prefix);
     }
 
-    [TestMethod]
+    [Test]
     public void SharedState_WhenTypesMatch_IsAccepted()
     {
         MethodInfo targetMethod = RequireMethod(nameof(TargetWithWorkerNumber));
@@ -539,7 +533,7 @@ public sealed class HarmonyPatchContractBindingVerifierTests
             ]);
     }
 
-    [TestMethod]
+    [Test]
     public void Transpiler_WhenDocumentedParameterTypesAreUsed_IsAccepted()
     {
         VerifySingle(
@@ -548,29 +542,29 @@ public sealed class HarmonyPatchContractBindingVerifierTests
             HarmonyPatchContractKind.Transpiler);
     }
 
-    [TestMethod]
-    public void TargetMethod_WhenReflectedOnDerivedType_IsRejectedDuringPreparation()
+    [Test]
+    public async Task TargetMethod_WhenReflectedOnDerivedType_IsRejectedDuringPreparation()
     {
         MethodInfo targetMethod = typeof(DerivedTargetFixture)
             .GetMethod(nameof(BaseTargetFixture.InheritedMethod))!;
         MethodInfo patchMethod = RequireMethod(nameof(PrefixWithValidOriginalMethod));
 
         HarmonyPatchContractViolationException exception =
-            Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+            (await Assert.That(() =>
                 HarmonyPatchContractBindingVerifier.VerifyAll(
                     [
                         new HarmonyPatchContractBinding(
                             targetMethod,
                             patchMethod,
                             HarmonyPatchContractKind.Prefix)
-                    ]));
+                    ])).ThrowsExactly<HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "reflected type");
-        StringAssert.Contains(exception.Message, nameof(DerivedTargetFixture));
-        StringAssert.Contains(exception.Message, nameof(BaseTargetFixture));
+        await Assert.That(exception.Message).Contains("reflected type");
+        await Assert.That(exception.Message).Contains(nameof(DerivedTargetFixture));
+        await Assert.That(exception.Message).Contains(nameof(BaseTargetFixture));
     }
 
-    [TestMethod]
+    [Test]
     public void TargetMethod_WhenDeclaredOnReflectedType_IsAccepted()
     {
         MethodInfo targetMethod = typeof(BaseTargetFixture)
@@ -614,32 +608,32 @@ public sealed class HarmonyPatchContractBindingVerifierTests
         typeof(HarmonyPatchContractBindingVerifierTests).GetMethod(
             methodName,
             BindingFlags.Static | BindingFlags.NonPublic) ??
-        throw new AssertFailedException(
+        throw new TUnit.Assertions.Exceptions.AssertionException(
             "Missing binding-contract fixture method " + methodName + ".");
 
     private static MethodInfo RequireFieldTargetMethod() =>
         typeof(FieldTargetFixture).GetMethod(
             nameof(FieldTargetFixture.Mutate),
             BindingFlags.Instance | BindingFlags.NonPublic) ??
-        throw new AssertFailedException("Missing field-target fixture method.");
+        throw new TUnit.Assertions.Exceptions.AssertionException("Missing field-target fixture method.");
 
     private static MethodInfo RequireStructTargetMethod() =>
         typeof(StructTargetFixture).GetMethod(
             nameof(StructTargetFixture.Mutate),
             BindingFlags.Instance | BindingFlags.NonPublic) ??
-        throw new AssertFailedException("Missing struct-target fixture method.");
+        throw new TUnit.Assertions.Exceptions.AssertionException("Missing struct-target fixture method.");
 
     private static MethodInfo RequireInstancePatchMethod() =>
         typeof(InstancePatchFixture).GetMethod(
             nameof(InstancePatchFixture.Prefix),
             BindingFlags.Instance | BindingFlags.NonPublic) ??
-        throw new AssertFailedException("Missing instance patch fixture method.");
+        throw new TUnit.Assertions.Exceptions.AssertionException("Missing instance patch fixture method.");
 
     private static MethodInfo RequireTypeMappedPatchMethod() =>
         typeof(TypeMappedPatchFixture).GetMethod(
             nameof(TypeMappedPatchFixture.Prefix),
             BindingFlags.Static | BindingFlags.NonPublic) ??
-        throw new AssertFailedException("Missing type-mapped patch fixture method.");
+        throw new TUnit.Assertions.Exceptions.AssertionException("Missing type-mapped patch fixture method.");
 
     private static void UpdatePickupsWithRenamedNavigator(
         NavigatorFixture worker_navigator,

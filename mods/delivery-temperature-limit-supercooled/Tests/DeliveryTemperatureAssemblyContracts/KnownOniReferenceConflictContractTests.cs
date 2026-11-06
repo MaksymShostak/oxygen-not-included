@@ -3,8 +3,6 @@ using System.Xml.Linq;
 using DeliveryTemperatureLimit.Tests.OniModPipelineIntegration;
 
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
-
-[TestClass]
 public sealed partial class KnownOniReferenceConflictContractTests
 {
     private static readonly IReadOnlyDictionary<string, (string FrameworkVersion, string OniVersion)>
@@ -14,12 +12,12 @@ public sealed partial class KnownOniReferenceConflictContractTests
             ["System.Net.Http"] = ("4.1.2.0", "4.2.0.0")
         };
 
-    [TestMethod]
+    [Test]
     public async Task ProductionBuild_WhenCurrentOniAssembliesAreUsed_ReportsOnlyReviewedConflictRoots()
     {
-        var repositoryRoot = RequiredEnvironmentVariable(
+        var repositoryRoot = await RequiredEnvironmentVariable(
             "ONI_MOD_PIPELINE_REPOSITORY_ROOT");
-        var managedDirectory = RequiredEnvironmentVariable(
+        var managedDirectory = await RequiredEnvironmentVariable(
             "ONI_MANAGED_ASSEMBLY_DIRECTORY");
         var projectPath = ProductionProjectPath(repositoryRoot);
         using var output = new PipelineTestTemporaryDirectory();
@@ -44,7 +42,7 @@ public sealed partial class KnownOniReferenceConflictContractTests
                 $"-p:BaseIntermediateOutputPath={baseIntermediateOutputPath}",
                 $"-p:MSBuildProjectExtensionsPath={baseIntermediateOutputPath}"
             ]);
-        Assert.AreEqual(0, restore.ExitCode, restore.FormatEvidence());
+        await Assert.That(restore.ExitCode).IsEqualTo(0).Because(restore.FormatEvidence());
 
         var productionBuild = await DotnetCommandRunner.RunAsync(
             repositoryRoot,
@@ -62,10 +60,7 @@ public sealed partial class KnownOniReferenceConflictContractTests
                 $"-p:BaseIntermediateOutputPath={baseIntermediateOutputPath}",
                 $"-p:MSBuildProjectExtensionsPath={baseIntermediateOutputPath}"
             ]);
-        Assert.AreEqual(
-            0,
-            productionBuild.ExitCode,
-            productionBuild.FormatEvidence());
+        await Assert.That(productionBuild.ExitCode).IsEqualTo(0).Because(productionBuild.FormatEvidence());
 
         var combinedOutput = productionBuild.StandardOutput +
             Environment.NewLine +
@@ -76,28 +71,19 @@ public sealed partial class KnownOniReferenceConflictContractTests
             .Distinct(StringComparer.Ordinal)
             .OrderBy(value => value, StringComparer.Ordinal)
             .ToArray();
-        CollectionAssert.AreEqual(
-            ExpectedConflicts.Keys.OrderBy(value => value, StringComparer.Ordinal).ToArray(),
-            observedConflictRoots,
-            $"The visible MSB3277 inventory changed.{Environment.NewLine}{combinedOutput}");
+        await Assert.That(observedConflictRoots).IsEquivalentTo(ExpectedConflicts.Keys.OrderBy(value => value, StringComparer.Ordinal).ToArray(), TUnit.Assertions.Enums.CollectionOrdering.Matching).Because($"The visible MSB3277 inventory changed.{Environment.NewLine}{combinedOutput}");
 
         foreach (var (assemblyName, versions) in ExpectedConflicts)
         {
-            StringAssert.Contains(
-                combinedOutput,
-                $"{assemblyName}, Version={versions.FrameworkVersion}",
-                $"Framework/reference root changed for {assemblyName}.");
-            StringAssert.Contains(
-                combinedOutput,
-                $"{assemblyName}, Version={versions.OniVersion}",
-                $"ONI root changed for {assemblyName}.");
+            await Assert.That(combinedOutput).Contains($"{assemblyName}, Version={versions.FrameworkVersion}").Because($"Framework/reference root changed for {assemblyName}.");
+            await Assert.That(combinedOutput).Contains($"{assemblyName}, Version={versions.OniVersion}").Because($"ONI root changed for {assemblyName}.");
         }
     }
 
-    [TestMethod]
-    public void ProductionProject_WhenInspected_ContainsNoConflictSuppressionOrReferenceWorkaround()
+    [Test]
+    public async Task ProductionProject_WhenInspected_ContainsNoConflictSuppressionOrReferenceWorkaround()
     {
-        var repositoryRoot = RequiredEnvironmentVariable(
+        var repositoryRoot = await RequiredEnvironmentVariable(
             "ONI_MOD_PIPELINE_REPOSITORY_ROOT");
         var projectPath = ProductionProjectPath(repositoryRoot);
         var project = XDocument.Load(projectPath);
@@ -110,9 +96,7 @@ public sealed partial class KnownOniReferenceConflictContractTests
         };
         foreach (var property in prohibitedProperties)
         {
-            Assert.IsFalse(
-                project.Descendants(property).Any(),
-                $"{property} must not conceal the reviewed ONI reference conflicts.");
+            await Assert.That(project.Descendants(property).Any()).IsFalse().Because($"{property} must not conceal the reviewed ONI reference conflicts.");
         }
 
         var prohibitedDirectReferences = ExpectedConflicts.Keys.ToHashSet(
@@ -122,9 +106,7 @@ public sealed partial class KnownOniReferenceConflictContractTests
             .Where(value => value is not null)
             .Cast<string>()
             .ToArray();
-        Assert.IsFalse(
-            directReferences.Any(prohibitedDirectReferences.Contains),
-            "Do not pin framework conflict roots through direct assembly references.");
+        await Assert.That(directReferences.Any(prohibitedDirectReferences.Contains)).IsFalse().Because("Do not pin framework conflict roots through direct assembly references.");
 
         var modRoot = Path.GetDirectoryName(Path.GetDirectoryName(projectPath))!;
         var applicationConfigurationFiles = Directory.EnumerateFiles(
@@ -133,9 +115,7 @@ public sealed partial class KnownOniReferenceConflictContractTests
                 SearchOption.AllDirectories)
             .Where(path => !IsGeneratedOutput(path))
             .ToArray();
-        Assert.IsEmpty(
-            applicationConfigurationFiles,
-            "Binding/application configuration files are outside the one-DLL ONI mod contract.");
+        await Assert.That(applicationConfigurationFiles).IsEmpty().Because("Binding/application configuration files are outside the one-DLL ONI mod contract.");
     }
 
     private static bool IsGeneratedOutput(string path)
@@ -155,13 +135,11 @@ public sealed partial class KnownOniReferenceConflictContractTests
             "Source",
             "DeliveryTemperatureLimit.csproj");
 
-    private static string RequiredEnvironmentVariable(string name)
+    private static async Task<string> RequiredEnvironmentVariable(string name)
     {
         var value = Environment.GetEnvironmentVariable(name);
-        Assert.IsFalse(
-            string.IsNullOrWhiteSpace(value),
-            $"Required environment variable {name} was not provided by oni-mod-pipeline.");
-        return value;
+        await Assert.That(string.IsNullOrWhiteSpace(value)).IsFalse().Because($"Required environment variable {name} was not provided by oni-mod-pipeline.");
+        return value!;
     }
 
     [GeneratedRegex(

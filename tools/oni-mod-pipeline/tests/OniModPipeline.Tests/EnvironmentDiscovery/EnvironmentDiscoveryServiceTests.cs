@@ -5,11 +5,9 @@ using MaksymShostak.OniModPipeline.Processes;
 using MaksymShostak.OniModPipeline.Tests.Fixtures;
 
 namespace MaksymShostak.OniModPipeline.Tests.EnvironmentDiscovery;
-
-[TestClass]
 public sealed class EnvironmentDiscoveryServiceTests
 {
-    [TestMethod]
+    [Test]
     public async Task DiscoverAsync_WhenCliGameDirectoryIsValid_UsesItBeforeEnvironmentAndDiscovery()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -42,11 +40,11 @@ public sealed class EnvironmentDiscoveryServiceTests
                 artifactsDirectory),
             CancellationToken.None);
 
-        Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual(Path.GetFullPath(cliGameDirectory), result.Value?.GameDirectory);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value?.GameDirectory).IsEqualTo(Path.GetFullPath(cliGameDirectory));
     }
 
-    [TestMethod]
+    [Test]
     public async Task DiscoverAsync_WhenEnvironmentOverrideIsValid_UsesItBeforeAutomaticDiscovery()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -75,13 +73,11 @@ public sealed class EnvironmentDiscoveryServiceTests
                 temporaryDirectory.GetPath("artifacts")),
             CancellationToken.None);
 
-        Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual(
-            Path.GetFullPath(environmentGameDirectory),
-            result.Value?.GameDirectory);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value?.GameDirectory).IsEqualTo(Path.GetFullPath(environmentGameDirectory));
     }
 
-    [TestMethod]
+    [Test]
     public async Task DiscoverAsync_WhenEnvironmentUserDataAndArtifactsAreValid_UsesThemBeforeDefaults()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -111,19 +107,13 @@ public sealed class EnvironmentDiscoveryServiceTests
                 null),
             CancellationToken.None);
 
-        Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual(
-            Path.GetFullPath(environmentUserData),
-            result.Value?.UserDataDirectory);
-        Assert.AreEqual(
-            Path.GetFullPath(environmentArtifacts),
-            result.Value?.ArtifactsDirectory);
-        Assert.AreNotEqual(
-            Path.GetFullPath(automaticUserData),
-            result.Value?.UserDataDirectory);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value?.UserDataDirectory).IsEqualTo(Path.GetFullPath(environmentUserData));
+        await Assert.That(result.Value?.ArtifactsDirectory).IsEqualTo(Path.GetFullPath(environmentArtifacts));
+        await Assert.That(result.Value?.UserDataDirectory).IsNotEqualTo(Path.GetFullPath(automaticUserData));
     }
 
-    [TestMethod]
+    [Test]
     public async Task DiscoverAsync_WhenOnlyAbbreviatedPipelineArtifactVariableIsSet_DoesNotTreatItAsAnOverride()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -149,16 +139,12 @@ public sealed class EnvironmentDiscoveryServiceTests
                 null),
             CancellationToken.None);
 
-        Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual(
-            Path.Combine(Path.GetFullPath(worktreeRoot), "artifacts"),
-            result.Value?.ArtifactsDirectory);
-        Assert.AreNotEqual(
-            Path.GetFullPath(abbreviatedArtifacts),
-            result.Value?.ArtifactsDirectory);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value?.ArtifactsDirectory).IsEqualTo(Path.Combine(Path.GetFullPath(worktreeRoot), "artifacts"));
+        await Assert.That(result.Value?.ArtifactsDirectory).IsNotEqualTo(Path.GetFullPath(abbreviatedArtifacts));
     }
 
-    [TestMethod]
+    [Test]
     public async Task DiscoverAsync_WhenTwoAutomaticGameDirectoriesAreValid_ReturnsOnip2002()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -184,13 +170,13 @@ public sealed class EnvironmentDiscoveryServiceTests
                 temporaryDirectory.GetPath("artifacts")),
             CancellationToken.None);
 
-        Assert.AreEqual(PipelineExitCode.EnvironmentUnavailable, result.ExitCode);
-        Assert.AreEqual("ONIP2002", result.Diagnostics.Single().Id);
-        StringAssert.Contains(result.Diagnostics.Single().Evidence, "steam-a");
-        StringAssert.Contains(result.Diagnostics.Single().Evidence, "steam-b");
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.EnvironmentUnavailable);
+        await Assert.That(result.Diagnostics.Single().Id).IsEqualTo("ONIP2002");
+        await Assert.That(result.Diagnostics.Single().Evidence).Contains("steam-a");
+        await Assert.That(result.Diagnostics.Single().Evidence).Contains("steam-b");
     }
 
-    [TestMethod]
+    [Test]
     public async Task DiscoverAsync_WhenManagedAnchorIsMissing_ReturnsOnip2003()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -211,12 +197,12 @@ public sealed class EnvironmentDiscoveryServiceTests
                 temporaryDirectory.GetPath("artifacts")),
             CancellationToken.None);
 
-        Assert.AreEqual(PipelineExitCode.EnvironmentUnavailable, result.ExitCode);
-        Assert.AreEqual("ONIP2003", result.Diagnostics.Single().Id);
-        StringAssert.Contains(result.Diagnostics.Single().Evidence, "0Harmony.dll");
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.EnvironmentUnavailable);
+        await Assert.That(result.Diagnostics.Single().Id).IsEqualTo("ONIP2003");
+        await Assert.That(result.Diagnostics.Single().Evidence).Contains("0Harmony.dll");
     }
 
-    [TestMethod]
+    [Test]
     public async Task DiscoverAsync_WhenArtifactOverrideIsRelative_ReturnsInvalidInput()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -233,11 +219,11 @@ public sealed class EnvironmentDiscoveryServiceTests
                 "relative-artifacts"),
             CancellationToken.None);
 
-        Assert.AreEqual(PipelineExitCode.InvalidInput, result.ExitCode);
-        Assert.AreEqual("ONIP1003", result.Diagnostics.Single().Id);
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.InvalidInput);
+        await Assert.That(result.Diagnostics.Single().Id).IsEqualTo("ONIP1003");
     }
 
-    [TestMethod]
+    [Test]
     public async Task DiscoverAsync_WhenExplicitGameOverrideIsInvalid_DoesNotFallThroughToAutomaticDiscovery()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -259,12 +245,12 @@ public sealed class EnvironmentDiscoveryServiceTests
                 temporaryDirectory.GetPath("artifacts")),
             CancellationToken.None);
 
-        Assert.AreEqual(PipelineExitCode.EnvironmentUnavailable, result.ExitCode);
-        Assert.AreEqual("ONIP2003", result.Diagnostics.Single().Id);
-        Assert.IsFalse(result.IsSuccess);
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.EnvironmentUnavailable);
+        await Assert.That(result.Diagnostics.Single().Id).IsEqualTo("ONIP2003");
+        await Assert.That(result.IsSuccess).IsFalse();
     }
 
-    [TestMethod]
+    [Test]
     public async Task DiscoverAsync_WhenEnvironmentGameOverrideIsInvalid_DoesNotFallThroughToAutomaticDiscovery()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -290,14 +276,12 @@ public sealed class EnvironmentDiscoveryServiceTests
                 temporaryDirectory.GetPath("artifacts")),
             CancellationToken.None);
 
-        Assert.AreEqual(PipelineExitCode.EnvironmentUnavailable, result.ExitCode);
-        Assert.AreEqual("ONIP2003", result.Diagnostics.Single().Id);
-        StringAssert.Contains(
-            result.Diagnostics.Single().Evidence,
-            EnvironmentVariableSource.GameDirectoryVariable);
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.EnvironmentUnavailable);
+        await Assert.That(result.Diagnostics.Single().Id).IsEqualTo("ONIP2003");
+        await Assert.That(result.Diagnostics.Single().Evidence).Contains(EnvironmentVariableSource.GameDirectoryVariable);
     }
 
-    [TestMethod]
+    [Test]
     public async Task DiscoverAsync_WhenExplicitUserDataOverrideIsInvalid_DoesNotFallThroughToAutomaticDiscovery()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -315,11 +299,11 @@ public sealed class EnvironmentDiscoveryServiceTests
                 temporaryDirectory.GetPath("artifacts")),
             CancellationToken.None);
 
-        Assert.AreEqual(PipelineExitCode.EnvironmentUnavailable, result.ExitCode);
-        Assert.AreEqual("ONIP2004", result.Diagnostics.Single().Id);
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.EnvironmentUnavailable);
+        await Assert.That(result.Diagnostics.Single().Id).IsEqualTo("ONIP2004");
     }
 
-    [TestMethod]
+    [Test]
     public async Task DiscoverAsync_WhenNoUserDataCandidateExists_ReturnsOnip2004()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -336,14 +320,12 @@ public sealed class EnvironmentDiscoveryServiceTests
                 temporaryDirectory.GetPath("artifacts")),
             CancellationToken.None);
 
-        Assert.AreEqual(PipelineExitCode.EnvironmentUnavailable, result.ExitCode);
-        Assert.AreEqual("ONIP2004", result.Diagnostics.Single().Id);
-        StringAssert.Contains(
-            result.Diagnostics.Single().Evidence,
-            "unity.Klei.Oxygen Not Included");
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.EnvironmentUnavailable);
+        await Assert.That(result.Diagnostics.Single().Id).IsEqualTo("ONIP2004");
+        await Assert.That(result.Diagnostics.Single().Evidence).Contains("unity.Klei.Oxygen Not Included");
     }
 
-    [TestMethod]
+    [Test]
     public async Task DiscoverAsync_OnLinux_DoesNotPairGameWithProtonDataFromAnotherLibrary()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -367,14 +349,14 @@ public sealed class EnvironmentDiscoveryServiceTests
                 temporaryDirectory.GetPath("artifacts")),
             CancellationToken.None);
 
-        Assert.AreEqual(PipelineExitCode.EnvironmentUnavailable, result.ExitCode);
-        Assert.AreEqual("ONIP2004", result.Diagnostics.Single().Id);
-        Assert.IsFalse(result.Diagnostics.Single().Evidence.Contains(
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.EnvironmentUnavailable);
+        await Assert.That(result.Diagnostics.Single().Id).IsEqualTo("ONIP2004");
+        await Assert.That(result.Diagnostics.Single().Evidence.Contains(
             GetProtonUserDataDirectory(unrelatedLibrary),
-            StringComparison.Ordinal));
+            StringComparison.Ordinal)).IsFalse();
     }
 
-    [TestMethod]
+    [Test]
     public async Task DiscoverAsync_WhenModIsInGit_DefaultsArtifactsToWorktreeRoot()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -395,13 +377,11 @@ public sealed class EnvironmentDiscoveryServiceTests
                 null),
             CancellationToken.None);
 
-        Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual(
-            Path.Combine(Path.GetFullPath(worktreeRoot), "artifacts"),
-            result.Value?.ArtifactsDirectory);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value?.ArtifactsDirectory).IsEqualTo(Path.Combine(Path.GetFullPath(worktreeRoot), "artifacts"));
     }
 
-    [TestMethod]
+    [Test]
     public async Task DiscoverAsync_WhenModIsOutsideGit_DefaultsArtifactsToModRoot()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -418,13 +398,11 @@ public sealed class EnvironmentDiscoveryServiceTests
                 null),
             CancellationToken.None);
 
-        Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual(
-            Path.Combine(Path.GetFullPath(profile.ModRoot), "artifacts"),
-            result.Value?.ArtifactsDirectory);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value?.ArtifactsDirectory).IsEqualTo(Path.Combine(Path.GetFullPath(profile.ModRoot), "artifacts"));
     }
 
-    [TestMethod]
+    [Test]
     public async Task DiscoverAsync_WhenArtifactOverrideIsProtectedRoot_ReturnsInvalidInput()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -441,14 +419,14 @@ public sealed class EnvironmentDiscoveryServiceTests
                 temporaryDirectory.GetPath("home")),
             CancellationToken.None);
 
-        Assert.AreEqual(PipelineExitCode.InvalidInput, result.ExitCode);
-        Assert.AreEqual("ONIP1003", result.Diagnostics.Single().Id);
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.InvalidInput);
+        await Assert.That(result.Diagnostics.Single().Id).IsEqualTo("ONIP1003");
     }
 
-    [TestMethod]
-    [DataRow("10.0.399")]
-    [DataRow("10.0.500")]
-    [DataRow("10.0.400-preview.1")]
+    [Test]
+    [Arguments("10.0.399")]
+    [Arguments("10.0.500")]
+    [Arguments("10.0.400-preview.1")]
     public async Task DiscoverAsync_WhenDotnetSdkIsNotStableTenPointZeroFourHundred_ReturnsOnip2001(
         string sdkVersion)
     {
@@ -469,19 +447,19 @@ public sealed class EnvironmentDiscoveryServiceTests
                 temporaryDirectory.GetPath("artifacts")),
             CancellationToken.None);
 
-        Assert.AreEqual(PipelineExitCode.EnvironmentUnavailable, result.ExitCode);
-        Assert.AreEqual("ONIP2001", result.Diagnostics.Single().Id);
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.EnvironmentUnavailable);
+        await Assert.That(result.Diagnostics.Single().Id).IsEqualTo("ONIP2001");
     }
 
-    [TestMethod]
-    [DataRow("Windows", "Klei/OxygenNotIncluded")]
-    [DataRow(
+    [Test]
+    [Arguments("Windows", "Klei/OxygenNotIncluded")]
+    [Arguments(
         "MacOS",
         "Library/Application Support/unity.Klei.Oxygen Not Included")]
-    [DataRow(
+    [Arguments(
         "Linux",
         ".config/unity3d/Klei/Oxygen Not Included")]
-    public void CandidateSource_UsesNativeUserDataConventionAndExactInstallTargetCase(
+    public async Task CandidateSource_UsesNativeUserDataConventionAndExactInstallTargetCase(
         string operatingSystemName,
         string expectedRelativePath)
     {
@@ -501,19 +479,13 @@ public sealed class EnvironmentDiscoveryServiceTests
             expectedRoot,
             expectedRelativePath.Replace('/', Path.DirectorySeparatorChar));
 
-        Assert.AreEqual(
-            Normalize(expectedUserData),
-            Normalize(source.NativeUserDataDirectory));
-        Assert.AreEqual(
-            $"{Normalize(expectedUserData)}/mods/Dev",
-            Normalize(source.NativeDevelopmentModsDirectory));
-        Assert.AreEqual(
-            $"{Normalize(expectedUserData)}/mods/Local",
-            Normalize(source.NativeLocalModsDirectory));
+        await Assert.That(Normalize(source.NativeUserDataDirectory)).IsEqualTo(Normalize(expectedUserData));
+        await Assert.That(Normalize(source.NativeDevelopmentModsDirectory)).IsEqualTo($"{Normalize(expectedUserData)}/mods/Dev");
+        await Assert.That(Normalize(source.NativeLocalModsDirectory)).IsEqualTo($"{Normalize(expectedUserData)}/mods/Local");
     }
 
-    [TestMethod]
-    public void CandidateSource_OnLinux_IncludesProtonUserDataForEachSteamLibrary()
+    [Test]
+    public async Task CandidateSource_OnLinux_IncludesProtonUserDataForEachSteamLibrary()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var firstLibrary = temporaryDirectory.GetPath("steam-a");
@@ -527,9 +499,7 @@ public sealed class EnvironmentDiscoveryServiceTests
         var candidates = source.GetAutomaticUserDataDirectories(
             [firstLibrary, secondLibrary]);
 
-        CollectionAssert.Contains(
-            candidates.ToArray(),
-            Path.Combine(
+        await Assert.That(candidates.ToArray()).Contains(Path.Combine(
                 firstLibrary,
                 "steamapps",
                 "compatdata",
@@ -541,9 +511,7 @@ public sealed class EnvironmentDiscoveryServiceTests
                 "Documents",
                 "Klei",
                 "OxygenNotIncluded"));
-        CollectionAssert.Contains(
-            candidates.ToArray(),
-            Path.Combine(
+        await Assert.That(candidates.ToArray()).Contains(Path.Combine(
                 secondLibrary,
                 "steamapps",
                 "compatdata",
@@ -668,32 +636,28 @@ public sealed class EnvironmentDiscoveryServiceTests
         string sdkVersion,
         string? gitWorktreeRoot) : IExternalProcessRunner
     {
-        public Task<ProcessResult> RunAsync(
+        public async Task<ProcessResult> RunAsync(
             ProcessRequest request,
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (string.Equals(request.FileName, "dotnet", StringComparison.Ordinal))
             {
-                CollectionAssert.AreEqual(
-                    new[] { "--version" },
-                    request.Arguments.ToArray());
-                return Task.FromResult(new ProcessResult(
+                await Assert.That(request.Arguments.ToArray()).IsEquivalentTo(new[] { "--version" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+                return new ProcessResult(
                     0,
                     $"{sdkVersion}{Environment.NewLine}",
-                    string.Empty));
+                    string.Empty);
             }
 
-            Assert.AreEqual("git", request.FileName);
-            CollectionAssert.AreEqual(
-                new[] { "rev-parse", "--show-toplevel" },
-                request.Arguments.ToArray());
-            return Task.FromResult(gitWorktreeRoot is null
+            await Assert.That(request.FileName).IsEqualTo("git");
+            await Assert.That(request.Arguments.ToArray()).IsEquivalentTo(new[] { "rev-parse", "--show-toplevel" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+            return gitWorktreeRoot is null
                 ? new ProcessResult(128, string.Empty, "not a Git worktree")
                 : new ProcessResult(
                     0,
                     $"{gitWorktreeRoot}{Environment.NewLine}",
-                    string.Empty));
+                    string.Empty);
         }
     }
 }

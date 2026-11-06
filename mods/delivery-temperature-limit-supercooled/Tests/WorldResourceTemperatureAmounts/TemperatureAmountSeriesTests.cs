@@ -1,8 +1,6 @@
 using DeliveryTemperatureLimit.Tests.ReferenceTemperatureModels;
 
 namespace DeliveryTemperatureLimit.Tests.WorldResourceTemperatureAmounts;
-
-[TestClass]
 public sealed class TemperatureAmountSeriesTests
 {
     private const int RandomizedReferenceSeed = 0xA60A17;
@@ -10,8 +8,8 @@ public sealed class TemperatureAmountSeriesTests
     private const int MaximumRandomizedAdditionCount = 256;
     private const int RandomizedTemperaturePoolSize = 32;
 
-    [TestMethod]
-    public void GetAmountAllowedBy_WhenConstraintIsTenThroughTwenty_SumsOnlyTenThroughNineteen()
+    [Test]
+    public async Task GetAmountAllowedBy_WhenConstraintIsTenThroughTwenty_SumsOnlyTenThroughNineteen()
     {
         var series = Series(
             Amount(-1.0f, 2.0f),
@@ -22,13 +20,11 @@ public sealed class TemperatureAmountSeriesTests
             Amount(6203.0f, 13.0f),
             Amount(10000.0f, 17.0f));
 
-        Assert.AreEqual(
-            12.0f,
-            series.GetAmountAllowedBy(Constraint(10, 20)));
+        await Assert.That(series.GetAmountAllowedBy(Constraint(10, 20))).IsEqualTo(12.0f);
     }
 
-    [TestMethod]
-    public void GetAmountAllowedBy_WhenConstraintIsDisabled_ReturnsTotalIncludingBelowAndAboveRangeBuckets()
+    [Test]
+    public async Task GetAmountAllowedBy_WhenConstraintIsDisabled_ReturnsTotalIncludingBelowAndAboveRangeBuckets()
     {
         var series = Series(
             Amount(-10.0f, 2.0f),
@@ -37,38 +33,32 @@ public sealed class TemperatureAmountSeriesTests
 
         var allowedAmount = series.GetAmountAllowedBy(Constraint(400, 0));
 
-        Assert.AreEqual(10.0f, allowedAmount);
-        Assert.AreEqual(series.TotalAmount, allowedAmount);
+        await Assert.That(allowedAmount).IsEqualTo(10.0f);
+        await Assert.That(allowedAmount).IsEqualTo(series.TotalAmount);
     }
 
-    [TestMethod]
-    public void GetAmountAllowedBy_WhenConstraintIsEmpty_ReturnsZero()
+    [Test]
+    public async Task GetAmountAllowedBy_WhenConstraintIsEmpty_ReturnsZero()
     {
         var series = Series(
             Amount(-10.0f, 2.0f),
             Amount(100.0f, 3.0f),
             Amount(10000.0f, 5.0f));
 
-        Assert.AreEqual(
-            0.0f,
-            series.GetAmountAllowedBy(Constraint(100, 100)));
+        await Assert.That(series.GetAmountAllowedBy(Constraint(100, 100))).IsEqualTo(0.0f);
     }
 
-    [TestMethod]
-    public void GetAmountAllowedBy_WhenNoBucketOccupied_ReturnsZero()
+    [Test]
+    public async Task GetAmountAllowedBy_WhenNoBucketOccupied_ReturnsZero()
     {
-        Assert.AreEqual(0, TemperatureAmountSeries.Empty.OccupiedBucketCount);
-        Assert.AreEqual(0.0f, TemperatureAmountSeries.Empty.TotalAmount);
-        Assert.AreEqual(
-            0.0f,
-            TemperatureAmountSeries.Empty.GetAmountAllowedBy(Constraint(10, 20)));
-        Assert.AreEqual(
-            0.0f,
-            TemperatureAmountSeries.Empty.GetAmountAllowedBy(Constraint(20, 0)));
+        await Assert.That(TemperatureAmountSeries.Empty.OccupiedBucketCount).IsEqualTo(0);
+        await Assert.That(TemperatureAmountSeries.Empty.TotalAmount).IsEqualTo(0.0f);
+        await Assert.That(TemperatureAmountSeries.Empty.GetAmountAllowedBy(Constraint(10, 20))).IsEqualTo(0.0f);
+        await Assert.That(TemperatureAmountSeries.Empty.GetAmountAllowedBy(Constraint(20, 0))).IsEqualTo(0.0f);
     }
 
-    [TestMethod]
-    public void GetAmountAllowedBy_WhenMaximumIsOniStorableTemperatureMaximum_ExcludesExactMaximumAndAbove()
+    [Test]
+    public async Task GetAmountAllowedBy_WhenMaximumIsOniStorableTemperatureMaximum_ExcludesExactMaximumAndAbove()
     {
         var maximumTemperatureKelvin =
             OniStorableTemperatureBounds.MaximumTemperatureKelvin;
@@ -77,15 +67,13 @@ public sealed class TemperatureAmountSeriesTests
             Amount(maximumTemperatureKelvin, 3.0f),
             Amount(maximumTemperatureKelvin + 100.0f, 5.0f));
 
-        Assert.AreEqual(
-            2.0f,
-            series.GetAmountAllowedBy(Constraint(
+        await Assert.That(series.GetAmountAllowedBy(Constraint(
                 0,
-                maximumTemperatureKelvin)));
+                maximumTemperatureKelvin))).IsEqualTo(2.0f);
     }
 
-    [TestMethod]
-    public void GetAmountAllowedBy_WhenMinimumIsZero_ExcludesBelowRangeBucket()
+    [Test]
+    public async Task GetAmountAllowedBy_WhenMinimumIsZero_ExcludesBelowRangeBucket()
     {
         var series = Series(
             Amount(-1.0f, 2.0f),
@@ -93,13 +81,11 @@ public sealed class TemperatureAmountSeriesTests
             Amount(0.0f, 5.0f),
             Amount(9.0f, 7.0f));
 
-        Assert.AreEqual(
-            15.0f,
-            series.GetAmountAllowedBy(Constraint(0, 10)));
+        await Assert.That(series.GetAmountAllowedBy(Constraint(0, 10))).IsEqualTo(15.0f);
     }
 
-    [TestMethod]
-    public void GetAmountAllowedBy_WhenRangeIncludesTemperaturesAboveFiveThousand_IncludesObservedBuckets()
+    [Test]
+    public async Task GetAmountAllowedBy_WhenRangeIncludesTemperaturesAboveFiveThousand_IncludesObservedBuckets()
     {
         var series = Series(
             Amount(4999.0f, 2.0f),
@@ -108,13 +94,11 @@ public sealed class TemperatureAmountSeriesTests
             Amount(6999.0f, 7.0f),
             Amount(7000.0f, 11.0f));
 
-        Assert.AreEqual(
-            15.0f,
-            series.GetAmountAllowedBy(Constraint(5000, 7000)));
+        await Assert.That(series.GetAmountAllowedBy(Constraint(5000, 7000))).IsEqualTo(15.0f);
     }
 
-    [TestMethod]
-    public void PublishedArrays_WhenSourceBuffersAreReused_DoNotChange()
+    [Test]
+    public async Task PublishedArrays_WhenSourceBuffersAreReused_DoNotChange()
     {
         var accumulator = new TemperatureAmountAccumulator();
         accumulator.BeginResourceTag();
@@ -126,18 +110,14 @@ public sealed class TemperatureAmountSeriesTests
         accumulator.AddTemperatureAmount(10.0f, 100.0f);
         var secondPublication = accumulator.BuildSeries();
 
-        Assert.AreEqual(5.0f, firstPublication.TotalAmount);
-        Assert.AreEqual(
-            2.0f,
-            firstPublication.GetAmountAllowedBy(Constraint(10, 11)));
-        Assert.AreEqual(100.0f, secondPublication.TotalAmount);
-        Assert.AreEqual(
-            100.0f,
-            secondPublication.GetAmountAllowedBy(Constraint(10, 11)));
+        await Assert.That(firstPublication.TotalAmount).IsEqualTo(5.0f);
+        await Assert.That(firstPublication.GetAmountAllowedBy(Constraint(10, 11))).IsEqualTo(2.0f);
+        await Assert.That(secondPublication.TotalAmount).IsEqualTo(100.0f);
+        await Assert.That(secondPublication.GetAmountAllowedBy(Constraint(10, 11))).IsEqualTo(100.0f);
     }
 
-    [TestMethod]
-    public void GetAmountAllowedBy_WhenRandomizedSparseSeriesGenerated_MatchesReferenceModel()
+    [Test]
+    public async Task GetAmountAllowedBy_WhenRandomizedSparseSeriesGenerated_MatchesReferenceModel()
     {
         var random = new Random(RandomizedReferenceSeed);
 
@@ -162,27 +142,24 @@ public sealed class TemperatureAmountSeriesTests
                     constraint);
             var observedAllowedAmount = series.GetAmountAllowedBy(constraint);
 
-            Assert.AreEqual(
-                expectedAllowedAmount,
-                observedAllowedAmount,
-                $"Seed=0x{RandomizedReferenceSeed:X}; series index={seriesIndex}; " +
+            await Assert.That(observedAllowedAmount).IsEqualTo(expectedAllowedAmount).Because($"Seed=0x{RandomizedReferenceSeed:X}; series index={seriesIndex}; " +
                 $"addition count={sourceTemperatureAmounts.Count}; " +
                 $"constraint=[{constraint.MinimumInclusiveKelvin}, " +
                 $"{constraint.MaximumExclusiveKelvin}).");
         }
     }
 
-    [TestMethod]
-    public void Combine_WhenInputIsEmpty_ReturnsEmptySeries()
+    [Test]
+    public async Task Combine_WhenInputIsEmpty_ReturnsEmptySeries()
     {
         var combined = TemperatureAmountSeries.Combine(
             Array.Empty<TemperatureAmountSeries>());
 
-        Assert.AreSame(TemperatureAmountSeries.Empty, combined);
+        await Assert.That(combined).IsSameReferenceAs(TemperatureAmountSeries.Empty);
     }
 
-    [TestMethod]
-    public void Combine_WhenBucketsOverlap_SumsOverlappingBucketAmounts()
+    [Test]
+    public async Task Combine_WhenBucketsOverlap_SumsOverlappingBucketAmounts()
     {
         var first = Series(
             Amount(10.0f, 2.0f),
@@ -194,15 +171,13 @@ public sealed class TemperatureAmountSeriesTests
         var combined = TemperatureAmountSeries.Combine(
             new[] { first, second });
 
-        Assert.AreEqual(3, combined.OccupiedBucketCount);
-        Assert.AreEqual(17.0f, combined.TotalAmount);
-        Assert.AreEqual(
-            7.0f,
-            combined.GetAmountAllowedBy(Constraint(10, 11)));
+        await Assert.That(combined.OccupiedBucketCount).IsEqualTo(3);
+        await Assert.That(combined.TotalAmount).IsEqualTo(17.0f);
+        await Assert.That(combined.GetAmountAllowedBy(Constraint(10, 11))).IsEqualTo(7.0f);
     }
 
-    [TestMethod]
-    public void Combine_WhenBucketsAreDisjoint_PreservesEverySparseBucket()
+    [Test]
+    public async Task Combine_WhenBucketsAreDisjoint_PreservesEverySparseBucket()
     {
         var combined = TemperatureAmountSeries.Combine(
             new[]
@@ -212,15 +187,13 @@ public sealed class TemperatureAmountSeriesTests
                 Series(Amount(6203.0f, 5.0f))
             });
 
-        Assert.AreEqual(3, combined.OccupiedBucketCount);
-        Assert.AreEqual(10.0f, combined.TotalAmount);
-        Assert.AreEqual(
-            5.0f,
-            combined.GetAmountAllowedBy(Constraint(6000, 7000)));
+        await Assert.That(combined.OccupiedBucketCount).IsEqualTo(3);
+        await Assert.That(combined.TotalAmount).IsEqualTo(10.0f);
+        await Assert.That(combined.GetAmountAllowedBy(Constraint(6000, 7000))).IsEqualTo(5.0f);
     }
 
-    [TestMethod]
-    public void Combine_WhenSourcesContainBelowAndAboveRangeBuckets_PreservesSentinelAmounts()
+    [Test]
+    public async Task Combine_WhenSourcesContainBelowAndAboveRangeBuckets_PreservesSentinelAmounts()
     {
         var combined = TemperatureAmountSeries.Combine(
             new[]
@@ -233,17 +206,13 @@ public sealed class TemperatureAmountSeriesTests
                     Amount(10500.0f, 7.0f))
             });
 
-        Assert.AreEqual(17.0f, combined.TotalAmount);
-        Assert.AreEqual(
-            3.0f,
-            combined.GetAmountAllowedBy(Constraint(0, 10000)));
-        Assert.AreEqual(
-            17.0f,
-            combined.GetAmountAllowedBy(Constraint(100, 0)));
+        await Assert.That(combined.TotalAmount).IsEqualTo(17.0f);
+        await Assert.That(combined.GetAmountAllowedBy(Constraint(0, 10000))).IsEqualTo(3.0f);
+        await Assert.That(combined.GetAmountAllowedBy(Constraint(100, 0))).IsEqualTo(17.0f);
     }
 
-    [TestMethod]
-    public void Combine_WhenSourcesArePublished_DoesNotMutateAnySourceSeries()
+    [Test]
+    public async Task Combine_WhenSourcesArePublished_DoesNotMutateAnySourceSeries()
     {
         var first = Series(
             Amount(10.0f, 2.0f),
@@ -252,18 +221,14 @@ public sealed class TemperatureAmountSeriesTests
 
         _ = TemperatureAmountSeries.Combine(new[] { first, second });
 
-        Assert.AreEqual(5.0f, first.TotalAmount);
-        Assert.AreEqual(
-            2.0f,
-            first.GetAmountAllowedBy(Constraint(10, 11)));
-        Assert.AreEqual(5.0f, second.TotalAmount);
-        Assert.AreEqual(
-            5.0f,
-            second.GetAmountAllowedBy(Constraint(30, 31)));
+        await Assert.That(first.TotalAmount).IsEqualTo(5.0f);
+        await Assert.That(first.GetAmountAllowedBy(Constraint(10, 11))).IsEqualTo(2.0f);
+        await Assert.That(second.TotalAmount).IsEqualTo(5.0f);
+        await Assert.That(second.GetAmountAllowedBy(Constraint(30, 31))).IsEqualTo(5.0f);
     }
 
-    [TestMethod]
-    public void Combine_WhenSameSeriesAppearsTwice_CountsTwoListedContributions()
+    [Test]
+    public async Task Combine_WhenSameSeriesAppearsTwice_CountsTwoListedContributions()
     {
         var source = Series(
             Amount(10.0f, 2.0f),
@@ -272,24 +237,22 @@ public sealed class TemperatureAmountSeriesTests
         var combined = TemperatureAmountSeries.Combine(
             new[] { source, source });
 
-        Assert.AreEqual(10.0f, combined.TotalAmount);
-        Assert.AreEqual(
-            4.0f,
-            combined.GetAmountAllowedBy(Constraint(10, 11)));
+        await Assert.That(combined.TotalAmount).IsEqualTo(10.0f);
+        await Assert.That(combined.GetAmountAllowedBy(Constraint(10, 11))).IsEqualTo(4.0f);
     }
 
-    [TestMethod]
-    public void Combine_WhenInputOrEntryIsNull_ThrowsArgumentNullException()
+    [Test]
+    public async Task Combine_WhenInputOrEntryIsNull_ThrowsArgumentNullException()
     {
-        Assert.ThrowsExactly<ArgumentNullException>(() =>
-            TemperatureAmountSeries.Combine(null!));
-        Assert.ThrowsExactly<ArgumentNullException>(() =>
+        await Assert.That(() =>
+            TemperatureAmountSeries.Combine(null!)).ThrowsExactly<ArgumentNullException>();
+        await Assert.That(() =>
             TemperatureAmountSeries.Combine(
-                new TemperatureAmountSeries[] { TemperatureAmountSeries.Empty, null! }));
+                new TemperatureAmountSeries[] { TemperatureAmountSeries.Empty, null! })).ThrowsExactly<ArgumentNullException>();
     }
 
-    [TestMethod]
-    public void ProductionSource_WhenCombineIsInspected_DoesNotExpandCanonicalBucketRange()
+    [Test]
+    public async Task ProductionSource_WhenCombineIsInspected_DoesNotExpandCanonicalBucketRange()
     {
         var source = File.ReadAllText(ResolveTemperatureAmountSeriesSourcePath());
         var combineStart = source.IndexOf(
@@ -300,17 +263,17 @@ public sealed class TemperatureAmountSeriesTests
             combineStart,
             StringComparison.Ordinal);
 
-        Assert.IsTrue(combineStart >= 0);
-        Assert.IsTrue(queryStart > combineStart);
+        await Assert.That(combineStart >= 0).IsTrue();
+        await Assert.That(queryStart > combineStart).IsTrue();
         var combineSource = source.Substring(
             combineStart,
             queryStart - combineStart);
-        Assert.IsFalse(combineSource.Contains(
+        await Assert.That(combineSource.Contains(
             "TemperatureDecisionBucket.BucketCount",
-            StringComparison.Ordinal));
-        Assert.IsFalse(combineSource.Contains(
+            StringComparison.Ordinal)).IsFalse();
+        await Assert.That(combineSource.Contains(
             "new Dictionary<",
-            StringComparison.Ordinal));
+            StringComparison.Ordinal)).IsFalse();
     }
 
     private static List<ReferenceTemperatureAmount>

@@ -1,82 +1,73 @@
 namespace DeliveryTemperatureLimit.Tests.FetchTemperatureEligibility;
-
-[TestClass]
 public sealed class ClearableDestinationSweepEligibilityTests
 {
-    [TestMethod]
-    public void AllowsClearing_WhenOriginalDestinationIsAbsent_ReturnsFalse()
+    [Test]
+    public async Task AllowsClearing_WhenOriginalDestinationIsAbsent_ReturnsFalse()
     {
         var input = CreateInput(originalHasDestination: false);
 
-        Assert.IsFalse(
-            ClearableDestinationSweepEligibility.AllowsClearing(input));
+        await Assert.That(ClearableDestinationSweepEligibility.AllowsClearing(input)).IsFalse();
     }
 
-    [TestMethod]
-    public void AllowsClearing_WhenNoTemperatureConstraintIsEnabled_PreservesOriginalDestinationResult()
+    [Test]
+    public async Task AllowsClearing_WhenNoTemperatureConstraintIsEnabled_PreservesOriginalDestinationResult()
     {
         var input = CreateInput(enabledTemperatureConstraintCount: 0);
 
-        Assert.IsTrue(
-            ClearableDestinationSweepEligibility.AllowsClearing(input));
+        await Assert.That(ClearableDestinationSweepEligibility.AllowsClearing(input)).IsTrue();
     }
 
-    [TestMethod]
-    public void AllowsClearing_WhenPickupHasNoPrimaryElement_ReturnsFalse()
+    [Test]
+    public async Task AllowsClearing_WhenPickupHasNoPrimaryElement_ReturnsFalse()
     {
         var input = CreateInput(hasPrimaryElement: false);
 
-        Assert.IsFalse(
-            ClearableDestinationSweepEligibility.AllowsClearing(input));
+        await Assert.That(ClearableDestinationSweepEligibility.AllowsClearing(input)).IsFalse();
     }
 
-    [TestMethod]
-    public void AllowsClearing_WhenParentWorldCannotBeResolved_ReturnsFalse()
+    [Test]
+    public async Task AllowsClearing_WhenParentWorldCannotBeResolved_ReturnsFalse()
     {
         var input = CreateInput(isParentWorldResolved: false);
 
-        Assert.IsFalse(
-            ClearableDestinationSweepEligibility.AllowsClearing(input));
+        await Assert.That(ClearableDestinationSweepEligibility.AllowsClearing(input)).IsFalse();
     }
 
-    [TestMethod]
-    public void AllowsClearing_WhenEligibilitySnapshotIsStale_ReturnsFalse()
+    [Test]
+    public async Task AllowsClearing_WhenEligibilitySnapshotIsStale_ReturnsFalse()
     {
         var input = CreateInput(isEligibilitySnapshotCurrent: false);
 
-        Assert.IsFalse(
-            ClearableDestinationSweepEligibility.AllowsClearing(input));
+        await Assert.That(ClearableDestinationSweepEligibility.AllowsClearing(input)).IsFalse();
     }
 
-    [TestMethod]
-    public void AllowsClearing_WhenCurrentEligibilityAllowsPickup_ReturnsTrue()
+    [Test]
+    public async Task AllowsClearing_WhenCurrentEligibilityAllowsPickup_ReturnsTrue()
     {
         var input = CreateInput(currentEligibilityAllowsPickup: true);
 
-        Assert.IsTrue(
-            ClearableDestinationSweepEligibility.AllowsClearing(input));
+        await Assert.That(ClearableDestinationSweepEligibility.AllowsClearing(input)).IsTrue();
     }
 
-    [TestMethod]
-    public void AllowsClearing_WhenCurrentEligibilityRejectsPickup_ReturnsFalse()
+    [Test]
+    public async Task AllowsClearing_WhenCurrentEligibilityRejectsPickup_ReturnsFalse()
     {
         var input = CreateInput(currentEligibilityAllowsPickup: false);
 
-        Assert.IsFalse(
-            ClearableDestinationSweepEligibility.AllowsClearing(input));
+        await Assert.That(ClearableDestinationSweepEligibility.AllowsClearing(input)).IsFalse();
     }
 
-    [TestMethod]
-    public void Constructor_WhenEnabledConstraintCountIsNegative_Throws()
+    [Test]
+    public async Task Constructor_WhenEnabledConstraintCountIsNegative_Throws()
     {
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+        await Assert.That(() =>
             new ClearableDestinationSweepEligibilityInput(
                 originalHasDestination: true,
                 enabledTemperatureConstraintCount: -1,
                 hasPrimaryElement: true,
                 isParentWorldResolved: true,
                 isEligibilitySnapshotCurrent: true,
-                currentEligibilityAllowsPickup: true));
+                currentEligibilityAllowsPickup: true)).ThrowsExactly<ArgumentOutOfRangeException>();
     }
 
     private static ClearableDestinationSweepEligibilityInput CreateInput(

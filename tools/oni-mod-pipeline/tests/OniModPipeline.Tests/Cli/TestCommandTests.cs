@@ -2,11 +2,9 @@ using MaksymShostak.OniModPipeline.Cli;
 using System.Text.Json;
 
 namespace MaksymShostak.OniModPipeline.Tests.Cli;
-
-[TestClass]
 public sealed class TestCommandTests
 {
-    [TestMethod]
+    [Test]
     public async Task Test_WhenDeclaredProjectPasses_PrintsExactAutomatedTestResultsDirectory()
     {
         using var fixture = new PipelineCommandFixture(includeTests: true);
@@ -16,33 +14,29 @@ public sealed class TestCommandTests
             command,
             fixture.CreateArguments("test"));
 
-        Assert.AreEqual(0, invocation.ExitCode);
-        Assert.AreEqual(string.Empty, invocation.StandardError);
+        await Assert.That(invocation.ExitCode).IsEqualTo(0);
+        await Assert.That(invocation.StandardError).IsEqualTo(string.Empty);
         var resultsDirectory = invocation.StandardOutput.TrimEnd('\r', '\n');
-        Assert.AreEqual("automated-test-results", Path.GetFileName(resultsDirectory));
-        Assert.IsTrue(resultsDirectory.StartsWith(
+        await Assert.That(Path.GetFileName(resultsDirectory)).IsEqualTo("automated-test-results");
+        await Assert.That(resultsDirectory.StartsWith(
             Path.Combine(fixture.ArtifactsDirectory, "tests", "Example.Mod") +
             Path.DirectorySeparatorChar,
-            StringComparison.OrdinalIgnoreCase));
-        CollectionAssert.AreEqual(
-            new[] { "example-regressions.trx" },
-            Directory.EnumerateFiles(resultsDirectory, "*.trx")
+            StringComparison.OrdinalIgnoreCase)).IsTrue();
+        await Assert.That(Directory.EnumerateFiles(resultsDirectory, "*.trx")
                 .Select(Path.GetFileName)
-                .ToArray());
+                .ToArray()).IsEquivalentTo((new[] { "example-regressions.trx" }).Cast<string?>(), TUnit.Assertions.Enums.CollectionOrdering.Matching);
         var testRequest = fixture.ProcessRunner.BuildOrTestRequests.Single(request =>
             request.Arguments[0] == "test");
-        Assert.AreEqual(
-            fixture.ManagedDirectory,
-            testRequest.EnvironmentVariables["ONI_MANAGED_ASSEMBLY_DIRECTORY"]);
-        Assert.IsTrue(testRequest.EnvironmentVariables.TryGetValue(
+        await Assert.That(testRequest.EnvironmentVariables["ONI_MANAGED_ASSEMBLY_DIRECTORY"]).IsEqualTo(fixture.ManagedDirectory);
+        await Assert.That(testRequest.EnvironmentVariables.TryGetValue(
             "ONI_MOD_PIPELINE_REPOSITORY_ROOT",
-            out var repositoryRoot));
-        Assert.AreEqual(fixture.WorktreeRoot, repositoryRoot);
-        Assert.IsFalse(testRequest.EnvironmentVariables.ContainsKey(
-            "ONI_PIPELINE_REPOSITORY_ROOT"));
+            out var repositoryRoot)).IsTrue();
+        await Assert.That(repositoryRoot).IsEqualTo(fixture.WorktreeRoot);
+        await Assert.That(testRequest.EnvironmentVariables.ContainsKey(
+            "ONI_PIPELINE_REPOSITORY_ROOT")).IsFalse();
     }
 
-    [TestMethod]
+    [Test]
     public async Task Test_WhenJsonRequested_ReturnsExactResultsDirectoryAsValue()
     {
         using var fixture = new PipelineCommandFixture(includeTests: true);
@@ -52,13 +46,13 @@ public sealed class TestCommandTests
             command,
             fixture.CreateArguments("test", "--format", "json"));
 
-        Assert.AreEqual(0, invocation.ExitCode);
-        Assert.AreEqual(string.Empty, invocation.StandardError);
+        await Assert.That(invocation.ExitCode).IsEqualTo(0);
+        await Assert.That(invocation.StandardError).IsEqualTo(string.Empty);
         using var document = JsonDocument.Parse(invocation.StandardOutput);
         var resultsDirectory = document.RootElement.GetProperty("value").GetString();
-        Assert.IsNotNull(resultsDirectory);
-        Assert.IsTrue(File.Exists(Path.Combine(
+        Assert.NotNull(resultsDirectory);
+        await Assert.That(File.Exists(Path.Combine(
             resultsDirectory,
-            "example-regressions.trx")));
+            "example-regressions.trx"))).IsTrue();
     }
 }

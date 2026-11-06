@@ -10,7 +10,7 @@ Each dependency has one authored version authority:
 | Node CI runtime          | `.node-version`                           | `actions/setup-node`; `engines.node` separately describes supported consumers              |
 | Python runtime           | `.python-version`                         | The shared Python setup action                                                             |
 | uv toolchain             | `.github/actions/setup-python/action.yml` | All Python CI jobs                                                                         |
-| .NET SDK and MSTest SDK  | `global.json`                             | All four .NET projects                                                                     |
+| .NET SDK                 | `global.json`                             | All four .NET projects                                                                     |
 | NuGet packages           | `Directory.Packages.props`                | Versionless project package references and NuGet-generated locks                           |
 | GitHub Actions           | `tools/ci/action-versions.json`           | Literal workflow and composite-action references                                           |
 
@@ -33,23 +33,42 @@ It rejects unregistered dependencies, unused authorities, non-immutable catalog 
 CI checks it before selecting dependent jobs.
 Dependabot proposals that change literal action references must be reconciled into the catalog and regenerated before they pass this check.
 
-NuGet and MSTest use native central version resolution.
+NuGet uses native central version resolution.
 Dependabot includes the repository root to discover these declarations.
-SDK-owned implicit test dependencies remain selected by MSTest SDK rather than being duplicated in the central package file.
-Native central transitive pinning selects the reviewed DiaSymReader, DependencyModel, and TestPlatform ObjectModel updates for both test projects.
-The pipeline includes the root NuGet and SDK declarations in contributing inputs and rejects changes to them during a build.
+Both test projects use `Microsoft.NET.Sdk` on `net10.0`, with explicit references to `TUnit.Engine`, `TUnit.Assertions`, `Microsoft.Testing.Extensions.TrxReport`, and `Microsoft.Testing.Extensions.CodeCoverage`.
+`tests/TUnitProject.props` owns those shared references and retains the SDK's target-framework-derived C# language version.
+`Directory.Packages.props` owns these versions; its `TUnitVersion` property keeps the engine and assertions on the same release.
+Central transitive pins keep coverage's DiaSymReader and DependencyModel dependencies current; the former MSTest-only TestPlatform ObjectModel pin is removed.
+`global.json` selects Microsoft.Testing.Platform for `dotnet test`.
+The shared `tests/TUnitProjectDefaults.cs` sets a default limit of four concurrent tests; TUnit's CLI and environment overrides remain available.
+Tests that share process state retain explicit `NotInParallel` isolation, and fixture lifecycle hooks use native TUnit hooks.
+Assertions retain exact exception types, collection ordering, numerical tolerances, and failure context.
+Native `Assert.NotNull` preserves compiler null-state tracking where needed.
+The pipeline records the root NuGet and SDK declarations and shared test defaults as contributing inputs and rejects changes to them during a build.
+
+Run the pipeline suite with reports and coverage:
+
+```powershell
+dotnet restore tools/oni-mod-pipeline/OniModPipeline.slnx --locked-mode
+dotnet test --project tools/oni-mod-pipeline/tests/OniModPipeline.Tests/OniModPipeline.Tests.csproj --no-restore -- --report-trx --coverage --coverage-output-format cobertura --results-directory artifacts/tests/pipeline
+```
+
+The ONI pipeline continues to require an exact TRX report for mod tests.
+Artifact contract tests run with the pipeline's explicit build binding or `DELIVERY_TEMPERATURE_LIMIT_BUILD_RESULT_PATH` naming the exact fresh `build-result.json`.
+TUnit's [MSTest migration guide](https://tunit.dev/docs/migration/mstest/) and [parallelism guidance](https://tunit.dev/docs/execution/parallelism/) describe the native attributes and execution controls.
 
 Markdown Quality's `>=3.0.0` floor intentionally retains the published 3.x line; the registry's older `latest` tag is not a reason to downgrade it.
 Steam Community BBCode currently publishes a release candidate, so its existing release-candidate floor is retained until a newer applicable release exists.
 
-Some transitive dependencies remain older than their latest releases: Markdown Quality ships bundled dependencies, and MSTest owns its telemetry dependency graph.
+Some transitive dependencies remain older than their latest releases because Markdown Quality ships bundled dependencies.
 The Steam Community BBCode overrides resolve its older Markdown package pins to the current direct declarations without repeating their version numbers.
 The direct dependencies and toolchain selections are current; the entire transitive closure is not.
 Those remaining versions require upstream releases or separately reviewed overrides.
 
-The November 6, 2026 investigation confirmed a concrete blocker in the test runner: MSTest's telemetry client calls the three-argument `TelemetryClient.TrackEvent` overload, while the published Application Insights 3.2.0 assemblies expose only one- and two-argument overloads.
+The November 6, 2026 investigation found that the previous MSTest runner's telemetry client called the three-argument `TelemetryClient.TrackEvent` overload, while the published Application Insights 3.2.0 assemblies exposed only one- and two-argument overloads.
 See the [MSTest telemetry caller](https://github.com/microsoft/testfx/blob/933377f07ac4bded77e820b0beef7d27e805cd89/src/Platform/Microsoft.Testing.Extensions.Telemetry/AppInsightTelemetryClient.cs) and [Application Insights migration changes](https://github.com/microsoft/ApplicationInsights-dotnet/blob/main/BreakingChanges.md).
-A version override alone would leave an incompatible caller.
+The TUnit migration removes that caller and its Application Insights dependency.
+The test projects select the engine, assertions, reports, and coverage packages explicitly; their locked graphs contain neither MSTest nor the Microsoft telemetry extension.
 
 Markdown Quality's published bundle includes ESLint code that imports Ajv 6's draft-04 schema path and accesses `ajv._opts`.
 Updating its bundled Ajv to 8 requires migrating that caller and producing a new upstream package artifact.

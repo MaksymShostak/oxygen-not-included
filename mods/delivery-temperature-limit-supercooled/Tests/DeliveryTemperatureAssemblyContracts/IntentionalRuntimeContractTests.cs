@@ -1,13 +1,6 @@
 using System.Text.RegularExpressions;
 
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
-
-/// <summary>
-/// Guards the intentionally supported runtime and serialization boundary. These
-/// source-level assertions fail before a production assembly can be built; the
-/// matching metadata assertions run against every newly merged candidate.
-/// </summary>
-[TestClass]
 public sealed class IntentionalRuntimeContractTests
 {
     private static readonly string[] IntentionalPublicTypeNames =
@@ -168,217 +161,163 @@ public sealed class IntentionalRuntimeContractTests
         "ERROR_UI_FAILED"
     ];
 
-    [TestMethod]
-    public void Source_WhenIntentionalRuntimeBoundaryIsInspected_UsesSemanticOwnersWithoutCompatibilityFacades()
+    [Test]
+    public async Task Source_WhenIntentionalRuntimeBoundaryIsInspected_UsesSemanticOwnersWithoutCompatibilityFacades()
     {
         string sourceRoot = ResolveSourceRoot();
-        string componentSource = ReadRequiredSource(
+        string componentSource = await ReadRequiredSource(
             sourceRoot,
             "TemperatureLimitedDeliveryTargets",
             "TemperatureLimit.cs");
-        string modSource = ReadRequiredSource(
+        string modSource = await ReadRequiredSource(
             sourceRoot,
             "DeliveryTemperatureLimitMod.cs");
-        string optionSource = ReadRequiredSource(
+        string optionSource = await ReadRequiredSource(
             sourceRoot,
             "DeliveryTemperatureLimitOptions.cs");
-        string stringsSource = ReadRequiredSource(
+        string stringsSource = await ReadRequiredSource(
             sourceRoot,
             "DeliveryTemperatureLimitStrings.cs");
 
-        StringAssert.Contains(
-            componentSource,
-            "public class TemperatureLimit : KMonoBehaviour");
-        StringAssert.Contains(
-            modSource,
-            "public sealed class DeliveryTemperatureLimitMod : KMod.UserMod2");
-        StringAssert.Contains(
-            modSource,
-            "typeof(STRINGS.DELIVERY_TEMPERATURE_LIMIT)");
-        Assert.IsFalse(
-            modSource.Contains("typeof(Options)", StringComparison.Ordinal),
-            "The PLib registration must not retain a renamed-options shim.");
-        StringAssert.Contains(
-            optionSource,
-            "public sealed class DeliveryTemperatureLimitOptions");
-        StringAssert.Contains(
-            stringsSource,
-            "public static class DELIVERY_TEMPERATURE_LIMIT");
-        Assert.IsFalse(
-            componentSource.Contains("TemperatureIndexData", StringComparison.Ordinal));
-        Assert.IsFalse(
-            componentSource.Contains("getTemperatureIndexData", StringComparison.Ordinal));
-        Assert.IsFalse(
-            Directory.EnumerateFiles(sourceRoot, "*.cs", SearchOption.AllDirectories)
+        await Assert.That(componentSource).Contains("public class TemperatureLimit : KMonoBehaviour");
+        await Assert.That(modSource).Contains("public sealed class DeliveryTemperatureLimitMod : KMod.UserMod2");
+        await Assert.That(modSource).Contains("typeof(STRINGS.DELIVERY_TEMPERATURE_LIMIT)");
+        await Assert.That(modSource.Contains("typeof(Options)", StringComparison.Ordinal)).IsFalse().Because("The PLib registration must not retain a renamed-options shim.");
+        await Assert.That(optionSource).Contains("public sealed class DeliveryTemperatureLimitOptions");
+        await Assert.That(stringsSource).Contains("public static class DELIVERY_TEMPERATURE_LIMIT");
+        await Assert.That(componentSource.Contains("TemperatureIndexData", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(componentSource.Contains("getTemperatureIndexData", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(Directory.EnumerateFiles(sourceRoot, "*.cs", SearchOption.AllDirectories)
                 .Select(File.ReadAllText)
                 .Any(source => source.Contains(
                     "class DeliveryTemperatureLimitStrings",
-                    StringComparison.Ordinal)),
-            "The Klei localization key must not gain a parallel facade type.");
+                    StringComparison.Ordinal))).IsFalse().Because("The Klei localization key must not gain a parallel facade type.");
     }
 
-    [TestMethod]
-    public void TemperatureLimitStrings_WhenInspected_DoNotContainUnrenderedUnicodeGlyphs()
+    [Test]
+    public async Task TemperatureLimitStrings_WhenInspected_DoNotContainUnrenderedUnicodeGlyphs()
     {
         string sourceRoot = ResolveSourceRoot();
-        string stringsSource = ReadRequiredSource(
+        string stringsSource = await ReadRequiredSource(
             sourceRoot,
             "DeliveryTemperatureLimitStrings.cs");
 
-        Assert.IsFalse(
-            stringsSource.Contains("\\u26a0", StringComparison.OrdinalIgnoreCase) ||
-            stringsSource.Contains("\u26a0", StringComparison.Ordinal),
-            "Localization strings must not contain U+26A0 which renders as an unrendered tofu box in ONI's UI font.");
+        await Assert.That(stringsSource.Contains("\\u26a0", StringComparison.OrdinalIgnoreCase) ||
+            stringsSource.Contains("\u26a0", StringComparison.Ordinal)).IsFalse().Because("Localization strings must not contain U+26A0 which renders as an unrendered tofu box in ONI's UI font.");
 
-        Assert.IsTrue(
-            stringsSource.Contains("\\u25b2", StringComparison.OrdinalIgnoreCase) ||
-            stringsSource.Contains("\u25b2", StringComparison.Ordinal),
-            "Warning and error strings must use the renderable U+25B2 hazard triangle glyph.");
+        await Assert.That(stringsSource.Contains("\\u25b2", StringComparison.OrdinalIgnoreCase) ||
+            stringsSource.Contains("\u25b2", StringComparison.Ordinal)).IsTrue().Because("Warning and error strings must use the renderable U+25B2 hazard triangle glyph.");
 
-        Assert.IsFalse(
-            stringsSource.Contains("\\u2265", StringComparison.OrdinalIgnoreCase) ||
-            stringsSource.Contains("\u2265", StringComparison.Ordinal),
-            "Localization strings must not contain U+2265 which is absent from ONI's pre-baked TMP font atlas.");
+        await Assert.That(stringsSource.Contains("\\u2265", StringComparison.OrdinalIgnoreCase) ||
+            stringsSource.Contains("\u2265", StringComparison.Ordinal)).IsFalse().Because("Localization strings must not contain U+2265 which is absent from ONI's pre-baked TMP font atlas.");
 
-        StringAssert.Contains(
-            stringsSource,
-            "public static LocString INTERVAL = \"Allows deliveries at or above {0} and below {1}\";",
-            "Range status string must use clear natural language matching LOWER_BOUND_ONLY and UPPER_BOUND_ONLY.");
+        await Assert.That(stringsSource).Contains("public static LocString INTERVAL = \"Allows deliveries at or above {0} and below {1}\";").Because("Range status string must use clear natural language matching LOWER_BOUND_ONLY and UPPER_BOUND_ONLY.");
     }
 
-    [TestMethod]
-    public void TemperatureLimitWidget_WhenDraftsReverted_DeactivatesInputFieldsAndClearsSelection()
+    [Test]
+    public async Task TemperatureLimitWidget_WhenDraftsReverted_DeactivatesInputFieldsAndClearsSelection()
     {
         string sourceRoot = ResolveSourceRoot();
-        string widgetSource = ReadRequiredSource(
+        string widgetSource = await ReadRequiredSource(
             sourceRoot,
             "TemperatureLimitUserInterface",
             "TemperatureLimitWidget.cs");
 
-        StringAssert.Contains(
-            widgetSource,
-            "lowField.DeactivateInputField()",
-            "RevertDrafts must deactivate the low input field to drop focus.");
-        StringAssert.Contains(
-            widgetSource,
-            "highField.DeactivateInputField()",
-            "RevertDrafts must deactivate the high input field to drop focus.");
-        StringAssert.Contains(
-            widgetSource,
-            "UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null)",
-            "RevertDrafts must clear the active EventSystem selection.");
+        await Assert.That(widgetSource).Contains("lowField.DeactivateInputField()").Because("RevertDrafts must deactivate the low input field to drop focus.");
+        await Assert.That(widgetSource).Contains("highField.DeactivateInputField()").Because("RevertDrafts must deactivate the high input field to drop focus.");
+        await Assert.That(widgetSource).Contains("UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null)").Because("RevertDrafts must clear the active EventSystem selection.");
     }
 
 
-    [TestMethod]
-    public void TemperatureLimitSource_WhenGameSessionOwnershipIsInspected_UsesOneIndexedRegistrationWithoutGlobalFallback()
+    [Test]
+    public async Task TemperatureLimitSource_WhenGameSessionOwnershipIsInspected_UsesOneIndexedRegistrationWithoutGlobalFallback()
     {
-        string source = ReadRequiredSource(
+        string source = await ReadRequiredSource(
             ResolveSourceRoot(),
             "TemperatureLimitedDeliveryTargets",
             "TemperatureLimit.cs");
 
-        StringAssert.Contains(source, "TryGetRegisteredComponent(");
-        StringAssert.Contains(source, "RegisterTemperatureLimit(");
-        StringAssert.Contains(source, "TryReplaceTemperatureConstraint(");
-        StringAssert.Contains(source, "RemoveTemperatureLimit(");
-        StringAssert.Contains(source, "if (component == null)");
-        Assert.IsFalse(
-            source.Contains("EnsureGameSession", StringComparison.Ordinal),
-            "A component lifecycle callback may capture but never create a session.");
-        Assert.IsFalse(
-            source.Contains("Dictionary<", StringComparison.Ordinal) ||
-            source.Contains("List<", StringComparison.Ordinal),
-            "The component must not recreate a process-global lookup collection.");
+        await Assert.That(source).Contains("TryGetRegisteredComponent(");
+        await Assert.That(source).Contains("RegisterTemperatureLimit(");
+        await Assert.That(source).Contains("TryReplaceTemperatureConstraint(");
+        await Assert.That(source).Contains("RemoveTemperatureLimit(");
+        await Assert.That(source).Contains("if (component == null)");
+        await Assert.That(source.Contains("EnsureGameSession", StringComparison.Ordinal)).IsFalse().Because("A component lifecycle callback may capture but never create a session.");
+        await Assert.That(source.Contains("Dictionary<", StringComparison.Ordinal) ||
+            source.Contains("List<", StringComparison.Ordinal)).IsFalse().Because("The component must not recreate a process-global lookup collection.");
 
-        int normalizationIndex = RequireIndex(
+        int normalizationIndex = await RequireIndex(
             source,
             "DeliveryTemperatureConstraint.FromSerializedLimits(",
             startIndex: 0);
-        int unchangedComparisonIndex = RequireIndex(
+        int unchangedComparisonIndex = await RequireIndex(
             source,
             "if (lowLimit == canonicalConstraint.MinimumInclusiveKelvin",
             normalizationIndex);
-        int fieldAssignmentIndex = RequireIndex(
+        int fieldAssignmentIndex = await RequireIndex(
             source,
             "lowLimit = canonicalConstraint.MinimumInclusiveKelvin",
             unchangedComparisonIndex);
-        int replacementPublicationIndex = RequireIndex(
+        int replacementPublicationIndex = await RequireIndex(
             source,
             "PublishConstraintReplacement(canonicalConstraint)",
             fieldAssignmentIndex);
-        Assert.IsTrue(
-            normalizationIndex >= 0 &&
+        await Assert.That(normalizationIndex >= 0 &&
             normalizationIndex < unchangedComparisonIndex &&
             unchangedComparisonIndex < fieldAssignmentIndex &&
-            fieldAssignmentIndex < replacementPublicationIndex,
-            "Setters must normalize, reject an unchanged value, update serialized " +
+            fieldAssignmentIndex < replacementPublicationIndex).IsTrue().Because("Setters must normalize, reject an unchanged value, update serialized " +
             "fields, and then publish one exact-owner replacement.");
     }
 
-    [TestMethod]
-    public void TemperatureLimitSource_WhenSerializationBoundaryIsInspected_PreservesFieldsAndCanonicalBounds()
+    [Test]
+    public async Task TemperatureLimitSource_WhenSerializationBoundaryIsInspected_PreservesFieldsAndCanonicalBounds()
     {
-        string source = ReadRequiredSource(
+        string source = await ReadRequiredSource(
             ResolveSourceRoot(),
             "TemperatureLimitedDeliveryTargets",
             "TemperatureLimit.cs");
 
-        AssertSerializedIntegerField(source, "lowLimit");
-        AssertSerializedIntegerField(source, "highLimit");
-        StringAssert.Contains(source, "public const int MinValue = 0;");
-        StringAssert.Contains(
-            source,
-            "public const int MaxValue = OniStorableTemperatureBounds.MaximumTemperatureKelvin;");
+        await AssertSerializedIntegerField(source, "lowLimit");
+        await AssertSerializedIntegerField(source, "highLimit");
+        await Assert.That(source).Contains("public const int MinValue = 0;");
+        await Assert.That(source).Contains("public const int MaxValue = OniStorableTemperatureBounds.MaximumTemperatureKelvin;");
         foreach (string memberName in IntentionalTemperatureLimitMemberNames)
         {
-            StringAssert.Contains(
-                source,
-                memberName,
-                $"The intentional TemperatureLimit member {memberName} is absent.");
+            await Assert.That(source).Contains(memberName).Because($"The intentional TemperatureLimit member {memberName} is absent.");
         }
     }
 
-    [TestMethod]
-    public void OptionsSource_WhenSerializationBoundaryIsInspected_PreservesExactOptInPropertiesAndDefaults()
+    [Test]
+    public async Task OptionsSource_WhenSerializationBoundaryIsInspected_PreservesExactOptInPropertiesAndDefaults()
     {
-        string source = ReadRequiredSource(
+        string source = await ReadRequiredSource(
             ResolveSourceRoot(),
             "DeliveryTemperatureLimitOptions.cs");
 
-        StringAssert.Contains(source, "[JsonObject(MemberSerialization.OptIn)]");
-        StringAssert.Contains(source, "[ConfigFile(SharedConfigLocation: true)]");
-        StringAssert.Contains(
-            source,
-            "internal static DeliveryTemperatureLimitOptions Instance => LoadedOptions.Value;");
-        Assert.IsFalse(
-            source.Contains("SingletonOptions<", StringComparison.Ordinal) ||
+        await Assert.That(source).Contains("[JsonObject(MemberSerialization.OptIn)]");
+        await Assert.That(source).Contains("[ConfigFile(SharedConfigLocation: true)]");
+        await Assert.That(source).Contains("internal static DeliveryTemperatureLimitOptions Instance => LoadedOptions.Value;");
+        await Assert.That(source.Contains("SingletonOptions<", StringComparison.Ordinal) ||
             Regex.IsMatch(
                 source,
                 @"\bIOptions\b",
-                RegexOptions.CultureInvariant),
-            "A public PLib base or interface would force merged PLib " +
+                RegexOptions.CultureInvariant)).IsFalse().Because("A public PLib base or interface would force merged PLib " +
             "implementation types back into the assembly's public contract.");
-        Assert.IsFalse(
-            source.Contains("[RestartRequired]", StringComparison.Ordinal),
-            "Restart detection is owned by the custom options session, not a static class attribute.");
-        StringAssert.Contains(source, "CheckTemperatureForStatusItems { get; set; } = true;");
-        StringAssert.Contains(source, "UnderConstructionLimit { get; set; }");
-        StringAssert.Contains(source, "MaxConstructionTemperature { get; set; } = 318;");
-        StringAssert.Contains(source, "MinConstructionTemperature { get; set; } = 223;");
-        StringAssert.Contains(source, "SchemaVersion { get; set; } = 1;");
-        StringAssert.Contains(source, "TemperatureUnit { get; set; } = \"kelvin\";");
+        await Assert.That(source.Contains("[RestartRequired]", StringComparison.Ordinal)).IsFalse().Because("Restart detection is owned by the custom options session, not a static class attribute.");
+        await Assert.That(source).Contains("CheckTemperatureForStatusItems { get; set; } = true;");
+        await Assert.That(source).Contains("UnderConstructionLimit { get; set; }");
+        await Assert.That(source).Contains("MaxConstructionTemperature { get; set; } = 318;");
+        await Assert.That(source).Contains("MinConstructionTemperature { get; set; } = 223;");
+        await Assert.That(source).Contains("SchemaVersion { get; set; } = 1;");
+        await Assert.That(source).Contains("TemperatureUnit { get; set; } = \"kelvin\";");
         foreach (string propertyName in IntentionalPersistedOptionPropertyNames)
         {
-            Assert.AreEqual(
-                1,
-                Regex.Matches(
+            await Assert.That(Regex.Matches(
                     source,
                     @"\[JsonProperty\]\s+public\s+(?:bool|int|string)\s+" +
                     Regex.Escape(propertyName) +
                     @"\s*\{\s*get;\s*set;\s*\}",
-                    RegexOptions.CultureInvariant).Count,
-                $"Option {propertyName} must be one exact public opt-in JSON property.");
+                    RegexOptions.CultureInvariant).Count).IsEqualTo(1).Because($"Option {propertyName} must be one exact public opt-in JSON property.");
         }
 
         string[] declaredOptionPropertyNames = Regex.Matches(
@@ -388,53 +327,48 @@ public sealed class IntentionalRuntimeContractTests
             .Select(match => match.Groups[1].Value)
             .OrderBy(name => name, StringComparer.Ordinal)
             .ToArray();
-        CollectionAssert.AreEqual(
-            IntentionalOptionPropertyNames
+        await Assert.That(declaredOptionPropertyNames).IsEquivalentTo(IntentionalOptionPropertyNames
                 .OrderBy(name => name, StringComparer.Ordinal)
-                .ToArray(),
-            declaredOptionPropertyNames,
-            "The options type must expose exactly the approved persistent options properties.");
+                .ToArray(), TUnit.Assertions.Enums.CollectionOrdering.Matching).Because("The options type must expose exactly the approved persistent options properties.");
     }
 
-    [TestMethod]
-    public void LocalizationSource_WhenInspected_PreservesExactKleiLocalizationKeys()
+    [Test]
+    public async Task LocalizationSource_WhenInspected_PreservesExactKleiLocalizationKeys()
     {
-        string source = ReadRequiredSource(
+        string source = await ReadRequiredSource(
             ResolveSourceRoot(),
             "DeliveryTemperatureLimitStrings.cs");
 
-        StringAssert.Contains(source, "public static class DELIVERY_TEMPERATURE_LIMIT");
-        StringAssert.Contains(source, "public static class SIDESCREEN");
-        StringAssert.Contains(source, "public static class STATUS");
-        StringAssert.Contains(source, "public static class VALIDATION");
-        StringAssert.Contains(source, "public static class TOOLTIPS");
-        StringAssert.Contains(source, "public static class OPTIONS");
+        await Assert.That(source).Contains("public static class DELIVERY_TEMPERATURE_LIMIT");
+        await Assert.That(source).Contains("public static class SIDESCREEN");
+        await Assert.That(source).Contains("public static class STATUS");
+        await Assert.That(source).Contains("public static class VALIDATION");
+        await Assert.That(source).Contains("public static class TOOLTIPS");
+        await Assert.That(source).Contains("public static class OPTIONS");
 
         int totalLocStrings = Regex.Matches(
             source,
             @"public\s+static\s+LocString\s+[A-Za-z0-9_]+\s*=",
             RegexOptions.CultureInvariant).Count;
-        Assert.AreEqual(82, totalLocStrings, "Total LocString declarations include the two approved runtime failure warnings.");
-        StringAssert.Contains(source, "public static LocString GAMEPLAY_FAILURE =");
-        StringAssert.Contains(source, "public static LocString USER_INTERFACE_FAILURE =");
+        await Assert.That(totalLocStrings).IsEqualTo(82).Because("Total LocString declarations include the two approved runtime failure warnings.");
+        await Assert.That(source).Contains("public static LocString GAMEPLAY_FAILURE =");
+        await Assert.That(source).Contains("public static LocString USER_INTERFACE_FAILURE =");
 
-        AssertClassContainsLocStrings(source, "SIDESCREEN", IntentionalSideScreenFieldNames);
-        AssertClassContainsLocStrings(source, "STATUS", IntentionalStatusFieldNames);
-        AssertClassContainsLocStrings(source, "VALIDATION", IntentionalValidationFieldNames);
-        AssertClassContainsLocStrings(source, "TOOLTIPS", IntentionalTooltipsFieldNames);
-        AssertClassContainsLocStrings(source, "OPTIONS", IntentionalOptionsFieldNames);
+        await AssertClassContainsLocStrings(source, "SIDESCREEN", IntentionalSideScreenFieldNames);
+        await AssertClassContainsLocStrings(source, "STATUS", IntentionalStatusFieldNames);
+        await AssertClassContainsLocStrings(source, "VALIDATION", IntentionalValidationFieldNames);
+        await AssertClassContainsLocStrings(source, "TOOLTIPS", IntentionalTooltipsFieldNames);
+        await AssertClassContainsLocStrings(source, "OPTIONS", IntentionalOptionsFieldNames);
 
-        Assert.IsFalse(
-            Regex.IsMatch(source, @"\b(LABEL|RANGE_SEPARATOR|TOOLTIP_RANGE|TOOLTIP_NOTSET)\b"),
-            "Dead legacy localization keys must not be retained.");
+        await Assert.That(Regex.IsMatch(source, @"\b(LABEL|RANGE_SEPARATOR|TOOLTIP_RANGE|TOOLTIP_NOTSET)\b")).IsFalse().Because("Dead legacy localization keys must not be retained.");
     }
 
-    private static void AssertClassContainsLocStrings(string source, string className, string[] expectedFields)
+    private static async Task AssertClassContainsLocStrings(string source, string className, string[] expectedFields)
     {
         int classIndex = source.IndexOf($"class {className}", StringComparison.Ordinal);
-        Assert.IsTrue(classIndex >= 0, $"Class {className} must be declared.");
+        await Assert.That(classIndex >= 0).IsTrue().Because($"Class {className} must be declared.");
         int openBrace = source.IndexOf('{', classIndex);
-        Assert.IsTrue(openBrace >= 0);
+        await Assert.That(openBrace >= 0).IsTrue();
         int depth = 0;
         int closeBrace = -1;
         for (int i = openBrace; i < source.Length; i++)
@@ -450,22 +384,20 @@ public sealed class IntentionalRuntimeContractTests
                 }
             }
         }
-        Assert.IsTrue(closeBrace > openBrace);
+        await Assert.That(closeBrace > openBrace).IsTrue();
         string classBody = source.Substring(openBrace, closeBrace - openBrace + 1);
         foreach (string field in expectedFields)
         {
-            Assert.IsTrue(
-                Regex.IsMatch(classBody, @"public\s+static\s+LocString\s+" + Regex.Escape(field) + @"\s*="),
-                $"Class {className} must declare LocString {field}.");
+            await Assert.That(Regex.IsMatch(classBody, @"public\s+static\s+LocString\s+" + Regex.Escape(field) + @"\s*=")).IsTrue().Because($"Class {className} must declare LocString {field}.");
         }
     }
 
-    private static void AssertLocalizationPotMatchesAssembly(string assemblyPath)
+    private static async Task AssertLocalizationPotMatchesAssembly(string assemblyPath)
     {
         string sourceRoot = ResolveSourceRoot();
         string potPath = Path.GetFullPath(
             Path.Combine(sourceRoot, "..", "translations", "delivery_temperature_limit.pot"));
-        Assert.IsTrue(File.Exists(potPath), $"The POT catalog must exist at {potPath}.");
+        await Assert.That(File.Exists(potPath)).IsTrue().Because($"The POT catalog must exist at {potPath}.");
 
         string potContent = File.ReadAllText(potPath);
         string[] potContextKeys = Regex.Matches(
@@ -478,24 +410,21 @@ public sealed class IntentionalRuntimeContractTests
 
         string[] declaredKeys = DeliveryTemperatureAssemblyMetadataReader
             .ReadLocalizationKeys(assemblyPath).ToArray();
-        Assert.IsNotEmpty(declaredKeys);
+        await Assert.That(declaredKeys).IsNotEmpty();
 
-        CollectionAssert.AreEquivalent(
-            declaredKeys,
-            potContextKeys,
-            "Every C# LocString must have an exact matching msgctxt in the POT template, with no orphaned keys.");
+        await Assert.That(potContextKeys).IsEquivalentTo(declaredKeys, TUnit.Assertions.Enums.CollectionOrdering.Any).Because("Every C# LocString must have an exact matching msgctxt in the POT template, with no orphaned keys.");
     }
 
-    [TestMethod]
-    public void LocalizationPoCatalogs_WhenComparedWithPot_MatchAllDeclaredKeysExactly()
+    [Test]
+    public async Task LocalizationPoCatalogs_WhenComparedWithPot_MatchAllDeclaredKeysExactly()
     {
         string sourceRoot = ResolveSourceRoot();
         string translationsDir = Path.GetFullPath(
             Path.Combine(sourceRoot, "..", "translations"));
-        Assert.IsTrue(Directory.Exists(translationsDir), $"Translations directory must exist at {translationsDir}.");
+        await Assert.That(Directory.Exists(translationsDir)).IsTrue().Because($"Translations directory must exist at {translationsDir}.");
 
         string potPath = Path.Combine(translationsDir, "delivery_temperature_limit.pot");
-        Assert.IsTrue(File.Exists(potPath), $"The POT catalog must exist at {potPath}.");
+        await Assert.That(File.Exists(potPath)).IsTrue().Because($"The POT catalog must exist at {potPath}.");
 
         string potContent = File.ReadAllText(potPath);
         string[] potContextKeys = Regex.Matches(
@@ -507,7 +436,7 @@ public sealed class IntentionalRuntimeContractTests
             .ToArray();
 
         string[] poFiles = Directory.GetFiles(translationsDir, "*.po");
-        Assert.IsTrue(poFiles.Length >= 18, $"Expected at least 18 language catalogs (.po), found {poFiles.Length}.");
+        await Assert.That(poFiles.Length >= 18).IsTrue().Because($"Expected at least 18 language catalogs (.po), found {poFiles.Length}.");
 
         string[] expectedLanguageCodes =
         [
@@ -520,10 +449,7 @@ public sealed class IntentionalRuntimeContractTests
 
         foreach (string expectedCode in expectedLanguageCodes)
         {
-            CollectionAssert.Contains(
-                actualLanguageCodes,
-                expectedCode,
-                $"Expected language catalog for '{expectedCode}' was not found.");
+            await Assert.That(actualLanguageCodes).Contains(expectedCode).Because($"Expected language catalog for '{expectedCode}' was not found.");
         }
 
         foreach (string poFile in poFiles)
@@ -538,20 +464,15 @@ public sealed class IntentionalRuntimeContractTests
                 .OrderBy(key => key, StringComparer.Ordinal)
                 .ToArray();
 
-            CollectionAssert.AreEquivalent(
-                potContextKeys,
-                poContextKeys,
-                $"PO catalog '{fileName}' does not match the declared keys of the POT template.");
+            await Assert.That(poContextKeys).IsEquivalentTo(potContextKeys, TUnit.Assertions.Enums.CollectionOrdering.Any).Because($"PO catalog '{fileName}' does not match the declared keys of the POT template.");
 
-            Assert.IsFalse(
-                poContent.Contains("—"),
-                $"PO catalog '{fileName}' must not contain em-dashes ('—'); use standard hyphens (' - ').");
+            await Assert.That(poContent.Contains("—")).IsFalse().Because($"PO catalog '{fileName}' must not contain em-dashes ('—'); use standard hyphens (' - ').");
         }
     }
 
-    internal static void AssertMergedAssembly(string assemblyPath)
+    internal static async Task AssertMergedAssembly(string assemblyPath)
     {
-        AssertLocalizationPotMatchesAssembly(assemblyPath);
+        await AssertLocalizationPotMatchesAssembly(assemblyPath);
         IReadOnlyList<string> publicSurface =
             DeliveryTemperatureAssemblyMetadataReader.ReadPublicSurface(
                 assemblyPath);
@@ -568,63 +489,55 @@ public sealed class IntentionalRuntimeContractTests
             .Except(declaredPublicTypes, StringComparer.Ordinal)
             .OrderBy(typeName => typeName, StringComparer.Ordinal)
             .ToArray();
-        Assert.IsEmpty(
-            unexpectedPublicTypes,
-            $"The merged assembly at {assemblyPath} exposes unintended public " +
+        await Assert.That(unexpectedPublicTypes).IsEmpty().Because($"The merged assembly at {assemblyPath} exposes unintended public " +
             $"types: {string.Join(", ", unexpectedPublicTypes)}");
-        Assert.IsEmpty(
-            missingPublicTypes,
-            $"The merged assembly at {assemblyPath} is missing intentional public " +
+        await Assert.That(missingPublicTypes).IsEmpty().Because($"The merged assembly at {assemblyPath} is missing intentional public " +
             $"types: {string.Join(", ", missingPublicTypes)}");
-        AssertPublicMemberNamesAreIntentional(
+        await AssertPublicMemberNamesAreIntentional(
             publicSurface,
             "DeliveryTemperatureLimit.TemperatureLimit",
             IntentionalTemperatureLimitMemberNames);
-        AssertPublicMemberNamesAreIntentional(
+        await AssertPublicMemberNamesAreIntentional(
             publicSurface,
             "DeliveryTemperatureLimit.DeliveryTemperatureLimitMod",
             IntentionalModMemberNames);
-        AssertPublicMemberNamesAreIntentional(
+        await AssertPublicMemberNamesAreIntentional(
             publicSurface,
             "DeliveryTemperatureLimit.DeliveryTemperatureLimitOptions",
             IntentionalOptionMemberNames);
-        AssertPublicMemberNamesAreIntentional(
+        await AssertPublicMemberNamesAreIntentional(
             publicSurface,
             "STRINGS.DELIVERY_TEMPERATURE_LIMIT",
             ["GAMEPLAY_FAILURE", "USER_INTERFACE_FAILURE"]);
-        AssertPublicMemberNamesAreIntentional(
+        await AssertPublicMemberNamesAreIntentional(
             publicSurface,
             "STRINGS.DELIVERY_TEMPERATURE_LIMIT+SIDESCREEN",
             IntentionalSideScreenFieldNames);
-        AssertPublicMemberNamesAreIntentional(
+        await AssertPublicMemberNamesAreIntentional(
             publicSurface,
             "STRINGS.DELIVERY_TEMPERATURE_LIMIT+SIDESCREEN+STATUS",
             IntentionalStatusFieldNames);
-        AssertPublicMemberNamesAreIntentional(
+        await AssertPublicMemberNamesAreIntentional(
             publicSurface,
             "STRINGS.DELIVERY_TEMPERATURE_LIMIT+SIDESCREEN+VALIDATION",
             IntentionalValidationFieldNames);
-        AssertPublicMemberNamesAreIntentional(
+        await AssertPublicMemberNamesAreIntentional(
             publicSurface,
             "STRINGS.DELIVERY_TEMPERATURE_LIMIT+SIDESCREEN+TOOLTIPS",
             IntentionalTooltipsFieldNames);
-        AssertPublicMemberNamesAreIntentional(
+        await AssertPublicMemberNamesAreIntentional(
             publicSurface,
             "STRINGS.DELIVERY_TEMPERATURE_LIMIT+OPTIONS",
             IntentionalOptionsFieldNames);
 
-        Assert.AreEqual(
-            0,
-            DeliveryTemperatureAssemblyMetadataReader.ReadFieldConstant(
+        await Assert.That(DeliveryTemperatureAssemblyMetadataReader.ReadFieldConstant(
                 assemblyPath,
                 "DeliveryTemperatureLimit.TemperatureLimit",
-                "MinValue"));
-        Assert.AreEqual(
-            10000,
-            DeliveryTemperatureAssemblyMetadataReader.ReadFieldConstant(
+                "MinValue")).IsEqualTo(0);
+        await Assert.That(DeliveryTemperatureAssemblyMetadataReader.ReadFieldConstant(
                 assemblyPath,
                 "DeliveryTemperatureLimit.TemperatureLimit",
-                "MaxValue"));
+                "MaxValue")).IsEqualTo(10000);
         DeliveryTemperatureAssemblyMetadataReader.AssertPrivateSerializedInt32Field(
             assemblyPath,
             "DeliveryTemperatureLimit.TemperatureLimit",
@@ -637,83 +550,69 @@ public sealed class IntentionalRuntimeContractTests
             "highLimit",
             "KSerialization.Serialize",
             "UnityEngine.SerializeField");
-        Assert.IsFalse(
-            DeliveryTemperatureAssemblyMetadataReader.TypeExists(
+        await Assert.That(DeliveryTemperatureAssemblyMetadataReader.TypeExists(
                 assemblyPath,
-                "DeliveryTemperatureLimit.TemperatureLimit+TemperatureIndexData"));
-        Assert.IsFalse(
-            DeliveryTemperatureAssemblyMetadataReader.MethodExists(
+                "DeliveryTemperatureLimit.TemperatureLimit+TemperatureIndexData")).IsFalse();
+        await Assert.That(DeliveryTemperatureAssemblyMetadataReader.MethodExists(
                 assemblyPath,
                 "DeliveryTemperatureLimit.TemperatureLimit",
-                "getTemperatureIndexData"));
-        Assert.IsTrue(
-            DeliveryTemperatureAssemblyMetadataReader.TypeExists(
+                "getTemperatureIndexData")).IsFalse();
+        await Assert.That(DeliveryTemperatureAssemblyMetadataReader.TypeExists(
                 assemblyPath,
                 "DeliveryTemperatureLimit." +
-                "FastTrackRuntimeAuthorityIntegrationInspector"));
-        Assert.IsTrue(
-            DeliveryTemperatureAssemblyMetadataReader.TypeExists(
+                "FastTrackRuntimeAuthorityIntegrationInspector")).IsTrue();
+        await Assert.That(DeliveryTemperatureAssemblyMetadataReader.TypeExists(
                 assemblyPath,
                 "DeliveryTemperatureLimit." +
-                "FastTrackRuntimeAuthorityContributionBuilder"));
-        Assert.IsTrue(
-            DeliveryTemperatureAssemblyMetadataReader.MethodExists(
+                "FastTrackRuntimeAuthorityContributionBuilder")).IsTrue();
+        await Assert.That(DeliveryTemperatureAssemblyMetadataReader.MethodExists(
                 assemblyPath,
                 "DeliveryTemperatureLimit." +
                 "FastTrackRuntimeAuthorityContributionBuilder",
-                "Build"));
-        Assert.IsFalse(
-            DeliveryTemperatureAssemblyMetadataReader.MethodExists(
+                "Build")).IsTrue();
+        await Assert.That(DeliveryTemperatureAssemblyMetadataReader.MethodExists(
                 assemblyPath,
                 "DeliveryTemperatureLimit." +
                 "DeliveryTemperatureRuntimePatchInstaller",
-                "PrepareFastTrackWorldInventoryTemperaturePatches"));
-        Assert.IsFalse(
-            DeliveryTemperatureAssemblyMetadataReader.MethodExists(
+                "PrepareFastTrackWorldInventoryTemperaturePatches")).IsFalse();
+        await Assert.That(DeliveryTemperatureAssemblyMetadataReader.MethodExists(
                 assemblyPath,
                 "DeliveryTemperatureLimit." +
                 "DeliveryTemperatureRuntimePatchInstaller",
-                "PrepareFastTrackPickupTemperaturePatches"));
-        Assert.IsFalse(
-            DeliveryTemperatureAssemblyMetadataReader.MethodExists(
+                "PrepareFastTrackPickupTemperaturePatches")).IsFalse();
+        await Assert.That(DeliveryTemperatureAssemblyMetadataReader.MethodExists(
                 assemblyPath,
                 "DeliveryTemperatureLimit." +
                 "DeliveryTemperatureRuntimePatchInstaller",
-                "PrepareFastTrackDirectDeliveryEligibilityPatches"));
+                "PrepareFastTrackDirectDeliveryEligibilityPatches")).IsFalse();
         IReadOnlyList<AssemblyMethodBodyContract> selectionPreparationBodies =
             DeliveryTemperatureAssemblyMetadataReader.ReadMethodBodies(
                 assemblyPath,
                 "DeliveryTemperatureLimit." +
                 "DeliveryTemperatureRuntimePatchInstaller",
                 "PrepareSelectedRuntimePatches");
-        Assert.AreEqual(1, selectionPreparationBodies.Count);
-        Assert.IsTrue(
-            selectionPreparationBodies[0].Instructions.Any(instruction =>
+        await Assert.That(selectionPreparationBodies.Count).IsEqualTo(1);
+        await Assert.That(selectionPreparationBodies[0].Instructions.Any(instruction =>
                 instruction.ResolvedOperand?.Contains(
                     "DeliveryTemperatureLimit." +
                     "DeliveryTemperatureRuntimePatchPlan." +
                     "get_OrderedPatchBindings",
-                    StringComparison.Ordinal) == true),
-            "Selected runtime patch preparation must consume only the plan's " +
+                    StringComparison.Ordinal) == true)).IsTrue().Because("Selected runtime patch preparation must consume only the plan's " +
             "complete verified binding snapshot.");
-        Assert.IsFalse(
-            selectionPreparationBodies[0].Instructions.Any(instruction =>
+        await Assert.That(selectionPreparationBodies[0].Instructions.Any(instruction =>
                 instruction.ResolvedOperand?.Contains(
                     "FastTrackRuntimeAuthorityContributionBuilder.Build",
-                    StringComparison.Ordinal) == true),
-            "Provider-specific contribution construction must finish before " +
+                    StringComparison.Ordinal) == true)).IsFalse().Because("Provider-specific contribution construction must finish before " +
             "selected runtime patch preparation.");
-        Assert.IsTrue(
-            DeliveryTemperatureAssemblyMetadataReader.TypeExists(
+        await Assert.That(DeliveryTemperatureAssemblyMetadataReader.TypeExists(
                 assemblyPath,
-                "DeliveryTemperatureLimit.ActiveHarmonyPrefixDescriptor"));
-        Assert.IsFalse(
-            DeliveryTemperatureAssemblyMetadataReader.TypeExists(
+                "DeliveryTemperatureLimit.ActiveHarmonyPrefixDescriptor")).IsTrue();
+        await Assert.That(DeliveryTemperatureAssemblyMetadataReader.TypeExists(
                 assemblyPath,
-                "DeliveryTemperatureLimit.ActiveHarmonyPatchDescriptor"));
+                "DeliveryTemperatureLimit.ActiveHarmonyPatchDescriptor")).IsFalse();
     }
 
-    private static void AssertPublicMemberNamesAreIntentional(
+    private static async Task AssertPublicMemberNamesAreIntentional(
         IEnumerable<string> publicSurface,
         string declaringType,
         IReadOnlyCollection<string> intentionalNames)
@@ -729,12 +628,10 @@ public sealed class IntentionalRuntimeContractTests
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 
-        Assert.IsEmpty(
-            unexpectedMembers,
-            $"{declaringType} exposes unintended members: {string.Join(", ", unexpectedMembers)}");
+        await Assert.That(unexpectedMembers).IsEmpty().Because($"{declaringType} exposes unintended members: {string.Join(", ", unexpectedMembers)}");
     }
 
-    private static void AssertSerializedIntegerField(
+    private static async Task AssertSerializedIntegerField(
         string source,
         string fieldName)
     {
@@ -742,13 +639,10 @@ public sealed class IntentionalRuntimeContractTests
             @"\[Serialize\]\s*\[SerializeField\][^\r\n]*\s*private\s+int\s+" +
             Regex.Escape(fieldName) +
             @"\s*=";
-        Assert.AreEqual(
-            1,
-            Regex.Matches(
+        await Assert.That(Regex.Matches(
                 source,
                 pattern,
-                RegexOptions.CultureInvariant).Count,
-            $"{fieldName} must remain one private int with both serialization attributes.");
+                RegexOptions.CultureInvariant).Count).IsEqualTo(1).Because($"{fieldName} must remain one private int with both serialization attributes.");
     }
 
     private static string ResolveSourceRoot() => Path.Combine(
@@ -757,7 +651,7 @@ public sealed class IntentionalRuntimeContractTests
         "delivery-temperature-limit-supercooled",
         "Source");
 
-    private static int RequireIndex(
+    private static async Task<int> RequireIndex(
         string source,
         string value,
         int startIndex)
@@ -766,21 +660,18 @@ public sealed class IntentionalRuntimeContractTests
             value,
             startIndex,
             StringComparison.Ordinal);
-        Assert.IsGreaterThanOrEqualTo(
-            0,
-            index,
-            "Missing exact source contract marker: " + value);
+        await Assert.That(index).IsGreaterThanOrEqualTo(0).Because("Missing exact source contract marker: " + value);
         return index;
     }
 
-    private static string ReadRequiredSource(
+    private static async Task<string> ReadRequiredSource(
         string sourceRoot,
         params string[] relativePathSegments)
     {
         string path = relativePathSegments.Aggregate(
             sourceRoot,
             Path.Combine);
-        Assert.IsTrue(File.Exists(path), $"Required semantic source owner is absent: {path}");
+        await Assert.That(File.Exists(path)).IsTrue().Because($"Required semantic source owner is absent: {path}");
         return File.ReadAllText(path);
     }
 

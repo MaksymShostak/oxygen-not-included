@@ -2,15 +2,19 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+    <TUnitVersion>1.81.0</TUnitVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="ILRepack.Lib.MSBuild.Task" Version="2.0.48" />
     <PackageVersion Include="Microsoft.DiaSymReader" Version="2.2.14" />
     <PackageVersion Include="Microsoft.Extensions.DependencyModel" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.TestPlatform.ObjectModel" Version="18.11.0" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.12.0" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.TrxReport" Version="2.5.2" />
     <PackageVersion Include="PLib" Version="4.25.0" />
     <PackageVersion Include="System.CommandLine" Version="2.0.14" />
     <PackageVersion Include="Tomlyn" Version="2.10.2" />
+    <PackageVersion Include="TUnit.Engine" Version="$(TUnitVersion)" />
+    <PackageVersion Include="TUnit.Assertions" Version="$(TUnitVersion)" />
     <PackageVersion Include="YamlDotNet" Version="18.1.0" />
   </ItemGroup>
 </Project>

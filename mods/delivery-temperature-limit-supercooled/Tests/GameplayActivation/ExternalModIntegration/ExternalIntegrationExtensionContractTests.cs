@@ -2,8 +2,6 @@ using System.Reflection;
 using System.Reflection.Emit;
 
 namespace DeliveryTemperatureLimit.Tests.GameplayActivation.ExternalModIntegration;
-
-[TestClass]
 public sealed class ExternalIntegrationExtensionContractTests
 {
     private static readonly DeclaredModIntegrationId SyntheticRuntimeId =
@@ -15,8 +13,8 @@ public sealed class ExternalIntegrationExtensionContractTests
     private static readonly RuntimeCapabilityId SyntheticAdditiveCapabilityId =
         new("synthetic-settings-transfer");
 
-    [TestMethod]
-    public void RuntimeAuthorityExtension_WhenDeclaredAndCompatible_SuppliesCapabilityWithoutSelectorBranch()
+    [Test]
+    public async Task RuntimeAuthorityExtension_WhenDeclaredAndCompatible_SuppliesCapabilityWithoutSelectorBranch()
     {
         DeclaredModIntegrationDescriptor descriptor = RuntimeDescriptor();
         LoadedModInspectionContext context = Context(
@@ -46,82 +44,66 @@ public sealed class ExternalIntegrationExtensionContractTests
 
         RuntimeCapabilitySelectionEntry selected =
             selection.GetCapabilitySelection(SyntheticRuntimeCapabilityId);
-        Assert.IsTrue(selected.HasSelectedContribution);
+        await Assert.That(selected.HasSelectedContribution).IsTrue();
         PreparedRuntimeAuthorityContribution selectedContribution =
             selected.PrepareSelectedContribution();
-        Assert.AreEqual(
-            RuntimeAuthorityImplementationIdentity
-                .ForDeclaredExternalIntegration(SyntheticRuntimeId),
-            selectedContribution.ImplementationIdentity);
-        Assert.AreEqual(
-            "synthetic-runtime-patches",
-            selectedContribution.PatchGroupIds[0].Value);
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.Selected,
-            selection.ExternalModIntegrationOutcomes[0]
+        await Assert.That(selectedContribution.ImplementationIdentity).IsEqualTo(RuntimeAuthorityImplementationIdentity
+                .ForDeclaredExternalIntegration(SyntheticRuntimeId));
+        await Assert.That(selectedContribution.PatchGroupIds[0].Value).IsEqualTo("synthetic-runtime-patches");
+        await Assert.That(selection.ExternalModIntegrationOutcomes[0]
                 .Capabilities[0]
-                .Disposition);
+                .Disposition).IsEqualTo(IntegrationCapabilityDisposition.Selected);
     }
 
-    [TestMethod]
-    public void AdditiveExtension_WhenReady_ReportsCapabilityWithoutHarmonyContribution()
+    [Test]
+    public async Task AdditiveExtension_WhenReady_ReportsCapabilityWithoutHarmonyContribution()
     {
         DeclaredIntegrationPreparationResult preparation = PrepareAdditive(
             new SyntheticAdditiveInspector(
                 IntegrationContractState.Compatible,
                 IntegrationCapabilityDisposition.Ready));
 
-        Assert.HasCount(0, preparation.RuntimeAuthorityContributions);
+        await Assert.That(preparation.RuntimeAuthorityContributions).Count().IsEqualTo(0);
         ExternalModIntegrationCapabilityOutcome capability = preparation
             .ExternalModIntegrationOutcomes[0]
             .Capabilities[0];
-        Assert.AreEqual(IntegrationContractState.Compatible, capability.ContractState);
-        Assert.AreEqual(IntegrationCapabilityDisposition.Ready, capability.Disposition);
+        await Assert.That(capability.ContractState).IsEqualTo(IntegrationContractState.Compatible);
+        await Assert.That(capability.Disposition).IsEqualTo(IntegrationCapabilityDisposition.Ready);
     }
 
-    [TestMethod]
-    public void AdditiveExtension_WhenUnavailable_ReportsBoundedFailureWithoutHarmonyContribution()
+    [Test]
+    public async Task AdditiveExtension_WhenUnavailable_ReportsBoundedFailureWithoutHarmonyContribution()
     {
         DeclaredIntegrationPreparationResult preparation = PrepareAdditive(
             new SyntheticAdditiveInspector(
                 IntegrationContractState.VerificationUnavailable,
                 IntegrationCapabilityDisposition.Unavailable));
 
-        Assert.HasCount(0, preparation.RuntimeAuthorityContributions);
+        await Assert.That(preparation.RuntimeAuthorityContributions).Count().IsEqualTo(0);
         ExternalModIntegrationCapabilityOutcome capability = preparation
             .ExternalModIntegrationOutcomes[0]
             .Capabilities[0];
-        Assert.AreEqual(
-            IntegrationContractState.VerificationUnavailable,
-            capability.ContractState);
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.Unavailable,
-            capability.Disposition);
-        Assert.AreEqual("synthetic-additive-unavailable", capability.DiagnosticCode);
+        await Assert.That(capability.ContractState).IsEqualTo(IntegrationContractState.VerificationUnavailable);
+        await Assert.That(capability.Disposition).IsEqualTo(IntegrationCapabilityDisposition.Unavailable);
+        await Assert.That(capability.DiagnosticCode).IsEqualTo("synthetic-additive-unavailable");
     }
 
-    [TestMethod]
-    public void AdditiveExtension_WhenInspectorThrows_ContainsFailureWithoutHarmonyContribution()
+    [Test]
+    public async Task AdditiveExtension_WhenInspectorThrows_ContainsFailureWithoutHarmonyContribution()
     {
         DeclaredIntegrationPreparationResult preparation = PrepareAdditive(
             new ThrowingSyntheticAdditiveInspector());
 
-        Assert.HasCount(0, preparation.RuntimeAuthorityContributions);
+        await Assert.That(preparation.RuntimeAuthorityContributions).Count().IsEqualTo(0);
         ExternalModIntegrationOutcome outcome =
             preparation.ExternalModIntegrationOutcomes[0];
-        Assert.AreEqual(
-            DeclaredModMatchState.InspectionUnavailable,
-            outcome.MatchState);
-        Assert.AreEqual(
-            IntegrationContractState.VerificationUnavailable,
-            outcome.Capabilities[0].ContractState);
-        Assert.AreEqual(
-            "additive-integration-inspection-unavailable",
-            outcome.Capabilities[0].DiagnosticCode);
+        await Assert.That(outcome.MatchState).IsEqualTo(DeclaredModMatchState.InspectionUnavailable);
+        await Assert.That(outcome.Capabilities[0].ContractState).IsEqualTo(IntegrationContractState.VerificationUnavailable);
+        await Assert.That(outcome.Capabilities[0].DiagnosticCode).IsEqualTo("additive-integration-inspection-unavailable");
     }
 
-    [TestMethod]
-    public void ProductionCatalog_WhenCompositionSourceIsInspected_DeclaresOnlyFastTrackAtThisMilestone()
+    [Test]
+    public async Task ProductionCatalog_WhenCompositionSourceIsInspected_DeclaresOnlyFastTrackAtThisMilestone()
     {
         string repositoryRoot = Environment.GetEnvironmentVariable(
             "ONI_MOD_PIPELINE_REPOSITORY_ROOT") ??
@@ -136,19 +118,12 @@ public sealed class ExternalIntegrationExtensionContractTests
             "DeliveryTemperatureRuntimePatchInstaller.cs"));
         const string descriptorReference = ".DeclaredIntegrationDescriptor";
 
-        Assert.AreEqual(
-            1,
-            CountOrdinalOccurrences(installerSource, descriptorReference),
-            "Production composition must name exactly one compile-time " +
+        await Assert.That(CountOrdinalOccurrences(installerSource, descriptorReference)).IsEqualTo(1).Because("Production composition must name exactly one compile-time " +
             "integration descriptor at this milestone.");
-        StringAssert.Contains(
-            installerSource,
-            "FastTrackRuntimeAuthorityIntegrationInspector");
-        Assert.IsFalse(
-            installerSource.Contains(
+        await Assert.That(installerSource).Contains("FastTrackRuntimeAuthorityIntegrationInspector");
+        await Assert.That(installerSource.Contains(
                 "blueprints-expanded",
-                StringComparison.Ordinal),
-            "The extension proof must not advertise production Blueprints " +
+                StringComparison.Ordinal)).IsFalse().Because("The extension proof must not advertise production Blueprints " +
             "Expanded support.");
     }
 

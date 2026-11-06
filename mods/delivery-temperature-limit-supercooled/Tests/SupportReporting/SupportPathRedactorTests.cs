@@ -1,10 +1,8 @@
 namespace DeliveryTemperatureLimit.Tests.SupportReporting;
-
-[TestClass]
 public sealed class SupportPathRedactorTests
 {
-    [TestMethod]
-    public void Redact_WhenRulesOverlap_AppliesLongestPrefixAndReportsDeterministicPlaceholders()
+    [Test]
+    public async Task Redact_WhenRulesOverlap_AppliesLongestPrefixAndReportsDeterministicPlaceholders()
     {
         var redactor = new SupportPathRedactor(
             new[]
@@ -21,16 +19,12 @@ public sealed class SupportPathRedactorTests
         RedactedSupportText result = redactor.Redact(
             @"Log C:\Users\Максим\Documents\Klei\OxygenNotIncluded\Player.log then C:\Users\Максим\AppData\LocalLow.");
 
-        Assert.AreEqual(
-            @"Log <ONI_DATA>\Player.log then <USER_PROFILE>\AppData\LocalLow.",
-            result.Content);
-        CollectionAssert.AreEqual(
-            new[] { "<ONI_DATA>", "<USER_PROFILE>" },
-            result.AppliedPlaceholders.ToArray());
+        await Assert.That(result.Content).IsEqualTo(@"Log <ONI_DATA>\Player.log then <USER_PROFILE>\AppData\LocalLow.");
+        await Assert.That(result.AppliedPlaceholders.ToArray()).IsEquivalentTo(new[] { "<ONI_DATA>", "<USER_PROFILE>" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void Redact_WhenWindowsRuleMatchesForwardSlashLogPath_ReplacesEquivalentSeparatorForm()
+    [Test]
+    public async Task Redact_WhenWindowsRuleMatchesForwardSlashLogPath_ReplacesEquivalentSeparatorForm()
     {
         var redactor = new SupportPathRedactor(
             new[]
@@ -47,16 +41,12 @@ public sealed class SupportPathRedactorTests
         RedactedSupportText result = redactor.Redact(
             "Log C:/Users/Max/Documents/Klei/OxygenNotIncluded/mods/Dev/TemperatureLimit.");
 
-        Assert.AreEqual(
-            "Log <ONI_DATA>/mods/Dev/TemperatureLimit.",
-            result.Content);
-        CollectionAssert.AreEqual(
-            new[] { "<ONI_DATA>" },
-            result.AppliedPlaceholders.ToArray());
+        await Assert.That(result.Content).IsEqualTo("Log <ONI_DATA>/mods/Dev/TemperatureLimit.");
+        await Assert.That(result.AppliedPlaceholders.ToArray()).IsEquivalentTo(new[] { "<ONI_DATA>" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void Redact_WhenComparisonIsOrdinal_LeavesDifferentlyCasedPathUntouched()
+    [Test]
+    public async Task Redact_WhenComparisonIsOrdinal_LeavesDifferentlyCasedPathUntouched()
     {
         var redactor = new SupportPathRedactor(
             new[]
@@ -70,12 +60,12 @@ public sealed class SupportPathRedactorTests
         RedactedSupportText result = redactor.Redact(
             @"c:\users\max\Player.log");
 
-        Assert.AreEqual(@"c:\users\max\Player.log", result.Content);
-        Assert.IsEmpty(result.AppliedPlaceholders);
+        await Assert.That(result.Content).IsEqualTo(@"c:\users\max\Player.log");
+        await Assert.That(result.AppliedPlaceholders).IsEmpty();
     }
 
-    [TestMethod]
-    public void Redact_WhenComparisonIgnoresCase_ReplacesDifferentlyCasedPath()
+    [Test]
+    public async Task Redact_WhenComparisonIgnoresCase_ReplacesDifferentlyCasedPath()
     {
         var redactor = new SupportPathRedactor(
             new[]
@@ -89,14 +79,12 @@ public sealed class SupportPathRedactorTests
         RedactedSupportText result = redactor.Redact(
             @"c:\users\max\Player.log");
 
-        Assert.AreEqual(@"<USER_PROFILE>\Player.log", result.Content);
-        CollectionAssert.AreEqual(
-            new[] { "<USER_PROFILE>" },
-            result.AppliedPlaceholders.ToArray());
+        await Assert.That(result.Content).IsEqualTo(@"<USER_PROFILE>\Player.log");
+        await Assert.That(result.AppliedPlaceholders.ToArray()).IsEquivalentTo(new[] { "<USER_PROFILE>" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void Redact_WhenPrefixAppearsInsideDifferentPathSegment_DoesNotReplaceIt()
+    [Test]
+    public async Task Redact_WhenPrefixAppearsInsideDifferentPathSegment_DoesNotReplaceIt()
     {
         var redactor = new SupportPathRedactor(
             new[]
@@ -110,18 +98,18 @@ public sealed class SupportPathRedactorTests
         RedactedSupportText result = redactor.Redact(
             @"C:\Users\Maximum\Player.log");
 
-        Assert.AreEqual(@"C:\Users\Maximum\Player.log", result.Content);
-        Assert.IsEmpty(result.AppliedPlaceholders);
+        await Assert.That(result.Content).IsEqualTo(@"C:\Users\Maximum\Player.log");
+        await Assert.That(result.AppliedPlaceholders).IsEmpty();
     }
 
-    [TestMethod]
-    public void Constructor_WhenRuleIsBlankOrDuplicate_RejectsAmbiguousRedaction()
+    [Test]
+    public async Task Constructor_WhenRuleIsBlankOrDuplicate_RejectsAmbiguousRedaction()
     {
-        Assert.ThrowsExactly<ArgumentException>(() =>
-            new SupportPathRedactionRule(" ", "<USER_PROFILE>"));
-        Assert.ThrowsExactly<ArgumentException>(() =>
-            new SupportPathRedactionRule(@"C:\Users\Max", " "));
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
+            new SupportPathRedactionRule(" ", "<USER_PROFILE>")).ThrowsExactly<ArgumentException>();
+        await Assert.That(() =>
+            new SupportPathRedactionRule(@"C:\Users\Max", " ")).ThrowsExactly<ArgumentException>();
+        await Assert.That(() =>
             new SupportPathRedactor(
                 new[]
                 {
@@ -132,8 +120,8 @@ public sealed class SupportPathRedactorTests
                         @"c:\users\max",
                         "<TWO>")
                 },
-                StringComparison.OrdinalIgnoreCase));
-        Assert.ThrowsExactly<ArgumentException>(() =>
+                StringComparison.OrdinalIgnoreCase)).ThrowsExactly<ArgumentException>();
+        await Assert.That(() =>
             new SupportPathRedactor(
                 new[]
                 {
@@ -144,6 +132,6 @@ public sealed class SupportPathRedactorTests
                         "C:/Users/Max",
                         "<TWO>")
                 },
-                StringComparison.OrdinalIgnoreCase));
+                StringComparison.OrdinalIgnoreCase)).ThrowsExactly<ArgumentException>();
     }
 }

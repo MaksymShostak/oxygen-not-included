@@ -3,11 +3,9 @@ using MaksymShostak.OniModPipeline.Diagnostics;
 using MaksymShostak.OniModPipeline.ReleaseCandidates;
 
 namespace MaksymShostak.OniModPipeline.Tests.Cli;
-
-[TestClass]
 public sealed class VerifyReleaseCommandTests
 {
-    [TestMethod]
+    [Test]
     public async Task VerifyRelease_WhenHelpIsRequested_DocumentsOnlyCandidateAndOutputFormat()
     {
         using var fixture = new PipelineCommandFixture(includeTests: false);
@@ -19,20 +17,20 @@ public sealed class VerifyReleaseCommandTests
             command,
             ["verify-release", "--help"]);
 
-        Assert.AreEqual(0, invocation.ExitCode);
-        Assert.Contains("--candidate", invocation.StandardOutput, StringComparison.Ordinal);
-        Assert.Contains("--format", invocation.StandardOutput, StringComparison.Ordinal);
-        Assert.Contains("human", invocation.StandardOutput, StringComparison.Ordinal);
-        Assert.Contains("json", invocation.StandardOutput, StringComparison.Ordinal);
-        Assert.DoesNotContain("--mod", invocation.StandardOutput, StringComparison.Ordinal);
-        Assert.DoesNotContain("--tester", invocation.StandardOutput, StringComparison.Ordinal);
-        Assert.DoesNotContain("--target", invocation.StandardOutput, StringComparison.Ordinal);
-        Assert.DoesNotContain("publish", invocation.StandardOutput, StringComparison.OrdinalIgnoreCase);
-        Assert.AreEqual(0, verifier.CallCount);
-        Assert.AreEqual(0, fixture.ProcessRunner.Requests.Count);
+        await Assert.That(invocation.ExitCode).IsEqualTo(0);
+        await Assert.That(invocation.StandardOutput).Contains("--candidate", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardOutput).Contains("--format", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardOutput).Contains("human", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardOutput).Contains("json", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardOutput).DoesNotContain("--mod", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardOutput).DoesNotContain("--tester", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardOutput).DoesNotContain("--target", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardOutput).DoesNotContain("publish", StringComparison.OrdinalIgnoreCase);
+        await Assert.That(verifier.CallCount).IsEqualTo(0);
+        await Assert.That(fixture.ProcessRunner.Requests.Count).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public async Task VerifyRelease_WhenCandidateIsReady_DelegatesExactAbsolutePathAndRendersHumanState()
     {
         using var fixture = new PipelineCommandFixture(includeTests: false);
@@ -50,16 +48,16 @@ public sealed class VerifyReleaseCommandTests
             command,
             ["verify-release", "--candidate", candidateDirectory]);
 
-        Assert.AreEqual(0, invocation.ExitCode);
-        Assert.AreEqual(string.Empty, invocation.StandardError);
-        Assert.AreEqual(Path.GetFullPath(candidateDirectory), verifier.CandidateDirectory);
-        Assert.Contains("State: ready-for-upload", invocation.StandardOutput, StringComparison.Ordinal);
-        Assert.Contains("Irreversibly invalidated: false", invocation.StandardOutput, StringComparison.Ordinal);
-        Assert.AreEqual(1, verifier.CallCount);
-        Assert.AreEqual(0, fixture.ProcessRunner.Requests.Count);
+        await Assert.That(invocation.ExitCode).IsEqualTo(0);
+        await Assert.That(invocation.StandardError).IsEqualTo(string.Empty);
+        await Assert.That(verifier.CandidateDirectory).IsEqualTo(Path.GetFullPath(candidateDirectory));
+        await Assert.That(invocation.StandardOutput).Contains("State: ready-for-upload", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardOutput).Contains("Irreversibly invalidated: false", StringComparison.Ordinal);
+        await Assert.That(verifier.CallCount).IsEqualTo(1);
+        await Assert.That(fixture.ProcessRunner.Requests.Count).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public async Task VerifyRelease_WhenJsonIsRequested_RendersCanonicalStructuredState()
     {
         using var fixture = new PipelineCommandFixture(includeTests: false);
@@ -77,14 +75,14 @@ public sealed class VerifyReleaseCommandTests
                 "json"
             ]);
 
-        Assert.AreEqual(0, invocation.ExitCode);
-        Assert.AreEqual(string.Empty, invocation.StandardError);
-        Assert.Contains("\"state\": \"ready-for-upload\"", invocation.StandardOutput, StringComparison.Ordinal);
-        Assert.Contains("\"exitCode\": 0", invocation.StandardOutput, StringComparison.Ordinal);
-        Assert.AreEqual(1, verifier.CallCount);
+        await Assert.That(invocation.ExitCode).IsEqualTo(0);
+        await Assert.That(invocation.StandardError).IsEqualTo(string.Empty);
+        await Assert.That(invocation.StandardOutput).Contains("\"state\": \"ready-for-upload\"", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardOutput).Contains("\"exitCode\": 0", StringComparison.Ordinal);
+        await Assert.That(verifier.CallCount).IsEqualTo(1);
     }
 
-    [TestMethod]
+    [Test]
     public async Task VerifyRelease_WhenCandidateIsNotReady_PreservesReleaseNotReadyExit()
     {
         using var fixture = new PipelineCommandFixture(includeTests: false);
@@ -108,15 +106,12 @@ public sealed class VerifyReleaseCommandTests
                 Path.Combine(fixture.ArtifactsDirectory, "candidate")
             ]);
 
-        Assert.AreEqual((int)PipelineExitCode.ReleaseNotReady, invocation.ExitCode);
-        Assert.Contains(
-            DiagnosticIds.RequiredAcceptanceMissing,
-            invocation.StandardError,
-            StringComparison.Ordinal);
-        Assert.AreEqual(1, verifier.CallCount);
+        await Assert.That(invocation.ExitCode).IsEqualTo((int)PipelineExitCode.ReleaseNotReady);
+        await Assert.That(invocation.StandardError).Contains(DiagnosticIds.RequiredAcceptanceMissing, StringComparison.Ordinal);
+        await Assert.That(verifier.CallCount).IsEqualTo(1);
     }
 
-    [TestMethod]
+    [Test]
     public async Task VerifyRelease_WhenCandidateOrFormatIsInvalid_RejectsAtParseTime()
     {
         using var fixture = new PipelineCommandFixture(includeTests: false);
@@ -140,21 +135,21 @@ public sealed class VerifyReleaseCommandTests
                 "yaml"
             ]);
 
-        Assert.AreEqual((int)PipelineExitCode.InvalidInput, missing.ExitCode);
-        Assert.Contains("--candidate", missing.StandardError, StringComparison.Ordinal);
-        Assert.AreEqual((int)PipelineExitCode.InvalidInput, empty.ExitCode);
-        Assert.Contains("nonempty path", empty.StandardError, StringComparison.Ordinal);
-        Assert.AreEqual((int)PipelineExitCode.InvalidInput, invalidFormat.ExitCode);
-        Assert.Contains("human", invalidFormat.StandardError, StringComparison.Ordinal);
-        Assert.Contains("json", invalidFormat.StandardError, StringComparison.Ordinal);
-        Assert.AreEqual(0, verifier.CallCount);
+        await Assert.That(missing.ExitCode).IsEqualTo((int)PipelineExitCode.InvalidInput);
+        await Assert.That(missing.StandardError).Contains("--candidate", StringComparison.Ordinal);
+        await Assert.That(empty.ExitCode).IsEqualTo((int)PipelineExitCode.InvalidInput);
+        await Assert.That(empty.StandardError).Contains("nonempty path", StringComparison.Ordinal);
+        await Assert.That(invalidFormat.ExitCode).IsEqualTo((int)PipelineExitCode.InvalidInput);
+        await Assert.That(invalidFormat.StandardError).Contains("human", StringComparison.Ordinal);
+        await Assert.That(invalidFormat.StandardError).Contains("json", StringComparison.Ordinal);
+        await Assert.That(verifier.CallCount).IsEqualTo(0);
     }
 
-    [TestMethod]
-    [DataRow("--mod")]
-    [DataRow("--tester")]
-    [DataRow("--target")]
-    [DataRow("--publish")]
+    [Test]
+    [Arguments("--mod")]
+    [Arguments("--tester")]
+    [Arguments("--target")]
+    [Arguments("--publish")]
     public async Task VerifyRelease_WhenUnrelatedOrPublishingOptionIsSupplied_RejectsCommand(
         string option)
     {
@@ -173,8 +168,8 @@ public sealed class VerifyReleaseCommandTests
                 "value"
             ]);
 
-        Assert.AreEqual((int)PipelineExitCode.InvalidInput, invocation.ExitCode);
-        Assert.AreEqual(0, verifier.CallCount);
+        await Assert.That(invocation.ExitCode).IsEqualTo((int)PipelineExitCode.InvalidInput);
+        await Assert.That(verifier.CallCount).IsEqualTo(0);
     }
 }
 

@@ -5,9 +5,7 @@ using System.Text;
 using System.Text.Json;
 
 namespace MaksymShostak.OniModPipeline.Tests.ContentIntegrity;
-
-[TestClass]
-[DoNotParallelize]
+[NotInParallel]
 public sealed class CanonicalContentManifestSerializerTests
 {
     private const string FirstSha256 =
@@ -15,8 +13,8 @@ public sealed class CanonicalContentManifestSerializerTests
     private const string SecondSha256 =
         "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
 
-    [TestMethod]
-    public void Serialize_WhenGivenGoldenEntries_ProducesSpecifiedDigest()
+    [Test]
+    public async Task Serialize_WhenGivenGoldenEntries_ProducesSpecifiedDigest()
     {
         ReleaseContentEntry[] entries =
         [
@@ -37,13 +35,11 @@ public sealed class CanonicalContentManifestSerializerTests
         var bytes = CanonicalContentManifestSerializer.Serialize(entries);
         var digest = Convert.ToHexStringLower(SHA256.HashData(bytes));
 
-        Assert.AreEqual(
-            "c599e8d8dd6d307064e20c85381dfe17a1c1b340b688bb3a3cbab40741a2b8ca",
-            digest);
+        await Assert.That(digest).IsEqualTo("c599e8d8dd6d307064e20c85381dfe17a1c1b340b688bb3a3cbab40741a2b8ca");
     }
 
-    [TestMethod]
-    public void Serialize_WhenCurrentCultureHasDifferentSortRules_UsesOrdinalPathOrder()
+    [Test]
+    public async Task Serialize_WhenCurrentCultureHasDifferentSortRules_UsesOrdinalPathOrder()
     {
         var originalCulture = CultureInfo.CurrentCulture;
         var originalUiCulture = CultureInfo.CurrentUICulture;
@@ -60,9 +56,8 @@ public sealed class CanonicalContentManifestSerializerTests
             var serialized = Encoding.UTF8.GetString(
                 CanonicalContentManifestSerializer.Serialize(entries));
 
-            Assert.IsTrue(
-                serialized.IndexOf("z.txt", StringComparison.Ordinal) <
-                serialized.IndexOf("ä.txt", StringComparison.Ordinal));
+            await Assert.That(serialized.IndexOf("z.txt", StringComparison.Ordinal) <
+                serialized.IndexOf("ä.txt", StringComparison.Ordinal)).IsTrue();
         }
         finally
         {
@@ -71,40 +66,40 @@ public sealed class CanonicalContentManifestSerializerTests
         }
     }
 
-    [TestMethod]
-    public void Serialize_WhenPathUsesBackslashes_NormalizesToForwardSlashes()
+    [Test]
+    public async Task Serialize_WhenPathUsesBackslashes_NormalizesToForwardSlashes()
     {
         var serialized = Encoding.UTF8.GetString(
             CanonicalContentManifestSerializer.Serialize(
                 [Entry("nested\\payload.dll", 1)]));
 
-        StringAssert.Contains(serialized, "nested/payload.dll");
-        Assert.IsFalse(serialized.Contains('\\', StringComparison.Ordinal));
+        await Assert.That(serialized).Contains("nested/payload.dll");
+        await Assert.That(serialized.Contains('\\', StringComparison.Ordinal)).IsFalse();
     }
 
-    [TestMethod]
-    public void Serialize_WhenPathUsesDecomposedUnicode_EmitsNfc()
+    [Test]
+    public async Task Serialize_WhenPathUsesDecomposedUnicode_EmitsNfc()
     {
         var serialized = Encoding.UTF8.GetString(
             CanonicalContentManifestSerializer.Serialize(
                 [Entry("cafe\u0301.txt", 1)]));
 
-        StringAssert.Contains(serialized, "café.txt");
-        Assert.IsFalse(serialized.Contains("cafe\u0301.txt", StringComparison.Ordinal));
+        await Assert.That(serialized).Contains("café.txt");
+        await Assert.That(serialized.Contains("cafe\u0301.txt", StringComparison.Ordinal)).IsFalse();
     }
 
-    [TestMethod]
-    public void Serialize_WhenPathContainsRecordDelimiter_RejectsEntry()
+    [Test]
+    public async Task Serialize_WhenPathContainsRecordDelimiter_RejectsEntry()
     {
         foreach (var path in new[] { "bad\0path", "bad\npath", "bad\rpath" })
         {
-            Assert.ThrowsExactly<InvalidDataException>(() =>
-                CanonicalContentManifestSerializer.Serialize([Entry(path, 1)]));
+            await Assert.That(() =>
+                CanonicalContentManifestSerializer.Serialize([Entry(path, 1)])).ThrowsExactly<InvalidDataException>();
         }
     }
 
-    [TestMethod]
-    public void Serialize_WhenPathsDifferOnlyByPortableCase_RejectsCollision()
+    [Test]
+    public async Task Serialize_WhenPathsDifferOnlyByPortableCase_RejectsCollision()
     {
         ReleaseContentEntry[] entries =
         [
@@ -112,12 +107,12 @@ public sealed class CanonicalContentManifestSerializerTests
             Entry("payload.dll", 2)
         ];
 
-        Assert.ThrowsExactly<InvalidDataException>(() =>
-            CanonicalContentManifestSerializer.Serialize(entries));
+        await Assert.That(() =>
+            CanonicalContentManifestSerializer.Serialize(entries)).ThrowsExactly<InvalidDataException>();
     }
 
-    [TestMethod]
-    public void Serialize_WhenPathsCollideAfterUnicodeNormalization_RejectsCollision()
+    [Test]
+    public async Task Serialize_WhenPathsCollideAfterUnicodeNormalization_RejectsCollision()
     {
         ReleaseContentEntry[] entries =
         [
@@ -125,12 +120,12 @@ public sealed class CanonicalContentManifestSerializerTests
             Entry("cafe\u0301.txt", 2)
         ];
 
-        Assert.ThrowsExactly<InvalidDataException>(() =>
-            CanonicalContentManifestSerializer.Serialize(entries));
+        await Assert.That(() =>
+            CanonicalContentManifestSerializer.Serialize(entries)).ThrowsExactly<InvalidDataException>();
     }
 
-    [TestMethod]
-    public void Serialize_WhenPathsCollideAfterSeparatorNormalization_RejectsCollision()
+    [Test]
+    public async Task Serialize_WhenPathsCollideAfterSeparatorNormalization_RejectsCollision()
     {
         ReleaseContentEntry[] entries =
         [
@@ -138,12 +133,12 @@ public sealed class CanonicalContentManifestSerializerTests
             Entry("nested\\payload.dll", 2)
         ];
 
-        Assert.ThrowsExactly<InvalidDataException>(() =>
-            CanonicalContentManifestSerializer.Serialize(entries));
+        await Assert.That(() =>
+            CanonicalContentManifestSerializer.Serialize(entries)).ThrowsExactly<InvalidDataException>();
     }
 
-    [TestMethod]
-    public void Serialize_WhenEqualPathsBelongToDifferentAreas_AllowsAndSortsByArea()
+    [Test]
+    public async Task Serialize_WhenEqualPathsBelongToDifferentAreas_AllowsAndSortsByArea()
     {
         ReleaseContentEntry[] entries =
         [
@@ -154,13 +149,12 @@ public sealed class CanonicalContentManifestSerializerTests
         var serialized = Encoding.UTF8.GetString(
             CanonicalContentManifestSerializer.Serialize(entries));
 
-        Assert.IsTrue(
-            serialized.IndexOf("workshop-content", StringComparison.Ordinal) <
-            serialized.IndexOf("workshop-listing", StringComparison.Ordinal));
+        await Assert.That(serialized.IndexOf("workshop-content", StringComparison.Ordinal) <
+            serialized.IndexOf("workshop-listing", StringComparison.Ordinal)).IsTrue();
     }
 
-    [TestMethod]
-    public void Serialize_WhenHashIsNotLowercase64Hex_RejectsEntry()
+    [Test]
+    public async Task Serialize_WhenHashIsNotLowercase64Hex_RejectsEntry()
     {
         foreach (var sha256 in new[]
         {
@@ -176,13 +170,13 @@ public sealed class CanonicalContentManifestSerializerTests
                 sha256,
                 ContentRole.Runtime);
 
-            Assert.ThrowsExactly<InvalidDataException>(() =>
-                CanonicalContentManifestSerializer.Serialize([entry]));
+            await Assert.That(() =>
+                CanonicalContentManifestSerializer.Serialize([entry])).ThrowsExactly<InvalidDataException>();
         }
     }
 
-    [TestMethod]
-    public void Serialize_WhenByteLengthExceedsInt32_UsesInvariantInt64Text()
+    [Test]
+    public async Task Serialize_WhenByteLengthExceedsInt32_UsesInvariantInt64Text()
     {
         const long byteLength = (long)int.MaxValue + 42;
 
@@ -190,30 +184,30 @@ public sealed class CanonicalContentManifestSerializerTests
             CanonicalContentManifestSerializer.Serialize(
                 [Entry("large.bin", byteLength)]));
 
-        StringAssert.Contains(serialized, "\02147483689\0");
+        await Assert.That(serialized).Contains("\02147483689\0");
     }
 
-    [TestMethod]
-    public void Serialize_WhenByteLengthIsNegative_RejectsEntry()
+    [Test]
+    public async Task Serialize_WhenByteLengthIsNegative_RejectsEntry()
     {
-        Assert.ThrowsExactly<InvalidDataException>(() =>
-            CanonicalContentManifestSerializer.Serialize([Entry("payload.dll", -1)]));
+        await Assert.That(() =>
+            CanonicalContentManifestSerializer.Serialize([Entry("payload.dll", -1)])).ThrowsExactly<InvalidDataException>();
     }
 
-    [TestMethod]
-    public void Serialize_WhenEnumValueIsUnknown_RejectsEntry()
+    [Test]
+    public async Task Serialize_WhenEnumValueIsUnknown_RejectsEntry()
     {
         var unknownArea = Entry("area.bin", 1) with { ContentArea = (ContentArea)999 };
         var unknownRole = Entry("role.bin", 1) with { Role = (ContentRole)999 };
 
-        Assert.ThrowsExactly<InvalidDataException>(() =>
-            CanonicalContentManifestSerializer.Serialize([unknownArea]));
-        Assert.ThrowsExactly<InvalidDataException>(() =>
-            CanonicalContentManifestSerializer.Serialize([unknownRole]));
+        await Assert.That(() =>
+            CanonicalContentManifestSerializer.Serialize([unknownArea])).ThrowsExactly<InvalidDataException>();
+        await Assert.That(() =>
+            CanonicalContentManifestSerializer.Serialize([unknownRole])).ThrowsExactly<InvalidDataException>();
     }
 
-    [TestMethod]
-    public void ReleaseContentManifest_WhenSerializedAsJson_UsesCamelCaseAndMappedEnums()
+    [Test]
+    public async Task ReleaseContentManifest_WhenSerializedAsJson_UsesCamelCaseAndMappedEnums()
     {
         var manifest = new ReleaseContentManifest(
             1,
@@ -226,10 +220,10 @@ public sealed class CanonicalContentManifestSerializerTests
 
         var json = JsonSerializer.Serialize(manifest, options);
 
-        StringAssert.Contains(json, "\"schemaVersion\":1");
-        StringAssert.Contains(json, "\"contentArea\":\"workshop-content\"");
-        StringAssert.Contains(json, "\"role\":\"runtime\"");
-        StringAssert.Contains(json, $"\"contentDigest\":\"{SecondSha256}\"");
+        await Assert.That(json).Contains("\"schemaVersion\":1");
+        await Assert.That(json).Contains("\"contentArea\":\"workshop-content\"");
+        await Assert.That(json).Contains("\"role\":\"runtime\"");
+        await Assert.That(json).Contains($"\"contentDigest\":\"{SecondSha256}\"");
     }
 
     private static ReleaseContentEntry Entry(

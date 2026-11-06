@@ -1,87 +1,85 @@
 namespace DeliveryTemperatureLimit.Tests.TemperatureConstraints;
-
-[TestClass]
 public sealed class TemperatureLimitComponentIndexTests
 {
-    [TestMethod]
-    public void TryRegister_WhenEntryIsNew_PublishesComponentAndConstraint()
+    [Test]
+    public async Task TryRegister_WhenEntryIsNew_PublishesComponentAndConstraint()
     {
         var index = new TemperatureLimitComponentIndex();
         var component = new TemperatureLimit();
         var registration = Registration(componentId: 1, sequence: 10);
         var constraint = Constraint(10, 20);
 
-        Assert.IsTrue(index.TryRegister(
+        await Assert.That(index.TryRegister(
             gameObjectInstanceId: 77,
             component,
             registration,
-            constraint));
+            constraint)).IsTrue();
 
-        Assert.IsTrue(index.TryGetRegisteredComponent(
+        await Assert.That(index.TryGetRegisteredComponent(
             77,
             out var observedComponent,
-            out var observedComponentRegistration));
-        Assert.AreSame(component, observedComponent);
-        Assert.AreEqual(registration, observedComponentRegistration);
+            out var observedComponentRegistration)).IsTrue();
+        await Assert.That(observedComponent).IsSameReferenceAs(component);
+        await Assert.That(observedComponentRegistration).IsEqualTo(registration);
 
-        Assert.IsTrue(index.TryGetConstraint(
+        await Assert.That(index.TryGetConstraint(
             77,
             out var observedConstraint,
-            out var observedConstraintRegistration));
-        Assert.AreEqual(constraint, observedConstraint);
-        Assert.AreEqual(registration, observedConstraintRegistration);
+            out var observedConstraintRegistration)).IsTrue();
+        await Assert.That(observedConstraint).IsEqualTo(constraint);
+        await Assert.That(observedConstraintRegistration).IsEqualTo(registration);
     }
 
-    [TestMethod]
-    public void TryRegister_WhenSameOwnerAndStateRepeats_IsIdempotent()
+    [Test]
+    public async Task TryRegister_WhenSameOwnerAndStateRepeats_IsIdempotent()
     {
         var index = new TemperatureLimitComponentIndex();
         var component = new TemperatureLimit();
         var registration = Registration(componentId: 1, sequence: 10);
         var constraint = Constraint(10, 20);
 
-        Assert.IsTrue(index.TryRegister(77, component, registration, constraint));
-        Assert.IsTrue(index.TryRegister(77, component, registration, constraint));
+        await Assert.That(index.TryRegister(77, component, registration, constraint)).IsTrue();
+        await Assert.That(index.TryRegister(77, component, registration, constraint)).IsTrue();
 
-        Assert.IsTrue(index.TryGetRegisteredComponent(
+        await Assert.That(index.TryGetRegisteredComponent(
             77,
             out var observedComponent,
-            out var observedRegistration));
-        Assert.AreSame(component, observedComponent);
-        Assert.AreEqual(registration, observedRegistration);
-        Assert.IsTrue(index.TryRemove(77, registration));
-        Assert.IsFalse(index.TryRemove(77, registration));
+            out var observedRegistration)).IsTrue();
+        await Assert.That(observedComponent).IsSameReferenceAs(component);
+        await Assert.That(observedRegistration).IsEqualTo(registration);
+        await Assert.That(index.TryRemove(77, registration)).IsTrue();
+        await Assert.That(index.TryRemove(77, registration)).IsFalse();
     }
 
-    [TestMethod]
-    public void TryRegister_WhenOwnerReusesTokenWithDifferentState_ReturnsFalse()
+    [Test]
+    public async Task TryRegister_WhenOwnerReusesTokenWithDifferentState_ReturnsFalse()
     {
         var index = new TemperatureLimitComponentIndex();
         var component = new TemperatureLimit();
         var registration = Registration(componentId: 1, sequence: 10);
         var originalConstraint = Constraint(10, 20);
-        Assert.IsTrue(index.TryRegister(
+        await Assert.That(index.TryRegister(
             77,
             component,
             registration,
-            originalConstraint));
+            originalConstraint)).IsTrue();
 
-        Assert.IsFalse(index.TryRegister(
+        await Assert.That(index.TryRegister(
             77,
             component,
             registration,
-            Constraint(30, 40)));
+            Constraint(30, 40))).IsFalse();
 
-        Assert.IsTrue(index.TryGetConstraint(
+        await Assert.That(index.TryGetConstraint(
             77,
             out var observedConstraint,
-            out var observedRegistration));
-        Assert.AreEqual(originalConstraint, observedConstraint);
-        Assert.AreEqual(registration, observedRegistration);
+            out var observedRegistration)).IsTrue();
+        await Assert.That(observedConstraint).IsEqualTo(originalConstraint);
+        await Assert.That(observedRegistration).IsEqualTo(registration);
     }
 
-    [TestMethod]
-    public void TryRegister_WhenDifferentOwnerUsesSameGameObjectId_ReplacesAtomically()
+    [Test]
+    public async Task TryRegister_WhenDifferentOwnerUsesSameGameObjectId_ReplacesAtomically()
     {
         var index = new TemperatureLimitComponentIndex();
         var oldRegistration = Registration(componentId: 1, sequence: 10);
@@ -89,139 +87,139 @@ public sealed class TemperatureLimitComponentIndexTests
         var oldComponent = new TemperatureLimit();
         var newComponent = new TemperatureLimit();
 
-        Assert.IsTrue(index.TryRegister(
+        await Assert.That(index.TryRegister(
             77,
             oldComponent,
             oldRegistration,
-            Constraint(10, 20)));
-        Assert.IsTrue(index.TryRegister(
+            Constraint(10, 20))).IsTrue();
+        await Assert.That(index.TryRegister(
             77,
             newComponent,
             newRegistration,
-            Constraint(30, 40)));
+            Constraint(30, 40))).IsTrue();
 
-        Assert.IsTrue(index.TryGetRegisteredComponent(
+        await Assert.That(index.TryGetRegisteredComponent(
             77,
             out var observedComponent,
-            out var observedRegistration));
-        Assert.AreSame(newComponent, observedComponent);
-        Assert.AreEqual(newRegistration, observedRegistration);
-        Assert.IsTrue(index.TryGetConstraint(
+            out var observedRegistration)).IsTrue();
+        await Assert.That(observedComponent).IsSameReferenceAs(newComponent);
+        await Assert.That(observedRegistration).IsEqualTo(newRegistration);
+        await Assert.That(index.TryGetConstraint(
             77,
             out var observedConstraint,
-            out var observedConstraintRegistration));
-        Assert.AreEqual(Constraint(30, 40), observedConstraint);
-        Assert.AreEqual(newRegistration, observedConstraintRegistration);
+            out var observedConstraintRegistration)).IsTrue();
+        await Assert.That(observedConstraint).IsEqualTo(Constraint(30, 40));
+        await Assert.That(observedConstraintRegistration).IsEqualTo(newRegistration);
     }
 
-    [TestMethod]
-    public void TryReplaceConstraint_WhenTokenMatches_ChangesOnlyConstraint()
+    [Test]
+    public async Task TryReplaceConstraint_WhenTokenMatches_ChangesOnlyConstraint()
     {
         var index = new TemperatureLimitComponentIndex();
         var component = new TemperatureLimit();
         var registration = Registration(componentId: 1, sequence: 10);
-        Assert.IsTrue(index.TryRegister(
+        await Assert.That(index.TryRegister(
             77,
             component,
             registration,
-            Constraint(10, 20)));
+            Constraint(10, 20))).IsTrue();
 
-        Assert.IsTrue(index.TryReplaceConstraint(
+        await Assert.That(index.TryReplaceConstraint(
             77,
             registration,
-            Constraint(30, 40)));
+            Constraint(30, 40))).IsTrue();
 
-        Assert.IsTrue(index.TryGetRegisteredComponent(
+        await Assert.That(index.TryGetRegisteredComponent(
             77,
             out var observedComponent,
-            out var observedRegistration));
-        Assert.AreSame(component, observedComponent);
-        Assert.AreEqual(registration, observedRegistration);
-        Assert.IsTrue(index.TryGetConstraint(
+            out var observedRegistration)).IsTrue();
+        await Assert.That(observedComponent).IsSameReferenceAs(component);
+        await Assert.That(observedRegistration).IsEqualTo(registration);
+        await Assert.That(index.TryGetConstraint(
             77,
             out var observedConstraint,
-            out var observedConstraintRegistration));
-        Assert.AreEqual(Constraint(30, 40), observedConstraint);
-        Assert.AreEqual(registration, observedConstraintRegistration);
+            out var observedConstraintRegistration)).IsTrue();
+        await Assert.That(observedConstraint).IsEqualTo(Constraint(30, 40));
+        await Assert.That(observedConstraintRegistration).IsEqualTo(registration);
     }
 
-    [TestMethod]
-    public void TryReplaceConstraint_WhenTokenIsStale_LeavesEntryUnchanged()
+    [Test]
+    public async Task TryReplaceConstraint_WhenTokenIsStale_LeavesEntryUnchanged()
     {
         var index = new TemperatureLimitComponentIndex();
         var currentComponent = new TemperatureLimit();
         var currentRegistration = Registration(componentId: 2, sequence: 11);
         var staleRegistration = Registration(componentId: 1, sequence: 10);
         var currentConstraint = Constraint(30, 40);
-        Assert.IsTrue(index.TryRegister(
+        await Assert.That(index.TryRegister(
             77,
             currentComponent,
             currentRegistration,
-            currentConstraint));
+            currentConstraint)).IsTrue();
 
-        Assert.IsFalse(index.TryReplaceConstraint(
+        await Assert.That(index.TryReplaceConstraint(
             77,
             staleRegistration,
-            Constraint(50, 60)));
+            Constraint(50, 60))).IsFalse();
 
-        Assert.IsTrue(index.TryGetRegisteredComponent(
+        await Assert.That(index.TryGetRegisteredComponent(
             77,
             out var observedComponent,
-            out var observedRegistration));
-        Assert.AreSame(currentComponent, observedComponent);
-        Assert.AreEqual(currentRegistration, observedRegistration);
-        Assert.IsTrue(index.TryGetConstraint(
+            out var observedRegistration)).IsTrue();
+        await Assert.That(observedComponent).IsSameReferenceAs(currentComponent);
+        await Assert.That(observedRegistration).IsEqualTo(currentRegistration);
+        await Assert.That(index.TryGetConstraint(
             77,
             out var observedConstraint,
-            out _));
-        Assert.AreEqual(currentConstraint, observedConstraint);
+            out _)).IsTrue();
+        await Assert.That(observedConstraint).IsEqualTo(currentConstraint);
     }
 
-    [TestMethod]
-    public void TryGetConstraint_WhenGameObjectIsUnknown_ReturnsFalse()
+    [Test]
+    public async Task TryGetConstraint_WhenGameObjectIsUnknown_ReturnsFalse()
     {
         var index = new TemperatureLimitComponentIndex();
 
-        Assert.IsFalse(index.TryGetConstraint(
+        await Assert.That(index.TryGetConstraint(
             77,
             out var observedConstraint,
-            out var observedRegistration));
-        Assert.AreEqual(default(DeliveryTemperatureConstraint), observedConstraint);
-        Assert.AreEqual(default(TemperatureConstraintRegistrationToken), observedRegistration);
+            out var observedRegistration)).IsFalse();
+        await Assert.That(observedConstraint).IsEqualTo(default(DeliveryTemperatureConstraint));
+        await Assert.That(observedRegistration).IsEqualTo(default(TemperatureConstraintRegistrationToken));
     }
 
-    [TestMethod]
-    public void TryGetRegisteredComponent_WhenGameObjectIsUnknown_ReturnsFalse()
+    [Test]
+    public async Task TryGetRegisteredComponent_WhenGameObjectIsUnknown_ReturnsFalse()
     {
         var index = new TemperatureLimitComponentIndex();
 
-        Assert.IsFalse(index.TryGetRegisteredComponent(
+        await Assert.That(index.TryGetRegisteredComponent(
             77,
             out var observedComponent,
-            out var observedRegistration));
-        Assert.IsNull(observedComponent);
-        Assert.AreEqual(default(TemperatureConstraintRegistrationToken), observedRegistration);
+            out var observedRegistration)).IsFalse();
+        await Assert.That(observedComponent).IsNull();
+        await Assert.That(observedRegistration).IsEqualTo(default(TemperatureConstraintRegistrationToken));
     }
 
-    [TestMethod]
-    public void TryRemove_WhenCalledTwice_IsIdempotent()
+    [Test]
+    public async Task TryRemove_WhenCalledTwice_IsIdempotent()
     {
         var index = new TemperatureLimitComponentIndex();
         var component = new TemperatureLimit();
         var registration = Registration(componentId: 1, sequence: 10);
-        Assert.IsTrue(index.TryRegister(
+        await Assert.That(index.TryRegister(
             77,
             component,
             registration,
-            Constraint(10, 20)));
+            Constraint(10, 20))).IsTrue();
 
-        Assert.IsTrue(index.TryRemove(77, registration));
-        Assert.IsFalse(index.TryRemove(77, registration));
-        Assert.IsFalse(index.TryGetRegisteredComponent(77, out _, out _));
+        await Assert.That(index.TryRemove(77, registration)).IsTrue();
+        await Assert.That(index.TryRemove(77, registration)).IsFalse();
+        await Assert.That(index.TryGetRegisteredComponent(77, out _, out _)).IsFalse();
     }
 
-    [TestMethod]
-    public void TryRemove_WhenGameObjectIdWasReused_DoesNotRemoveNewOwner()
+    [Test]
+    public async Task TryRemove_WhenGameObjectIdWasReused_DoesNotRemoveNewOwner()
     {
         var index = new TemperatureLimitComponentIndex();
         var oldRegistration = Registration(componentId: 1, sequence: 10);
@@ -229,27 +227,27 @@ public sealed class TemperatureLimitComponentIndexTests
         var oldComponent = new TemperatureLimit();
         var newComponent = new TemperatureLimit();
 
-        Assert.IsTrue(index.TryRegister(
+        await Assert.That(index.TryRegister(
             77,
             oldComponent,
             oldRegistration,
-            Constraint(10, 20)));
-        Assert.IsTrue(index.TryRegister(
+            Constraint(10, 20))).IsTrue();
+        await Assert.That(index.TryRegister(
             77,
             newComponent,
             newRegistration,
-            Constraint(30, 40)));
+            Constraint(30, 40))).IsTrue();
 
-        Assert.IsFalse(index.TryRemove(77, oldRegistration));
-        Assert.IsTrue(index.TryGetRegisteredComponent(
+        await Assert.That(index.TryRemove(77, oldRegistration)).IsFalse();
+        await Assert.That(index.TryGetRegisteredComponent(
             77,
             out var component,
-            out var survivingRegistration));
-        Assert.AreSame(newComponent, component);
-        Assert.AreEqual(newRegistration, survivingRegistration);
+            out var survivingRegistration)).IsTrue();
+        await Assert.That(component).IsSameReferenceAs(newComponent);
+        await Assert.That(survivingRegistration).IsEqualTo(newRegistration);
     }
 
-    [TestMethod]
+    [Test]
     public async Task ConcurrentReaders_WhenEntryIsReplaced_ObserveOnlyWholeOldOrWholeNewEntry()
     {
         const int writerIterationCount = 20000;
@@ -267,11 +265,11 @@ public sealed class TemperatureLimitComponentIndexTests
         var missingEntryCount = 0;
         var failedReplacementCount = 0;
 
-        Assert.IsTrue(index.TryRegister(
+        await Assert.That(index.TryRegister(
             77,
             oldComponent,
             oldRegistration,
-            oldConstraint));
+            oldConstraint)).IsTrue();
 
         var writer = Task.Run(() =>
         {
@@ -335,9 +333,9 @@ public sealed class TemperatureLimitComponentIndexTests
         await writer;
         await Task.WhenAll(readers);
 
-        Assert.AreEqual(0, failedReplacementCount);
-        Assert.AreEqual(0, missingEntryCount);
-        Assert.AreEqual(0, invalidPairCount);
+        await Assert.That(failedReplacementCount).IsEqualTo(0);
+        await Assert.That(missingEntryCount).IsEqualTo(0);
+        await Assert.That(invalidPairCount).IsEqualTo(0);
     }
 
     private static DeliveryTemperatureConstraint Constraint(

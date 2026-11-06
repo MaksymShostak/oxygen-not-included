@@ -2,21 +2,17 @@ using MaksymShostak.OniModPipeline.Cli;
 using System.Diagnostics;
 
 namespace MaksymShostak.OniModPipeline.Tests.Cli;
-
-[TestClass]
 public sealed class CliApplicationTests
 {
-    [TestMethod]
-    public void CreateRootCommand_WhenCalled_DescribesTheLocalPipeline()
+    [Test]
+    public async Task CreateRootCommand_WhenCalled_DescribesTheLocalPipeline()
     {
         var command = CliApplication.CreateRootCommand();
 
-        Assert.AreEqual(
-            "Prepare tested ONI mod release candidates for manual Workshop upload.",
-            command.Description);
+        await Assert.That(command.Description).IsEqualTo("Prepare tested ONI mod release candidates for manual Workshop upload.");
     }
 
-    [TestMethod]
+    [Test]
     public async Task InvokeExecutable_WhenHelpIsRequested_UsesPublicToolName()
     {
         var startInfo = new ProcessStartInfo
@@ -31,18 +27,16 @@ public sealed class CliApplicationTests
         startInfo.ArgumentList.Add("--help");
         using var process = new Process { StartInfo = startInfo };
 
-        Assert.IsTrue(process.Start(), "The production CLI process did not start.");
+        await Assert.That(process.Start()).IsTrue().Because("The production CLI process did not start.");
         var standardOutput = process.StandardOutput.ReadToEndAsync();
         var standardError = process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync();
 
-        Assert.AreEqual(0, process.ExitCode, await standardError);
-        StringAssert.Contains(
-            await standardOutput,
-            "oni-mod-pipeline [command] [options]");
+        await Assert.That(process.ExitCode).IsEqualTo(0).Because(await standardError);
+        await Assert.That(await standardOutput).Contains("oni-mod-pipeline [command] [options]");
     }
 
-    [TestMethod]
+    [Test]
     public async Task InvokeExecutable_WhenFormatIsUnknown_ReturnsInvalidInputExitCode()
     {
         var startInfo = new ProcessStartInfo
@@ -59,14 +53,14 @@ public sealed class CliApplicationTests
         startInfo.ArgumentList.Add("xml");
         using var process = new Process { StartInfo = startInfo };
 
-        Assert.IsTrue(process.Start(), "The production CLI process did not start.");
+        await Assert.That(process.Start()).IsTrue().Because("The production CLI process did not start.");
         var standardOutput = process.StandardOutput.ReadToEndAsync();
         var standardError = process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync();
 
-        Assert.AreEqual(2, process.ExitCode, await standardError);
-        Assert.AreEqual(string.Empty, await standardOutput);
-        StringAssert.Contains(await standardError, "human");
-        StringAssert.Contains(await standardError, "json");
+        await Assert.That(process.ExitCode).IsEqualTo(2).Because(await standardError);
+        await Assert.That(await standardOutput).IsEqualTo(string.Empty);
+        await Assert.That(await standardError).Contains("human");
+        await Assert.That(await standardError).Contains("json");
     }
 }

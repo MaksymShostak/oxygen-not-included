@@ -4,14 +4,12 @@ using System.Reflection.PortableExecutable;
 using DeliveryTemperatureLimit.Tests.OniModPipelineIntegration;
 
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
-
-[TestClass]
 public sealed class TemperatureLimitInputScreenContractTests
 {
     private const string ScreenType = "DeliveryTemperatureLimit.TemperatureLimitInputScreen";
 
-    [TestMethod]
-    public void BothTemperatureFields_RegisterAnInputScreenWithTheGame()
+    [Test]
+    public async Task BothTemperatureFields_RegisterAnInputScreenWithTheGame()
     {
         string path = BuildPath();
         using var stream = File.OpenRead(path);
@@ -19,17 +17,16 @@ public sealed class TemperatureLimitInputScreenContractTests
         MetadataReader metadata = pe.GetMetadataReader();
         TypeDefinitionHandle screen = metadata.TypeDefinitions.SingleOrDefault(handle =>
             metadata.GetString(metadata.GetTypeDefinition(handle).Name) == "TemperatureLimitInputScreen");
-        Assert.IsFalse(screen.IsNil,
-            "Each TMP field needs an active input owner; the parent side screen does not receive keyboard events.");
+        await Assert.That(screen.IsNil).IsFalse().Because("Each TMP field needs an active input owner; the parent side screen does not receive keyboard events.");
         TypeDefinition definition = metadata.GetTypeDefinition(screen);
-        Assert.AreEqual("KScreen", metadata.GetString(metadata.GetTypeReference(
-            (TypeReferenceHandle)definition.BaseType).Name));
+        await Assert.That(metadata.GetString(metadata.GetTypeReference(
+            (TypeReferenceHandle)definition.BaseType).Name)).IsEqualTo("KScreen");
 
         var constructor = Body(path, ".ctor");
         int activation = constructor.Instructions.ToList().FindIndex(instruction =>
             instruction.ResolvedOperand == "KScreen.activateOnSpawn");
-        Assert.IsTrue(activation > 0, "The input owner must register on spawn.");
-        Assert.AreEqual("ldc.i4.1", constructor.Instructions[activation - 1].Operation);
+        await Assert.That(activation > 0).IsTrue().Because("The input owner must register on spawn.");
+        await Assert.That(constructor.Instructions[activation - 1].Operation).IsEqualTo("ldc.i4.1");
 
         var widget = metadata.TypeDefinitions.Select(metadata.GetTypeDefinition).Single(type =>
             metadata.GetString(type.Name) == "TemperatureLimitWidget");
@@ -53,48 +50,44 @@ public sealed class TemperatureLimitInputScreenContractTests
                 }
             }
         }
-        Assert.AreEqual(2, attachedInputs, "Both lower and upper fields need a registered input owner.");
+        await Assert.That(attachedInputs).IsEqualTo(2).Because("Both lower and upper fields need a registered input owner.");
     }
 
-    [TestMethod]
-    public void InputOwner_WiresFocusAndEndEditAndUnsubscribesOnCleanup()
+    [Test]
+    public async Task InputOwner_WiresFocusAndEndEditAndUnsubscribesOnCleanup()
     {
         string path = BuildPath();
         string spawn = Body(path, "OnSpawn").FormatInstructions();
-        StringAssert.Contains(spawn, "KScreen.OnSpawn");
-        StringAssert.Contains(spawn, "TMPro.TMP_InputField.onFocus");
-        StringAssert.Contains(spawn, "TemperatureLimitInputScreen.OnInputFocus");
-        StringAssert.Contains(spawn, "TemperatureLimitInputScreen.OnInputEndEdit");
-        StringAssert.Contains(spawn, "AddListener");
+        await Assert.That(spawn).Contains("KScreen.OnSpawn");
+        await Assert.That(spawn).Contains("TMPro.TMP_InputField.onFocus");
+        await Assert.That(spawn).Contains("TemperatureLimitInputScreen.OnInputFocus");
+        await Assert.That(spawn).Contains("TemperatureLimitInputScreen.OnInputEndEdit");
+        await Assert.That(spawn).Contains("AddListener");
         string cleanup = Body(path, "OnCleanUp").FormatInstructions();
-        StringAssert.Contains(cleanup, "System.Delegate.Remove");
-        StringAssert.Contains(cleanup, "RemoveListener");
-        StringAssert.Contains(cleanup, "TemperatureLimitInputScreen.ReleaseInputCapture");
+        await Assert.That(cleanup).Contains("System.Delegate.Remove");
+        await Assert.That(cleanup).Contains("RemoveListener");
+        await Assert.That(cleanup).Contains("TemperatureLimitInputScreen.ReleaseInputCapture");
     }
 
-    [TestMethod]
-    public void InputOwner_DisablingOrRefocusingCancelsPendingRelease()
+    [Test]
+    public async Task InputOwner_DisablingOrRefocusingCancelsPendingRelease()
     {
         string path = BuildPath();
-        StringAssert.Contains(Body(path, "OnDisable").FormatInstructions(),
-            "TemperatureLimitInputScreen.ReleaseInputCapture");
-        StringAssert.Contains(Body(path, "OnInputFocus").FormatInstructions(),
-            "TemperatureLimitInputScreen.CancelPendingRelease");
-        StringAssert.Contains(Body(path, "ReleaseInputCapture").FormatInstructions(),
-            "TemperatureLimitInputScreen.CancelPendingRelease");
-        StringAssert.Contains(Body(path, "CancelPendingRelease").FormatInstructions(),
-            "UnityEngine.MonoBehaviour.StopCoroutine");
-        AssertEditingAssignment(Body(path, "OnInputFocus"), "ldc.i4.1");
-        AssertEditingAssignment(Body(path, "ReleaseInputCapture"), "ldc.i4.0");
+        await Assert.That(Body(path, "OnDisable").FormatInstructions()).Contains("TemperatureLimitInputScreen.ReleaseInputCapture");
+        await Assert.That(Body(path, "OnInputFocus").FormatInstructions()).Contains("TemperatureLimitInputScreen.CancelPendingRelease");
+        await Assert.That(Body(path, "ReleaseInputCapture").FormatInstructions()).Contains("TemperatureLimitInputScreen.CancelPendingRelease");
+        await Assert.That(Body(path, "CancelPendingRelease").FormatInstructions()).Contains("UnityEngine.MonoBehaviour.StopCoroutine");
+        await AssertEditingAssignment(Body(path, "OnInputFocus"), "ldc.i4.1");
+        await AssertEditingAssignment(Body(path, "ReleaseInputCapture"), "ldc.i4.0");
     }
 
-    [TestMethod]
-    public void InputOwner_EndEditDefersReleaseUntilEndOfFrame()
+    [Test]
+    public async Task InputOwner_EndEditDefersReleaseUntilEndOfFrame()
     {
         string path = BuildPath();
         string endEdit = Body(path, "OnInputEndEdit").FormatInstructions();
-        StringAssert.Contains(endEdit, "UnityEngine.MonoBehaviour.StartCoroutine");
-        StringAssert.Contains(endEdit, "TemperatureLimitInputScreen.ReleaseAfterEditFrame");
+        await Assert.That(endEdit).Contains("UnityEngine.MonoBehaviour.StartCoroutine");
+        await Assert.That(endEdit).Contains("TemperatureLimitInputScreen.ReleaseAfterEditFrame");
         using var stream = File.OpenRead(path);
         using var pe = new PEReader(stream);
         MetadataReader metadata = pe.GetMetadataReader();
@@ -103,12 +96,12 @@ public sealed class TemperatureLimitInputScreenContractTests
             .Single(name => name.StartsWith("<ReleaseAfterEditFrame>", StringComparison.Ordinal));
         var moveNext = DeliveryTemperatureAssemblyMetadataReader.ReadMethodBodies(
             path, ScreenType + "+" + iteratorName, "MoveNext").Single();
-        StringAssert.Contains(moveNext.FormatInstructions(), "UnityEngine.WaitForEndOfFrame..ctor");
-        AssertEditingAssignment(moveNext, "ldc.i4.0");
+        await Assert.That(moveNext.FormatInstructions()).Contains("UnityEngine.WaitForEndOfFrame..ctor");
+        await AssertEditingAssignment(moveNext, "ldc.i4.0");
     }
 
-    [TestMethod]
-    public void InputOwner_KeyDownAndKeyUpConsumeOnlyDuringEditing()
+    [Test]
+    public async Task InputOwner_KeyDownAndKeyUpConsumeOnlyDuringEditing()
     {
         string path = BuildPath();
         foreach (string method in new[] { "OnKeyDown", "OnKeyUp" })
@@ -116,13 +109,13 @@ public sealed class TemperatureLimitInputScreenContractTests
             var instructions = Body(path, method).Instructions;
             // Execute the actual compiled branch with managed substitutes for the
             // two native boundary properties. No TMP or screen routing is simulated.
-            Assert.IsTrue(EvaluateCapture(instructions, editing: true), method);
-            Assert.IsFalse(EvaluateCapture(instructions, editing: false), method);
-            Assert.IsFalse(EvaluateCapture(instructions, editing: true, enabled: false), method);
+            await Assert.That((await EvaluateCapture(instructions, editing: true))).IsTrue().Because(method);
+            await Assert.That((await EvaluateCapture(instructions, editing: false))).IsFalse().Because(method);
+            await Assert.That((await EvaluateCapture(instructions, editing: true, enabled: false))).IsFalse().Because(method);
         }
     }
 
-    private static bool EvaluateCapture(IReadOnlyList<AssemblyInstructionContract> instructions, bool editing, bool enabled = true)
+    private static async Task<bool> EvaluateCapture(IReadOnlyList<AssemblyInstructionContract> instructions, bool editing, bool enabled = true)
     {
         var stack = new Stack<object>();
         bool consumed = false;
@@ -152,7 +145,7 @@ public sealed class TemperatureLimitInputScreenContractTests
                     {
                         int target = instructions[index + 1].Offset + Convert.ToInt32(instruction.Operand);
                         int targetIndex = instructions.ToList().FindIndex(item => item.Offset == target);
-                        Assert.IsTrue(targetIndex >= 0, "Invalid branch target in capture method.");
+                        await Assert.That(targetIndex >= 0).IsTrue().Because("Invalid branch target in capture method.");
                         index = targetIndex - 1;
                     }
                     break;
@@ -160,7 +153,7 @@ public sealed class TemperatureLimitInputScreenContractTests
                 case "leave": case "leave.s":
                     int destination = instructions[index + 1].Offset + Convert.ToInt32(instruction.Operand);
                     index = instructions.ToList().FindIndex(item => item.Offset == destination) - 1;
-                    Assert.IsTrue(index >= 0);
+                    await Assert.That(index >= 0).IsTrue();
                     stack.Clear();
                     break;
                 case "nop": break;
@@ -174,19 +167,19 @@ public sealed class TemperatureLimitInputScreenContractTests
     private static AssemblyMethodBodyContract Body(string path, string method) =>
         DeliveryTemperatureAssemblyMetadataReader.ReadMethodBodies(path, ScreenType, method).Single();
 
-    private static void AssertEditingAssignment(AssemblyMethodBodyContract body, string expectedValue)
+    private static async Task AssertEditingAssignment(AssemblyMethodBodyContract body, string expectedValue)
     {
         int setter = body.Instructions.ToList().FindIndex(instruction =>
             instruction.ResolvedOperand == "KScreen.set_isEditing");
-        Assert.IsTrue(setter > 0, body.FormatInstructions());
-        Assert.AreEqual(expectedValue, body.Instructions[setter - 1].Operation, body.MethodName);
+        await Assert.That(setter > 0).IsTrue().Because(body.FormatInstructions());
+        await Assert.That(body.Instructions[setter - 1].Operation).IsEqualTo(expectedValue).Because(body.MethodName);
     }
 
     private static string BuildPath()
     {
         var builds = PipelineProvenanceBoundAssemblyLocator.CreateForCurrentPipelineEnvironment()
             .ProbeExactPipelineBuildDataRows();
-        if (builds.Count == 0) Assert.Inconclusive("Supply DELIVERY_TEMPERATURE_LIMIT_BUILD_RESULT_PATH.");
+        if (builds.Count == 0) Skip.Test("Supply DELIVERY_TEMPERATURE_LIMIT_BUILD_RESULT_PATH.");
         return builds.Single().AssemblyPath;
     }
 }

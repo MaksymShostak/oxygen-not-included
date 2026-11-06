@@ -1,22 +1,20 @@
 using DeliveryTemperatureLimit.Tests.ReferenceTemperatureModels;
 
 namespace DeliveryTemperatureLimit.Tests.FetchTemperatureEligibility;
-
-[TestClass]
 public sealed class TemperaturePartitionDefinitionTests
 {
-    [TestMethod]
-    public void TemperatureEligibilityClassKey_FactoriesPopulateOnlyKindSpecificFields()
+    [Test]
+    public async Task TemperatureEligibilityClassKey_FactoriesPopulateOnlyKindSpecificFields()
     {
         var exactBucket = TemperatureDecisionBucket.FromIntegerKelvin(273);
 
-        AssertKeyFields(
+        await AssertKeyFields(
             TemperatureEligibilityClassKey.NoTemperatureDistinction(),
             TemperatureEligibilityClassificationKind.NoTemperatureDistinction,
             expectedPartitionDefinitionId: 0,
             expectedIntervalOrdinal: 0,
             expectedExactBucket: default);
-        AssertKeyFields(
+        await AssertKeyFields(
             TemperatureEligibilityClassKey.OptimizedPartitionInterval(
                 partitionDefinitionId: 7,
                 intervalOrdinal: 3),
@@ -24,13 +22,13 @@ public sealed class TemperaturePartitionDefinitionTests
             expectedPartitionDefinitionId: 7,
             expectedIntervalOrdinal: 3,
             expectedExactBucket: default);
-        AssertKeyFields(
+        await AssertKeyFields(
             TemperatureEligibilityClassKey.ExactDecisionBucket(exactBucket),
             TemperatureEligibilityClassificationKind.ExactTemperatureDecisionBucket,
             expectedPartitionDefinitionId: 0,
             expectedIntervalOrdinal: 0,
             expectedExactBucket: exactBucket);
-        AssertKeyFields(
+        await AssertKeyFields(
             TemperatureEligibilityClassKey.MissingPrimaryElement(),
             TemperatureEligibilityClassificationKind.MissingPrimaryElement,
             expectedPartitionDefinitionId: 0,
@@ -38,92 +36,86 @@ public sealed class TemperaturePartitionDefinitionTests
             expectedExactBucket: default);
     }
 
-    [TestMethod]
-    public void TemperatureEligibilityClassKey_WhenOptimizedIdentityIsInvalid_ThrowsArgumentOutOfRangeException()
+    [Test]
+    public async Task TemperatureEligibilityClassKey_WhenOptimizedIdentityIsInvalid_ThrowsArgumentOutOfRangeException()
     {
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+        await Assert.That(() =>
             TemperatureEligibilityClassKey.OptimizedPartitionInterval(
                 partitionDefinitionId: 0,
-                intervalOrdinal: 0));
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+                intervalOrdinal: 0)).ThrowsExactly<ArgumentOutOfRangeException>();
+        await Assert.That(() =>
             TemperatureEligibilityClassKey.OptimizedPartitionInterval(
                 partitionDefinitionId: 1,
-                intervalOrdinal: -1));
+                intervalOrdinal: -1)).ThrowsExactly<ArgumentOutOfRangeException>();
     }
 
-    [TestMethod]
-    public void Classify_WhenEndpointsAreTenAndTwenty_ChangesClassAtEachEndpoint()
+    [Test]
+    public async Task Classify_WhenEndpointsAreTenAndTwenty_ChangesClassAtEachEndpoint()
     {
         var definition = TemperaturePartitionDefinition.Create(7, [10, 20]);
 
-        Assert.AreEqual(0, definition.Classify(Bucket(-1)));
-        Assert.AreEqual(0, definition.Classify(Bucket(9)));
-        Assert.AreEqual(1, definition.Classify(Bucket(10)));
-        Assert.AreEqual(1, definition.Classify(Bucket(19)));
-        Assert.AreEqual(2, definition.Classify(Bucket(20)));
-        Assert.AreEqual(2, definition.Classify(Bucket(10000)));
+        await Assert.That(definition.Classify(Bucket(-1))).IsEqualTo(0);
+        await Assert.That(definition.Classify(Bucket(9))).IsEqualTo(0);
+        await Assert.That(definition.Classify(Bucket(10))).IsEqualTo(1);
+        await Assert.That(definition.Classify(Bucket(19))).IsEqualTo(1);
+        await Assert.That(definition.Classify(Bucket(20))).IsEqualTo(2);
+        await Assert.That(definition.Classify(Bucket(10000))).IsEqualTo(2);
     }
 
-    [TestMethod]
-    public void Create_WhenEndpointsAreUnsortedAndDuplicated_NormalizesThem()
+    [Test]
+    public async Task Create_WhenEndpointsAreUnsortedAndDuplicated_NormalizesThem()
     {
         var definition = TemperaturePartitionDefinition.Create(
             definitionId: 11,
             decisionEndpointsKelvin: new[] { 40, 10, 20, 10, 40, 30 });
 
-        Assert.AreSequenceEqual(
-            new[] { 10, 20, 30, 40 },
-            definition.SortedDecisionEndpointsKelvin);
+        await Assert.That(definition.SortedDecisionEndpointsKelvin).IsEquivalentTo(new[] { 10, 20, 30, 40 }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void Create_WhenEndpointIsZero_SeparatesBelowRangeFromZero()
+    [Test]
+    public async Task Create_WhenEndpointIsZero_SeparatesBelowRangeFromZero()
     {
         var definition = TemperaturePartitionDefinition.Create(1, [0]);
 
-        Assert.AreEqual(0, definition.Classify(Bucket(-1)));
-        Assert.AreEqual(1, definition.Classify(Bucket(0)));
+        await Assert.That(definition.Classify(Bucket(-1))).IsEqualTo(0);
+        await Assert.That(definition.Classify(Bucket(0))).IsEqualTo(1);
     }
 
-    [TestMethod]
-    public void Create_WhenEndpointIsOniMaximum_Separates9999FromAtOrAboveMaximum()
+    [Test]
+    public async Task Create_WhenEndpointIsOniMaximum_Separates9999FromAtOrAboveMaximum()
     {
         var definition = TemperaturePartitionDefinition.Create(
             1,
             [OniStorableTemperatureBounds.MaximumTemperatureKelvin]);
 
-        Assert.AreEqual(
-            0,
-            definition.Classify(Bucket(
-                OniStorableTemperatureBounds.MaximumTemperatureKelvin - 1)));
-        Assert.AreEqual(
-            1,
-            definition.Classify(Bucket(
-                OniStorableTemperatureBounds.MaximumTemperatureKelvin)));
+        await Assert.That(definition.Classify(Bucket(
+                OniStorableTemperatureBounds.MaximumTemperatureKelvin - 1))).IsEqualTo(0);
+        await Assert.That(definition.Classify(Bucket(
+                OniStorableTemperatureBounds.MaximumTemperatureKelvin))).IsEqualTo(1);
     }
 
-    [TestMethod]
-    public void Create_WhenNoEndpoints_ThrowsArgumentException()
+    [Test]
+    public async Task Create_WhenNoEndpoints_ThrowsArgumentException()
     {
-        var exception = Assert.ThrowsExactly<ArgumentException>(() =>
-            TemperaturePartitionDefinition.Create(1, Array.Empty<int>()));
+        var exception = (await Assert.That(() =>
+            TemperaturePartitionDefinition.Create(1, Array.Empty<int>())).ThrowsExactly<ArgumentException>())!;
 
-        StringAssert.Contains(exception.Message, "decisionEndpointsKelvin");
+        await Assert.That(exception.Message).Contains("decisionEndpointsKelvin");
     }
 
-    [TestMethod]
-    public void Create_WhenEndpointIsOutsideConfigurableRange_ThrowsArgumentOutOfRangeException()
+    [Test]
+    public async Task Create_WhenEndpointIsOutsideConfigurableRange_ThrowsArgumentOutOfRangeException()
     {
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
-            TemperaturePartitionDefinition.Create(1, [-1]));
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+        await Assert.That(() =>
+            TemperaturePartitionDefinition.Create(1, [-1])).ThrowsExactly<ArgumentOutOfRangeException>();
+        await Assert.That(() =>
             TemperaturePartitionDefinition.Create(
                 1,
-                [OniStorableTemperatureBounds.MaximumTemperatureKelvin + 1]));
+                [OniStorableTemperatureBounds.MaximumTemperatureKelvin + 1])).ThrowsExactly<ArgumentOutOfRangeException>();
     }
 
-    [TestMethod]
-    public void Classify_WhenInputIsEveryDecisionBucket_ReturnsMonotonicOrdinals()
+    [Test]
+    public async Task Classify_WhenInputIsEveryDecisionBucket_ReturnsMonotonicOrdinals()
     {
         var endpoints = new[]
         {
@@ -145,40 +137,35 @@ public sealed class TemperaturePartitionDefinitionTests
                 endpoint <= representativeKelvin);
             var observedIntervalOrdinal = definition.Classify(bucket);
 
-            Assert.AreEqual(
-                expectedIntervalOrdinal,
-                observedIntervalOrdinal,
-                "Unexpected interval ordinal for decision bucket " + bucketOrdinal + ".");
-            Assert.IsTrue(
-                previousIntervalOrdinal <= observedIntervalOrdinal,
-                "Partition ordinals must be monotonic across decision buckets.");
+            await Assert.That(observedIntervalOrdinal).IsEqualTo(expectedIntervalOrdinal).Because("Unexpected interval ordinal for decision bucket " + bucketOrdinal + ".");
+            await Assert.That(previousIntervalOrdinal <= observedIntervalOrdinal).IsTrue().Because("Partition ordinals must be monotonic across decision buckets.");
             previousIntervalOrdinal = observedIntervalOrdinal;
         }
     }
 
-    [TestMethod]
-    public void TemperatureEligibilityClassKey_WhenOrdinalsMatchButDefinitionsDiffer_IsNotEqual()
+    [Test]
+    public async Task TemperatureEligibilityClassKey_WhenOrdinalsMatchButDefinitionsDiffer_IsNotEqual()
     {
         var first = TemperatureEligibilityClassKey.OptimizedPartitionInterval(1, 2);
         var second = TemperatureEligibilityClassKey.OptimizedPartitionInterval(2, 2);
 
-        Assert.AreNotEqual(first, second);
-        Assert.AreNotEqual(0, first.CompareTo(second));
+        await Assert.That(second).IsNotEqualTo(first);
+        await Assert.That(first.CompareTo(second)).IsNotEqualTo(0);
     }
 
-    [TestMethod]
-    public void TemperatureEligibilityClassKey_WhenDefinitionAndOrdinalMatch_IsEqual()
+    [Test]
+    public async Task TemperatureEligibilityClassKey_WhenDefinitionAndOrdinalMatch_IsEqual()
     {
         var first = TemperatureEligibilityClassKey.OptimizedPartitionInterval(7, 2);
         var second = TemperatureEligibilityClassKey.OptimizedPartitionInterval(7, 2);
 
-        Assert.AreEqual(first, second);
-        Assert.AreEqual(first.GetHashCode(), second.GetHashCode());
-        Assert.AreEqual(0, first.CompareTo(second));
+        await Assert.That(second).IsEqualTo(first);
+        await Assert.That(second.GetHashCode()).IsEqualTo(first.GetHashCode());
+        await Assert.That(first.CompareTo(second)).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void TemperatureEligibilityClassKey_CompareTo_UsesKindThenKindSpecificIdentity()
+    [Test]
+    public async Task TemperatureEligibilityClassKey_CompareTo_UsesKindThenKindSpecificIdentity()
     {
         var noDistinction =
             TemperatureEligibilityClassKey.NoTemperatureDistinction();
@@ -192,50 +179,48 @@ public sealed class TemperaturePartitionDefinitionTests
         var laterExact = TemperatureEligibilityClassKey.ExactDecisionBucket(Bucket(20));
         var missing = TemperatureEligibilityClassKey.MissingPrimaryElement();
 
-        Assert.IsTrue(noDistinction.CompareTo(firstOptimized) < 0);
-        Assert.IsTrue(firstOptimized.CompareTo(laterDefinition) < 0);
-        Assert.IsTrue(laterDefinition.CompareTo(laterInterval) < 0);
-        Assert.IsTrue(laterInterval.CompareTo(firstExact) < 0);
-        Assert.IsTrue(firstExact.CompareTo(laterExact) < 0);
-        Assert.IsTrue(laterExact.CompareTo(missing) < 0);
+        await Assert.That(noDistinction.CompareTo(firstOptimized) < 0).IsTrue();
+        await Assert.That(firstOptimized.CompareTo(laterDefinition) < 0).IsTrue();
+        await Assert.That(laterDefinition.CompareTo(laterInterval) < 0).IsTrue();
+        await Assert.That(laterInterval.CompareTo(firstExact) < 0).IsTrue();
+        await Assert.That(firstExact.CompareTo(laterExact) < 0).IsTrue();
+        await Assert.That(laterExact.CompareTo(missing) < 0).IsTrue();
     }
 
-    [TestMethod]
-    public void ExactFallback_WhenPrimaryElementIsMissing_UsesDedicatedNonTemperatureClassification()
+    [Test]
+    public async Task ExactFallback_WhenPrimaryElementIsMissing_UsesDedicatedNonTemperatureClassification()
     {
         var missing = TemperatureEligibilityClassKey.MissingPrimaryElement();
         var belowRange = TemperatureEligibilityClassKey.ExactDecisionBucket(Bucket(-1));
 
-        Assert.AreEqual(
-            TemperatureEligibilityClassificationKind.MissingPrimaryElement,
-            missing.ClassificationKind);
-        Assert.AreNotEqual(missing, belowRange);
-        Assert.AreEqual(0, missing.PartitionDefinitionId);
-        Assert.AreEqual(0, missing.IntervalOrdinal);
-        Assert.AreEqual(default, missing.ExactTemperatureDecisionBucket);
+        await Assert.That(missing.ClassificationKind).IsEqualTo(TemperatureEligibilityClassificationKind.MissingPrimaryElement);
+        await Assert.That(belowRange).IsNotEqualTo(missing);
+        await Assert.That(missing.PartitionDefinitionId).IsEqualTo(0);
+        await Assert.That(missing.IntervalOrdinal).IsEqualTo(0);
+        await Assert.That(missing.ExactTemperatureDecisionBucket).IsEqualTo(default);
     }
 
-    [TestMethod]
-    public void PickupTagIdentity_WhenHashesMatchButPrefabTagsDiffer_IsNotEqual()
+    [Test]
+    public async Task PickupTagIdentity_WhenHashesMatchButPrefabTagsDiffer_IsNotEqual()
     {
         var iron = new PickupTagIdentity(42, new Tag("Iron"));
         var copper = new PickupTagIdentity(42, new Tag("Copper"));
 
-        Assert.AreNotEqual(iron, copper);
+        await Assert.That(copper).IsNotEqualTo(iron);
     }
 
-    [TestMethod]
-    public void PickupTagIdentity_WhenHashAndPrefabTagMatch_IsEqual()
+    [Test]
+    public async Task PickupTagIdentity_WhenHashAndPrefabTagMatch_IsEqual()
     {
         var first = new PickupTagIdentity(42, new Tag("Iron"));
         var second = new PickupTagIdentity(42, new Tag("Iron"));
 
-        Assert.AreEqual(first, second);
-        Assert.AreEqual(first.GetHashCode(), second.GetHashCode());
+        await Assert.That(second).IsEqualTo(first);
+        await Assert.That(second.GetHashCode()).IsEqualTo(first.GetHashCode());
     }
 
-    [TestMethod]
-    public void Classify_WhenEveryDecisionBucketIsComparedWithIndependentVectors_IsSoundAndMinimallyFragmented()
+    [Test]
+    public async Task Classify_WhenEveryDecisionBucketIsComparedWithIndependentVectors_IsSoundAndMinimallyFragmented()
     {
         var constraints = new[] { Constraint(10, 20), Constraint(30, 40) };
         var definition = TemperaturePartitionDefinition.Create(
@@ -262,9 +247,7 @@ public sealed class TemperaturePartitionDefinitionTests
                     intervalOrdinal,
                     out var firstVector))
             {
-                Assert.IsTrue(
-                    VectorsAreEqual(firstVector, referenceVector),
-                    "A partition class combined eligibility-distinct buckets at " +
+                await Assert.That(VectorsAreEqual(firstVector, referenceVector)).IsTrue().Because("A partition class combined eligibility-distinct buckets at " +
                     "decision bucket " + bucketOrdinal + ".");
             }
             else
@@ -278,10 +261,7 @@ public sealed class TemperaturePartitionDefinitionTests
                     !VectorsAreEqual(previousVector, referenceVector);
                 var partitionClassChanged =
                     previousIntervalOrdinal != intervalOrdinal;
-                Assert.AreEqual(
-                    referenceVectorChanged,
-                    partitionClassChanged,
-                    "Partition fragmentation disagreed with the direct eligibility " +
+                await Assert.That(partitionClassChanged).IsEqualTo(referenceVectorChanged).Because("Partition fragmentation disagreed with the direct eligibility " +
                     "vector at decision bucket " + bucketOrdinal + ".");
             }
 
@@ -290,8 +270,8 @@ public sealed class TemperaturePartitionDefinitionTests
         }
     }
 
-    [TestMethod]
-    public void Create_WhenCallerMutatesEndpointSequence_DefinitionRemainsImmutable()
+    [Test]
+    public async Task Create_WhenCallerMutatesEndpointSequence_DefinitionRemainsImmutable()
     {
         var endpoints = new List<int> { 20, 10, 20 };
         var definition = TemperaturePartitionDefinition.Create(3, endpoints);
@@ -299,52 +279,43 @@ public sealed class TemperaturePartitionDefinitionTests
         endpoints[0] = 9000;
         endpoints.Clear();
 
-        Assert.AreSequenceEqual(
-            new[] { 10, 20 },
-            definition.SortedDecisionEndpointsKelvin);
-        Assert.IsFalse(definition.SortedDecisionEndpointsKelvin is int[]);
-        Assert.IsFalse(
-            definition.SortedDecisionEndpointsKelvin is ICollection<int> mutable &&
-            !mutable.IsReadOnly);
+        await Assert.That(definition.SortedDecisionEndpointsKelvin).IsEquivalentTo(new[] { 10, 20 }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(definition.SortedDecisionEndpointsKelvin is int[]).IsFalse();
+        await Assert.That(definition.SortedDecisionEndpointsKelvin is ICollection<int> mutable &&
+            !mutable.IsReadOnly).IsFalse();
     }
 
-    [TestMethod]
-    public void Create_WhenDefinitionIdIsNotPositive_ThrowsArgumentOutOfRangeException()
+    [Test]
+    public async Task Create_WhenDefinitionIdIsNotPositive_ThrowsArgumentOutOfRangeException()
     {
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
-            TemperaturePartitionDefinition.Create(0, [10]));
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
-            TemperaturePartitionDefinition.Create(-1, [10]));
+        await Assert.That(() =>
+            TemperaturePartitionDefinition.Create(0, [10])).ThrowsExactly<ArgumentOutOfRangeException>();
+        await Assert.That(() =>
+            TemperaturePartitionDefinition.Create(-1, [10])).ThrowsExactly<ArgumentOutOfRangeException>();
     }
 
-    [TestMethod]
-    public void Create_WhenEndpointSequencesMatch_PreservesCallerSuppliedDefinitionIds()
+    [Test]
+    public async Task Create_WhenEndpointSequencesMatch_PreservesCallerSuppliedDefinitionIds()
     {
         var first = TemperaturePartitionDefinition.Create(7, [10, 20]);
         var second = TemperaturePartitionDefinition.Create(8, [10, 20]);
 
-        Assert.AreEqual(7, first.DefinitionId);
-        Assert.AreEqual(8, second.DefinitionId);
-        Assert.AreSequenceEqual(
-            first.SortedDecisionEndpointsKelvin,
-            second.SortedDecisionEndpointsKelvin);
+        await Assert.That(first.DefinitionId).IsEqualTo(7);
+        await Assert.That(second.DefinitionId).IsEqualTo(8);
+        await Assert.That(second.SortedDecisionEndpointsKelvin).IsEquivalentTo(first.SortedDecisionEndpointsKelvin, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    private static void AssertKeyFields(
+    private static async Task AssertKeyFields(
         TemperatureEligibilityClassKey key,
         TemperatureEligibilityClassificationKind expectedKind,
         int expectedPartitionDefinitionId,
         int expectedIntervalOrdinal,
         TemperatureDecisionBucket expectedExactBucket)
     {
-        Assert.AreEqual(expectedKind, key.ClassificationKind);
-        Assert.AreEqual(
-            expectedPartitionDefinitionId,
-            key.PartitionDefinitionId);
-        Assert.AreEqual(expectedIntervalOrdinal, key.IntervalOrdinal);
-        Assert.AreEqual(
-            expectedExactBucket,
-            key.ExactTemperatureDecisionBucket);
+        await Assert.That(key.ClassificationKind).IsEqualTo(expectedKind);
+        await Assert.That(key.PartitionDefinitionId).IsEqualTo(expectedPartitionDefinitionId);
+        await Assert.That(key.IntervalOrdinal).IsEqualTo(expectedIntervalOrdinal);
+        await Assert.That(key.ExactTemperatureDecisionBucket).IsEqualTo(expectedExactBucket);
     }
 
     private static bool VectorsAreEqual(

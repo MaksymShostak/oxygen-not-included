@@ -1,6 +1,4 @@
 namespace DeliveryTemperatureLimit.Tests.FetchTemperatureEligibility;
-
-[TestClass]
 public sealed class FetchChoreTemperatureConstraintContainmentTests
 {
     // ONI's FetchAreaChore selects every pickup against the root chore only and
@@ -11,142 +9,123 @@ public sealed class FetchChoreTemperatureConstraintContainmentTests
     // constraints retain the separately characterized "no temperature-specific
     // requirement" behavior.
 
-    [TestMethod]
-    public void CanCombine_WhenCandidateIsUnconstrained_ReturnsTrue()
+    [Test]
+    public async Task CanCombine_WhenCandidateIsUnconstrained_ReturnsTrue()
     {
         DeliveryTemperatureConstraint rootConstraint =
             CreateConstraint(minimumInclusiveKelvin: 250, maximumExclusiveKelvin: 350);
 
-        Assert.IsTrue(
-            FetchChoreTemperatureConstraintContainment.CanCombine(
+        await Assert.That(FetchChoreTemperatureConstraintContainment.CanCombine(
                 rootConstraint,
-                candidateConstraint: null),
-            "A missing candidate constraint must add no temperature-specific requirement.");
-        Assert.IsTrue(
-            FetchChoreTemperatureConstraintContainment.CanCombine(
+                candidateConstraint: null)).IsTrue().Because("A missing candidate constraint must add no temperature-specific requirement.");
+        await Assert.That(FetchChoreTemperatureConstraintContainment.CanCombine(
                 rootConstraint,
-                CreateDisabledConstraint()),
-            "A disabled candidate constraint must behave exactly like a missing constraint.");
+                CreateDisabledConstraint())).IsTrue().Because("A disabled candidate constraint must behave exactly like a missing constraint.");
     }
 
-    [TestMethod]
-    public void CanCombine_WhenRootIsUnconstrainedButCandidateIsConstrained_ReturnsFalse()
+    [Test]
+    public async Task CanCombine_WhenRootIsUnconstrainedButCandidateIsConstrained_ReturnsFalse()
     {
         DeliveryTemperatureConstraint candidateConstraint =
             CreateConstraint(minimumInclusiveKelvin: 250, maximumExclusiveKelvin: 350);
 
-        Assert.IsFalse(
-            FetchChoreTemperatureConstraintContainment.CanCombine(
+        await Assert.That(FetchChoreTemperatureConstraintContainment.CanCombine(
                 rootConstraint: null,
-                candidateConstraint),
-            "A missing root constraint admits pickups the constrained candidate rejects.");
-        Assert.IsFalse(
-            FetchChoreTemperatureConstraintContainment.CanCombine(
+                candidateConstraint)).IsFalse().Because("A missing root constraint admits pickups the constrained candidate rejects.");
+        await Assert.That(FetchChoreTemperatureConstraintContainment.CanCombine(
                 CreateDisabledConstraint(),
-                candidateConstraint),
-            "A disabled root constraint must behave exactly like a missing constraint.");
+                candidateConstraint)).IsFalse().Because("A disabled root constraint must behave exactly like a missing constraint.");
     }
 
-    [TestMethod]
-    public void CanCombine_WhenRootIntervalIsInsideCandidate_ReturnsTrue()
+    [Test]
+    public async Task CanCombine_WhenRootIntervalIsInsideCandidate_ReturnsTrue()
     {
         DeliveryTemperatureConstraint rootConstraint =
             CreateConstraint(minimumInclusiveKelvin: 250, maximumExclusiveKelvin: 350);
         DeliveryTemperatureConstraint candidateConstraint =
             CreateConstraint(minimumInclusiveKelvin: 200, maximumExclusiveKelvin: 400);
 
-        Assert.IsTrue(
-            FetchChoreTemperatureConstraintContainment.CanCombine(
+        await Assert.That(FetchChoreTemperatureConstraintContainment.CanCombine(
                 rootConstraint,
-                candidateConstraint),
-            "Every pickup admitted by the root is admitted by the broader candidate.");
+                candidateConstraint)).IsTrue().Because("Every pickup admitted by the root is admitted by the broader candidate.");
     }
 
-    [TestMethod]
-    public void CanCombine_WhenCandidateIntervalIsInsideRoot_ReturnsFalse()
+    [Test]
+    public async Task CanCombine_WhenCandidateIntervalIsInsideRoot_ReturnsFalse()
     {
         DeliveryTemperatureConstraint rootConstraint =
             CreateConstraint(minimumInclusiveKelvin: 200, maximumExclusiveKelvin: 400);
         DeliveryTemperatureConstraint candidateConstraint =
             CreateConstraint(minimumInclusiveKelvin: 250, maximumExclusiveKelvin: 350);
 
-        Assert.IsFalse(
-            FetchChoreTemperatureConstraintContainment.CanCombine(
+        await Assert.That(FetchChoreTemperatureConstraintContainment.CanCombine(
                 rootConstraint,
-                candidateConstraint),
-            "A pickup admitted by the broader root could violate the narrower candidate.");
+                candidateConstraint)).IsFalse().Because("A pickup admitted by the broader root could violate the narrower candidate.");
     }
 
-    [TestMethod]
-    public void CanCombine_WhenCandidateMinimumIsAboveRoot_ReturnsFalse()
+    [Test]
+    public async Task CanCombine_WhenCandidateMinimumIsAboveRoot_ReturnsFalse()
     {
         DeliveryTemperatureConstraint rootConstraint =
             CreateConstraint(minimumInclusiveKelvin: 200, maximumExclusiveKelvin: 400);
         DeliveryTemperatureConstraint candidateConstraint =
             CreateConstraint(minimumInclusiveKelvin: 201, maximumExclusiveKelvin: 400);
 
-        Assert.IsFalse(
-            FetchChoreTemperatureConstraintContainment.CanCombine(
+        await Assert.That(FetchChoreTemperatureConstraintContainment.CanCombine(
                 rootConstraint,
-                candidateConstraint));
+                candidateConstraint)).IsFalse();
     }
 
-    [TestMethod]
-    public void CanCombine_WhenCandidateMaximumIsBelowRoot_ReturnsFalse()
+    [Test]
+    public async Task CanCombine_WhenCandidateMaximumIsBelowRoot_ReturnsFalse()
     {
         DeliveryTemperatureConstraint rootConstraint =
             CreateConstraint(minimumInclusiveKelvin: 200, maximumExclusiveKelvin: 400);
         DeliveryTemperatureConstraint candidateConstraint =
             CreateConstraint(minimumInclusiveKelvin: 200, maximumExclusiveKelvin: 399);
 
-        Assert.IsFalse(
-            FetchChoreTemperatureConstraintContainment.CanCombine(
+        await Assert.That(FetchChoreTemperatureConstraintContainment.CanCombine(
                 rootConstraint,
-                candidateConstraint));
+                candidateConstraint)).IsFalse();
     }
 
-    [TestMethod]
-    public void CanCombine_WhenConstraintsAreEqual_ReturnsTrue()
+    [Test]
+    public async Task CanCombine_WhenConstraintsAreEqual_ReturnsTrue()
     {
         DeliveryTemperatureConstraint rootConstraint =
             CreateConstraint(minimumInclusiveKelvin: 200, maximumExclusiveKelvin: 400);
         DeliveryTemperatureConstraint candidateConstraint =
             CreateConstraint(minimumInclusiveKelvin: 200, maximumExclusiveKelvin: 400);
 
-        Assert.IsTrue(
-            FetchChoreTemperatureConstraintContainment.CanCombine(
+        await Assert.That(FetchChoreTemperatureConstraintContainment.CanCombine(
                 rootConstraint,
-                candidateConstraint));
+                candidateConstraint)).IsTrue();
     }
 
-    [TestMethod]
-    public void CanCombine_WhenCandidateIsEmpty_ReturnsFalse()
+    [Test]
+    public async Task CanCombine_WhenCandidateIsEmpty_ReturnsFalse()
     {
         DeliveryTemperatureConstraint rootConstraint =
             CreateConstraint(minimumInclusiveKelvin: 200, maximumExclusiveKelvin: 400);
         DeliveryTemperatureConstraint emptyCandidateConstraint =
             CreateConstraint(minimumInclusiveKelvin: 350, maximumExclusiveKelvin: 300);
 
-        Assert.IsFalse(
-            FetchChoreTemperatureConstraintContainment.CanCombine(
+        await Assert.That(FetchChoreTemperatureConstraintContainment.CanCombine(
                 rootConstraint,
-                emptyCandidateConstraint),
-            "An empty candidate destination rejects every pickup the root may select.");
+                emptyCandidateConstraint)).IsFalse().Because("An empty candidate destination rejects every pickup the root may select.");
     }
 
-    [TestMethod]
-    public void CanCombine_WhenRootIsEmptyAndCandidateIsNonEmpty_ReturnsFalse()
+    [Test]
+    public async Task CanCombine_WhenRootIsEmptyAndCandidateIsNonEmpty_ReturnsFalse()
     {
         DeliveryTemperatureConstraint emptyRootConstraint =
             CreateConstraint(minimumInclusiveKelvin: 350, maximumExclusiveKelvin: 300);
         DeliveryTemperatureConstraint candidateConstraint =
             CreateConstraint(minimumInclusiveKelvin: 250, maximumExclusiveKelvin: 275);
 
-        Assert.IsFalse(
-            FetchChoreTemperatureConstraintContainment.CanCombine(
+        await Assert.That(FetchChoreTemperatureConstraintContainment.CanCombine(
                 emptyRootConstraint,
-                candidateConstraint),
-            "An empty root selects no legitimate pickup, so coalescing is rejected defensively.");
+                candidateConstraint)).IsFalse().Because("An empty root selects no legitimate pickup, so coalescing is rejected defensively.");
     }
 
     private static DeliveryTemperatureConstraint CreateDisabledConstraint() =>

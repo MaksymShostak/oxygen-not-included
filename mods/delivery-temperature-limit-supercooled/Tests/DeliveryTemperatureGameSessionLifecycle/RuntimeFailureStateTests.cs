@@ -1,10 +1,8 @@
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureGameSessionLifecycle;
-
-[TestClass]
 public sealed class RuntimeFailureStateTests
 {
-    [TestMethod]
-    public void RuntimeFailure_StopsSessionAdmissionAndCannotRestartWithinTheProcess()
+    [Test]
+    public async Task RuntimeFailure_StopsSessionAdmissionAndCannotRestartWithinTheProcess()
     {
         // Load the real linked production host with isolated static state. No
         // production reset hook may reactivate a runtime that has failed.
@@ -17,39 +15,39 @@ public sealed class RuntimeFailureStateTests
             var ensure = host.GetMethod("EnsureGameSession", flags)!;
             var disable = host.GetMethod("TryDisableRuntime", flags)!;
             var capture = host.GetMethod("TryCaptureCurrent", flags)!;
-            Assert.IsNotNull(ensure.Invoke(null, [1234]));
-            Assert.AreEqual(true, capture.Invoke(null, [null]));
-            Assert.AreEqual(true, disable.Invoke(null, null));
-            Assert.AreEqual(false, capture.Invoke(null, [null]));
-            Assert.AreEqual(false, disable.Invoke(null, null));
-            var exception = Assert.Throws<System.Reflection.TargetInvocationException>(() => ensure.Invoke(null, [1234]));
-            Assert.IsInstanceOfType<InvalidOperationException>(exception.InnerException);
+            Assert.NotNull(ensure.Invoke(null, [1234]));
+            await Assert.That((bool)capture.Invoke(null, [null])!).IsTrue();
+            await Assert.That((bool)disable.Invoke(null, null)!).IsTrue();
+            await Assert.That((bool)capture.Invoke(null, [null])!).IsFalse();
+            await Assert.That((bool)disable.Invoke(null, null)!).IsFalse();
+            var exception = (await Assert.That(() => ensure.Invoke(null, [1234])).Throws<System.Reflection.TargetInvocationException>())!;
+            await Assert.That(exception.InnerException).IsAssignableTo<InvalidOperationException>();
             var session = host.GetMethod("DetachGameSession", flags)!.Invoke(null, [1234]);
-            Assert.IsNotNull(session);
+            Assert.NotNull(session);
             host.GetMethod("CompleteShutdown", flags)!.Invoke(null, [session]);
         }
         finally { context.Unload(); }
     }
 
-    [TestMethod]
-    public void Failure_IsRecordedPermanentlyAndQueuesOnlyOneWarning()
+    [Test]
+    public async Task Failure_IsRecordedPermanentlyAndQueuesOnlyOneWarning()
     {
         var state = new RuntimeFailureState();
-        Assert.IsFalse(state.HasFailed);
-        Assert.IsFalse(state.HasPendingWarning);
-        Assert.IsFalse(state.TryTakeWarning());
-        Assert.IsTrue(state.TryRecordFailure());
-        Assert.IsTrue(state.HasFailed);
-        Assert.IsTrue(state.HasPendingWarning);
-        Assert.IsFalse(state.TryRecordFailure());
-        Assert.IsTrue(state.TryTakeWarning());
-        Assert.IsFalse(state.TryTakeWarning());
-        Assert.IsFalse(state.HasPendingWarning);
-        Assert.IsTrue(state.HasFailed);
+        await Assert.That(state.HasFailed).IsFalse();
+        await Assert.That(state.HasPendingWarning).IsFalse();
+        await Assert.That(state.TryTakeWarning()).IsFalse();
+        await Assert.That(state.TryRecordFailure()).IsTrue();
+        await Assert.That(state.HasFailed).IsTrue();
+        await Assert.That(state.HasPendingWarning).IsTrue();
+        await Assert.That(state.TryRecordFailure()).IsFalse();
+        await Assert.That(state.TryTakeWarning()).IsTrue();
+        await Assert.That(state.TryTakeWarning()).IsFalse();
+        await Assert.That(state.HasPendingWarning).IsFalse();
+        await Assert.That(state.HasFailed).IsTrue();
     }
 
-    [TestMethod]
-    public void ConcurrentFailures_ProduceOneFailureTransitionAndOneWarning()
+    [Test]
+    public async Task ConcurrentFailures_ProduceOneFailureTransitionAndOneWarning()
     {
         var state = new RuntimeFailureState();
         int transitions = 0;
@@ -57,13 +55,13 @@ public sealed class RuntimeFailureStateTests
         {
             if (state.TryRecordFailure()) Interlocked.Increment(ref transitions);
         });
-        Assert.AreEqual(1, transitions);
+        await Assert.That(transitions).IsEqualTo(1);
         int warnings = 0;
         Parallel.For(0, 64, _ =>
         {
             if (state.TryTakeWarning()) Interlocked.Increment(ref warnings);
         });
-        Assert.AreEqual(1, warnings);
-        Assert.IsTrue(state.HasFailed);
+        await Assert.That(warnings).IsEqualTo(1);
+        await Assert.That(state.HasFailed).IsTrue();
     }
 }

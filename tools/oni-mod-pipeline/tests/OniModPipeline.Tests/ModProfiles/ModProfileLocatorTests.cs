@@ -3,14 +3,12 @@ using MaksymShostak.OniModPipeline.ModProfiles;
 using MaksymShostak.OniModPipeline.Tests.Fixtures;
 
 namespace MaksymShostak.OniModPipeline.Tests.ModProfiles;
-
-[TestClass]
 public sealed class ModProfileLocatorTests
 {
     private readonly ModProfileLocator profileLocator = new();
 
-    [TestMethod]
-    public void Locate_WhenNoManifestIsReachable_ReturnsMissingProfileDiagnostic()
+    [Test]
+    public async Task Locate_WhenNoManifestIsReachable_ReturnsMissingProfileDiagnostic()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         Directory.CreateDirectory(temporaryDirectory.GetPath(".git"));
@@ -19,13 +17,13 @@ public sealed class ModProfileLocatorTests
 
         var result = profileLocator.Locate(descendant);
 
-        Assert.AreEqual(PipelineExitCode.InvalidInput, result.ExitCode);
-        Assert.AreEqual("ONIP1007", result.Diagnostics.Single().Id);
-        StringAssert.Contains(result.Diagnostics.Single().NextAction, "oni-mod-pipeline.toml");
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.InvalidInput);
+        await Assert.That(result.Diagnostics.Single().Id).IsEqualTo("ONIP1007");
+        await Assert.That(result.Diagnostics.Single().NextAction).Contains("oni-mod-pipeline.toml");
     }
 
-    [TestMethod]
-    public void Locate_WhenStartedBelowOneManifest_ReturnsThatManifest()
+    [Test]
+    public async Task Locate_WhenStartedBelowOneManifest_ReturnsThatManifest()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         Directory.CreateDirectory(temporaryDirectory.GetPath(".git"));
@@ -37,13 +35,13 @@ public sealed class ModProfileLocatorTests
 
         var result = profileLocator.Locate(descendant);
 
-        Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual(Path.GetFullPath(manifestPath), result.Value);
-        Assert.AreEqual(PipelineExitCode.Success, result.ExitCode);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value).IsEqualTo(Path.GetFullPath(manifestPath));
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.Success);
     }
 
-    [TestMethod]
-    public void Locate_WhenTwoCandidateManifestsAreReachable_ReturnsAmbiguityDiagnostic()
+    [Test]
+    public async Task Locate_WhenTwoCandidateManifestsAreReachable_ReturnsAmbiguityDiagnostic()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         Directory.CreateDirectory(temporaryDirectory.GetPath(".git"));
@@ -58,10 +56,10 @@ public sealed class ModProfileLocatorTests
 
         var result = profileLocator.Locate(descendant);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(PipelineExitCode.InvalidInput, result.ExitCode);
-        Assert.AreEqual("ONIP1007", result.Diagnostics.Single().Id);
-        StringAssert.Contains(result.Diagnostics.Single().Evidence, firstManifest);
-        StringAssert.Contains(result.Diagnostics.Single().Evidence, secondManifest);
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.InvalidInput);
+        await Assert.That(result.Diagnostics.Single().Id).IsEqualTo("ONIP1007");
+        await Assert.That(result.Diagnostics.Single().Evidence).Contains(firstManifest);
+        await Assert.That(result.Diagnostics.Single().Evidence).Contains(secondManifest);
     }
 }

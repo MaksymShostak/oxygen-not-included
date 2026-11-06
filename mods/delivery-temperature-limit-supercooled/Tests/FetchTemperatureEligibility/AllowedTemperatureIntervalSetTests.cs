@@ -2,27 +2,23 @@ using System.Reflection;
 using DeliveryTemperatureLimit.Tests.ReferenceTemperatureModels;
 
 namespace DeliveryTemperatureLimit.Tests.FetchTemperatureEligibility;
-
-[TestClass]
 public sealed class AllowedTemperatureIntervalSetTests
 {
     private const int RandomizedDestinationSetSeed = 0x1A7E2A1;
     private const int RandomizedDestinationSetCount = 5000;
 
-    [TestMethod]
-    public void CreateFromDestinations_WhenIntervalsOverlapOrTouch_MergesThem()
+    [Test]
+    public async Task CreateFromDestinations_WhenIntervalsOverlapOrTouch_MergesThem()
     {
         var set = AllowedTemperatureIntervalSet.CreateFromDestinations(
             includesUnconstrainedDestination: false,
             [Constraint(10, 20), Constraint(15, 30), Constraint(30, 40)]);
 
-        Assert.AreSequenceEqual(
-            new[] { new AllowedTemperatureInterval(10, 40) },
-            set.Intervals.ToArray());
+        await Assert.That(set.Intervals.ToArray()).IsEquivalentTo(new[] { new AllowedTemperatureInterval(10, 40) }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void CreateFromDestinations_WhenNoDestinationContributes_ReturnsAllowsNoTemperature()
+    [Test]
+    public async Task CreateFromDestinations_WhenNoDestinationContributes_ReturnsAllowsNoTemperature()
     {
         var emptyDestinationSet =
             AllowedTemperatureIntervalSet.CreateFromDestinations(
@@ -33,14 +29,14 @@ public sealed class AllowedTemperatureIntervalSetTests
                 includesUnconstrainedDestination: false,
                 new[] { Constraint(10, 10), Constraint(20, 10) });
 
-        Assert.IsTrue(emptyDestinationSet.AllowsNoTemperature);
-        Assert.IsFalse(emptyDestinationSet.AllowsEveryTemperature);
-        Assert.IsEmpty(emptyDestinationSet.Intervals);
-        Assert.AreSame(emptyDestinationSet, onlyEmptyConstraints);
+        await Assert.That(emptyDestinationSet.AllowsNoTemperature).IsTrue();
+        await Assert.That(emptyDestinationSet.AllowsEveryTemperature).IsFalse();
+        await Assert.That(emptyDestinationSet.Intervals).IsEmpty();
+        await Assert.That(onlyEmptyConstraints).IsSameReferenceAs(emptyDestinationSet);
     }
 
-    [TestMethod]
-    public void CreateFromDestinations_WhenUnconstrainedDestinationExists_ReturnsAllowsEveryTemperature()
+    [Test]
+    public async Task CreateFromDestinations_WhenUnconstrainedDestinationExists_ReturnsAllowsEveryTemperature()
     {
         var first = AllowedTemperatureIntervalSet.CreateFromDestinations(
             includesUnconstrainedDestination: true,
@@ -49,37 +45,33 @@ public sealed class AllowedTemperatureIntervalSetTests
             includesUnconstrainedDestination: true,
             Array.Empty<DeliveryTemperatureConstraint>());
 
-        Assert.IsFalse(first.AllowsNoTemperature);
-        Assert.IsTrue(first.AllowsEveryTemperature);
-        Assert.IsEmpty(first.Intervals);
-        Assert.AreSame(first, second);
+        await Assert.That(first.AllowsNoTemperature).IsFalse();
+        await Assert.That(first.AllowsEveryTemperature).IsTrue();
+        await Assert.That(first.Intervals).IsEmpty();
+        await Assert.That(second).IsSameReferenceAs(first);
 
         var intervalsField = typeof(AllowedTemperatureIntervalSet).GetField(
             "intervals",
             BindingFlags.Instance | BindingFlags.NonPublic);
-        Assert.IsNotNull(intervalsField);
-        Assert.IsNull(
-            intervalsField.GetValue(first),
-            "AllowsEveryTemperature must carry no finite interval array.");
+        Assert.NotNull(intervalsField);
+        await Assert.That(intervalsField.GetValue(first)).IsNull().Because("AllowsEveryTemperature must carry no finite interval array.");
     }
 
-    [TestMethod]
-    public void CreateFromDestinations_WhenDisabledConstraintIsSupplied_ThrowsArgumentException()
+    [Test]
+    public async Task CreateFromDestinations_WhenDisabledConstraintIsSupplied_ThrowsArgumentException()
     {
         var disabledConstraint = Constraint(100, 0);
 
-        var exception = Assert.ThrowsExactly<ArgumentException>(() =>
+        var exception = (await Assert.That(() =>
             AllowedTemperatureIntervalSet.CreateFromDestinations(
                 includesUnconstrainedDestination: false,
-                new[] { disabledConstraint }));
+                new[] { disabledConstraint })).ThrowsExactly<ArgumentException>())!;
 
-        StringAssert.Contains(
-            exception.Message,
-            "enabledDestinationConstraints");
+        await Assert.That(exception.Message).Contains("enabledDestinationConstraints");
     }
 
-    [TestMethod]
-    public void CreateFromDestinations_WhenEnabledConstraintIsEmpty_IgnoresIt()
+    [Test]
+    public async Task CreateFromDestinations_WhenEnabledConstraintIsEmpty_IgnoresIt()
     {
         var set = AllowedTemperatureIntervalSet.CreateFromDestinations(
             includesUnconstrainedDestination: false,
@@ -90,13 +82,11 @@ public sealed class AllowedTemperatureIntervalSetTests
                 Constraint(30, 40)
             });
 
-        Assert.AreSequenceEqual(
-            new[] { new AllowedTemperatureInterval(30, 40) },
-            set.Intervals);
+        await Assert.That(set.Intervals).IsEquivalentTo(new[] { new AllowedTemperatureInterval(30, 40) }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void CreateFromDestinations_WhenIntervalsDuplicate_CollapsesThem()
+    [Test]
+    public async Task CreateFromDestinations_WhenIntervalsDuplicate_CollapsesThem()
     {
         var set = AllowedTemperatureIntervalSet.CreateFromDestinations(
             includesUnconstrainedDestination: false,
@@ -107,13 +97,11 @@ public sealed class AllowedTemperatureIntervalSetTests
                 Constraint(10, 20)
             });
 
-        Assert.AreSequenceEqual(
-            new[] { new AllowedTemperatureInterval(10, 20) },
-            set.Intervals);
+        await Assert.That(set.Intervals).IsEquivalentTo(new[] { new AllowedTemperatureInterval(10, 20) }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void CreateFromDestinations_WhenIntervalsAreDisjoint_SortsThem()
+    [Test]
+    public async Task CreateFromDestinations_WhenIntervalsAreDisjoint_SortsThem()
     {
         var set = AllowedTemperatureIntervalSet.CreateFromDestinations(
             includesUnconstrainedDestination: false,
@@ -124,36 +112,34 @@ public sealed class AllowedTemperatureIntervalSetTests
                 Constraint(100, 200)
             });
 
-        Assert.AreSequenceEqual(
-            new[]
+        await Assert.That(set.Intervals).IsEquivalentTo(new[]
             {
                 new AllowedTemperatureInterval(10, 20),
                 new AllowedTemperatureInterval(100, 200),
                 new AllowedTemperatureInterval(5000, 6000)
-            },
-            set.Intervals);
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void Allows_WhenBucketIsAtInclusiveMinimum_ReturnsTrue()
+    [Test]
+    public async Task Allows_WhenBucketIsAtInclusiveMinimum_ReturnsTrue()
     {
         var set = FiniteSet(Constraint(10, 20));
 
-        Assert.IsTrue(set.Allows(
-            TemperatureDecisionBucket.FromIntegerKelvin(10)));
+        await Assert.That(set.Allows(
+            TemperatureDecisionBucket.FromIntegerKelvin(10))).IsTrue();
     }
 
-    [TestMethod]
-    public void Allows_WhenBucketIsAtExclusiveMaximum_ReturnsFalse()
+    [Test]
+    public async Task Allows_WhenBucketIsAtExclusiveMaximum_ReturnsFalse()
     {
         var set = FiniteSet(Constraint(10, 20));
 
-        Assert.IsFalse(set.Allows(
-            TemperatureDecisionBucket.FromIntegerKelvin(20)));
+        await Assert.That(set.Allows(
+            TemperatureDecisionBucket.FromIntegerKelvin(20))).IsFalse();
     }
 
-    [TestMethod]
-    public void Allows_WhenBucketIsBelowMinimumKelvin_ReturnsFalseUnlessAllowsEvery()
+    [Test]
+    public async Task Allows_WhenBucketIsBelowMinimumKelvin_ReturnsFalseUnlessAllowsEvery()
     {
         var belowMinimumBucket =
             TemperatureDecisionBucket.FromIntegerKelvin(-1);
@@ -162,12 +148,12 @@ public sealed class AllowedTemperatureIntervalSetTests
             includesUnconstrainedDestination: true,
             Array.Empty<DeliveryTemperatureConstraint>());
 
-        Assert.IsFalse(finite.Allows(belowMinimumBucket));
-        Assert.IsTrue(every.Allows(belowMinimumBucket));
+        await Assert.That(finite.Allows(belowMinimumBucket)).IsFalse();
+        await Assert.That(every.Allows(belowMinimumBucket)).IsTrue();
     }
 
-    [TestMethod]
-    public void Allows_WhenBucketIsAtOrAboveMaximumKelvin_ReturnsFalseUnlessAllowsEvery()
+    [Test]
+    public async Task Allows_WhenBucketIsAtOrAboveMaximumKelvin_ReturnsFalseUnlessAllowsEvery()
     {
         var atOrAboveMaximumBucket =
             TemperatureDecisionBucket.FromIntegerKelvin(10000);
@@ -176,12 +162,12 @@ public sealed class AllowedTemperatureIntervalSetTests
             includesUnconstrainedDestination: true,
             Array.Empty<DeliveryTemperatureConstraint>());
 
-        Assert.IsFalse(finite.Allows(atOrAboveMaximumBucket));
-        Assert.IsTrue(every.Allows(atOrAboveMaximumBucket));
+        await Assert.That(finite.Allows(atOrAboveMaximumBucket)).IsFalse();
+        await Assert.That(every.Allows(atOrAboveMaximumBucket)).IsTrue();
     }
 
-    [TestMethod]
-    public void PublishedIntervals_WhenInputListChanges_RemainImmutable()
+    [Test]
+    public async Task PublishedIntervals_WhenInputListChanges_RemainImmutable()
     {
         var sourceConstraints = new List<DeliveryTemperatureConstraint>
         {
@@ -195,20 +181,17 @@ public sealed class AllowedTemperatureIntervalSetTests
         sourceConstraints[0] = Constraint(100, 200);
         sourceConstraints.Clear();
 
-        Assert.AreSequenceEqual(
-            new[]
+        await Assert.That(set.Intervals).IsEquivalentTo(new[]
             {
                 new AllowedTemperatureInterval(10, 20),
                 new AllowedTemperatureInterval(30, 40)
-            },
-            set.Intervals);
-        Assert.IsFalse(set.Intervals is AllowedTemperatureInterval[]);
-        Assert.IsFalse(
-            set.Intervals is ICollection<AllowedTemperatureInterval> mutable &&
-            !mutable.IsReadOnly);
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(set.Intervals is AllowedTemperatureInterval[]).IsFalse();
+        await Assert.That(set.Intervals is ICollection<AllowedTemperatureInterval> mutable &&
+            !mutable.IsReadOnly).IsFalse();
     }
 
-    [TestMethod]
+    [Test]
     public void Allows_WhenFiveThousandSeededDestinationSetsComparedAcrossEveryDecisionBucket_MatchesReferenceModel()
     {
         var random = new Random(RandomizedDestinationSetSeed);
@@ -257,15 +240,15 @@ public sealed class AllowedTemperatureIntervalSetTests
         }
     }
 
-    [TestMethod]
-    public void AllowedTemperatureInterval_WhenBoundsAreInvalid_ThrowsArgumentOutOfRangeException()
+    [Test]
+    public async Task AllowedTemperatureInterval_WhenBoundsAreInvalid_ThrowsArgumentOutOfRangeException()
     {
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
-            new AllowedTemperatureInterval(-1, 20));
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
-            new AllowedTemperatureInterval(10, 10001));
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
-            new AllowedTemperatureInterval(20, 20));
+        await Assert.That(() =>
+            new AllowedTemperatureInterval(-1, 20)).ThrowsExactly<ArgumentOutOfRangeException>();
+        await Assert.That(() =>
+            new AllowedTemperatureInterval(10, 10001)).ThrowsExactly<ArgumentOutOfRangeException>();
+        await Assert.That(() =>
+            new AllowedTemperatureInterval(20, 20)).ThrowsExactly<ArgumentOutOfRangeException>();
     }
 
     private static DeliveryTemperatureConstraint[]

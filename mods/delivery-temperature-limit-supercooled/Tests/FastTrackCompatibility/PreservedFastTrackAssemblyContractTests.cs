@@ -7,13 +7,6 @@ using System.Reflection.PortableExecutable;
 using System.Security.Cryptography;
 
 namespace DeliveryTemperatureLimit.Tests.FastTrackCompatibility;
-
-/// <summary>
-/// Reads every admitted preserved FastTrack DLL as portable-executable data.
-/// Fixtures are never loaded, referenced, or executed, so missing ONI/Unity
-/// dependencies cannot affect these static compatibility assertions.
-/// </summary>
-[TestClass]
 public sealed class PreservedFastTrackAssemblyContractTests
 {
     public sealed class SupportedBuildFixtureCase
@@ -26,6 +19,10 @@ public sealed class PreservedFastTrackAssemblyContractTests
             Expectation = expectation;
         }
 
+        public override string ToString() =>
+            $"{Expectation.AssemblyBuildIdentity.FileVersion}, " +
+            $"sha256-{Expectation.AssemblyBuildIdentity.AssemblySha256.Substring(0, 12)}";
+
         internal string AssemblyPath { get; }
 
         internal FastTrackSupportedBuildFixtureExpectation Expectation
@@ -34,7 +31,7 @@ public sealed class PreservedFastTrackAssemblyContractTests
         }
     }
 
-    public static IEnumerable<object[]> SupportedPreservedBuildCases
+    public static IEnumerable<SupportedBuildFixtureCase> SupportedPreservedBuildCases
     {
         get
         {
@@ -46,39 +43,19 @@ public sealed class PreservedFastTrackAssemblyContractTests
                     fixtureRoot,
                     expectation.RelativeFixtureDirectoryPath,
                     "FastTrack.dll"));
-                yield return new object[]
-                {
-                    new SupportedBuildFixtureCase(assemblyPath, expectation)
-                };
+                yield return new SupportedBuildFixtureCase(assemblyPath, expectation);
             }
         }
     }
 
-    public static string FormatSupportedPreservedBuildCaseName(
-        MethodInfo methodInfo,
-        object[] data)
-    {
-        var contractCase = (SupportedBuildFixtureCase)data[0];
-        FastTrackAssemblyBuildIdentity identity =
-            contractCase.Expectation.AssemblyBuildIdentity;
-        return $"{methodInfo.Name} ({identity.FileVersion}, " +
-            "sha256-" +
-            identity.AssemblySha256.Substring(0, 12) +
-            ")";
-    }
-
-    [TestMethod]
-    [DynamicData(
-        nameof(SupportedPreservedBuildCases),
-        DynamicDataDisplayName = nameof(FormatSupportedPreservedBuildCaseName))]
-    public void PreservedFixture_AssemblyMetadataExactlyMatchesExpectedBuild(
+    [Test]
+    [MethodDataSource(nameof(SupportedPreservedBuildCases))]
+    public async Task PreservedFixture_AssemblyMetadataExactlyMatchesExpectedBuild(
         SupportedBuildFixtureCase contractCase)
     {
         FastTrackSupportedBuildFixtureExpectation expectation =
             contractCase.Expectation;
-        Assert.AreEqual(
-            expectation.AssemblyBuildIdentity.AssemblySha256,
-            ComputeUppercaseSha256(contractCase.AssemblyPath));
+        await Assert.That(ComputeUppercaseSha256(contractCase.AssemblyPath)).IsEqualTo(expectation.AssemblyBuildIdentity.AssemblySha256);
         using var fixture = new FastTrackPortableExecutableFixture(
             contractCase.AssemblyPath);
 
@@ -87,25 +64,15 @@ public sealed class PreservedFastTrackAssemblyContractTests
         ModuleDefinition moduleDefinition =
             fixture.MetadataReader.GetModuleDefinition();
 
-        Assert.AreEqual(
-            expectation.ExpectedAssemblyName,
-            fixture.MetadataReader.GetString(assemblyDefinition.Name));
-        Assert.AreEqual(
-            expectation.ExpectedAssemblyVersion,
-            assemblyDefinition.Version);
-        Assert.AreEqual(
-            expectation.AssemblyBuildIdentity.FileVersion.ToString(),
-            fixture.RequireAssemblyFileVersionAttributeValue());
-        Assert.AreEqual(
-            expectation.ExpectedModuleVersionId,
-            fixture.MetadataReader.GetGuid(moduleDefinition.Mvid));
+        await Assert.That(fixture.MetadataReader.GetString(assemblyDefinition.Name)).IsEqualTo(expectation.ExpectedAssemblyName);
+        await Assert.That(assemblyDefinition.Version).IsEqualTo(expectation.ExpectedAssemblyVersion);
+        await Assert.That((await fixture.RequireAssemblyFileVersionAttributeValue())).IsEqualTo(expectation.AssemblyBuildIdentity.FileVersion.ToString());
+        await Assert.That(fixture.MetadataReader.GetGuid(moduleDefinition.Mvid)).IsEqualTo(expectation.ExpectedModuleVersionId);
     }
 
-    [TestMethod]
-    [DynamicData(
-        nameof(SupportedPreservedBuildCases),
-        DynamicDataDisplayName = nameof(FormatSupportedPreservedBuildCaseName))]
-    public void PreservedFixture_WorldInventoryContractMatchesDeclaredPresenceAndSemantics(
+    [Test]
+    [MethodDataSource(nameof(SupportedPreservedBuildCases))]
+    public async Task PreservedFixture_WorldInventoryContractMatchesDeclaredPresenceAndSemantics(
         SupportedBuildFixtureCase contractCase)
     {
         FastTrackSupportedBuildFixtureExpectation expectation =
@@ -114,39 +81,39 @@ public sealed class PreservedFastTrackAssemblyContractTests
             contractCase.AssemblyPath);
         if (!expectation.WorldInventoryReplacementIsPresent)
         {
-            Assert.IsFalse(fixture.TryFindType(
+            await Assert.That(fixture.TryFindType(
                 "PeterHan.FastTrack.UIPatches.BackgroundWorldInventory",
-                out _));
+                out _)).IsFalse();
             return;
         }
 
-        TypeDefinitionHandle backgroundInventory = fixture.RequireType(
+        TypeDefinitionHandle backgroundInventory = await fixture.RequireType(
             "PeterHan.FastTrack.UIPatches.BackgroundWorldInventory");
-        FieldDefinitionHandle firstUpdate = fixture.RequireField(
+        FieldDefinitionHandle firstUpdate = await fixture.RequireField(
             backgroundInventory,
             "firstUpdate",
             isStatic: false,
             FieldAttributes.Private,
             "System.Boolean");
-        FieldDefinitionHandle updateIndex = fixture.RequireField(
+        FieldDefinitionHandle updateIndex = await fixture.RequireField(
             backgroundInventory,
             "updateIndex",
             isStatic: false,
             FieldAttributes.Private,
             "System.Int32");
-        fixture.RequireField(
+        await fixture.RequireField(
             backgroundInventory,
             "worldContainer",
             isStatic: false,
             FieldAttributes.Private,
             "WorldContainer");
-        fixture.RequireField(
+        await fixture.RequireField(
             backgroundInventory,
             "worldInventory",
             isStatic: false,
             FieldAttributes.Private,
             "WorldInventory");
-        MethodDefinitionHandle sumTotal = fixture.RequireMethod(
+        MethodDefinitionHandle sumTotal = await fixture.RequireMethod(
             backgroundInventory,
             "SumTotal",
             isStatic: true,
@@ -154,26 +121,26 @@ public sealed class PreservedFastTrackAssemblyContractTests
             "System.Single",
             "System.Collections.Generic.IEnumerable`1[Pickupable]",
             "System.Int32");
-        MethodDefinitionHandle runUpdate = fixture.RequireMethod(
+        MethodDefinitionHandle runUpdate = await fixture.RequireMethod(
             backgroundInventory,
             "RunUpdate",
             isStatic: false,
             MethodAttributes.Assembly,
             "System.Void");
-        TypeDefinitionHandle replacementPatch = fixture.RequireType(
+        TypeDefinitionHandle replacementPatch = await fixture.RequireType(
             "PeterHan.FastTrack.UIPatches." +
             "WorldInventory_UpdateReplace_Patch");
-        fixture.RequireMethod(
+        await fixture.RequireMethod(
             replacementPatch,
             "Prefix",
             isStatic: true,
             MethodAttributes.Assembly,
             "System.Boolean",
             "WorldInventory");
-        TypeDefinitionHandle removalPatch = fixture.RequireType(
+        TypeDefinitionHandle removalPatch = await fixture.RequireType(
             "PeterHan.FastTrack.UIPatches." +
             "WorldInventory_OnRemovedFetchable_Patch");
-        MethodDefinitionHandle removedFetchablePrefix = fixture.RequireMethod(
+        MethodDefinitionHandle removedFetchablePrefix = await fixture.RequireMethod(
             removalPatch,
             "Prefix",
             isStatic: true,
@@ -183,38 +150,30 @@ public sealed class PreservedFastTrackAssemblyContractTests
             "System.Object");
 
         IReadOnlyList<MetadataIlInstruction> runUpdateInstructions =
-            fixture.Decode(runUpdate);
-        RequireSingleFieldLoadIndex(
+            await fixture.Decode(runUpdate);
+        await RequireSingleFieldLoadIndex(
             fixture,
             runUpdateInstructions,
             "WorldInventory",
             "Inventory");
-        Assert.AreEqual(
-            2,
-            CountTokenInstructions(
+        await Assert.That(CountTokenInstructions(
                 runUpdateInstructions,
                 sumTotal,
-                IsCallInstruction));
-        Assert.IsGreaterThanOrEqualTo(
-            1,
-            CountTokenInstructions(
+                IsCallInstruction)).IsEqualTo(2);
+        await Assert.That(CountTokenInstructions(
                 runUpdateInstructions,
                 firstUpdate,
-                instruction => instruction.OpCode == OpCodes.Ldfld));
-        Assert.IsGreaterThanOrEqualTo(
-            1,
-            CountTokenInstructions(
+                instruction => instruction.OpCode == OpCodes.Ldfld)).IsGreaterThanOrEqualTo(1);
+        await Assert.That(CountTokenInstructions(
                 runUpdateInstructions,
                 updateIndex,
-                instruction => instruction.OpCode == OpCodes.Ldfld));
-        Assert.IsGreaterThanOrEqualTo(
-            2,
-            CountTokenInstructions(
+                instruction => instruction.OpCode == OpCodes.Ldfld)).IsGreaterThanOrEqualTo(1);
+        await Assert.That(CountTokenInstructions(
                 runUpdateInstructions,
                 updateIndex,
-                instruction => instruction.OpCode == OpCodes.Stfld));
-        Assert.IsTrue(runUpdateInstructions.Any(instruction =>
-            instruction.OpCode.FlowControl == FlowControl.Cond_Branch));
+                instruction => instruction.OpCode == OpCodes.Stfld)).IsGreaterThanOrEqualTo(2);
+        await Assert.That(runUpdateInstructions.Any(instruction =>
+            instruction.OpCode.FlowControl == FlowControl.Cond_Branch)).IsTrue();
         int firstUpdateReadIndex = runUpdateInstructions
             .Select((instruction, index) => (instruction, index))
             .Single(candidate =>
@@ -222,31 +181,23 @@ public sealed class PreservedFastTrackAssemblyContractTests
                 candidate.instruction.MetadataToken ==
                 MetadataTokens.GetToken(firstUpdate))
             .index;
-        Assert.IsTrue(
-            firstUpdateReadIndex + 1 < runUpdateInstructions.Count,
-            "The firstUpdate field read must be followed by its conditional branch.");
+        await Assert.That(firstUpdateReadIndex + 1 < runUpdateInstructions.Count).IsTrue().Because("The firstUpdate field read must be followed by its conditional branch.");
         MetadataIlInstruction firstUpdateBranch =
             runUpdateInstructions[firstUpdateReadIndex + 1];
-        Assert.IsTrue(
-            firstUpdateBranch.OpCode == OpCodes.Brfalse ||
-            firstUpdateBranch.OpCode == OpCodes.Brfalse_S,
-            "FastTrack's false branch must select the later single-tag path.");
-        Assert.IsNotNull(firstUpdateBranch.BranchTargetOffset);
+        await Assert.That(firstUpdateBranch.OpCode == OpCodes.Brfalse ||
+            firstUpdateBranch.OpCode == OpCodes.Brfalse_S).IsTrue().Because("FastTrack's false branch must select the later single-tag path.");
+        Assert.NotNull(firstUpdateBranch.BranchTargetOffset);
         int singleResourceTagBranchOffset =
             firstUpdateBranch.BranchTargetOffset.Value;
-        Assert.AreEqual(
-            1,
-            runUpdateInstructions.Count(instruction =>
+        await Assert.That(runUpdateInstructions.Count(instruction =>
                 instruction.Offset > firstUpdateBranch.Offset &&
                 instruction.Offset < singleResourceTagBranchOffset &&
                 IsCallInstruction(instruction) &&
-                instruction.MetadataToken == MetadataTokens.GetToken(sumTotal)));
-        Assert.AreEqual(
-            1,
-            runUpdateInstructions.Count(instruction =>
+                instruction.MetadataToken == MetadataTokens.GetToken(sumTotal))).IsEqualTo(1);
+        await Assert.That(runUpdateInstructions.Count(instruction =>
                 instruction.Offset >= singleResourceTagBranchOffset &&
                 IsCallInstruction(instruction) &&
-                instruction.MetadataToken == MetadataTokens.GetToken(sumTotal)));
+                instruction.MetadataToken == MetadataTokens.GetToken(sumTotal))).IsEqualTo(1);
 
         IReadOnlyList<int> resourceTagGetterIndices = FindCallIndices(
             fixture,
@@ -272,68 +223,61 @@ public sealed class PreservedFastTrackAssemblyContractTests
             runUpdateInstructions,
             "System.Collections.Generic.Dictionary`2[Tag,System.Single]",
             "set_Item");
-        Assert.AreEqual(2, resourceTagGetterIndices.Count);
-        Assert.AreEqual(2, pickupableSetGetterIndices.Count);
-        Assert.AreEqual(2, sumTotalCallIndices.Count);
-        Assert.AreEqual(2, accessibleAmountSetterIndices.Count);
+        await Assert.That(resourceTagGetterIndices.Count).IsEqualTo(2);
+        await Assert.That(pickupableSetGetterIndices.Count).IsEqualTo(2);
+        await Assert.That(sumTotalCallIndices.Count).IsEqualTo(2);
+        await Assert.That(accessibleAmountSetterIndices.Count).IsEqualTo(2);
         for (var publicationIndex = 0;
              publicationIndex < sumTotalCallIndices.Count;
              publicationIndex++)
         {
-            Assert.IsTrue(
-                resourceTagGetterIndices[publicationIndex] <
+            await Assert.That(resourceTagGetterIndices[publicationIndex] <
                     pickupableSetGetterIndices[publicationIndex] &&
                 pickupableSetGetterIndices[publicationIndex] <
                     sumTotalCallIndices[publicationIndex] &&
                 sumTotalCallIndices[publicationIndex] <
-                    accessibleAmountSetterIndices[publicationIndex],
-                "Each complete or incremental RunUpdate branch must load one " +
+                    accessibleAmountSetterIndices[publicationIndex]).IsTrue().Because("Each complete or incremental RunUpdate branch must load one " +
                 "typed resource tag and its pickupable set before SumTotal, then " +
                 "write that same branch's accessible amount.");
         }
 
         IReadOnlyList<MetadataIlInstruction> sumTotalInstructions =
-            fixture.Decode(sumTotal);
-        int getCellIndex = RequireSingleCallIndex(
+            await fixture.Decode(sumTotal);
+        int getCellIndex = await RequireSingleCallIndex(
             fixture,
             sumTotalInstructions,
             "Workable",
             "GetCell");
-        int validCellIndex = RequireSingleCallIndex(
+        int validCellIndex = await RequireSingleCallIndex(
             fixture,
             sumTotalInstructions,
             "Grid",
             "IsValidCell");
-        int storedPrivateFilterIndex = RequireSingleCallIndex(
+        int storedPrivateFilterIndex = await RequireSingleCallIndex(
             fixture,
             sumTotalInstructions,
             "KPrefabID",
             "HasTag");
-        int totalAmountGetterIndex = RequireSingleCallIndex(
+        int totalAmountGetterIndex = await RequireSingleCallIndex(
             fixture,
             sumTotalInstructions,
             "Pickupable",
             "get_TotalAmount");
-        Assert.IsTrue(
-            getCellIndex < validCellIndex &&
+        await Assert.That(getCellIndex < validCellIndex &&
             validCellIndex < storedPrivateFilterIndex &&
-            storedPrivateFilterIndex < totalAmountGetterIndex);
-        Assert.IsTrue(
-            sumTotalInstructions
+            storedPrivateFilterIndex < totalAmountGetterIndex).IsTrue();
+        await Assert.That(sumTotalInstructions
                 .Skip(getCellIndex + 1)
                 .Take(totalAmountGetterIndex - getCellIndex - 1)
                 .Count(instruction =>
                     instruction.OpCode.FlowControl ==
-                        FlowControl.Cond_Branch) >= 2,
-            "The TotalAmount contribution must remain after FastTrack's cell, " +
+                        FlowControl.Cond_Branch) >= 2).IsTrue().Because("The TotalAmount contribution must remain after FastTrack's cell, " +
             "world, and StoredPrivate filter branches.");
-        Assert.IsTrue(totalAmountGetterIndex + 1 < sumTotalInstructions.Count);
-        Assert.AreEqual(
-            OpCodes.Add,
-            sumTotalInstructions[totalAmountGetterIndex + 1].OpCode);
+        await Assert.That(totalAmountGetterIndex + 1 < sumTotalInstructions.Count).IsTrue();
+        await Assert.That(sumTotalInstructions[totalAmountGetterIndex + 1].OpCode).IsEqualTo(OpCodes.Add);
 
         IReadOnlyList<MetadataIlInstruction> removalInstructions =
-            fixture.Decode(removedFetchablePrefix);
+            await fixture.Decode(removedFetchablePrefix);
         int pickupSetRemovalCount = 0;
         int inventoryDictionaryKeyRemovalCount = 0;
         foreach (MetadataIlInstruction instruction in removalInstructions)
@@ -368,15 +312,13 @@ public sealed class PreservedFastTrackAssemblyContractTests
             }
         }
 
-        Assert.IsGreaterThanOrEqualTo(1, pickupSetRemovalCount);
-        Assert.AreEqual(0, inventoryDictionaryKeyRemovalCount);
+        await Assert.That(pickupSetRemovalCount).IsGreaterThanOrEqualTo(1);
+        await Assert.That(inventoryDictionaryKeyRemovalCount).IsEqualTo(0);
     }
 
-    [TestMethod]
-    [DynamicData(
-        nameof(SupportedPreservedBuildCases),
-        DynamicDataDisplayName = nameof(FormatSupportedPreservedBuildCaseName))]
-    public void PreservedFixture_PickupGroupingContractMatchesDeclaredPresenceAndSemantics(
+    [Test]
+    [MethodDataSource(nameof(SupportedPreservedBuildCases))]
+    public async Task PreservedFixture_PickupGroupingContractMatchesDeclaredPresenceAndSemantics(
         SupportedBuildFixtureCase contractCase)
     {
         FastTrackSupportedBuildFixtureExpectation expectation =
@@ -385,15 +327,15 @@ public sealed class PreservedFastTrackAssemblyContractTests
             contractCase.AssemblyPath);
         if (!expectation.PickupGroupingReplacementIsPresent)
         {
-            Assert.IsFalse(fixture.TryFindType(
+            await Assert.That(fixture.TryFindType(
                 "PeterHan.FastTrack.GamePatches.FetchManagerFastUpdate",
-                out _));
+                out _)).IsFalse();
             return;
         }
 
-        TypeDefinitionHandle fastUpdate = fixture.RequireType(
+        TypeDefinitionHandle fastUpdate = await fixture.RequireType(
             "PeterHan.FastTrack.GamePatches.FetchManagerFastUpdate");
-        fixture.RequireMethod(
+        await fixture.RequireMethod(
             fastUpdate,
             "BeforeUpdatePickups",
             isStatic: true,
@@ -402,23 +344,23 @@ public sealed class PreservedFastTrackAssemblyContractTests
             "FetchManager+FetchablesByPrefabId",
             "Navigator",
             "System.Int32");
-        TypeDefinitionHandle pickupTagKey = fixture.RequireNestedType(
+        TypeDefinitionHandle pickupTagKey = await fixture.RequireNestedType(
             fastUpdate,
             "PickupTagKey",
             TypeAttributes.NestedAssembly);
-        FieldDefinitionHandle hashField = fixture.RequireField(
+        FieldDefinitionHandle hashField = await fixture.RequireField(
             pickupTagKey,
             "Hash",
             isStatic: false,
             FieldAttributes.Assembly,
             "System.Int32");
-        FieldDefinitionHandle identityField = fixture.RequireField(
+        FieldDefinitionHandle identityField = await fixture.RequireField(
             pickupTagKey,
             "ID",
             isStatic: false,
             FieldAttributes.Assembly,
             "KPrefabID");
-        MethodDefinitionHandle keyConstructor = fixture.RequireMethod(
+        MethodDefinitionHandle keyConstructor = await fixture.RequireMethod(
             pickupTagKey,
             ".ctor",
             isStatic: false,
@@ -426,7 +368,7 @@ public sealed class PreservedFastTrackAssemblyContractTests
             "System.Void",
             "System.Int32",
             "KPrefabID");
-        MethodDefinitionHandle typedEquality = fixture.RequireMethod(
+        MethodDefinitionHandle typedEquality = await fixture.RequireMethod(
             pickupTagKey,
             "Equals",
             isStatic: false,
@@ -434,11 +376,11 @@ public sealed class PreservedFastTrackAssemblyContractTests
             "System.Boolean",
             "PeterHan.FastTrack.GamePatches." +
             "FetchManagerFastUpdate+PickupTagKey");
-        TypeDefinitionHandle pickupTagDictionary = fixture.RequireNestedType(
+        TypeDefinitionHandle pickupTagDictionary = await fixture.RequireNestedType(
             fastUpdate,
             "PickupTagDict",
             TypeAttributes.NestedPrivate);
-        MethodDefinitionHandle addItem = fixture.RequireMethod(
+        MethodDefinitionHandle addItem = await fixture.RequireMethod(
             pickupTagDictionary,
             "AddItem",
             isStatic: false,
@@ -448,57 +390,49 @@ public sealed class PreservedFastTrackAssemblyContractTests
             "System.Int32");
 
         IReadOnlyList<MetadataIlInstruction> equalityInstructions =
-            fixture.Decode(typedEquality);
-        Assert.AreEqual(
-            2,
-            CountTokenInstructions(
+            await fixture.Decode(typedEquality);
+        await Assert.That(CountTokenInstructions(
                 equalityInstructions,
                 hashField,
-                instruction => instruction.OpCode == OpCodes.Ldfld));
-        Assert.AreEqual(
-            0,
-            CountTokenInstructions(
+                instruction => instruction.OpCode == OpCodes.Ldfld)).IsEqualTo(2);
+        await Assert.That(CountTokenInstructions(
                 equalityInstructions,
                 identityField,
-                instruction => instruction.OpCode == OpCodes.Ldfld));
+                instruction => instruction.OpCode == OpCodes.Ldfld)).IsEqualTo(0);
 
         IReadOnlyList<MetadataIlInstruction> addItemInstructions =
-            fixture.Decode(addItem);
-        Assert.AreEqual(
-            1,
-            CountTokenInstructions(
+            await fixture.Decode(addItem);
+        await Assert.That(CountTokenInstructions(
                 addItemInstructions,
                 keyConstructor,
-                IsCallInstruction));
+                IsCallInstruction)).IsEqualTo(1);
         int keyConstructorToken = MetadataTokens.GetToken(keyConstructor);
         int keyConstructorInstructionIndex =
             Enumerable.Range(0, addItemInstructions.Count).Single(index =>
                 IsCallInstruction(addItemInstructions[index]) &&
                 addItemInstructions[index].MetadataToken ==
                     keyConstructorToken);
-        Assert.IsGreaterThanOrEqualTo(4, keyConstructorInstructionIndex);
-        Assert.IsTrue(IsLocalAddressLoad(
-            addItemInstructions[keyConstructorInstructionIndex - 4]));
-        Assert.IsTrue(IsLocalValueLoad(
-            addItemInstructions[keyConstructorInstructionIndex - 3]));
-        Assert.IsTrue(IsLocalValueLoad(
-            addItemInstructions[keyConstructorInstructionIndex - 2]));
+        await Assert.That(keyConstructorInstructionIndex).IsGreaterThanOrEqualTo(4);
+        await Assert.That(IsLocalAddressLoad(
+            addItemInstructions[keyConstructorInstructionIndex - 4])).IsTrue();
+        await Assert.That(IsLocalValueLoad(
+            addItemInstructions[keyConstructorInstructionIndex - 3])).IsTrue();
+        await Assert.That(IsLocalValueLoad(
+            addItemInstructions[keyConstructorInstructionIndex - 2])).IsTrue();
         MetadataIlInstruction prefabIdentityLoad =
             addItemInstructions[keyConstructorInstructionIndex - 1];
-        Assert.AreEqual(OpCodes.Ldfld, prefabIdentityLoad.OpCode);
-        Assert.IsTrue(prefabIdentityLoad.MetadataToken.HasValue);
+        await Assert.That(prefabIdentityLoad.OpCode).IsEqualTo(OpCodes.Ldfld);
+        Assert.NotNull(prefabIdentityLoad.MetadataToken);
         MetadataMemberIdentity prefabIdentityField =
             fixture.ResolveMemberIdentity(
                 prefabIdentityLoad.MetadataToken.Value);
-        Assert.AreEqual("Pickupable", prefabIdentityField.DeclaringTypeName);
-        Assert.AreEqual("KPrefabID", prefabIdentityField.Name);
+        await Assert.That(prefabIdentityField.DeclaringTypeName).IsEqualTo("Pickupable");
+        await Assert.That(prefabIdentityField.Name).IsEqualTo("KPrefabID");
     }
 
-    [TestMethod]
-    [DynamicData(
-        nameof(SupportedPreservedBuildCases),
-        DynamicDataDisplayName = nameof(FormatSupportedPreservedBuildCaseName))]
-    public void PreservedFixture_DirectDeliveryReplacementMatchesDeclaredPresence(
+    [Test]
+    [MethodDataSource(nameof(SupportedPreservedBuildCases))]
+    public async Task PreservedFixture_DirectDeliveryReplacementMatchesDeclaredPresence(
         SupportedBuildFixtureCase contractCase)
     {
         FastTrackSupportedBuildFixtureExpectation expectation =
@@ -506,55 +440,48 @@ public sealed class PreservedFastTrackAssemblyContractTests
         using var fixture = new FastTrackPortableExecutableFixture(
             contractCase.AssemblyPath);
 
-        Assert.AreEqual(
-            expectation.DirectDeliveryReplacementIsPresent,
-            fixture.TryFindType(
+        await Assert.That(fixture.TryFindType(
                 "PeterHan.FastTrack.GamePatches.ChoreComparator",
-                out _));
-        Assert.AreEqual(
-            expectation.DirectDeliveryReplacementIsPresent,
-            fixture.TryFindType(
+                out _)).IsEqualTo(expectation.DirectDeliveryReplacementIsPresent);
+        await Assert.That(fixture.TryFindType(
                 "PeterHan.FastTrack.GamePatches.ChorePatches+" +
                 "GlobalChoreProvider_CollectChores_Patch",
-                out _));
+                out _)).IsEqualTo(expectation.DirectDeliveryReplacementIsPresent);
     }
 
-    [TestMethod]
-    [DynamicData(
-        nameof(SupportedPreservedBuildCases),
-        DynamicDataDisplayName = nameof(FormatSupportedPreservedBuildCaseName))]
-    public void TestProject_CopiesPreservedFixtureAsDataWithoutLoadingItsPhysicalAssembly(
+    [Test]
+    [MethodDataSource(nameof(SupportedPreservedBuildCases))]
+    public async Task TestProject_CopiesPreservedFixtureAsDataWithoutLoadingItsPhysicalAssembly(
         SupportedBuildFixtureCase contractCase)
     {
-        Assert.IsFalse(
-            IsPhysicalAssemblyWithFixtureSimpleNameLoaded(
-                contractCase.AssemblyPath));
+        await Assert.That(IsPhysicalAssemblyWithFixtureSimpleNameLoaded(
+                contractCase.AssemblyPath)).IsFalse();
     }
 
-    [TestMethod]
-    public void PhysicalAssemblyNameDetection_WhenDynamicAssemblySimpleNameMatches_IgnoresIt()
+    [Test]
+    public async Task PhysicalAssemblyNameDetection_WhenDynamicAssemblySimpleNameMatches_IgnoresIt()
     {
         Assembly loadedDynamicAssembly = AssemblyBuilder.DefineDynamicAssembly(
             new AssemblyName("FastTrack"),
             AssemblyBuilderAccess.Run);
 
-        Assert.IsFalse(ContainsPhysicalAssemblyWithSimpleName(
+        await Assert.That(ContainsPhysicalAssemblyWithSimpleName(
             new[] { loadedDynamicAssembly },
-            "FastTrack"));
+            "FastTrack")).IsFalse();
     }
 
-    [TestMethod]
-    public void PhysicalAssemblyNameDetection_WhenLoadedAssemblySimpleNameMatches_ReportsIt()
+    [Test]
+    public async Task PhysicalAssemblyNameDetection_WhenLoadedAssemblySimpleNameMatches_ReportsIt()
     {
         Assembly loadedPhysicalAssembly =
             typeof(PreservedFastTrackAssemblyContractTests).Assembly;
         string loadedAssemblySimpleName =
             loadedPhysicalAssembly.GetName().Name!;
 
-        Assert.IsFalse(loadedPhysicalAssembly.IsDynamic);
-        Assert.IsTrue(ContainsPhysicalAssemblyWithSimpleName(
+        await Assert.That(loadedPhysicalAssembly.IsDynamic).IsFalse();
+        await Assert.That(ContainsPhysicalAssemblyWithSimpleName(
             new[] { loadedPhysicalAssembly },
-            loadedAssemblySimpleName));
+            loadedAssemblySimpleName)).IsTrue();
     }
 
     private static int CountTokenInstructions<THandle>(
@@ -630,7 +557,7 @@ public sealed class PreservedFastTrackAssemblyContractTests
         return matchingIndices.AsReadOnly();
     }
 
-    private static int RequireSingleCallIndex(
+    private static async Task<int> RequireSingleCallIndex(
         FastTrackPortableExecutableFixture fixture,
         IReadOnlyList<MetadataIlInstruction> instructions,
         string declaringTypeNamePrefix,
@@ -641,15 +568,12 @@ public sealed class PreservedFastTrackAssemblyContractTests
             instructions,
             declaringTypeNamePrefix,
             methodName);
-        Assert.AreEqual(
-            1,
-            matchingIndices.Count,
-            $"Expected exactly one {declaringTypeNamePrefix}.{methodName} call. " +
+        await Assert.That(matchingIndices.Count).IsEqualTo(1).Because($"Expected exactly one {declaringTypeNamePrefix}.{methodName} call. " +
             $"Observed calls: {DescribeCalls(fixture, instructions)}");
         return matchingIndices[0];
     }
 
-    private static int RequireSingleFieldLoadIndex(
+    private static async Task<int> RequireSingleFieldLoadIndex(
         FastTrackPortableExecutableFixture fixture,
         IReadOnlyList<MetadataIlInstruction> instructions,
         string declaringTypeName,
@@ -679,10 +603,7 @@ public sealed class PreservedFastTrackAssemblyContractTests
             }
         }
 
-        Assert.AreEqual(
-            1,
-            matchingIndices.Count,
-            $"Expected exactly one {declaringTypeName}.{fieldName} field load.");
+        await Assert.That(matchingIndices.Count).IsEqualTo(1).Because($"Expected exactly one {declaringTypeName}.{fieldName} field load.");
         return matchingIndices[0];
     }
 
@@ -714,10 +635,9 @@ public sealed class PreservedFastTrackAssemblyContractTests
             "Fixtures",
             "ThirdParty",
             "FastTrack"));
-        Assert.IsTrue(
-            Directory.Exists(fixtureRoot),
-            "The preserved FastTrack fixture catalog must be copied as " +
-            "non-reference test data by DeliveryTemperatureLimit.Tests.csproj.");
+        if (!Directory.Exists(fixtureRoot))
+            Assert.Fail("The preserved FastTrack fixture catalog must be copied as " +
+                "non-reference test data by DeliveryTemperatureLimit.Tests.csproj.");
         return fixtureRoot;
     }
 
@@ -775,13 +695,14 @@ public sealed class PreservedFastTrackAssemblyContractTests
                 FileAccess.Read,
                 FileShare.Read);
             portableExecutableReader = new PEReader(assemblyStream);
-            Assert.IsTrue(portableExecutableReader.HasMetadata);
+            if (!portableExecutableReader.HasMetadata)
+                Assert.Fail($"The FastTrack fixture has no assembly metadata: {filePath}");
             MetadataReader = portableExecutableReader.GetMetadataReader();
         }
 
         internal MetadataReader MetadataReader { get; }
 
-        internal string RequireAssemblyFileVersionAttributeValue()
+        internal async Task<string> RequireAssemblyFileVersionAttributeValue()
         {
             AssemblyDefinition assembly = MetadataReader.GetAssemblyDefinition();
             foreach (CustomAttributeHandle handle in assembly.GetCustomAttributes())
@@ -796,9 +717,9 @@ public sealed class PreservedFastTrackAssemblyContractTests
                 }
 
                 BlobReader valueReader = MetadataReader.GetBlobReader(attribute.Value);
-                Assert.AreEqual(1, valueReader.ReadUInt16());
+                await Assert.That(valueReader.ReadUInt16()).IsEqualTo(1);
                 string? value = valueReader.ReadSerializedString();
-                Assert.IsNotNull(value);
+                Assert.NotNull(value);
                 return value;
             }
 
@@ -827,15 +748,13 @@ public sealed class PreservedFastTrackAssemblyContractTests
             return false;
         }
 
-        internal TypeDefinitionHandle RequireType(string fullTypeName)
+        internal async Task<TypeDefinitionHandle> RequireType(string fullTypeName)
         {
-            Assert.IsTrue(
-                TryFindType(fullTypeName, out TypeDefinitionHandle handle),
-                $"FastTrack fixture requires exact type '{fullTypeName}'.");
+            await Assert.That(TryFindType(fullTypeName, out TypeDefinitionHandle handle)).IsTrue().Because($"FastTrack fixture requires exact type '{fullTypeName}'.");
             return handle;
         }
 
-        internal TypeDefinitionHandle RequireNestedType(
+        internal async Task<TypeDefinitionHandle> RequireNestedType(
             TypeDefinitionHandle declaringTypeHandle,
             string nestedTypeName,
             TypeAttributes expectedVisibility)
@@ -859,14 +778,11 @@ public sealed class PreservedFastTrackAssemblyContractTests
                 }
             }
 
-            Assert.HasCount(
-                1,
-                matches,
-                $"Expected exactly one nested type '{nestedTypeName}'.");
+            await Assert.That(matches).Count().IsEqualTo(1).Because($"Expected exactly one nested type '{nestedTypeName}'.");
             return matches[0];
         }
 
-        internal FieldDefinitionHandle RequireField(
+        internal async Task<FieldDefinitionHandle> RequireField(
             TypeDefinitionHandle declaringTypeHandle,
             string fieldName,
             bool isStatic,
@@ -899,15 +815,12 @@ public sealed class PreservedFastTrackAssemblyContractTests
                 }
             }
 
-            Assert.HasCount(
-                1,
-                matches,
-                $"Expected exactly one field '{fieldName}' of type " +
+            await Assert.That(matches).Count().IsEqualTo(1).Because($"Expected exactly one field '{fieldName}' of type " +
                 $"'{fieldTypeName}'.");
             return matches[0];
         }
 
-        internal MethodDefinitionHandle RequireMethod(
+        internal async Task<MethodDefinitionHandle> RequireMethod(
             TypeDefinitionHandle declaringTypeHandle,
             string methodName,
             bool isStatic,
@@ -945,20 +858,17 @@ public sealed class PreservedFastTrackAssemblyContractTests
                 }
             }
 
-            Assert.HasCount(
-                1,
-                matches,
-                $"Expected exactly one method '{methodName}' with the declared " +
+            await Assert.That(matches).Count().IsEqualTo(1).Because($"Expected exactly one method '{methodName}' with the declared " +
                 "signature.");
             return matches[0];
         }
 
-        internal IReadOnlyList<MetadataIlInstruction> Decode(
+        internal async Task<IReadOnlyList<MetadataIlInstruction>> Decode(
             MethodDefinitionHandle methodHandle)
         {
             MethodDefinition method =
                 MetadataReader.GetMethodDefinition(methodHandle);
-            Assert.AreNotEqual(0, method.RelativeVirtualAddress);
+            await Assert.That(method.RelativeVirtualAddress).IsNotEqualTo(0);
             MethodBodyBlock body = portableExecutableReader.GetMethodBody(
                 method.RelativeVirtualAddress);
             byte[]? decodedBytes = body.GetILBytes();
@@ -974,7 +884,9 @@ public sealed class PreservedFastTrackAssemblyContractTests
             while (byteIndex < bytes.Length)
             {
                 int offset = byteIndex;
-                OpCode opCode = ReadOpCode(bytes, ref byteIndex);
+                var decodedOpCode = await ReadOpCode(bytes, byteIndex);
+                OpCode opCode = decodedOpCode.OpCode;
+                byteIndex = decodedOpCode.NextByteIndex;
                 int? metadataToken = null;
                 int? branchTargetOffset = null;
                 int operandByteCount;
@@ -988,7 +900,7 @@ public sealed class PreservedFastTrackAssemblyContractTests
                         operandByteCount = 1;
                         break;
                     case OperandType.ShortInlineBrTarget:
-                        RequireRemainingBytes(bytes, byteIndex, 1);
+                        await RequireRemainingBytes(bytes, byteIndex, 1);
                         branchTargetOffset =
                             byteIndex +
                             1 +
@@ -1003,7 +915,7 @@ public sealed class PreservedFastTrackAssemblyContractTests
                         operandByteCount = 4;
                         break;
                     case OperandType.InlineBrTarget:
-                        RequireRemainingBytes(bytes, byteIndex, 4);
+                        await RequireRemainingBytes(bytes, byteIndex, 4);
                         branchTargetOffset =
                             byteIndex +
                             4 +
@@ -1016,7 +928,7 @@ public sealed class PreservedFastTrackAssemblyContractTests
                     case OperandType.InlineString:
                     case OperandType.InlineTok:
                     case OperandType.InlineType:
-                        RequireRemainingBytes(bytes, byteIndex, 4);
+                        await RequireRemainingBytes(bytes, byteIndex, 4);
                         metadataToken = ReadInt32(bytes, byteIndex);
                         operandByteCount = 4;
                         break;
@@ -1025,9 +937,9 @@ public sealed class PreservedFastTrackAssemblyContractTests
                         operandByteCount = 8;
                         break;
                     case OperandType.InlineSwitch:
-                        RequireRemainingBytes(bytes, byteIndex, 4);
+                        await RequireRemainingBytes(bytes, byteIndex, 4);
                         int targetCount = ReadInt32(bytes, byteIndex);
-                        Assert.IsGreaterThanOrEqualTo(0, targetCount);
+                        await Assert.That(targetCount).IsGreaterThanOrEqualTo(0);
                         operandByteCount = checked(4 + (targetCount * 4));
                         break;
                     default:
@@ -1036,7 +948,7 @@ public sealed class PreservedFastTrackAssemblyContractTests
                         break;
                 }
 
-                RequireRemainingBytes(bytes, byteIndex, operandByteCount);
+                await RequireRemainingBytes(bytes, byteIndex, operandByteCount);
                 instructions.Add(new MetadataIlInstruction(
                     offset,
                     opCode,
@@ -1168,15 +1080,15 @@ public sealed class PreservedFastTrackAssemblyContractTests
                 : typeNamespace + "." + name;
         }
 
-        private static OpCode ReadOpCode(
+        private static async Task<(OpCode OpCode, int NextByteIndex)> ReadOpCode(
             byte[] bytes,
-            ref int byteIndex)
+            int byteIndex)
         {
             byte firstByte = bytes[byteIndex++];
             OpCode opCode;
             if (firstByte == 0xFE)
             {
-                RequireRemainingBytes(bytes, byteIndex, 1);
+                await RequireRemainingBytes(bytes, byteIndex, 1);
                 opCode = MultiByteOpCodes[bytes[byteIndex++]];
             }
             else
@@ -1184,8 +1096,8 @@ public sealed class PreservedFastTrackAssemblyContractTests
                 opCode = SingleByteOpCodes[firstByte];
             }
 
-            Assert.AreNotEqual(0, opCode.Size, "Encountered an unknown IL opcode.");
-            return opCode;
+            await Assert.That(opCode.Size).IsNotEqualTo(0).Because("Encountered an unknown IL opcode.");
+            return (opCode, byteIndex);
         }
 
         private static int ReadInt32(
@@ -1196,15 +1108,13 @@ public sealed class PreservedFastTrackAssemblyContractTests
             (bytes[byteIndex + 2] << 16) |
             (bytes[byteIndex + 3] << 24);
 
-        private static void RequireRemainingBytes(
+        private static async Task RequireRemainingBytes(
             byte[] bytes,
             int byteIndex,
             int requiredByteCount)
         {
-            Assert.IsGreaterThanOrEqualTo(0, requiredByteCount);
-            Assert.IsTrue(
-                byteIndex <= bytes.Length - requiredByteCount,
-                "Encountered a truncated IL operand.");
+            await Assert.That(requiredByteCount).IsGreaterThanOrEqualTo(0);
+            await Assert.That(byteIndex <= bytes.Length - requiredByteCount).IsTrue().Because("Encountered a truncated IL operand.");
         }
 
         private static OpCode[] BuildOpCodeLookup(bool multiByte)

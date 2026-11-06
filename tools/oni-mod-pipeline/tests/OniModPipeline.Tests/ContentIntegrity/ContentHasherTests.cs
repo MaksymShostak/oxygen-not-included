@@ -3,11 +3,9 @@ using MaksymShostak.OniModPipeline.Tests.Fixtures;
 using System.Security.Cryptography;
 
 namespace MaksymShostak.OniModPipeline.Tests.ContentIntegrity;
-
-[TestClass]
 public sealed class ContentHasherTests
 {
-    [TestMethod]
+    [Test]
     public async Task HashFileAsync_WhenFileContainsArbitraryBytes_StreamsLengthAndLowercaseSha256()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -18,15 +16,13 @@ public sealed class ContentHasherTests
 
         var digest = await hasher.HashFileAsync(path, CancellationToken.None);
 
-        Assert.AreEqual(Path.GetFullPath(path), digest.Path);
-        Assert.AreEqual((long)bytes.Length, digest.ByteLength);
-        Assert.AreEqual(
-            Convert.ToHexStringLower(SHA256.HashData(bytes)),
-            digest.Sha256);
-        StringAssert.Matches(digest.Sha256, new("^[0-9a-f]{64}$"));
+        await Assert.That(digest.Path).IsEqualTo(Path.GetFullPath(path));
+        await Assert.That(digest.ByteLength).IsEqualTo((long)bytes.Length);
+        await Assert.That(digest.Sha256).IsEqualTo(Convert.ToHexStringLower(SHA256.HashData(bytes)));
+        await Assert.That(digest.Sha256).Matches("^[0-9a-f]{64}$");
     }
 
-    [TestMethod]
+    [Test]
     public async Task CreateManifestAsync_WhenFilesSpanBothAreas_UsesAreaRelativeCanonicalEntries()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -49,18 +45,18 @@ public sealed class ContentHasherTests
             ],
             CancellationToken.None);
 
-        Assert.AreEqual(1, manifest.SchemaVersion);
-        Assert.AreEqual(2, manifest.Entries.Count);
-        Assert.AreEqual("description.bbcode", manifest.Entries[0].RelativePath);
-        Assert.AreEqual(ContentArea.WorkshopListing, manifest.Entries[0].ContentArea);
-        Assert.AreEqual("nested/payload.dll", manifest.Entries[1].RelativePath);
-        Assert.AreEqual(ContentArea.WorkshopContent, manifest.Entries[1].ContentArea);
+        await Assert.That(manifest.SchemaVersion).IsEqualTo(1);
+        await Assert.That(manifest.Entries.Count).IsEqualTo(2);
+        await Assert.That(manifest.Entries[0].RelativePath).IsEqualTo("description.bbcode");
+        await Assert.That(manifest.Entries[0].ContentArea).IsEqualTo(ContentArea.WorkshopListing);
+        await Assert.That(manifest.Entries[1].RelativePath).IsEqualTo("nested/payload.dll");
+        await Assert.That(manifest.Entries[1].ContentArea).IsEqualTo(ContentArea.WorkshopContent);
         var expectedDigest = Convert.ToHexStringLower(
             SHA256.HashData(CanonicalContentManifestSerializer.Serialize(manifest.Entries)));
-        Assert.AreEqual(expectedDigest, manifest.ContentDigest);
+        await Assert.That(manifest.ContentDigest).IsEqualTo(expectedDigest);
     }
 
-    [TestMethod]
+    [Test]
     public async Task CreateManifestAsync_WhenFileLeavesReleaseRoot_RejectsFile()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -70,14 +66,14 @@ public sealed class ContentHasherTests
         await File.WriteAllTextAsync(outside, "outside");
         var hasher = new ContentHasher();
 
-        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() =>
-            hasher.CreateManifestAsync(
+        await Assert.That(async () =>
+{await hasher.CreateManifestAsync(
                 releaseRoot,
                 [(outside, ContentArea.WorkshopContent, ContentRole.Runtime)],
-                CancellationToken.None));
+                CancellationToken.None);}).ThrowsExactly<InvalidOperationException>();
     }
 
-    [TestMethod]
+    [Test]
     public async Task CreateManifestAsync_WhenFileIsOutsideDeclaredArea_RejectsRoleBinding()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -88,27 +84,27 @@ public sealed class ContentHasherTests
         await File.WriteAllTextAsync(description, "description");
         var hasher = new ContentHasher();
 
-        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() =>
-            hasher.CreateManifestAsync(
+        await Assert.That(async () =>
+{await hasher.CreateManifestAsync(
                 releaseRoot,
                 [(description, ContentArea.WorkshopContent, ContentRole.Description)],
-                CancellationToken.None));
+                CancellationToken.None);}).ThrowsExactly<InvalidOperationException>();
     }
 
-    [TestMethod]
+    [Test]
     public async Task CreateManifestAsync_WhenAbsolutePathIsRelative_RejectsFile()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var hasher = new ContentHasher();
 
-        await Assert.ThrowsExactlyAsync<ArgumentException>(() =>
-            hasher.CreateManifestAsync(
+        await Assert.That(async () =>
+{await hasher.CreateManifestAsync(
                 temporaryDirectory.Path,
                 [("relative.bin", ContentArea.WorkshopContent, ContentRole.Runtime)],
-                CancellationToken.None));
+                CancellationToken.None);}).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
+    [Test]
     public async Task CreateManifestAsync_WhenAncestorIsReparsePoint_RejectsBeforeHashing()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -126,14 +122,14 @@ public sealed class ContentHasherTests
                 : File.GetAttributes(path),
             _ => null);
 
-        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() =>
-            hasher.CreateManifestAsync(
+        await Assert.That(async () =>
+{await hasher.CreateManifestAsync(
                 releaseRoot,
                 [(payload, ContentArea.WorkshopContent, ContentRole.Runtime)],
-                CancellationToken.None));
+                CancellationToken.None);}).ThrowsExactly<InvalidOperationException>();
     }
 
-    [TestMethod]
+    [Test]
     public async Task HashFileAsync_WhenLeafIsLink_RejectsBeforeHashing()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -143,11 +139,11 @@ public sealed class ContentHasherTests
             path => File.GetAttributes(path) | FileAttributes.ReparsePoint,
             _ => null);
 
-        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() =>
-            hasher.HashFileAsync(payload, CancellationToken.None));
+        await Assert.That(async () =>
+{await hasher.HashFileAsync(payload, CancellationToken.None);}).ThrowsExactly<InvalidOperationException>();
     }
 
-    [TestMethod]
+    [Test]
     public async Task CreateManifestAsync_WhenCancellationIsRequested_StopsBeforeHashing()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -155,10 +151,10 @@ public sealed class ContentHasherTests
         cancellation.Cancel();
         var hasher = new ContentHasher();
 
-        await Assert.ThrowsExactlyAsync<OperationCanceledException>(() =>
-            hasher.CreateManifestAsync(
+        await Assert.That(async () =>
+{await hasher.CreateManifestAsync(
                 temporaryDirectory.Path,
                 [],
-                cancellation.Token));
+                cancellation.Token);}).ThrowsExactly<OperationCanceledException>();
     }
 }

@@ -329,7 +329,7 @@ internal sealed class ModBuilder(
         if (profile.Build is not null || profile.TestProjects.Count > 0)
         {
             var worktreeRoot = FindWorktreeRoot(profile.ModRoot);
-            foreach (var control in new[] { "Directory.Packages.props", "global.json" })
+            foreach (var control in new[] { "Directory.Packages.props", "global.json", "tests/TUnitProjectDefaults.cs", "tests/TUnitProject.props" })
             {
                 var path = Path.Combine(worktreeRoot, control);
                 if (File.Exists(path)) AddExistingFile(paths, path);

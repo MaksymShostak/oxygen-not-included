@@ -2,12 +2,10 @@ using System.Reflection;
 using System.Reflection.Emit;
 
 namespace DeliveryTemperatureLimit.Tests.GameplayActivation.ExternalModIntegration;
-
-[TestClass]
 public sealed class DeclaredStaticMethodProtocolTests
 {
-    [TestMethod]
-    public void Verify_WhenEndpointMatchesExactProtocol_ReturnsMethodsInDeclarationOrder()
+    [Test]
+    public async Task Verify_WhenEndpointMatchesExactProtocol_ReturnsMethodsInDeclarationOrder()
     {
         Type endpointType = CreateTopLevelEndpoint(
             isPublic: true,
@@ -21,18 +19,16 @@ public sealed class DeclaredStaticMethodProtocolTests
                 endpointType,
                 ProtocolDescriptors());
 
-        CollectionAssert.AreEqual(
-            new[]
+        await Assert.That(verifiedMethods.Select(method => method.Name).ToArray()).IsEquivalentTo(new[]
             {
                 "Blueprints_GetData",
                 "Blueprints_SetData",
                 "Blueprints_ID"
-            },
-            verifiedMethods.Select(method => method.Name).ToArray());
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void Verify_WhenRequiredMethodIsMissing_RejectsEndpoint()
+    [Test]
+    public async Task Verify_WhenRequiredMethodIsMissing_RejectsEndpoint()
     {
         Type endpointType = CreateTopLevelEndpoint(
             isPublic: true,
@@ -40,14 +36,14 @@ public sealed class DeclaredStaticMethodProtocolTests
             Getter(),
             Setter());
 
-        Assert.ThrowsExactly<InvalidOperationException>(() =>
+        await Assert.That(() =>
             DeclaredStaticMethodProtocol.Verify(
                 endpointType,
-                ProtocolDescriptors()));
+                ProtocolDescriptors())).ThrowsExactly<InvalidOperationException>();
     }
 
-    [TestMethod]
-    public void Verify_WhenDeclaredNameIsOverloaded_RejectsAmbiguousEndpoint()
+    [Test]
+    public async Task Verify_WhenDeclaredNameIsOverloaded_RejectsAmbiguousEndpoint()
     {
         Type endpointType = CreateTopLevelEndpoint(
             isPublic: true,
@@ -60,14 +56,14 @@ public sealed class DeclaredStaticMethodProtocolTests
             Setter(),
             Identifier());
 
-        Assert.ThrowsExactly<InvalidOperationException>(() =>
+        await Assert.That(() =>
             DeclaredStaticMethodProtocol.Verify(
                 endpointType,
-                ProtocolDescriptors()));
+                ProtocolDescriptors())).ThrowsExactly<InvalidOperationException>();
     }
 
-    [TestMethod]
-    public void Verify_WhenReturnTypeChanges_RejectsEndpoint()
+    [Test]
+    public async Task Verify_WhenReturnTypeChanges_RejectsEndpoint()
     {
         Type endpointType = CreateTopLevelEndpoint(
             isPublic: true,
@@ -79,14 +75,14 @@ public sealed class DeclaredStaticMethodProtocolTests
             Setter(),
             Identifier());
 
-        Assert.ThrowsExactly<InvalidOperationException>(() =>
+        await Assert.That(() =>
             DeclaredStaticMethodProtocol.Verify(
                 endpointType,
-                ProtocolDescriptors()));
+                ProtocolDescriptors())).ThrowsExactly<InvalidOperationException>();
     }
 
-    [TestMethod]
-    public void Verify_WhenParameterTypeIdentityChanges_RejectsEndpoint()
+    [Test]
+    public async Task Verify_WhenParameterTypeIdentityChanges_RejectsEndpoint()
     {
         Type endpointType = CreateTopLevelEndpoint(
             isPublic: true,
@@ -98,14 +94,14 @@ public sealed class DeclaredStaticMethodProtocolTests
             Setter(),
             Identifier());
 
-        Assert.ThrowsExactly<InvalidOperationException>(() =>
+        await Assert.That(() =>
             DeclaredStaticMethodProtocol.Verify(
                 endpointType,
-                ProtocolDescriptors()));
+                ProtocolDescriptors())).ThrowsExactly<InvalidOperationException>();
     }
 
-    [TestMethod]
-    public void Verify_WhenParameterByReferenceShapeChanges_RejectsEndpoint()
+    [Test]
+    public async Task Verify_WhenParameterByReferenceShapeChanges_RejectsEndpoint()
     {
         Type endpointType = CreateTopLevelEndpoint(
             isPublic: true,
@@ -117,16 +113,16 @@ public sealed class DeclaredStaticMethodProtocolTests
             Setter(),
             Identifier());
 
-        Assert.ThrowsExactly<InvalidOperationException>(() =>
+        await Assert.That(() =>
             DeclaredStaticMethodProtocol.Verify(
                 endpointType,
-                ProtocolDescriptors()));
+                ProtocolDescriptors())).ThrowsExactly<InvalidOperationException>();
     }
 
-    [TestMethod]
-    [DataRow(false, true, DisplayName = "non-public method")]
-    [DataRow(true, false, DisplayName = "instance method")]
-    public void Verify_WhenMethodIsNotPublicStatic_RejectsEndpoint(
+    [Test]
+    [Arguments(false, true, DisplayName = "non-public method")]
+    [Arguments(true, false, DisplayName = "instance method")]
+    public async Task Verify_WhenMethodIsNotPublicStatic_RejectsEndpoint(
         bool isPublicMethod,
         bool isStaticMethod)
     {
@@ -142,14 +138,14 @@ public sealed class DeclaredStaticMethodProtocolTests
             Setter(),
             Identifier());
 
-        Assert.ThrowsExactly<InvalidOperationException>(() =>
+        await Assert.That(() =>
             DeclaredStaticMethodProtocol.Verify(
                 endpointType,
-                ProtocolDescriptors()));
+                ProtocolDescriptors())).ThrowsExactly<InvalidOperationException>();
     }
 
-    [TestMethod]
-    public void Verify_WhenEndpointTypeIsNotPublicStaticTopLevel_RejectsEndpoint()
+    [Test]
+    public async Task Verify_WhenEndpointTypeIsNotPublicStaticTopLevel_RejectsEndpoint()
     {
         Type internalEndpoint = CreateTopLevelEndpoint(
             isPublic: false,
@@ -168,32 +164,32 @@ public sealed class DeclaredStaticMethodProtocolTests
             Setter(),
             Identifier());
 
-        Assert.ThrowsExactly<InvalidOperationException>(() =>
+        await Assert.That(() =>
             DeclaredStaticMethodProtocol.Verify(
                 internalEndpoint,
-                ProtocolDescriptors()));
-        Assert.ThrowsExactly<InvalidOperationException>(() =>
+                ProtocolDescriptors())).ThrowsExactly<InvalidOperationException>();
+        await Assert.That(() =>
             DeclaredStaticMethodProtocol.Verify(
                 instanceEndpoint,
-                ProtocolDescriptors()));
-        Assert.ThrowsExactly<InvalidOperationException>(() =>
+                ProtocolDescriptors())).ThrowsExactly<InvalidOperationException>();
+        await Assert.That(() =>
             DeclaredStaticMethodProtocol.Verify(
                 nestedEndpoint,
-                ProtocolDescriptors()));
+                ProtocolDescriptors())).ThrowsExactly<InvalidOperationException>();
     }
 
-    [TestMethod]
-    public void Verify_WhenEndpointTypeIsClosedGenericStaticType_RejectsEndpoint()
+    [Test]
+    public async Task Verify_WhenEndpointTypeIsClosedGenericStaticType_RejectsEndpoint()
     {
         Type endpointType = CreateClosedGenericTopLevelEndpoint(
             Getter(),
             Setter(),
             Identifier());
 
-        Assert.ThrowsExactly<InvalidOperationException>(() =>
+        await Assert.That(() =>
             DeclaredStaticMethodProtocol.Verify(
                 endpointType,
-                ProtocolDescriptors()));
+                ProtocolDescriptors())).ThrowsExactly<InvalidOperationException>();
     }
 
     private static IReadOnlyList<DeclaredStaticMethodDescriptor>

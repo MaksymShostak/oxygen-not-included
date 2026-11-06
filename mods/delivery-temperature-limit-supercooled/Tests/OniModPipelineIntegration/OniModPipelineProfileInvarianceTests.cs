@@ -269,40 +269,29 @@ internal static partial class OniModPipelineProfileContractReader
         RegexOptions.CultureInvariant)]
     private static partial Regex QuotedArrayItemPattern();
 }
-
-[TestClass]
 public sealed class OniModPipelineProfileInvarianceTests
 {
-    [TestMethod]
-    public void Profile_WhenInspected_ContainsStrictUtf8WithoutBom()
+    [Test]
+    public async Task Profile_WhenInspected_ContainsStrictUtf8WithoutBom()
     {
-        var bytes = File.ReadAllBytes(ProfilePath());
-        Assert.IsFalse(
-            bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF,
-            "oni-mod-pipeline.toml must not contain a UTF-8 Byte Order Mark (BOM).");
-        Assert.IsTrue(bytes.Length > 0, "oni-mod-pipeline.toml must not be empty.");
+        var bytes = File.ReadAllBytes((await ProfilePath()));
+        await Assert.That(bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF).IsFalse().Because("oni-mod-pipeline.toml must not contain a UTF-8 Byte Order Mark (BOM).");
+        await Assert.That(bytes.Length > 0).IsTrue().Because("oni-mod-pipeline.toml must not be empty.");
     }
 
-    [TestMethod]
-    public void Profile_WhenParsed_RetainsAuthoritativeDevelopmentPipelineContract()
+    [Test]
+    public async Task Profile_WhenParsed_RetainsAuthoritativeDevelopmentPipelineContract()
     {
-        byte[] semanticInputCopy = File.ReadAllBytes(ProfilePath()).ToArray();
+        byte[] semanticInputCopy = File.ReadAllBytes((await ProfilePath())).ToArray();
         var profile = OniModPipelineProfileContractReader.Read(
             semanticInputCopy);
 
-        Assert.AreEqual(
-            "Source/DeliveryTemperatureLimit.csproj",
-            profile.BuildEntryPoint);
-        Assert.AreEqual("Release", profile.BuildConfiguration);
-        Assert.AreEqual(
-            "OniManagedAssemblyDirectory",
-            profile.ManagedDirectoryProperty);
-        Assert.AreEqual(
-            "{build-output}/DeliveryTemperatureLimit.dll",
-            profile.PrimaryOutput);
-        CollectionAssert.AreEqual(new[] { "PLib" }, profile.MergeInputs.ToArray());
-        CollectionAssert.AreEqual(
-            new[]
+        await Assert.That(profile.BuildEntryPoint).IsEqualTo("Source/DeliveryTemperatureLimit.csproj");
+        await Assert.That(profile.BuildConfiguration).IsEqualTo("Release");
+        await Assert.That(profile.ManagedDirectoryProperty).IsEqualTo("OniManagedAssemblyDirectory");
+        await Assert.That(profile.PrimaryOutput).IsEqualTo("{build-output}/DeliveryTemperatureLimit.dll");
+        await Assert.That(profile.MergeInputs.ToArray()).IsEquivalentTo(new[] { "PLib" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(profile.PackageFiles.ToArray()).IsEquivalentTo(new[]
             {
                 new OniModPipelinePackageFileContract("mod.yaml", "mod.yaml"),
                 new OniModPipelinePackageFileContract(
@@ -314,20 +303,16 @@ public sealed class OniModPipelineProfileInvarianceTests
                 new OniModPipelinePackageFileContract(
                     "translations",
                     "translations")
-            },
-            profile.PackageFiles.ToArray());
-        Assert.AreEqual("DeliveryTemperatureLimit", profile.LocalInstallDirectory);
-        CollectionAssert.AreEqual(
-            new[]
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(profile.LocalInstallDirectory).IsEqualTo("DeliveryTemperatureLimit");
+        await Assert.That(profile.TestProjects.ToArray()).IsEquivalentTo(new[]
             {
                 new OniModPipelineTestProjectContract(
                     "delivery-temperature-limit-regressions",
                     "Tests/DeliveryTemperatureLimit.Tests.csproj",
                     Required: true)
-            },
-            profile.TestProjects.ToArray());
-        CollectionAssert.AreEqual(
-            new[]
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(profile.RequiredAcceptanceCheckIds.ToArray()).IsEquivalentTo(new[]
             {
                 "storage-bin-temperature-filter",
                 "storage-tile-rocket-temperature-filter",
@@ -337,23 +322,20 @@ public sealed class OniModPipelineProfileInvarianceTests
                 "save-load-temperature-limits",
                 "delivery-temperature-log-review",
                 "workshop-description-uploader-line-structure"
-            },
-            profile.RequiredAcceptanceCheckIds.ToArray());
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    private static string ProfilePath() =>
+    private static async Task<string> ProfilePath() =>
         Path.Combine(
-            RequiredEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT"),
+            (await RequiredEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT")),
             "mods",
             "delivery-temperature-limit-supercooled",
             "oni-mod-pipeline.toml");
 
-    private static string RequiredEnvironmentVariable(string name)
+    private static async Task<string> RequiredEnvironmentVariable(string name)
     {
         var value = Environment.GetEnvironmentVariable(name);
-        Assert.IsFalse(
-            string.IsNullOrWhiteSpace(value),
-            $"Required environment variable {name} was not provided by oni-mod-pipeline.");
-        return value;
+        await Assert.That(string.IsNullOrWhiteSpace(value)).IsFalse().Because($"Required environment variable {name} was not provided by oni-mod-pipeline.");
+        return value!;
     }
 }

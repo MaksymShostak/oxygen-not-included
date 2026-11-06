@@ -3,11 +3,9 @@ using MaksymShostak.OniModPipeline.SourceControl;
 using System.Text.Json;
 
 namespace MaksymShostak.OniModPipeline.Tests.Cli;
-
-[TestClass]
 public sealed class ValidateCommandTests
 {
-    [TestMethod]
+    [Test]
     public async Task Validate_ForReleaseRejectsStaleReadmeWithoutWriting()
     {
         using var fixture = new CliCommandFixture(sourceIsDirty: false);
@@ -31,10 +29,10 @@ public sealed class ValidateCommandTests
         var services = fixture.Services with { ProcessRunner = runner, GitRepositoryInspector = new GitRepositoryInspector(runner) };
         var before = SourceSnapshot.CaptureTree(fixture.RootPath);
         var invocation = await DiagnoseCommandTests.InvokeAsync(CliApplication.CreateRootCommand(services), fixture.CreateArguments("validate", "--for-release"));
-        Assert.AreEqual(6, invocation.ExitCode);
-        StringAssert.Contains(invocation.StandardError, "stale");
-        Assert.AreEqual(0, before.ChangedPathsComparedWith(SourceSnapshot.CaptureTree(fixture.RootPath)).Count);
-        Assert.IsFalse(Directory.Exists(fixture.ArtifactsDirectory));
+        await Assert.That(invocation.ExitCode).IsEqualTo(6);
+        await Assert.That(invocation.StandardError).Contains("stale");
+        await Assert.That(before.ChangedPathsComparedWith(SourceSnapshot.CaptureTree(fixture.RootPath)).Count).IsEqualTo(0);
+        await Assert.That(Directory.Exists(fixture.ArtifactsDirectory)).IsFalse();
     }
 
     private sealed class ReadmeValidationRunner(MaksymShostak.OniModPipeline.Processes.IExternalProcessRunner inner) : MaksymShostak.OniModPipeline.Processes.IExternalProcessRunner
@@ -65,7 +63,7 @@ public sealed class ValidateCommandTests
                 : result;
         }
     }
-    [TestMethod]
+    [Test]
     public async Task Validate_WhenDevelopmentInputIsDirty_SucceedsWithoutForRelease()
     {
         using var fixture = new CliCommandFixture(sourceIsDirty: true);
@@ -77,15 +75,15 @@ public sealed class ValidateCommandTests
             fixture.CreateArguments("validate"));
 
         var after = SourceSnapshot.CaptureTree(fixture.RootPath);
-        Assert.AreEqual(0, invocation.ExitCode);
-        Assert.AreEqual(string.Empty, invocation.StandardError);
-        StringAssert.Contains(invocation.StandardOutput, "Release validation: false");
-        StringAssert.Contains(invocation.StandardOutput, "Source clean: false");
-        Assert.IsFalse(Directory.Exists(fixture.ArtifactsDirectory));
-        Assert.AreEqual(0, before.ChangedPathsComparedWith(after).Count);
+        await Assert.That(invocation.ExitCode).IsEqualTo(0);
+        await Assert.That(invocation.StandardError).IsEqualTo(string.Empty);
+        await Assert.That(invocation.StandardOutput).Contains("Release validation: false");
+        await Assert.That(invocation.StandardOutput).Contains("Source clean: false");
+        await Assert.That(Directory.Exists(fixture.ArtifactsDirectory)).IsFalse();
+        await Assert.That(before.ChangedPathsComparedWith(after).Count).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public async Task Validate_WhenContributingInputIsDirtyAndForRelease_ReturnsExitCodeSix()
     {
         using var fixture = new CliCommandFixture(sourceIsDirty: true);
@@ -97,15 +95,15 @@ public sealed class ValidateCommandTests
             fixture.CreateArguments("validate", "--for-release"));
 
         var after = SourceSnapshot.CaptureTree(fixture.RootPath);
-        Assert.AreEqual(6, invocation.ExitCode);
-        Assert.AreEqual(string.Empty, invocation.StandardOutput);
-        StringAssert.Contains(invocation.StandardError, "ONIP5001");
-        StringAssert.Contains(invocation.StandardError, "description.bbcode");
-        Assert.IsFalse(Directory.Exists(fixture.ArtifactsDirectory));
-        Assert.AreEqual(0, before.ChangedPathsComparedWith(after).Count);
+        await Assert.That(invocation.ExitCode).IsEqualTo(6);
+        await Assert.That(invocation.StandardOutput).IsEqualTo(string.Empty);
+        await Assert.That(invocation.StandardError).Contains("ONIP5001");
+        await Assert.That(invocation.StandardError).Contains("description.bbcode");
+        await Assert.That(Directory.Exists(fixture.ArtifactsDirectory)).IsFalse();
+        await Assert.That(before.ChangedPathsComparedWith(after).Count).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public async Task Validate_WhenJsonRequested_WritesOneJsonDocumentWithoutAnsi()
     {
         using var fixture = new CliCommandFixture(sourceIsDirty: false);
@@ -117,22 +115,20 @@ public sealed class ValidateCommandTests
             fixture.CreateArguments("validate", "--format", "json"));
 
         var after = SourceSnapshot.CaptureTree(fixture.RootPath);
-        Assert.AreEqual(0, invocation.ExitCode);
-        Assert.AreEqual(string.Empty, invocation.StandardError);
-        Assert.IsFalse(invocation.StandardOutput.Contains('\u001b'));
+        await Assert.That(invocation.ExitCode).IsEqualTo(0);
+        await Assert.That(invocation.StandardError).IsEqualTo(string.Empty);
+        await Assert.That(invocation.StandardOutput.Contains('\u001b')).IsFalse();
         using var document = JsonDocument.Parse(invocation.StandardOutput);
-        Assert.AreEqual(
-            0,
-            document.RootElement.GetProperty("exitCode").GetInt32());
-        Assert.IsTrue(document.RootElement
+        await Assert.That(document.RootElement.GetProperty("exitCode").GetInt32()).IsEqualTo(0);
+        await Assert.That(document.RootElement
             .GetProperty("value")
             .GetProperty("sourceClean")
-            .GetBoolean());
-        Assert.IsFalse(Directory.Exists(fixture.ArtifactsDirectory));
-        Assert.AreEqual(0, before.ChangedPathsComparedWith(after).Count);
+            .GetBoolean()).IsTrue();
+        await Assert.That(Directory.Exists(fixture.ArtifactsDirectory)).IsFalse();
+        await Assert.That(before.ChangedPathsComparedWith(after).Count).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public async Task Validate_WhenFormatIsUnknown_ReturnsParseExitTwoWithoutDiscovery()
     {
         using var fixture = new CliCommandFixture(sourceIsDirty: false);
@@ -142,13 +138,13 @@ public sealed class ValidateCommandTests
             command,
             ["validate", "--format", "xml"]);
 
-        Assert.AreEqual(2, invocation.ExitCode);
-        StringAssert.Contains(invocation.StandardError, "human");
-        StringAssert.Contains(invocation.StandardError, "json");
-        Assert.AreEqual(0, fixture.ProcessRunner.Requests.Count);
+        await Assert.That(invocation.ExitCode).IsEqualTo(2);
+        await Assert.That(invocation.StandardError).Contains("human");
+        await Assert.That(invocation.StandardError).Contains("json");
+        await Assert.That(fixture.ProcessRunner.Requests.Count).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public async Task Validate_WhenGitIsUnavailable_SucceedsWithoutForRelease()
     {
         using var fixture = new CliCommandFixture(
@@ -162,13 +158,13 @@ public sealed class ValidateCommandTests
             fixture.CreateArguments("validate"));
 
         var after = SourceSnapshot.CaptureTree(fixture.RootPath);
-        Assert.AreEqual(0, invocation.ExitCode);
-        Assert.AreEqual(string.Empty, invocation.StandardError);
-        StringAssert.Contains(invocation.StandardOutput, "Source clean: false");
-        Assert.AreEqual(0, before.ChangedPathsComparedWith(after).Count);
+        await Assert.That(invocation.ExitCode).IsEqualTo(0);
+        await Assert.That(invocation.StandardError).IsEqualTo(string.Empty);
+        await Assert.That(invocation.StandardOutput).Contains("Source clean: false");
+        await Assert.That(before.ChangedPathsComparedWith(after).Count).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public async Task Validate_WhenGitIsUnavailableAndForRelease_ReturnsExitCodeSix()
     {
         using var fixture = new CliCommandFixture(
@@ -182,14 +178,14 @@ public sealed class ValidateCommandTests
             fixture.CreateArguments("validate", "--for-release"));
 
         var after = SourceSnapshot.CaptureTree(fixture.RootPath);
-        Assert.AreEqual(6, invocation.ExitCode);
-        Assert.AreEqual(string.Empty, invocation.StandardOutput);
-        StringAssert.Contains(invocation.StandardError, "ONIP5001");
-        StringAssert.Contains(invocation.StandardError, "git is unavailable");
-        Assert.AreEqual(0, before.ChangedPathsComparedWith(after).Count);
+        await Assert.That(invocation.ExitCode).IsEqualTo(6);
+        await Assert.That(invocation.StandardOutput).IsEqualTo(string.Empty);
+        await Assert.That(invocation.StandardError).Contains("ONIP5001");
+        await Assert.That(invocation.StandardError).Contains("git is unavailable");
+        await Assert.That(before.ChangedPathsComparedWith(after).Count).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public async Task Validate_WhenChangeNotesArePlaceholder_ReturnsOnip1006WithoutWritingArtifacts()
     {
         using var fixture = new CliCommandFixture(sourceIsDirty: false);
@@ -204,11 +200,11 @@ public sealed class ValidateCommandTests
             fixture.CreateArguments("validate"));
 
         var after = SourceSnapshot.CaptureTree(fixture.RootPath);
-        Assert.AreEqual(2, invocation.ExitCode);
-        Assert.AreEqual(string.Empty, invocation.StandardOutput);
-        StringAssert.Contains(invocation.StandardError, "ONIP1006");
-        StringAssert.Contains(invocation.StandardError, "placeholder");
-        Assert.IsFalse(Directory.Exists(fixture.ArtifactsDirectory));
-        Assert.AreEqual(0, before.ChangedPathsComparedWith(after).Count);
+        await Assert.That(invocation.ExitCode).IsEqualTo(2);
+        await Assert.That(invocation.StandardOutput).IsEqualTo(string.Empty);
+        await Assert.That(invocation.StandardError).Contains("ONIP1006");
+        await Assert.That(invocation.StandardError).Contains("placeholder");
+        await Assert.That(Directory.Exists(fixture.ArtifactsDirectory)).IsFalse();
+        await Assert.That(before.ChangedPathsComparedWith(after).Count).IsEqualTo(0);
     }
 }

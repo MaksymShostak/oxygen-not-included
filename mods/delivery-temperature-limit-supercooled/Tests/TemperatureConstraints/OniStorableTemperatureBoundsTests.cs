@@ -1,34 +1,26 @@
 namespace DeliveryTemperatureLimit.Tests.TemperatureConstraints;
-
-[TestClass]
 public sealed class OniStorableTemperatureBoundsTests
 {
-    [TestMethod]
-    public void MinimumTemperatureKelvin_WhenRead_IsPreservedConfigurableFloor()
+    [Test]
+    public async Task MinimumTemperatureKelvin_WhenRead_IsPreservedConfigurableFloor()
     {
-        Assert.AreEqual(
-            0,
-            ReadConstant(nameof(OniStorableTemperatureBounds.MinimumTemperatureKelvin)));
+        await Assert.That((await ReadConstant(nameof(OniStorableTemperatureBounds.MinimumTemperatureKelvin)))).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void MaximumTemperatureKelvin_WhenRead_MatchesReviewedOniStorableBound()
+    [Test]
+    public async Task MaximumTemperatureKelvin_WhenRead_MatchesReviewedOniStorableBound()
     {
-        Assert.AreEqual(
-            10000,
-            ReadConstant(nameof(OniStorableTemperatureBounds.MaximumTemperatureKelvin)));
+        await Assert.That((await ReadConstant(nameof(OniStorableTemperatureBounds.MaximumTemperatureKelvin)))).IsEqualTo(10000);
     }
 
-    private static object? ReadConstant(string fieldName)
+    private static async Task<object?> ReadConstant(string fieldName)
     {
         var field = typeof(OniStorableTemperatureBounds).GetField(
             fieldName,
             System.Reflection.BindingFlags.NonPublic
             | System.Reflection.BindingFlags.Static);
-        Assert.IsNotNull(
-            field,
-            $"Linked production constant {fieldName} was not emitted into the test assembly.");
-        Assert.IsTrue(field.IsLiteral);
+        if (field is null) throw new TUnit.Assertions.Exceptions.AssertionException($"Linked production constant {fieldName} was not emitted into the test assembly.");
+        await Assert.That(field.IsLiteral).IsTrue();
         return field.GetRawConstantValue();
     }
 }

@@ -2,12 +2,10 @@ using MaksymShostak.OniModPipeline.SourceControl;
 using MaksymShostak.OniModPipeline.Tests.Fixtures;
 
 namespace MaksymShostak.OniModPipeline.Tests.SourceControl;
-
-[TestClass]
 public sealed class SourceSnapshotTests
 {
-    [TestMethod]
-    public void Capture_WhenFileBytesChange_ReportsCanonicalPath()
+    [Test]
+    public async Task Capture_WhenFileBytesChange_ReportsCanonicalPath()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var filePath = temporaryDirectory.GetPath("input.txt");
@@ -17,13 +15,11 @@ public sealed class SourceSnapshotTests
 
         var later = SourceSnapshot.Capture([filePath]);
 
-        CollectionAssert.AreEqual(
-            new[] { Path.GetFullPath(filePath) },
-            before.ChangedPathsComparedWith(later).ToArray());
+        await Assert.That(before.ChangedPathsComparedWith(later).ToArray()).IsEquivalentTo(new[] { Path.GetFullPath(filePath) }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void CaptureTree_WhenFileIsAddedAndAnotherRemoved_ReportsBothPaths()
+    [Test]
+    public async Task CaptureTree_WhenFileIsAddedAndAnotherRemoved_ReportsBothPaths()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var removedPath = temporaryDirectory.GetPath("removed.txt");
@@ -37,15 +33,13 @@ public sealed class SourceSnapshotTests
 
         var later = SourceSnapshot.CaptureTree(temporaryDirectory.Path);
 
-        CollectionAssert.AreEqual(
-            new[] { Path.GetFullPath(addedPath), Path.GetFullPath(removedPath) }
+        await Assert.That(before.ChangedPathsComparedWith(later).ToArray()).IsEquivalentTo(new[] { Path.GetFullPath(addedPath), Path.GetFullPath(removedPath) }
                 .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
-                .ToArray(),
-            before.ChangedPathsComparedWith(later).ToArray());
+                .ToArray(), TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void Capture_WhenOnlyTimestampChanges_ReportsNoChangedPath()
+    [Test]
+    public async Task Capture_WhenOnlyTimestampChanges_ReportsNoChangedPath()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var filePath = temporaryDirectory.GetPath("input.txt");
@@ -55,6 +49,6 @@ public sealed class SourceSnapshotTests
 
         var later = SourceSnapshot.Capture([filePath]);
 
-        Assert.AreEqual(0, before.ChangedPathsComparedWith(later).Count);
+        await Assert.That(before.ChangedPathsComparedWith(later).Count).IsEqualTo(0);
     }
 }

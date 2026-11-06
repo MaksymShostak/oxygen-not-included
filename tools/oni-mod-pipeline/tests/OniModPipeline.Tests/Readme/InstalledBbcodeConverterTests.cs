@@ -4,11 +4,9 @@ using MaksymShostak.OniModPipeline.Readme;
 using MaksymShostak.OniModPipeline.Tests.Fixtures;
 
 namespace MaksymShostak.OniModPipeline.Tests.Readme;
-
-[TestClass]
 public sealed class InstalledBbcodeConverterTests
 {
-    [TestMethod]
+    [Test]
     public async Task Convert_UsesDeclaredPublicBinAndSeparateArguments()
     {
         using var directory = new TemporaryDirectory();
@@ -17,35 +15,35 @@ public sealed class InstalledBbcodeConverterTests
         var input = directory.GetPath("generated description.bbcode");
         File.WriteAllText(input, "[h1]Mod[/h1]\r\n");
         var result = await new InstalledBbcodeConverter(runner).ConvertAsync(package, input, CancellationToken.None);
-        Assert.AreEqual("# Mod\n", result.Markdown);
-        Assert.IsNotNull(runner.Request);
-        Assert.AreEqual("node", runner.Request.FileName);
-        CollectionAssert.AreEqual(new[] { Path.Combine(package, "bin with spaces", "convert.js"), "to-gfm", "--format=json", "--profile=workshop-item", "--fail-on=lossy", input }, runner.Request.Arguments.ToArray());
+        await Assert.That(result.Markdown).IsEqualTo("# Mod\n");
+        Assert.NotNull(runner.Request);
+        await Assert.That(runner.Request.FileName).IsEqualTo("node");
+        await Assert.That(runner.Request.Arguments.ToArray()).IsEquivalentTo(new[] { Path.Combine(package, "bin with spaces", "convert.js"), "to-gfm", "--format=json", "--profile=workshop-item", "--fail-on=lossy", input }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    [DataRow(1, "{\"value\":\"partial\",\"diagnostics\":[]}")]
-    [DataRow(0, "not json")]
-    [DataRow(0, "{\"value\":42,\"diagnostics\":[]}")]
-    [DataRow(0, "{\"value\":\"partial\"}")]
-    [DataRow(0, "{\"value\":\"partial\",\"diagnostics\":[{\"fidelity\":\"lossy\"}]}")]
+    [Test]
+    [Arguments(1, "{\"value\":\"partial\",\"diagnostics\":[]}")]
+    [Arguments(0, "not json")]
+    [Arguments(0, "{\"value\":42,\"diagnostics\":[]}")]
+    [Arguments(0, "{\"value\":\"partial\"}")]
+    [Arguments(0, "{\"value\":\"partial\",\"diagnostics\":[{\"fidelity\":\"lossy\"}]}")]
     public async Task Convert_RejectsFailedOrMalformedResults(int exitCode, string output)
     {
         using var directory = new TemporaryDirectory();
         var package = CreatePackage(directory, "cli.js");
         var runner = new RecordingRunner(new ProcessResult(exitCode, output, "converter diagnostic"));
-        await Assert.ThrowsAsync<InvalidDataException>(() => new InstalledBbcodeConverter(runner).ConvertAsync(package, directory.GetPath("input.bbcode"), CancellationToken.None));
+        await Assert.That(async () => {await new InstalledBbcodeConverter(runner).ConvertAsync(package, directory.GetPath("input.bbcode"), CancellationToken.None);}).Throws<InvalidDataException>();
     }
 
-    [TestMethod]
+    [Test]
     public async Task Convert_RejectsBinOutsidePackageBeforeLaunching()
     {
         using var directory = new TemporaryDirectory();
         var package = CreatePackage(directory, "cli.js");
         File.WriteAllText(Path.Combine(package, "package.json"), "{\"name\":\"steam-community-bbcode\",\"bin\":{\"steam-community-bbcode\":\"../escape.js\"}}");
         var runner = new RecordingRunner(new ProcessResult(0, "{}", ""));
-        await Assert.ThrowsAsync<InvalidDataException>(() => new InstalledBbcodeConverter(runner).ConvertAsync(package, "input", CancellationToken.None));
-        Assert.IsNull(runner.Request);
+        await Assert.That(async () => {await new InstalledBbcodeConverter(runner).ConvertAsync(package, "input", CancellationToken.None);}).Throws<InvalidDataException>();
+        await Assert.That(runner.Request).IsNull();
     }
 
     private static string CreatePackage(TemporaryDirectory directory, string bin)

@@ -1,26 +1,24 @@
 namespace DeliveryTemperatureLimit.Tests.SupportReporting;
-
-[TestClass]
 public sealed class SupportReportDocumentTests
 {
-    [TestMethod]
-    public void Constructor_WhenStandardFactsAreSupplied_PreservesSchemaAndExplicitAvailability()
+    [Test]
+    public async Task Constructor_WhenStandardFactsAreSupplied_PreservesSchemaAndExplicitAvailability()
     {
         SupportReportDocument document = SupportReportDocumentFixture.Create(
             SupportReportKind.Standard,
             playerLog: null);
 
-        Assert.AreEqual(2, document.SchemaVersion);
-        Assert.AreEqual("standard", document.ReportKind);
-        Assert.AreEqual("available", document.Game.Build.State);
-        Assert.AreEqual("744825", document.Game.Build.Value);
-        Assert.AreEqual("unavailable", document.Game.GameVersion.State);
-        Assert.AreEqual("available", document.Game.ActiveDlcs.State);
-        Assert.IsNull(document.PlayerLog);
+        await Assert.That(document.SchemaVersion).IsEqualTo(2);
+        await Assert.That(document.ReportKind).IsEqualTo("standard");
+        await Assert.That(document.Game.Build.State).IsEqualTo("available");
+        await Assert.That(document.Game.Build.Value).IsEqualTo("744825");
+        await Assert.That(document.Game.GameVersion.State).IsEqualTo("unavailable");
+        await Assert.That(document.Game.ActiveDlcs.State).IsEqualTo("available");
+        await Assert.That(document.PlayerLog).IsNull();
     }
 
-    [TestMethod]
-    public void Constructor_WhenTemperatureUnitIsNonCelsius_PreservesUnitWithDisplayedThresholds()
+    [Test]
+    public async Task Constructor_WhenTemperatureUnitIsNonCelsius_PreservesUnitWithDisplayedThresholds()
     {
         SupportReportDocument document = SupportReportDocumentFixture.Create(
             SupportReportKind.Standard,
@@ -29,28 +27,22 @@ public sealed class SupportReportDocumentTests
             maxConstructionTemperature: 113,
             minConstructionTemperature: -58);
 
-        Assert.AreEqual(
-            "Fahrenheit",
-            document.TemperatureLimit.TemperatureUnit);
-        Assert.AreEqual(
-            113,
-            document.TemperatureLimit.MaxConstructionTemperature);
-        Assert.AreEqual(
-            -58,
-            document.TemperatureLimit.MinConstructionTemperature);
+        await Assert.That(document.TemperatureLimit.TemperatureUnit).IsEqualTo("Fahrenheit");
+        await Assert.That(document.TemperatureLimit.MaxConstructionTemperature).IsEqualTo(113);
+        await Assert.That(document.TemperatureLimit.MinConstructionTemperature).IsEqualTo(-58);
     }
 
-    [TestMethod]
-    public void Constructor_WhenExtendedReportHasNoPlayerLog_RejectsIncompleteDocument()
+    [Test]
+    public async Task Constructor_WhenExtendedReportHasNoPlayerLog_RejectsIncompleteDocument()
     {
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             SupportReportDocumentFixture.Create(
                 SupportReportKind.ExtendedPlayerLog,
-                playerLog: null));
+                playerLog: null)).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void Constructor_WhenStandardReportHasPlayerLog_RejectsUnexpectedContent()
+    [Test]
+    public async Task Constructor_WhenStandardReportHasPlayerLog_RejectsUnexpectedContent()
     {
         SupportPlayerLogSnapshot playerLog =
             SupportPlayerLogSnapshot.Available(
@@ -61,14 +53,14 @@ public sealed class SupportReportDocumentTests
                 redactedPlaceholders: Array.Empty<string>(),
                 content: "sample log");
 
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             SupportReportDocumentFixture.Create(
                 SupportReportKind.Standard,
-                playerLog));
+                playerLog)).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void Constructor_WhenCallerMutatesInputLists_PreservesOriginalOrderAndValues()
+    [Test]
+    public async Task Constructor_WhenCallerMutatesInputLists_PreservesOriginalOrderAndValues()
     {
         var activeDlcIds = new List<string> { "EXPANSION1_ID", "BASE_GAME" };
         var activeMods = new List<SupportActiveModSnapshot>
@@ -93,26 +85,20 @@ public sealed class SupportReportDocumentTests
         activeMods.Clear();
         diagnostics.Reverse();
 
-        CollectionAssert.AreEqual(
-            new[] { "EXPANSION1_ID", "BASE_GAME" },
-            document.Game.ActiveDlcs.Ids.ToArray());
-        CollectionAssert.AreEqual(
-            new[] { "First mod", "Second mod" },
-            document.ActiveMods.Select(mod => mod.Title).ToArray());
-        CollectionAssert.AreEqual(
-            new[] { "DTL-FIRST", "DTL-SECOND" },
-            document.Diagnostics.Select(diagnostic => diagnostic.Code).ToArray());
+        await Assert.That(document.Game.ActiveDlcs.Ids.ToArray()).IsEquivalentTo(new[] { "EXPANSION1_ID", "BASE_GAME" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(document.ActiveMods.Select(mod => mod.Title).ToArray()).IsEquivalentTo(new[] { "First mod", "Second mod" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(document.Diagnostics.Select(diagnostic => diagnostic.Code).ToArray()).IsEquivalentTo(new[] { "DTL-FIRST", "DTL-SECOND" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void Constructor_WhenIdentityOrTimestampIsInvalid_RejectsDocument()
+    [Test]
+    public async Task Constructor_WhenIdentityOrTimestampIsInvalid_RejectsDocument()
     {
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             SupportReportDocumentFixture.Create(
                 SupportReportKind.Standard,
                 playerLog: null,
-                reportId: " "));
-        Assert.ThrowsExactly<ArgumentException>(() =>
+                reportId: " ")).ThrowsExactly<ArgumentException>();
+        await Assert.That(() =>
             SupportReportDocumentFixture.Create(
                 SupportReportKind.Standard,
                 playerLog: null,
@@ -123,31 +109,27 @@ public sealed class SupportReportDocumentTests
                     10,
                     15,
                     0,
-                    TimeSpan.FromHours(3))));
+                    TimeSpan.FromHours(3)))).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void ReportKind_DefinesOnlyTheTwoSchemaVersionTwoModes()
+    [Test]
+    public async Task ReportKind_DefinesOnlyTheTwoSchemaVersionTwoModes()
     {
-        CollectionAssert.AreEqual(
-            new[] { "Standard", "ExtendedPlayerLog" },
-            Enum.GetNames<SupportReportKind>());
-        CollectionAssert.AreEqual(
-            new[] { 0, 1 },
-            Enum.GetValues<SupportReportKind>()
+        await Assert.That(Enum.GetNames<SupportReportKind>()).IsEquivalentTo(new[] { "Standard", "ExtendedPlayerLog" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(Enum.GetValues<SupportReportKind>()
                 .Select(value => (int)value)
-                .ToArray());
+                .ToArray()).IsEquivalentTo(new[] { 0, 1 }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void UnavailableFact_WhenReasonIsBlank_RejectsAmbiguousAbsence()
+    [Test]
+    public async Task UnavailableFact_WhenReasonIsBlank_RejectsAmbiguousAbsence()
     {
-        Assert.ThrowsExactly<ArgumentException>(() =>
-            SupportReportFact.Unavailable(" "));
+        await Assert.That(() =>
+            SupportReportFact.Unavailable(" ")).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void WithIssueSummaryWasShortened_WhenUrlWasBounded_ReturnsUpdatedImmutableDocument()
+    [Test]
+    public async Task WithIssueSummaryWasShortened_WhenUrlWasBounded_ReturnsUpdatedImmutableDocument()
     {
         SupportReportDocument original = SupportReportDocumentFixture.Create(
             SupportReportKind.Standard,
@@ -156,22 +138,18 @@ public sealed class SupportReportDocumentTests
         SupportReportDocument updated =
             original.WithIssueSummaryWasShortened();
 
-        Assert.IsFalse(original.Generation.IssueSummaryWasShortened);
-        Assert.IsTrue(updated.Generation.IssueSummaryWasShortened);
-        Assert.AreEqual(original.ReportId, updated.ReportId);
-        Assert.AreSame(original.Game, updated.Game);
-        Assert.AreSame(original.TemperatureLimit, updated.TemperatureLimit);
-        Assert.AreSame(original.Runtime, updated.Runtime);
-        CollectionAssert.AreEqual(
-            original.ActiveMods.ToArray(),
-            updated.ActiveMods.ToArray());
-        CollectionAssert.AreEqual(
-            original.Diagnostics.ToArray(),
-            updated.Diagnostics.ToArray());
+        await Assert.That(original.Generation.IssueSummaryWasShortened).IsFalse();
+        await Assert.That(updated.Generation.IssueSummaryWasShortened).IsTrue();
+        await Assert.That(updated.ReportId).IsEqualTo(original.ReportId);
+        await Assert.That(updated.Game).IsSameReferenceAs(original.Game);
+        await Assert.That(updated.TemperatureLimit).IsSameReferenceAs(original.TemperatureLimit);
+        await Assert.That(updated.Runtime).IsSameReferenceAs(original.Runtime);
+        await Assert.That(updated.ActiveMods.ToArray()).IsEquivalentTo(original.ActiveMods.ToArray(), TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(updated.Diagnostics.ToArray()).IsEquivalentTo(original.Diagnostics.ToArray(), TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void SerializeWithinLimit_WhenExtendedReportIsTooLarge_KeepsNewestLogContentAndDisclosesShortening()
+    [Test]
+    public async Task SerializeWithinLimit_WhenExtendedReportIsTooLarge_KeepsNewestLogContentAndDisclosesShortening()
     {
         SupportPlayerLogSnapshot playerLog =
             SupportPlayerLogSnapshot.Available(
@@ -192,26 +170,22 @@ public sealed class SupportReportDocumentTests
                 maximumByteCount: 5,
                 candidate => candidate.PlayerLog!.Content!);
 
-        Assert.AreEqual("ghij", serialization.Json);
-        Assert.AreEqual(4, serialization.Utf8ByteCount);
-        Assert.IsTrue(serialization.Utf8ByteCount < 5);
-        Assert.AreEqual("abcdefghij", original.PlayerLog!.Content);
-        Assert.IsFalse(original.PlayerLog.Truncated);
-        Assert.AreEqual("ghij", serialization.Document.PlayerLog!.Content);
-        Assert.IsTrue(serialization.Document.PlayerLog.Truncated);
-        CollectionAssert.Contains(
-            serialization.Document.Generation.Warnings.ToArray(),
-            "Player.log content was shortened further to keep the complete " +
+        await Assert.That(serialization.Json).IsEqualTo("ghij");
+        await Assert.That(serialization.Utf8ByteCount).IsEqualTo(4);
+        await Assert.That(serialization.Utf8ByteCount < 5).IsTrue();
+        await Assert.That(original.PlayerLog!.Content).IsEqualTo("abcdefghij");
+        await Assert.That(original.PlayerLog.Truncated).IsFalse();
+        await Assert.That(serialization.Document.PlayerLog!.Content).IsEqualTo("ghij");
+        await Assert.That(serialization.Document.PlayerLog.Truncated).IsTrue();
+        await Assert.That(serialization.Document.Generation.Warnings.ToArray()).Contains("Player.log content was shortened further to keep the complete " +
                 "report below 12 MiB.");
-        Assert.AreSame(original.Game, serialization.Document.Game);
-        Assert.AreSame(
-            original.TemperatureLimit,
-            serialization.Document.TemperatureLimit);
-        Assert.AreSame(original.Runtime, serialization.Document.Runtime);
+        await Assert.That(serialization.Document.Game).IsSameReferenceAs(original.Game);
+        await Assert.That(serialization.Document.TemperatureLimit).IsSameReferenceAs(original.TemperatureLimit);
+        await Assert.That(serialization.Document.Runtime).IsSameReferenceAs(original.Runtime);
     }
 
-    [TestMethod]
-    public void SerializeWithinLimit_WhenDocumentAlreadyFits_ReturnsItUnchanged()
+    [Test]
+    public async Task SerializeWithinLimit_WhenDocumentAlreadyFits_ReturnsItUnchanged()
     {
         SupportPlayerLogSnapshot playerLog =
             SupportPlayerLogSnapshot.Available(
@@ -232,17 +206,15 @@ public sealed class SupportReportDocumentTests
                 maximumByteCount: 4,
                 candidate => candidate.PlayerLog!.Content!);
 
-        Assert.AreSame(original, serialization.Document);
-        Assert.AreEqual("abc", serialization.Json);
-        Assert.AreEqual(3, serialization.Utf8ByteCount);
-        Assert.IsFalse(serialization.Document.PlayerLog!.Truncated);
-        Assert.AreEqual(
-            0,
-            serialization.Document.Generation.Warnings.Count);
+        await Assert.That(serialization.Document).IsSameReferenceAs(original);
+        await Assert.That(serialization.Json).IsEqualTo("abc");
+        await Assert.That(serialization.Utf8ByteCount).IsEqualTo(3);
+        await Assert.That(serialization.Document.PlayerLog!.Truncated).IsFalse();
+        await Assert.That(serialization.Document.Generation.Warnings.Count).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void SerializeWithinLimit_WhenNonLogDocumentIsAtLimit_RejectsReport()
+    [Test]
+    public async Task SerializeWithinLimit_WhenNonLogDocumentIsAtLimit_RejectsReport()
     {
         SupportPlayerLogSnapshot playerLog =
             SupportPlayerLogSnapshot.Available(
@@ -257,12 +229,12 @@ public sealed class SupportReportDocumentTests
                 SupportReportKind.ExtendedPlayerLog,
                 playerLog);
 
-        Assert.ThrowsExactly<InvalidOperationException>(() =>
+        await Assert.That(() =>
             SupportJsonReportSizeLimiter.SerializeWithinLimit(
                 document,
                 maximumByteCount: 5,
                 candidate =>
-                    "fixed" + (candidate.PlayerLog!.Content ?? string.Empty)));
+                    "fixed" + (candidate.PlayerLog!.Content ?? string.Empty))).ThrowsExactly<InvalidOperationException>();
     }
 
     private static class SupportReportDocumentFixture

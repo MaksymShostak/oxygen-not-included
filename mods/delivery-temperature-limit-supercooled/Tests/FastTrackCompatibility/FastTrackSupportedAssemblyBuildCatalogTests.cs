@@ -1,6 +1,4 @@
 namespace DeliveryTemperatureLimit.Tests.FastTrackCompatibility;
-
-[TestClass]
 public sealed class FastTrackSupportedAssemblyBuildCatalogTests
 {
     private const string DigestA =
@@ -8,36 +6,36 @@ public sealed class FastTrackSupportedAssemblyBuildCatalogTests
     private const string DigestB =
         "CDF0150546952FDA3A31A612D61FBEF3808E05DB89B9B6E8CCEEA1F3C752AA3B";
 
-    [TestMethod]
-    public void BuildIdentity_WhenDigestUsesLowercase_StoresCanonicalUppercaseHexadecimal()
+    [Test]
+    public async Task BuildIdentity_WhenDigestUsesLowercase_StoresCanonicalUppercaseHexadecimal()
     {
         var identity = new FastTrackAssemblyBuildIdentity(
             new Version(0, 18, 4, 0),
             "d291c0d58379b77b4a60fb6d386b3783e4061e5c620def93502ae984cd657add");
 
-        Assert.AreEqual(DigestA, identity.AssemblySha256);
+        await Assert.That(identity.AssemblySha256).IsEqualTo(DigestA);
     }
 
-    [TestMethod]
-    public void BuildIdentity_WhenFileVersionIsNull_ThrowsArgumentNullException()
+    [Test]
+    public async Task BuildIdentity_WhenFileVersionIsNull_ThrowsArgumentNullException()
     {
-        Assert.ThrowsExactly<ArgumentNullException>(() =>
+        await Assert.That(() =>
             new FastTrackAssemblyBuildIdentity(
                 fileVersion: null!,
-                DigestA));
+                DigestA)).ThrowsExactly<ArgumentNullException>();
     }
 
-    [TestMethod]
-    public void BuildIdentity_WhenDigestIsNull_ThrowsArgumentNullException()
+    [Test]
+    public async Task BuildIdentity_WhenDigestIsNull_ThrowsArgumentNullException()
     {
-        Assert.ThrowsExactly<ArgumentNullException>(() =>
+        await Assert.That(() =>
             new FastTrackAssemblyBuildIdentity(
                 new Version(0, 18, 4, 0),
-                assemblySha256: null!));
+                assemblySha256: null!)).ThrowsExactly<ArgumentNullException>();
     }
 
-    [TestMethod]
-    public void BuildIdentity_WhenDigestShapeIsInvalid_ThrowsArgumentException()
+    [Test]
+    public async Task BuildIdentity_WhenDigestShapeIsInvalid_ThrowsArgumentException()
     {
         string[] invalidDigests =
         {
@@ -49,16 +47,15 @@ public sealed class FastTrackSupportedAssemblyBuildCatalogTests
 
         foreach (string invalidDigest in invalidDigests)
         {
-            Assert.ThrowsExactly<ArgumentException>(() =>
+            await Assert.That(() =>
                 new FastTrackAssemblyBuildIdentity(
                     new Version(0, 18, 4, 0),
-                    invalidDigest),
-                $"Digest '{invalidDigest}' should have been rejected.");
+                    invalidDigest)).ThrowsExactly<ArgumentException>().Because($"Digest '{invalidDigest}' should have been rejected.");
         }
     }
 
-    [TestMethod]
-    public void BuildIdentity_WhenValuesAreCanonicalEquivalent_HasValueEqualityAndEqualHashCode()
+    [Test]
+    public async Task BuildIdentity_WhenValuesAreCanonicalEquivalent_HasValueEqualityAndEqualHashCode()
     {
         var uppercase = new FastTrackAssemblyBuildIdentity(
             new Version(0, 18, 4, 0),
@@ -67,13 +64,13 @@ public sealed class FastTrackSupportedAssemblyBuildCatalogTests
             new Version(0, 18, 4, 0),
             DigestA.ToLowerInvariant());
 
-        Assert.AreEqual(uppercase, lowercase);
-        Assert.IsTrue(uppercase.Equals(lowercase));
-        Assert.AreEqual(uppercase.GetHashCode(), lowercase.GetHashCode());
+        await Assert.That(lowercase).IsEqualTo(uppercase);
+        await Assert.That(uppercase.Equals(lowercase)).IsTrue();
+        await Assert.That(lowercase.GetHashCode()).IsEqualTo(uppercase.GetHashCode());
     }
 
-    [TestMethod]
-    public void BuildIdentity_WhenVersionOrDigestDiffers_IsNotEqual()
+    [Test]
+    public async Task BuildIdentity_WhenVersionOrDigestDiffers_IsNotEqual()
     {
         var baseline = new FastTrackAssemblyBuildIdentity(
             new Version(0, 18, 4, 0),
@@ -85,13 +82,13 @@ public sealed class FastTrackSupportedAssemblyBuildCatalogTests
             new Version(0, 18, 4, 0),
             DigestB);
 
-        Assert.AreNotEqual(baseline, differentVersion);
-        Assert.AreNotEqual(baseline, differentDigest);
-        Assert.IsFalse(baseline.Equals(null));
+        await Assert.That(differentVersion).IsNotEqualTo(baseline);
+        await Assert.That(differentDigest).IsNotEqualTo(baseline);
+        await Assert.That(baseline.Equals(null)).IsFalse();
     }
 
-    [TestMethod]
-    public void Catalog_ConstructorCopiesInputAndSortsByVersionThenDigest()
+    [Test]
+    public async Task Catalog_ConstructorCopiesInputAndSortsByVersionThenDigest()
     {
         var earlierHigherDigest = new FastTrackAssemblyBuildIdentity(
             new Version(0, 18, 4, 0),
@@ -112,40 +109,38 @@ public sealed class FastTrackSupportedAssemblyBuildCatalogTests
         var catalog = new FastTrackSupportedAssemblyBuildCatalog(source);
         source.Clear();
 
-        CollectionAssert.AreEqual(
-            new[]
+        await Assert.That(catalog.Builds.ToArray()).IsEquivalentTo(new[]
             {
                 earlierLowerDigest,
                 earlierHigherDigest,
                 laterBuild
-            },
-            catalog.Builds.ToArray());
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         var exposedBuilds =
             (ICollection<FastTrackAssemblyBuildIdentity>)catalog.Builds;
-        Assert.IsTrue(exposedBuilds.IsReadOnly);
-        Assert.ThrowsExactly<NotSupportedException>(() =>
-            exposedBuilds.Add(laterBuild));
+        await Assert.That(exposedBuilds.IsReadOnly).IsTrue();
+        await Assert.That(() =>
+            exposedBuilds.Add(laterBuild)).ThrowsExactly<NotSupportedException>();
     }
 
-    [TestMethod]
-    public void Catalog_WhenBuildSequenceIsNull_ThrowsArgumentNullException()
+    [Test]
+    public async Task Catalog_WhenBuildSequenceIsNull_ThrowsArgumentNullException()
     {
-        Assert.ThrowsExactly<ArgumentNullException>(() =>
-            new FastTrackSupportedAssemblyBuildCatalog(builds: null!));
+        await Assert.That(() =>
+            new FastTrackSupportedAssemblyBuildCatalog(builds: null!)).ThrowsExactly<ArgumentNullException>();
     }
 
-    [TestMethod]
-    public void Catalog_WhenBuildSequenceContainsNull_ThrowsArgumentException()
+    [Test]
+    public async Task Catalog_WhenBuildSequenceContainsNull_ThrowsArgumentException()
     {
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             new FastTrackSupportedAssemblyBuildCatalog(
-                new FastTrackAssemblyBuildIdentity[] { null! }));
+                new FastTrackAssemblyBuildIdentity[] { null! })).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void Catalog_WhenCanonicalIdentityRepeats_ThrowsArgumentException()
+    [Test]
+    public async Task Catalog_WhenCanonicalIdentityRepeats_ThrowsArgumentException()
     {
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             new FastTrackSupportedAssemblyBuildCatalog(new[]
             {
                 new FastTrackAssemblyBuildIdentity(
@@ -154,11 +149,11 @@ public sealed class FastTrackSupportedAssemblyBuildCatalogTests
                 new FastTrackAssemblyBuildIdentity(
                     new Version(0, 18, 4, 0),
                     DigestA.ToLowerInvariant())
-            }));
+            })).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void Catalog_Contains_RequiresVersionAndDigestFromTheSameDeclaredBuild()
+    [Test]
+    public async Task Catalog_Contains_RequiresVersionAndDigestFromTheSameDeclaredBuild()
     {
         var first = new FastTrackAssemblyBuildIdentity(
             new Version(0, 18, 4, 0),
@@ -169,15 +164,15 @@ public sealed class FastTrackSupportedAssemblyBuildCatalogTests
         var catalog = new FastTrackSupportedAssemblyBuildCatalog(
             new[] { first, second });
 
-        Assert.IsTrue(catalog.Contains(
+        await Assert.That(catalog.Contains(
             first.FileVersion,
-            DigestA.ToLowerInvariant()));
-        Assert.IsFalse(catalog.Contains(first.FileVersion, DigestB));
-        Assert.IsFalse(catalog.Contains(second.FileVersion, DigestA));
+            DigestA.ToLowerInvariant())).IsTrue();
+        await Assert.That(catalog.Contains(first.FileVersion, DigestB)).IsFalse();
+        await Assert.That(catalog.Contains(second.FileVersion, DigestA)).IsFalse();
     }
 
-    [TestMethod]
-    public void Catalog_Contains_WhenObservedDigestIsMalformed_ReturnsFalse()
+    [Test]
+    public async Task Catalog_Contains_WhenObservedDigestIsMalformed_ReturnsFalse()
     {
         var catalog = new FastTrackSupportedAssemblyBuildCatalog(new[]
         {
@@ -196,34 +191,34 @@ public sealed class FastTrackSupportedAssemblyBuildCatalogTests
 
         foreach (string? malformedDigest in malformedDigests)
         {
-            Assert.IsFalse(catalog.Contains(
+            await Assert.That(catalog.Contains(
                 new Version(0, 18, 4, 0),
-                malformedDigest!));
+                malformedDigest!)).IsFalse();
         }
     }
 
-    [TestMethod]
-    public void Declared_WhenRead_ContainsExactlyTheTwoVerifiedFastTrackBuilds()
+    [Test]
+    public async Task Declared_WhenRead_ContainsExactlyTheTwoVerifiedFastTrackBuilds()
     {
         IReadOnlyList<FastTrackAssemblyBuildIdentity> builds =
             FastTrackSupportedAssemblyBuildCatalog.Declared.Builds;
 
-        Assert.HasCount(2, builds);
-        Assert.AreEqual(new Version(0, 18, 4, 0), builds[0].FileVersion);
-        Assert.AreEqual(DigestA, builds[0].AssemblySha256);
-        Assert.AreEqual(new Version(0, 18, 5, 0), builds[1].FileVersion);
-        Assert.AreEqual(DigestB, builds[1].AssemblySha256);
-        Assert.IsTrue(FastTrackSupportedAssemblyBuildCatalog.Declared.Contains(
+        await Assert.That(builds).Count().IsEqualTo(2);
+        await Assert.That(builds[0].FileVersion).IsEqualTo(new Version(0, 18, 4, 0));
+        await Assert.That(builds[0].AssemblySha256).IsEqualTo(DigestA);
+        await Assert.That(builds[1].FileVersion).IsEqualTo(new Version(0, 18, 5, 0));
+        await Assert.That(builds[1].AssemblySha256).IsEqualTo(DigestB);
+        await Assert.That(FastTrackSupportedAssemblyBuildCatalog.Declared.Contains(
             builds[0].FileVersion,
-            DigestA));
-        Assert.IsTrue(FastTrackSupportedAssemblyBuildCatalog.Declared.Contains(
+            DigestA)).IsTrue();
+        await Assert.That(FastTrackSupportedAssemblyBuildCatalog.Declared.Contains(
             builds[1].FileVersion,
-            DigestB));
-        Assert.IsFalse(FastTrackSupportedAssemblyBuildCatalog.Declared.Contains(
+            DigestB)).IsTrue();
+        await Assert.That(FastTrackSupportedAssemblyBuildCatalog.Declared.Contains(
             builds[0].FileVersion,
-            DigestB));
-        Assert.IsFalse(FastTrackSupportedAssemblyBuildCatalog.Declared.Contains(
+            DigestB)).IsFalse();
+        await Assert.That(FastTrackSupportedAssemblyBuildCatalog.Declared.Contains(
             builds[1].FileVersion,
-            DigestA));
+            DigestA)).IsFalse();
     }
 }

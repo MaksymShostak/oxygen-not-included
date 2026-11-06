@@ -7,17 +7,16 @@ using DeliveryTemperatureLimit.Tests.FastTrackCompatibility;
 using DeliveryTemperatureLimit.Tests.OniModPipelineIntegration;
 
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
-
-[TestClass]
 public sealed class MergedDeliveryTemperatureAssemblyContractTests
 {
     private const string DeterministicBuildFixtureReleaseVersion = "2026.8.26";
     private const string DeterministicTestSourceCommit =
         "0123456789abcdef0123456789abcdef01234567";
 
-    public TestContext TestContext { get; set; } = null!;
-
-    public static IEnumerable<object[]> ProvenanceBoundAssemblyCases
+    public static IEnumerable<(string ContractRow, string ArtifactKind,
+        string AssemblyPath, string AssemblySha256, long AssemblyByteLength,
+        string ExpectedFileVersion, string SourceCommit,
+        string ExpectedTargetFrameworkName)> ProvenanceBoundAssemblyCases
     {
         get
         {
@@ -26,7 +25,7 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
                          .ResolveForCurrentEnvironment())
             {
                 yield return
-                [
+                (
                     contractCase.ContractRowName,
                     contractCase.Kind.ToString(),
                     contractCase.AssemblyPath,
@@ -35,20 +34,14 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
                     contractCase.ExpectedFileVersion,
                     contractCase.SourceCommit,
                     contractCase.ExpectedTargetFrameworkName
-                ];
+                );
             }
         }
     }
 
-    public static string FormatProvenanceBoundAssemblyCaseName(
-        MethodInfo methodInfo,
-        object[] data) =>
-        $"{methodInfo.Name} ({data[0]})";
-
-    [TestMethod]
-    [DynamicData(
-        nameof(ProvenanceBoundAssemblyCases),
-        DynamicDataDisplayName = nameof(FormatProvenanceBoundAssemblyCaseName))]
+    [Test]
+    [MethodDataSource(nameof(ProvenanceBoundAssemblyCases))]
+    [DisplayName($"{nameof(ProvenanceBoundAssembly_WhenContractRowIsEvaluated_HasRecordedRuntimeContract)} ($contractRow)")]
     public async Task ProvenanceBoundAssembly_WhenContractRowIsEvaluated_HasRecordedRuntimeContract(
         string contractRow,
         string artifactKind,
@@ -59,17 +52,12 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
         string expectedSourceCommit,
         string expectedTargetFrameworkName)
     {
-        TestContext.WriteLine($"Artifact contract row: {contractRow}");
-        Assert.AreEqual(
-            artifactKind,
-            contractRow,
-            "The display name and semantic artifact kind must remain identical.");
+        Console.WriteLine($"Artifact contract row: {contractRow}");
+        await Assert.That(contractRow).IsEqualTo(artifactKind).Because("The display name and semantic artifact kind must remain identical.");
 
-        var repositoryRoot = RequiredEnvironmentVariable(
+        var repositoryRoot = await RequiredEnvironmentVariable(
             "ONI_MOD_PIPELINE_REPOSITORY_ROOT");
-        Assert.IsTrue(
-            File.Exists(assemblyPath),
-            $"The {contractRow} assembly does not exist at {assemblyPath}.");
+        await Assert.That(File.Exists(assemblyPath)).IsTrue().Because($"The {contractRow} assembly does not exist at {assemblyPath}.");
         var observedSha256 = Convert.ToHexString(
             SHA256.HashData(await File.ReadAllBytesAsync(assemblyPath)));
         var observedByteLength = new FileInfo(assemblyPath).Length;
@@ -80,21 +68,12 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
             versionInformation.FileBuildPart,
             versionInformation.FilePrivatePart).ToString();
 
-        Assert.AreEqual(
-            expectedSha256,
-            observedSha256,
-            $"{contractRow} digest changed at {assemblyPath}.");
-        Assert.AreEqual(
-            expectedByteLength,
-            observedByteLength,
-            $"{contractRow} byte length changed at {assemblyPath}.");
-        Assert.AreEqual(expectedFileVersion, observedFileVersion);
+        await Assert.That(observedSha256).IsEqualTo(expectedSha256).Because($"{contractRow} digest changed at {assemblyPath}.");
+        await Assert.That(observedByteLength).IsEqualTo(expectedByteLength).Because($"{contractRow} byte length changed at {assemblyPath}.");
+        await Assert.That(observedFileVersion).IsEqualTo(expectedFileVersion);
         await AssertGitObjectExistsAsync(repositoryRoot, expectedSourceCommit);
-        Assert.AreEqual(
-            expectedTargetFrameworkName,
-            ReadTargetFrameworkName(assemblyPath),
-            $"{contractRow} has the wrong TargetFrameworkAttribute.");
-        AssertKnownFrameworkConflictRootsAreNotReferenced(assemblyPath);
+        await Assert.That((await ReadTargetFrameworkName(assemblyPath))).IsEqualTo(expectedTargetFrameworkName).Because($"{contractRow} has the wrong TargetFrameworkAttribute.");
+        await AssertKnownFrameworkConflictRootsAreNotReferenced(assemblyPath);
 
         if (!string.Equals(
                 artifactKind,
@@ -104,21 +83,21 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
             // The published DLL is deliberately retained as a behavioral and
             // metadata control. Only provenance-bound new artifacts are
             // required to expose the completed big-bang runtime architecture.
-            IntentionalRuntimeContractTests.AssertMergedAssembly(assemblyPath);
-            NoShimArchitectureContractTests.AssertMergedAssembly(assemblyPath);
-            AssertPlibIsMergedRatherThanExternallyReferenced(assemblyPath);
+            await IntentionalRuntimeContractTests.AssertMergedAssembly(assemblyPath);
+            await NoShimArchitectureContractTests.AssertMergedAssembly(assemblyPath);
+            await AssertPlibIsMergedRatherThanExternallyReferenced(assemblyPath);
             await AssertSupportedFastTrackFixturesAreNotContainedAsync(
                 repositoryRoot,
                 assemblyPath);
         }
     }
 
-    [TestMethod]
+    [Test]
     public async Task Build_WhenPipelinePropertiesAreProvided_DoesNotChangeModInfoBytes()
     {
-        var repositoryRoot = RequiredEnvironmentVariable(
+        var repositoryRoot = await RequiredEnvironmentVariable(
             "ONI_MOD_PIPELINE_REPOSITORY_ROOT");
-        var managedDirectory = RequiredEnvironmentVariable(
+        var managedDirectory = await RequiredEnvironmentVariable(
             "ONI_MANAGED_ASSEMBLY_DIRECTORY");
         var modRoot = Path.Combine(
             repositoryRoot,
@@ -143,7 +122,7 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
                 $"-p:BaseIntermediateOutputPath={paths.BaseIntermediateOutputPath}",
                 $"-p:MSBuildProjectExtensionsPath={paths.BaseIntermediateOutputPath}"
             ]);
-        Assert.AreEqual(0, restore.ExitCode, restore.FormatEvidence());
+        await Assert.That(restore.ExitCode).IsEqualTo(0).Because(restore.FormatEvidence());
 
         var mergedAssemblyPath = Path.Combine(
             output.Path,
@@ -163,20 +142,20 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
                 $"-p:MSBuildProjectExtensionsPath={paths.BaseIntermediateOutputPath}"
             ]);
 
-        Assert.AreEqual(0, build.ExitCode, build.FormatEvidence());
-        CollectionAssert.AreEqual(before, await File.ReadAllBytesAsync(modInfoPath));
-        Assert.IsTrue(File.Exists(mergedAssemblyPath));
-        AssertKnownFrameworkConflictRootsAreNotReferenced(mergedAssemblyPath);
-        IntentionalRuntimeContractTests.AssertMergedAssembly(mergedAssemblyPath);
-        NoShimArchitectureContractTests.AssertMergedAssembly(mergedAssemblyPath);
+        await Assert.That(build.ExitCode).IsEqualTo(0).Because(build.FormatEvidence());
+        await Assert.That(await File.ReadAllBytesAsync(modInfoPath)).IsEquivalentTo(before, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(File.Exists(mergedAssemblyPath)).IsTrue();
+        await AssertKnownFrameworkConflictRootsAreNotReferenced(mergedAssemblyPath);
+        await IntentionalRuntimeContractTests.AssertMergedAssembly(mergedAssemblyPath);
+        await NoShimArchitectureContractTests.AssertMergedAssembly(mergedAssemblyPath);
     }
 
-    [TestMethod]
+    [Test]
     public async Task Build_WhenBuiltTwiceFromSameInputs_ProducesSameMergedAssemblyHash()
     {
-        var repositoryRoot = RequiredEnvironmentVariable(
+        var repositoryRoot = await RequiredEnvironmentVariable(
             "ONI_MOD_PIPELINE_REPOSITORY_ROOT");
-        var managedDirectory = RequiredEnvironmentVariable(
+        var managedDirectory = await RequiredEnvironmentVariable(
             "ONI_MANAGED_ASSEMBLY_DIRECTORY");
         using var firstOutput = new PipelineTestTemporaryDirectory();
         using var secondOutput = new PipelineTestTemporaryDirectory();
@@ -192,7 +171,7 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
         var firstHash = SHA256.HashData(await File.ReadAllBytesAsync(firstAssembly));
         var secondHash = SHA256.HashData(await File.ReadAllBytesAsync(secondAssembly));
 
-        CollectionAssert.AreEqual(firstHash, secondHash);
+        await Assert.That(secondHash).IsEquivalentTo(firstHash, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     private static async Task<string> BuildAssemblyAsync(
@@ -220,7 +199,7 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
                 $"-p:BaseIntermediateOutputPath={paths.BaseIntermediateOutputPath}",
                 $"-p:MSBuildProjectExtensionsPath={paths.BaseIntermediateOutputPath}"
             ]);
-        Assert.AreEqual(0, restore.ExitCode, restore.FormatEvidence());
+        await Assert.That(restore.ExitCode).IsEqualTo(0).Because(restore.FormatEvidence());
 
         var build = await DotnetCommandRunner.RunAsync(
             repositoryRoot,
@@ -243,11 +222,11 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
                 "-p:ContinuousIntegrationBuild=true",
                 $"-p:PathMap=\"{CreateDeterministicPathMap(output.Path, repositoryRoot)}\""
             ]);
-        Assert.AreEqual(0, build.ExitCode, build.FormatEvidence());
-        Assert.IsTrue(File.Exists(mergedAssemblyPath));
-        AssertKnownFrameworkConflictRootsAreNotReferenced(mergedAssemblyPath);
-        IntentionalRuntimeContractTests.AssertMergedAssembly(mergedAssemblyPath);
-        NoShimArchitectureContractTests.AssertMergedAssembly(mergedAssemblyPath);
+        await Assert.That(build.ExitCode).IsEqualTo(0).Because(build.FormatEvidence());
+        await Assert.That(File.Exists(mergedAssemblyPath)).IsTrue();
+        await AssertKnownFrameworkConflictRootsAreNotReferenced(mergedAssemblyPath);
+        await IntentionalRuntimeContractTests.AssertMergedAssembly(mergedAssemblyPath);
+        await NoShimArchitectureContractTests.AssertMergedAssembly(mergedAssemblyPath);
         return mergedAssemblyPath;
     }
 
@@ -278,7 +257,7 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
             .Replace("=", "==", StringComparison.Ordinal)
             .Replace(",", ",,", StringComparison.Ordinal);
 
-    private static void AssertKnownFrameworkConflictRootsAreNotReferenced(
+    private static async Task AssertKnownFrameworkConflictRootsAreNotReferenced(
         string assemblyPath)
     {
         var prohibitedReferences = new[]
@@ -293,14 +272,11 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
 
         foreach (var prohibitedReference in prohibitedReferences)
         {
-            CollectionAssert.DoesNotContain(
-                references,
-                prohibitedReference,
-                $"{assemblyPath} must not directly reference {prohibitedReference}.");
+            await Assert.That(references).DoesNotContain(prohibitedReference).Because($"{assemblyPath} must not directly reference {prohibitedReference}.");
         }
     }
 
-    private static void AssertPlibIsMergedRatherThanExternallyReferenced(
+    private static async Task AssertPlibIsMergedRatherThanExternallyReferenced(
         string assemblyPath)
     {
         // These two types are directly consumed by the mod and are stable,
@@ -314,11 +290,9 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
         ];
         foreach (string requiredType in requiredMergedPlibTypes)
         {
-            Assert.IsTrue(
-                DeliveryTemperatureAssemblyMetadataReader.TypeExists(
+            await Assert.That(DeliveryTemperatureAssemblyMetadataReader.TypeExists(
                     assemblyPath,
-                    requiredType),
-                $"Merged assembly {assemblyPath} is missing required PLib " +
+                    requiredType)).IsTrue().Because($"Merged assembly {assemblyPath} is missing required PLib " +
                 $"type {requiredType}.");
         }
 
@@ -326,10 +300,7 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
             .ReadAssemblyReferences(assemblyPath)
             .Select(reference => reference.Name)
             .ToArray();
-        CollectionAssert.DoesNotContain(
-            references,
-            "PLib",
-            "PLib must be merged and must not remain a runtime package dependency.");
+        await Assert.That(references).DoesNotContain("PLib").Because("PLib must be merged and must not remain a runtime package dependency.");
     }
 
     private static async Task AssertSupportedFastTrackFixturesAreNotContainedAsync(
@@ -354,15 +325,9 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
                 "FastTrack.dll");
             byte[] fixtureAssemblyBytes =
                 await File.ReadAllBytesAsync(fixtureAssemblyPath);
-            Assert.AreEqual(
-                fixtureExpectation.AssemblyBuildIdentity.AssemblySha256,
-                Convert.ToHexString(SHA256.HashData(fixtureAssemblyBytes)),
-                "The FastTrack production-exclusion contract must remain " +
+            await Assert.That(Convert.ToHexString(SHA256.HashData(fixtureAssemblyBytes))).IsEqualTo(fixtureExpectation.AssemblyBuildIdentity.AssemblySha256).Because("The FastTrack production-exclusion contract must remain " +
                 "bound to every exact supported-build fixture.");
-            Assert.AreEqual(
-                -1,
-                assemblyBytes.AsSpan().IndexOf(fixtureAssemblyBytes),
-                $"Merged assembly {assemblyPath} contains the complete " +
+            await Assert.That(assemblyBytes.AsSpan().IndexOf(fixtureAssemblyBytes)).IsEqualTo(-1).Because($"Merged assembly {assemblyPath} contains the complete " +
                 $"FastTrack {fixtureExpectation.AssemblyBuildIdentity.FileVersion} " +
                 "fixture byte sequence.");
         }
@@ -371,21 +336,17 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
             .ReadAssemblyReferences(assemblyPath)
             .Select(reference => reference.Name)
             .ToArray();
-        Assert.IsFalse(
-            assemblyReferences.Any(reference => reference.Contains(
+        await Assert.That(assemblyReferences.Any(reference => reference.Contains(
                 "FastTrack",
-                StringComparison.OrdinalIgnoreCase)),
-            $"Merged assembly {assemblyPath} retains a FastTrack compile/runtime " +
+                StringComparison.OrdinalIgnoreCase))).IsFalse().Because($"Merged assembly {assemblyPath} retains a FastTrack compile/runtime " +
             "assembly reference.");
-        Assert.IsFalse(
-            ReadManifestResourceNames(assemblyPath).Any(resourceName =>
+        await Assert.That(ReadManifestResourceNames(assemblyPath).Any(resourceName =>
                 resourceName.Contains(
                     "FastTrack",
-                    StringComparison.OrdinalIgnoreCase)),
-            $"Merged assembly {assemblyPath} embeds a FastTrack-named resource.");
+                    StringComparison.OrdinalIgnoreCase))).IsFalse().Because($"Merged assembly {assemblyPath} embeds a FastTrack-named resource.");
     }
 
-    private static string ReadTargetFrameworkName(string assemblyPath)
+    private static async Task<string> ReadTargetFrameworkName(string assemblyPath)
     {
         using var stream = new FileStream(
             assemblyPath,
@@ -425,10 +386,7 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
             observedFrameworkNames.Add(frameworkName);
         }
 
-        Assert.HasCount(
-            1,
-            observedFrameworkNames,
-            $"Assembly {assemblyPath} must declare exactly one " +
+        await Assert.That(observedFrameworkNames).Count().IsEqualTo(1).Because($"Assembly {assemblyPath} must declare exactly one " +
             "TargetFrameworkAttribute.");
         return observedFrameworkNames[0];
     }
@@ -526,23 +484,18 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
         startInfo.ArgumentList.Add($"{objectId}^{{commit}}");
 
         using var process = new Process { StartInfo = startInfo };
-        Assert.IsTrue(process.Start(), "git cat-file did not start.");
+        await Assert.That(process.Start()).IsTrue().Because("git cat-file did not start.");
         var standardOutput = process.StandardOutput.ReadToEndAsync();
         var standardError = process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync();
-        Assert.AreEqual(
-            0,
-            process.ExitCode,
-            $"Recorded source commit {objectId} is unavailable. " +
+        await Assert.That(process.ExitCode).IsEqualTo(0).Because($"Recorded source commit {objectId} is unavailable. " +
             $"Standard output: {await standardOutput}. Standard error: {await standardError}.");
     }
 
-    private static string RequiredEnvironmentVariable(string name)
+    private static async Task<string> RequiredEnvironmentVariable(string name)
     {
         var value = Environment.GetEnvironmentVariable(name);
-        Assert.IsFalse(
-            string.IsNullOrWhiteSpace(value),
-            $"Required environment variable {name} was not provided by oni-mod-pipeline.");
-        return value;
+        await Assert.That(string.IsNullOrWhiteSpace(value)).IsFalse().Because($"Required environment variable {name} was not provided by oni-mod-pipeline.");
+        return value!;
     }
 }

@@ -3,44 +3,42 @@ using MaksymShostak.OniModPipeline.ModProfiles;
 using MaksymShostak.OniModPipeline.Tests.Fixtures;
 
 namespace MaksymShostak.OniModPipeline.Tests.ModProfiles;
-
-[TestClass]
 public sealed class ModProfileValidatorTests
 {
     private readonly ModProfileValidator profileValidator = new();
 
-    [TestMethod]
-    [DataRow("")]
-    [DataRow("../README.md")]
-    [DataRow("/README.md")]
-    [DataRow("C:\\README.md")]
-    [DataRow("docs//README.md")]
-    public void Validate_WithUnsafeReadmePath_RejectsProfile(string path)
+    [Test]
+    [Arguments("")]
+    [Arguments("../README.md")]
+    [Arguments("/README.md")]
+    [Arguments("C:\\README.md")]
+    [Arguments("docs//README.md")]
+    public async Task Validate_WithUnsafeReadmePath_RejectsProfile(string path)
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var profile = CreateValidProfile(temporaryDirectory) with { Readme = new ReadmeProfile(path) };
         var result = profileValidator.Validate(profile, ValidMetadata);
-        Assert.AreEqual(PipelineExitCode.InvalidInput, result.ExitCode);
-        Assert.IsTrue(result.Diagnostics.Any(diagnostic => diagnostic.Evidence.Contains("readme.repository-path", StringComparison.Ordinal)));
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.InvalidInput);
+        await Assert.That(result.Diagnostics.Any(diagnostic => diagnostic.Evidence.Contains("readme.repository-path", StringComparison.Ordinal))).IsTrue();
     }
 
-    [TestMethod]
-    public void Validate_WhenProfileIsPortableAndComplete_ReturnsSuccess()
+    [Test]
+    public async Task Validate_WhenProfileIsPortableAndComplete_ReturnsSuccess()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var profile = CreateValidProfile(temporaryDirectory);
 
         var result = profileValidator.Validate(profile, ValidMetadata);
 
-        Assert.IsTrue(result.IsSuccess);
-        Assert.AreSame(profile, result.Value);
-        Assert.AreEqual(0, result.Diagnostics.Count);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value).IsSameReferenceAs(profile);
+        await Assert.That(result.Diagnostics.Count).IsEqualTo(0);
     }
 
-    [TestMethod]
-    [DataRow("2026.9.8")]
-    [DataRow("2027.1.0")]
-    public void Validate_WhenModReleaseAdvances_PreservesRuntimeCompatibility(string version)
+    [Test]
+    [Arguments("2026.9.8")]
+    [Arguments("2027.1.0")]
+    public async Task Validate_WhenModReleaseAdvances_PreservesRuntimeCompatibility(string version)
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var profile = CreateValidProfile(temporaryDirectory);
@@ -48,30 +46,30 @@ public sealed class ModProfileValidatorTests
 
         var result = profileValidator.Validate(profile, metadata);
 
-        Assert.IsTrue(result.IsSuccess);
-        Assert.AreEqual(ValidMetadata.MinimumSupportedBuild, metadata.MinimumSupportedBuild);
-        Assert.AreEqual(ValidMetadata.ApiVersion, metadata.ApiVersion);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(metadata.MinimumSupportedBuild).IsEqualTo(ValidMetadata.MinimumSupportedBuild);
+        await Assert.That(metadata.ApiVersion).IsEqualTo(ValidMetadata.ApiVersion);
     }
 
-    [TestMethod]
-    [DataRow("")]
-    [DataRow("not-a-version")]
-    [DataRow("1.2.65535")]
-    public void Validate_WhenReleaseVersionIsInvalid_ReturnsOnip1005(string version)
+    [Test]
+    [Arguments("")]
+    [Arguments("not-a-version")]
+    [Arguments("1.2.65535")]
+    public async Task Validate_WhenReleaseVersionIsInvalid_ReturnsOnip1005(string version)
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var profile = CreateValidProfile(temporaryDirectory);
 
         var result = profileValidator.Validate(profile, ValidMetadata with { Version = version });
 
-        AssertDiagnostic(result, "ONIP1005");
+        await AssertDiagnostic(result, "ONIP1005");
     }
 
-    [TestMethod]
-    [DataRow("Assets/config.json", "Assets\\config.json")]
-    [DataRow("Assets/Café.txt", "Assets/Café.txt")]
-    [DataRow("Assets/File.txt", "assets/file.txt")]
-    public void Validate_WhenPackageDestinationsCollidePortably_ReturnsOnip1004(
+    [Test]
+    [Arguments("Assets/config.json", "Assets\\config.json")]
+    [Arguments("Assets/Café.txt", "Assets/Café.txt")]
+    [Arguments("Assets/File.txt", "assets/file.txt")]
+    public async Task Validate_WhenPackageDestinationsCollidePortably_ReturnsOnip1004(
         string firstDestination,
         string secondDestination)
     {
@@ -89,11 +87,11 @@ public sealed class ModProfileValidatorTests
 
         var result = profileValidator.Validate(profile, ValidMetadata);
 
-        AssertDiagnostic(result, "ONIP1004");
+        await AssertDiagnostic(result, "ONIP1004");
     }
 
-    [TestMethod]
-    public void Validate_WhenTestOrCheckIdIsDuplicated_ReturnsInvalidProfileDiagnostic()
+    [Test]
+    public async Task Validate_WhenTestOrCheckIdIsDuplicated_ReturnsInvalidProfileDiagnostic()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var profile = CreateValidProfile(temporaryDirectory) with
@@ -107,11 +105,11 @@ public sealed class ModProfileValidatorTests
 
         var result = profileValidator.Validate(profile, ValidMetadata);
 
-        AssertDiagnostic(result, "ONIP1002");
+        await AssertDiagnostic(result, "ONIP1002");
     }
 
-    [TestMethod]
-    public void Validate_WhenEvidenceIdIsNotKebabCase_ReturnsInvalidProfileDiagnostic()
+    [Test]
+    public async Task Validate_WhenEvidenceIdIsNotKebabCase_ReturnsInvalidProfileDiagnostic()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var profile = CreateValidProfile(temporaryDirectory) with
@@ -121,11 +119,11 @@ public sealed class ModProfileValidatorTests
 
         var result = profileValidator.Validate(profile, ValidMetadata);
 
-        AssertDiagnostic(result, "ONIP1002");
+        await AssertDiagnostic(result, "ONIP1002");
     }
 
-    [TestMethod]
-    public void Validate_WhenRequiredListingInputIsMissing_ReturnsOnip1008()
+    [Test]
+    public async Task Validate_WhenRequiredListingInputIsMissing_ReturnsOnip1008()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var profile = CreateValidProfile(temporaryDirectory) with
@@ -138,13 +136,13 @@ public sealed class ModProfileValidatorTests
 
         var result = profileValidator.Validate(profile, ValidMetadata);
 
-        AssertDiagnostic(result, "ONIP1008");
+        await AssertDiagnostic(result, "ONIP1008");
     }
 
-    [TestMethod]
-    [DataRow("unsupported-type", "base-game")]
-    [DataRow("tweaks", "unsupported-dlc")]
-    public void Validate_WhenListingIdentifierIsUnknown_ReturnsOnip1006(
+    [Test]
+    [Arguments("unsupported-type", "base-game")]
+    [Arguments("tweaks", "unsupported-dlc")]
+    public async Task Validate_WhenListingIdentifierIsUnknown_ReturnsOnip1006(
         string modType,
         string dlcCompatibility)
     {
@@ -161,22 +159,22 @@ public sealed class ModProfileValidatorTests
 
         var result = profileValidator.Validate(profile, ValidMetadata);
 
-        AssertDiagnostic(result, "ONIP1006");
+        await AssertDiagnostic(result, "ONIP1006");
     }
 
-    [TestMethod]
-    public void Validate_WhenPackageMappingsAreEmpty_ReturnsInvalidProfileDiagnostic()
+    [Test]
+    public async Task Validate_WhenPackageMappingsAreEmpty_ReturnsInvalidProfileDiagnostic()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var profile = CreateValidProfile(temporaryDirectory) with { PackageFiles = [] };
 
         var result = profileValidator.Validate(profile, ValidMetadata);
 
-        AssertDiagnostic(result, "ONIP1002");
+        await AssertDiagnostic(result, "ONIP1002");
     }
 
-    [TestMethod]
-    public void Validate_WhenRootMetadataDestinationIsMissing_ReturnsInvalidProfileDiagnostic()
+    [Test]
+    public async Task Validate_WhenRootMetadataDestinationIsMissing_ReturnsInvalidProfileDiagnostic()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var profile = CreateValidProfile(temporaryDirectory) with
@@ -186,11 +184,11 @@ public sealed class ModProfileValidatorTests
 
         var result = profileValidator.Validate(profile, ValidMetadata);
 
-        AssertDiagnostic(result, "ONIP1002");
+        await AssertDiagnostic(result, "ONIP1002");
     }
 
-    [TestMethod]
-    public void Validate_WhenPrimaryOutputIsNotFromBuildOutput_ReturnsInvalidProfileDiagnostic()
+    [Test]
+    public async Task Validate_WhenPrimaryOutputIsNotFromBuildOutput_ReturnsInvalidProfileDiagnostic()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var profile = CreateValidProfile(temporaryDirectory);
@@ -201,17 +199,17 @@ public sealed class ModProfileValidatorTests
 
         var result = profileValidator.Validate(profile, ValidMetadata);
 
-        AssertDiagnostic(result, "ONIP1002");
+        await AssertDiagnostic(result, "ONIP1002");
     }
 
-    [TestMethod]
-    [DataRow("title")]
-    [DataRow("description")]
-    [DataRow("static-id")]
-    [DataRow("minimum-build")]
-    [DataRow("api-version")]
-    [DataRow("version")]
-    public void Validate_WhenOniMetadataIsInvalid_ReturnsOnip1005(string invalidField)
+    [Test]
+    [Arguments("title")]
+    [Arguments("description")]
+    [Arguments("static-id")]
+    [Arguments("minimum-build")]
+    [Arguments("api-version")]
+    [Arguments("version")]
+    public async Task Validate_WhenOniMetadataIsInvalid_ReturnsOnip1005(string invalidField)
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var profile = CreateValidProfile(temporaryDirectory);
@@ -223,12 +221,12 @@ public sealed class ModProfileValidatorTests
             "minimum-build" => ValidMetadata with { MinimumSupportedBuild = 0 },
             "api-version" => ValidMetadata with { ApiVersion = 0 },
             "version" => ValidMetadata with { Version = "1.2.65535" },
-            _ => throw new AssertFailedException($"Unknown fixture field '{invalidField}'.")
+            _ => throw new TUnit.Assertions.Exceptions.AssertionException($"Unknown fixture field '{invalidField}'.")
         };
 
         var result = profileValidator.Validate(profile, metadata);
 
-        AssertDiagnostic(result, "ONIP1005");
+        await AssertDiagnostic(result, "ONIP1005");
     }
 
     private static ModProfile CreateValidProfile(TemporaryDirectory temporaryDirectory)
@@ -277,14 +275,12 @@ public sealed class ModProfileValidatorTests
             [new AcceptanceCheckProfile("example-check", "Example check", true, "", "", "")]);
     }
 
-    private static void AssertDiagnostic(
+    private static async Task AssertDiagnostic(
         OperationResult<ModProfile> result,
         string diagnosticId)
     {
-        Assert.AreEqual(PipelineExitCode.InvalidInput, result.ExitCode);
-        Assert.IsTrue(
-            result.Diagnostics.Any(diagnostic => diagnostic.Id == diagnosticId),
-            $"Expected diagnostic {diagnosticId}, but received: " +
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.InvalidInput);
+        await Assert.That(result.Diagnostics.Any(diagnostic => diagnostic.Id == diagnosticId)).IsTrue().Because($"Expected diagnostic {diagnosticId}, but received: " +
             string.Join(", ", result.Diagnostics.Select(diagnostic => diagnostic.Id)));
     }
 

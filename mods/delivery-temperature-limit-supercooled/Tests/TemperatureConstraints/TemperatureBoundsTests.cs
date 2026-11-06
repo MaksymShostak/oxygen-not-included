@@ -1,144 +1,142 @@
 namespace DeliveryTemperatureLimit.Tests.TemperatureConstraints;
-
-[TestClass]
 public sealed class TemperatureBoundsTests
 {
-    [TestMethod]
-    public void Unbounded_WhenEvaluated_HasNoBoundsAndIsNotHazardous()
+    [Test]
+    public async Task Unbounded_WhenEvaluated_HasNoBoundsAndIsNotHazardous()
     {
         var bounds = TemperatureBounds.Unbounded;
 
-        Assert.IsTrue(bounds.IsUnbounded);
-        Assert.IsFalse(bounds.IsEmpty);
-        Assert.IsFalse(bounds.IsEqualBounds);
-        Assert.IsNull(bounds.LowerKelvin);
-        Assert.IsNull(bounds.UpperKelvin);
+        await Assert.That(bounds.IsUnbounded).IsTrue();
+        await Assert.That(bounds.IsEmpty).IsFalse();
+        await Assert.That(bounds.IsEqualBounds).IsFalse();
+        await Assert.That(bounds.LowerKelvin).IsNull();
+        await Assert.That(bounds.UpperKelvin).IsNull();
     }
 
-    [TestMethod]
-    public void FromConstraint_WhenDisabled_MapsToUnbounded()
+    [Test]
+    public async Task FromConstraint_WhenDisabled_MapsToUnbounded()
     {
         var disabledConstraint = DeliveryTemperatureConstraint.FromSerializedLimits(0, 0);
         var bounds = TemperatureBounds.FromConstraint(disabledConstraint);
 
-        Assert.IsTrue(bounds.IsUnbounded);
-        Assert.AreEqual(TemperatureBounds.Unbounded, bounds);
+        await Assert.That(bounds.IsUnbounded).IsTrue();
+        await Assert.That(bounds).IsEqualTo(TemperatureBounds.Unbounded);
     }
 
-    [TestMethod]
-    public void FromConstraint_WhenFloorAndCeiling_MapsToUnbounded()
+    [Test]
+    public async Task FromConstraint_WhenFloorAndCeiling_MapsToUnbounded()
     {
         var constraint = DeliveryTemperatureConstraint.FromSerializedLimits(0, 10000);
         var bounds = TemperatureBounds.FromConstraint(constraint);
 
-        Assert.IsTrue(bounds.IsUnbounded);
-        Assert.IsNull(bounds.LowerKelvin);
-        Assert.IsNull(bounds.UpperKelvin);
+        await Assert.That(bounds.IsUnbounded).IsTrue();
+        await Assert.That(bounds.LowerKelvin).IsNull();
+        await Assert.That(bounds.UpperKelvin).IsNull();
     }
 
-    [TestMethod]
-    public void FromConstraint_WhenLowerOnly_PreservesLowerAndUnboundsUpper()
+    [Test]
+    public async Task FromConstraint_WhenLowerOnly_PreservesLowerAndUnboundsUpper()
     {
         var constraint = DeliveryTemperatureConstraint.FromSerializedLimits(250, 10000);
         var bounds = TemperatureBounds.FromConstraint(constraint);
 
-        Assert.IsFalse(bounds.IsUnbounded);
-        Assert.IsFalse(bounds.IsEmpty);
-        Assert.AreEqual(250, bounds.LowerKelvin);
-        Assert.IsNull(bounds.UpperKelvin);
+        await Assert.That(bounds.IsUnbounded).IsFalse();
+        await Assert.That(bounds.IsEmpty).IsFalse();
+        await Assert.That(bounds.LowerKelvin).IsEqualTo(250);
+        await Assert.That(bounds.UpperKelvin).IsNull();
     }
 
-    [TestMethod]
-    public void FromConstraint_WhenUpperOnly_PreservesUpperAndUnboundsLower()
+    [Test]
+    public async Task FromConstraint_WhenUpperOnly_PreservesUpperAndUnboundsLower()
     {
         var constraint = DeliveryTemperatureConstraint.FromSerializedLimits(0, 350);
         var bounds = TemperatureBounds.FromConstraint(constraint);
 
-        Assert.IsFalse(bounds.IsUnbounded);
-        Assert.IsFalse(bounds.IsEmpty);
-        Assert.IsNull(bounds.LowerKelvin);
-        Assert.AreEqual(350, bounds.UpperKelvin);
+        await Assert.That(bounds.IsUnbounded).IsFalse();
+        await Assert.That(bounds.IsEmpty).IsFalse();
+        await Assert.That(bounds.LowerKelvin).IsNull();
+        await Assert.That(bounds.UpperKelvin).IsEqualTo(350);
     }
 
-    [TestMethod]
-    public void FromConstraint_WhenBoundedRange_PreservesBothEndpoints()
+    [Test]
+    public async Task FromConstraint_WhenBoundedRange_PreservesBothEndpoints()
     {
         var constraint = DeliveryTemperatureConstraint.FromSerializedLimits(273, 373);
         var bounds = TemperatureBounds.FromConstraint(constraint);
 
-        Assert.IsFalse(bounds.IsUnbounded);
-        Assert.IsFalse(bounds.IsEmpty);
-        Assert.IsFalse(bounds.IsEqualBounds);
-        Assert.AreEqual(273, bounds.LowerKelvin);
-        Assert.AreEqual(373, bounds.UpperKelvin);
+        await Assert.That(bounds.IsUnbounded).IsFalse();
+        await Assert.That(bounds.IsEmpty).IsFalse();
+        await Assert.That(bounds.IsEqualBounds).IsFalse();
+        await Assert.That(bounds.LowerKelvin).IsEqualTo(273);
+        await Assert.That(bounds.UpperKelvin).IsEqualTo(373);
     }
 
-    [TestMethod]
-    public void FromConstraint_WhenEqualBounds_FlagsHazardousEmptyRange()
+    [Test]
+    public async Task FromConstraint_WhenEqualBounds_FlagsHazardousEmptyRange()
     {
         var constraint = DeliveryTemperatureConstraint.FromSerializedLimits(300, 300);
         var bounds = TemperatureBounds.FromConstraint(constraint);
 
-        Assert.IsTrue(bounds.IsEmpty);
-        Assert.IsTrue(bounds.IsEqualBounds);
-        Assert.AreEqual(300, bounds.LowerKelvin);
-        Assert.AreEqual(300, bounds.UpperKelvin);
+        await Assert.That(bounds.IsEmpty).IsTrue();
+        await Assert.That(bounds.IsEqualBounds).IsTrue();
+        await Assert.That(bounds.LowerKelvin).IsEqualTo(300);
+        await Assert.That(bounds.UpperKelvin).IsEqualTo(300);
     }
 
-    [TestMethod]
-    public void ToConstraint_WhenUnbounded_ReturnsDisabledConstraint()
+    [Test]
+    public async Task ToConstraint_WhenUnbounded_ReturnsDisabledConstraint()
     {
         var constraint = TemperatureBounds.Unbounded.ToConstraint();
 
-        Assert.IsFalse(constraint.IsEnabled);
-        Assert.AreEqual(0, constraint.MaximumExclusiveKelvin);
+        await Assert.That(constraint.IsEnabled).IsFalse();
+        await Assert.That(constraint.MaximumExclusiveKelvin).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void ToConstraint_WhenOneSidedOrBounded_MapsToExpectedKelvinLimits()
+    [Test]
+    public async Task ToConstraint_WhenOneSidedOrBounded_MapsToExpectedKelvinLimits()
     {
         var lowOnly = new TemperatureBounds(200, null).ToConstraint();
-        Assert.IsTrue(lowOnly.IsEnabled);
-        Assert.AreEqual(200, lowOnly.MinimumInclusiveKelvin);
-        Assert.AreEqual(10000, lowOnly.MaximumExclusiveKelvin);
+        await Assert.That(lowOnly.IsEnabled).IsTrue();
+        await Assert.That(lowOnly.MinimumInclusiveKelvin).IsEqualTo(200);
+        await Assert.That(lowOnly.MaximumExclusiveKelvin).IsEqualTo(10000);
 
         var highOnly = new TemperatureBounds(null, 300).ToConstraint();
-        Assert.IsTrue(highOnly.IsEnabled);
-        Assert.AreEqual(0, highOnly.MinimumInclusiveKelvin);
-        Assert.AreEqual(300, highOnly.MaximumExclusiveKelvin);
+        await Assert.That(highOnly.IsEnabled).IsTrue();
+        await Assert.That(highOnly.MinimumInclusiveKelvin).IsEqualTo(0);
+        await Assert.That(highOnly.MaximumExclusiveKelvin).IsEqualTo(300);
 
         var bounded = new TemperatureBounds(250, 350).ToConstraint();
-        Assert.IsTrue(bounded.IsEnabled);
-        Assert.AreEqual(250, bounded.MinimumInclusiveKelvin);
-        Assert.AreEqual(350, bounded.MaximumExclusiveKelvin);
+        await Assert.That(bounded.IsEnabled).IsTrue();
+        await Assert.That(bounded.MinimumInclusiveKelvin).IsEqualTo(250);
+        await Assert.That(bounded.MaximumExclusiveKelvin).IsEqualTo(350);
     }
 
-    [TestMethod]
-    public void ToSerializedLimits_WhenInvoked_ProducesExpectedTuple()
+    [Test]
+    public async Task ToSerializedLimits_WhenInvoked_ProducesExpectedTuple()
     {
         var (unboundedLow, unboundedHigh) = TemperatureBounds.Unbounded.ToSerializedLimits();
-        Assert.AreEqual(0, unboundedLow);
-        Assert.AreEqual(0, unboundedHigh);
+        await Assert.That(unboundedLow).IsEqualTo(0);
+        await Assert.That(unboundedHigh).IsEqualTo(0);
 
         var (lowOnlyLow, lowOnlyHigh) = new TemperatureBounds(150, null).ToSerializedLimits();
-        Assert.AreEqual(150, lowOnlyLow);
-        Assert.AreEqual(10000, lowOnlyHigh);
+        await Assert.That(lowOnlyLow).IsEqualTo(150);
+        await Assert.That(lowOnlyHigh).IsEqualTo(10000);
 
         var (boundedLow, boundedHigh) = new TemperatureBounds(280, 320).ToSerializedLimits();
-        Assert.AreEqual(280, boundedLow);
-        Assert.AreEqual(320, boundedHigh);
+        await Assert.That(boundedLow).IsEqualTo(280);
+        await Assert.That(boundedHigh).IsEqualTo(320);
     }
 
-    [TestMethod]
-    public void Equals_WhenCompared_FollowsValueEquality()
+    [Test]
+    public async Task Equals_WhenCompared_FollowsValueEquality()
     {
         var first = new TemperatureBounds(100, 200);
         var second = new TemperatureBounds(100, 200);
         var different = new TemperatureBounds(100, 201);
 
-        Assert.AreEqual(first, second);
-        Assert.AreEqual(first.GetHashCode(), second.GetHashCode());
-        Assert.AreNotEqual(first, different);
-        Assert.IsTrue(first.Equals((object)second));
+        await Assert.That(second).IsEqualTo(first);
+        await Assert.That(second.GetHashCode()).IsEqualTo(first.GetHashCode());
+        await Assert.That(different).IsNotEqualTo(first);
+        await Assert.That(first.Equals((object)second)).IsTrue();
     }
 }

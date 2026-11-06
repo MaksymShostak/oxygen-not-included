@@ -13,11 +13,9 @@ using System.ComponentModel;
 using System.Globalization;
 
 namespace MaksymShostak.OniModPipeline.Tests.Cli;
-
-[TestClass]
 public sealed class DiagnoseCommandTests
 {
-    [TestMethod]
+    [Test]
     public async Task Diagnose_WhenEnvironmentIsValid_PrintsResolvedPathsWithoutCreatingArtifacts()
     {
         using var fixture = new CliCommandFixture(sourceIsDirty: false);
@@ -27,22 +25,22 @@ public sealed class DiagnoseCommandTests
         var invocation = await InvokeAsync(command, fixture.CreateArguments("diagnose"));
 
         var after = SourceSnapshot.CaptureTree(fixture.RootPath);
-        Assert.AreEqual(0, invocation.ExitCode);
-        Assert.AreEqual(string.Empty, invocation.StandardError);
-        StringAssert.Contains(invocation.StandardOutput, fixture.ModRoot);
-        StringAssert.Contains(invocation.StandardOutput, fixture.WorktreeRoot);
-        StringAssert.Contains(invocation.StandardOutput, fixture.GameDirectory);
-        StringAssert.Contains(invocation.StandardOutput, fixture.ManagedDirectory);
-        StringAssert.Contains(invocation.StandardOutput, fixture.UserDataDirectory);
-        StringAssert.Contains(invocation.StandardOutput, fixture.ArtifactsDirectory);
-        StringAssert.Contains(invocation.StandardOutput, "10.0.400");
-        StringAssert.Contains(invocation.StandardOutput, "123456");
-        StringAssert.Contains(invocation.StandardOutput, "Uploader present: true");
-        Assert.IsFalse(Directory.Exists(fixture.ArtifactsDirectory));
-        Assert.AreEqual(0, before.ChangedPathsComparedWith(after).Count);
+        await Assert.That(invocation.ExitCode).IsEqualTo(0);
+        await Assert.That(invocation.StandardError).IsEqualTo(string.Empty);
+        await Assert.That(invocation.StandardOutput).Contains(fixture.ModRoot);
+        await Assert.That(invocation.StandardOutput).Contains(fixture.WorktreeRoot);
+        await Assert.That(invocation.StandardOutput).Contains(fixture.GameDirectory);
+        await Assert.That(invocation.StandardOutput).Contains(fixture.ManagedDirectory);
+        await Assert.That(invocation.StandardOutput).Contains(fixture.UserDataDirectory);
+        await Assert.That(invocation.StandardOutput).Contains(fixture.ArtifactsDirectory);
+        await Assert.That(invocation.StandardOutput).Contains("10.0.400");
+        await Assert.That(invocation.StandardOutput).Contains("123456");
+        await Assert.That(invocation.StandardOutput).Contains("Uploader present: true");
+        await Assert.That(Directory.Exists(fixture.ArtifactsDirectory)).IsFalse();
+        await Assert.That(before.ChangedPathsComparedWith(after).Count).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public async Task Diagnose_WhenHelpIsRequested_DocumentsAllFiveCommonOptionsWithoutDiscovery()
     {
         using var fixture = new CliCommandFixture(sourceIsDirty: false);
@@ -52,17 +50,17 @@ public sealed class DiagnoseCommandTests
         var invocation = await InvokeAsync(command, ["diagnose", "--help"]);
 
         var after = SourceSnapshot.CaptureTree(fixture.RootPath);
-        Assert.AreEqual(0, invocation.ExitCode);
-        StringAssert.Contains(invocation.StandardOutput, "--mod");
-        StringAssert.Contains(invocation.StandardOutput, "--game-directory");
-        StringAssert.Contains(invocation.StandardOutput, "--user-data-directory");
-        StringAssert.Contains(invocation.StandardOutput, "--artifacts-directory");
-        StringAssert.Contains(invocation.StandardOutput, "--format");
-        Assert.AreEqual(0, fixture.ProcessRunner.Requests.Count);
-        Assert.AreEqual(0, before.ChangedPathsComparedWith(after).Count);
+        await Assert.That(invocation.ExitCode).IsEqualTo(0);
+        await Assert.That(invocation.StandardOutput).Contains("--mod");
+        await Assert.That(invocation.StandardOutput).Contains("--game-directory");
+        await Assert.That(invocation.StandardOutput).Contains("--user-data-directory");
+        await Assert.That(invocation.StandardOutput).Contains("--artifacts-directory");
+        await Assert.That(invocation.StandardOutput).Contains("--format");
+        await Assert.That(fixture.ProcessRunner.Requests.Count).IsEqualTo(0);
+        await Assert.That(before.ChangedPathsComparedWith(after).Count).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public async Task Diagnose_WhenGitIsUnavailable_ReportsEnvironmentWithoutWorktreeProvenance()
     {
         using var fixture = new CliCommandFixture(
@@ -74,12 +72,10 @@ public sealed class DiagnoseCommandTests
         var invocation = await InvokeAsync(command, fixture.CreateArguments("diagnose"));
 
         var after = SourceSnapshot.CaptureTree(fixture.RootPath);
-        Assert.AreEqual(0, invocation.ExitCode);
-        Assert.AreEqual(string.Empty, invocation.StandardError);
-        StringAssert.Contains(
-            invocation.StandardOutput,
-            "Git worktree root: <unavailable>");
-        Assert.AreEqual(0, before.ChangedPathsComparedWith(after).Count);
+        await Assert.That(invocation.ExitCode).IsEqualTo(0);
+        await Assert.That(invocation.StandardError).IsEqualTo(string.Empty);
+        await Assert.That(invocation.StandardOutput).Contains("Git worktree root: <unavailable>");
+        await Assert.That(before.ChangedPathsComparedWith(after).Count).IsEqualTo(0);
     }
 
     internal static async Task<CommandInvocation> InvokeAsync(
@@ -287,7 +283,7 @@ internal sealed class CliProcessRunner(
 {
     internal List<ProcessRequest> Requests { get; } = [];
 
-    public Task<ProcessResult> RunAsync(
+    public async Task<ProcessResult> RunAsync(
         ProcessRequest request,
         CancellationToken cancellationToken)
     {
@@ -295,23 +291,21 @@ internal sealed class CliProcessRunner(
         Requests.Add(request);
         if (string.Equals(request.FileName, "dotnet", StringComparison.Ordinal))
         {
-            CollectionAssert.AreEqual(
-                new[] { "--version" },
-                request.Arguments.ToArray());
-            return Task.FromResult(new ProcessResult(
+            await Assert.That(request.Arguments.ToArray()).IsEquivalentTo(new[] { "--version" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+            return new ProcessResult(
                 0,
                 $"10.0.400{Environment.NewLine}",
-                string.Empty));
+                string.Empty);
         }
 
-        Assert.AreEqual("git", request.FileName);
+        await Assert.That(request.FileName).IsEqualTo("git");
         if (!gitIsAvailable)
         {
             throw new Win32Exception("git is unavailable for this test.");
         }
 
         var key = string.Join(' ', request.Arguments);
-        return Task.FromResult(key switch
+        return key switch
         {
             "rev-parse --show-toplevel" => new ProcessResult(
                 0,
@@ -330,6 +324,6 @@ internal sealed class CliProcessRunner(
                 string.Join('\0', trackedPaths) + '\0',
                 string.Empty),
             _ => new ProcessResult(2, string.Empty, $"Unexpected git arguments: {key}")
-        });
+        };
     }
 }

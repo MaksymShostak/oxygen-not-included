@@ -1,8 +1,6 @@
 using DeliveryTemperatureLimit.Tests.ReferenceTemperatureModels;
 
 namespace DeliveryTemperatureLimit.Tests.FetchTemperatureEligibility;
-
-[TestClass]
 public sealed class CanonicalTemperatureEligibilityAgreementTests
 {
     private const int WorldInventoryStateMachineSeed = 0xC47A109;
@@ -15,8 +13,8 @@ public sealed class CanonicalTemperatureEligibilityAgreementTests
         new Tag("Food")
     ];
 
-    [TestMethod]
-    public void CanonicalTemperatureDomains_WhenEveryDecisionBucketIsEvaluated_AgreeWithIndependentOracle()
+    [Test]
+    public async Task CanonicalTemperatureDomains_WhenEveryDecisionBucketIsEvaluated_AgreeWithIndependentOracle()
     {
         DeliveryTemperatureConstraint[] representativeConstraints =
             RepresentativeConstraints();
@@ -62,10 +60,7 @@ public sealed class CanonicalTemperatureEligibilityAgreementTests
             TemperatureDecisionBucket decisionBucket =
                 TemperatureDecisionBucket.FromTemperature(
                     representativeTemperatureKelvin);
-            Assert.AreEqual(
-                bucketOrdinal,
-                decisionBucket.Ordinal,
-                $"Canonical bucket round trip failed at ordinal {bucketOrdinal}.");
+            await Assert.That(decisionBucket.Ordinal).IsEqualTo(bucketOrdinal).Because($"Canonical bucket round trip failed at ordinal {bucketOrdinal}.");
 
             // A one-entry sparse series makes its query result a direct Boolean
             // membership observation without allocating the complete bucket range.
@@ -86,34 +81,22 @@ public sealed class CanonicalTemperatureEligibilityAgreementTests
                 DeliveryTemperatureConstraint constraint =
                     representativeConstraints[constraintIndex];
                 bool expectedAllowed = referenceAllowanceVector[constraintIndex];
-                Assert.AreEqual(
-                    expectedAllowed,
-                    ReferenceTemperatureEligibilityModel.AllowsTemperature(
+                await Assert.That(ReferenceTemperatureEligibilityModel.AllowsTemperature(
                         constraint,
-                        representativeTemperatureKelvin),
-                    CanonicalDomainFailure(
+                        representativeTemperatureKelvin)).IsEqualTo(expectedAllowed).Because(CanonicalDomainFailure(
                         "independent direct oracle",
                         bucketOrdinal,
                         constraintIndex));
-                Assert.AreEqual(
-                    expectedAllowed,
-                    constraint.Allows(representativeTemperatureKelvin),
-                    CanonicalDomainFailure(
+                await Assert.That(constraint.Allows(representativeTemperatureKelvin)).IsEqualTo(expectedAllowed).Because(CanonicalDomainFailure(
                         "normalized direct constraint",
                         bucketOrdinal,
                         constraintIndex));
-                Assert.AreEqual(
-                    expectedAllowed,
-                    singleDestinationIntervalSets[constraintIndex].Allows(
-                        decisionBucket),
-                    CanonicalDomainFailure(
+                await Assert.That(singleDestinationIntervalSets[constraintIndex].Allows(
+                        decisionBucket)).IsEqualTo(expectedAllowed).Because(CanonicalDomainFailure(
                         "normalized interval membership",
                         bucketOrdinal,
                         constraintIndex));
-                Assert.AreEqual(
-                    expectedAllowed ? 1.0f : 0.0f,
-                    singleBucketSeries.GetAmountAllowedBy(constraint),
-                    CanonicalDomainFailure(
+                await Assert.That(singleBucketSeries.GetAmountAllowedBy(constraint)).IsEqualTo(expectedAllowed ? 1.0f : 0.0f).Because(CanonicalDomainFailure(
                         "sparse amount-series membership",
                         bucketOrdinal,
                         constraintIndex));
@@ -124,7 +107,7 @@ public sealed class CanonicalTemperatureEligibilityAgreementTests
                     partitionClass,
                     out bool[]? firstAllowanceVector))
             {
-                AssertAllowanceVectorsEqual(
+                await AssertAllowanceVectorsEqual(
                     firstAllowanceVector,
                     referenceAllowanceVector,
                     bucketOrdinal,
@@ -146,17 +129,13 @@ public sealed class CanonicalTemperatureEligibilityAgreementTests
 
         TemperatureEligibilityClassKey missingPrimaryElementClass =
             TemperatureEligibilityClassKey.MissingPrimaryElement();
-        Assert.AreEqual(
-            TemperatureEligibilityClassificationKind.MissingPrimaryElement,
-            missingPrimaryElementClass.ClassificationKind);
-        Assert.IsFalse(
-            observedTemperatureClassKeys.Contains(missingPrimaryElementClass),
-            "Missing primary-element state must remain a named non-temperature " +
+        await Assert.That(missingPrimaryElementClass.ClassificationKind).IsEqualTo(TemperatureEligibilityClassificationKind.MissingPrimaryElement);
+        await Assert.That(observedTemperatureClassKeys.Contains(missingPrimaryElementClass)).IsFalse().Because("Missing primary-element state must remain a named non-temperature " +
             "classification rather than consuming a canonical bucket ordinal.");
     }
 
-    [TestMethod]
-    public void AllowedTemperatureIntervalUnions_WhenEveryDecisionBucketIsEvaluated_EqualDirectDestinationAnyEvaluation()
+    [Test]
+    public async Task AllowedTemperatureIntervalUnions_WhenEveryDecisionBucketIsEvaluated_EqualDirectDestinationAnyEvaluation()
     {
         DeliveryTemperatureConstraint[] representativeConstraints =
             RepresentativeConstraints();
@@ -185,27 +164,21 @@ public sealed class CanonicalTemperatureEligibilityAgreementTests
             TemperatureDecisionBucket decisionBucket =
                 TemperatureDecisionBucket.FromTemperature(
                     representativeTemperatureKelvin);
-            Assert.AreEqual(
-                ReferenceTemperatureEligibilityModel
+            await Assert.That(enabledDestinationUnion.Allows(decisionBucket)).IsEqualTo(ReferenceTemperatureEligibilityModel
                     .AnyDestinationAllowsTemperature(
                         enabledConstraints,
-                        representativeTemperatureKelvin),
-                enabledDestinationUnion.Allows(decisionBucket),
-                $"Enabled-destination interval union differed at canonical " +
+                        representativeTemperatureKelvin)).Because($"Enabled-destination interval union differed at canonical " +
                 $"bucket {bucketOrdinal}.");
-            Assert.AreEqual(
-                ReferenceTemperatureEligibilityModel
+            await Assert.That(unionIncludingUnconstrainedDestination.Allows(decisionBucket)).IsEqualTo(ReferenceTemperatureEligibilityModel
                     .AnyDestinationAllowsTemperature(
                         representativeConstraints,
-                        representativeTemperatureKelvin),
-                unionIncludingUnconstrainedDestination.Allows(decisionBucket),
-                $"Unconstrained-destination interval union differed at " +
+                        representativeTemperatureKelvin)).Because($"Unconstrained-destination interval union differed at " +
                 $"canonical bucket {bucketOrdinal}.");
         }
     }
 
-    [TestMethod]
-    public void WorldInventoryPublicationModes_WhenBothAreComplete_ReturnEqualTemperatureConstrainedTotals()
+    [Test]
+    public async Task WorldInventoryPublicationModes_WhenBothAreComplete_ReturnEqualTemperatureConstrainedTotals()
     {
         var iron = new Tag("Iron");
         var copper = new Tag("Copper");
@@ -250,46 +223,40 @@ public sealed class CanonicalTemperatureEligibilityAgreementTests
 
             ReferenceWorldResourceTemperatureAmountSeries[] worldPublication =
                 publicationsByWorld[worldIndex];
-            Assert.IsTrue(
-                completeWorldCatalog.PublishCompleteWorldResourceAmounts(
+            await Assert.That(completeWorldCatalog.PublishCompleteWorldResourceAmounts(
                     worldId,
-                    CompleteWorldPublication(generation, worldPublication)));
-            Assert.IsTrue(
-                completeWorldReference.TryPublishCompleteWorld(
+                    CompleteWorldPublication(generation, worldPublication))).IsTrue();
+            await Assert.That(completeWorldReference.TryPublishCompleteWorld(
                     worldId,
                     generation,
-                    worldPublication));
+                    worldPublication)).IsTrue();
 
             Tag[] presentResourceTags = worldPublication
                 .Select(resourceSeries => resourceSeries.ResourceTag)
                 .ToArray();
-            Assert.IsTrue(
-                incrementalCatalog.PublishWorldResourceTagCoverage(
+            await Assert.That(incrementalCatalog.PublishWorldResourceTagCoverage(
                     worldId,
                     WorldResourceTagCoverage.Create(
                         generation,
-                        presentResourceTags)));
-            Assert.IsTrue(
-                incrementalReference.TryPublishResourceTagCoverage(
+                        presentResourceTags))).IsTrue();
+            await Assert.That(incrementalReference.TryPublishResourceTagCoverage(
                     worldId,
                     generation,
-                    presentResourceTags));
+                    presentResourceTags)).IsTrue();
             foreach (ReferenceWorldResourceTemperatureAmountSeries
                          resourceSeries in worldPublication)
             {
-                Assert.IsTrue(
-                    incrementalCatalog.PublishWorldResourceTemperatureSeries(
+                await Assert.That(incrementalCatalog.PublishWorldResourceTemperatureSeries(
                         worldId,
                         ResourceTagTemperatureSeriesPublication(
                             generation,
-                            resourceSeries)));
-                Assert.IsTrue(
-                    incrementalReference
+                            resourceSeries))).IsTrue();
+                await Assert.That(incrementalReference
                         .TryPublishResourceTagTemperatureAmounts(
                             worldId,
                             generation,
                             resourceSeries.ResourceTag,
-                            resourceSeries.TemperatureAmounts));
+                            resourceSeries.TemperatureAmounts)).IsTrue();
             }
         }
 
@@ -327,17 +294,17 @@ public sealed class CanonicalTemperatureEligibilityAgreementTests
                             constraint,
                             generation);
 
-                AssertAvailabilityMatchesReference(
+                await AssertAvailabilityMatchesReference(
                     completeWorldExpected,
                     completeWorldResult,
                     "Complete-world publication differed from its independent " +
                     "reference.");
-                AssertAvailabilityMatchesReference(
+                await AssertAvailabilityMatchesReference(
                     incrementalExpected,
                     incrementalResult,
                     "Coverage/single-tag publication differed from its " +
                     "independent reference.");
-                AssertEquivalentAvailability(
+                await AssertEquivalentAvailability(
                     completeWorldResult,
                     incrementalResult,
                     "Complete-world and coverage/single-tag modes produced " +
@@ -346,8 +313,8 @@ public sealed class CanonicalTemperatureEligibilityAgreementTests
         }
     }
 
-    [TestMethod]
-    public void WorldInventoryPublications_WhenTenThousandSeededOperationsRun_MatchIndependentCoverageAndPendingModel()
+    [Test]
+    public async Task WorldInventoryPublications_WhenTenThousandSeededOperationsRun_MatchIndependentCoverageAndPendingModel()
     {
         var random = new Random(WorldInventoryStateMachineSeed);
         var generation = new WorldInventoryCollectionGeneration(31);
@@ -360,7 +327,7 @@ public sealed class CanonicalTemperatureEligibilityAgreementTests
              operationIndex < WorldInventoryStateMachineOperationCount;
              operationIndex++)
         {
-            ApplyWorldInventoryStateMachineOperation(
+            await ApplyWorldInventoryStateMachineOperation(
                 random,
                 catalog,
                 reference,
@@ -378,7 +345,7 @@ public sealed class CanonicalTemperatureEligibilityAgreementTests
                 parentWorldId,
                 resourceTag,
                 constraint);
-            AssertAvailabilityMatchesReference(
+            await AssertAvailabilityMatchesReference(
                 reference.GetTemperatureConstrainedAmountAvailability(
                     parentWorldId,
                     resourceTag,
@@ -393,8 +360,8 @@ public sealed class CanonicalTemperatureEligibilityAgreementTests
         }
     }
 
-    [TestMethod]
-    public void Classify_WhenCurrentSnapshotCoversEveryDecisionBucket_ProducesSoundMinimalScopedClasses()
+    [Test]
+    public async Task Classify_WhenCurrentSnapshotCoversEveryDecisionBucket_ProducesSoundMinimalScopedClasses()
     {
         var iron = new Tag("Iron");
         var metal = new Tag("Metal");
@@ -466,15 +433,13 @@ public sealed class CanonicalTemperatureEligibilityAgreementTests
                         relevantConstraints,
                         temperatureKelvin);
 
-            Assert.AreEqual(
-                TemperatureEligibilityClassificationKind
-                    .OptimizedPartitionInterval,
-                classification.ClassificationKind);
+            await Assert.That(classification.ClassificationKind).IsEqualTo(TemperatureEligibilityClassificationKind
+                    .OptimizedPartitionInterval);
             if (firstVectorByClassification.TryGetValue(
                     classification,
                     out var firstVector))
             {
-                AssertAllowanceVectorsEqual(
+                await AssertAllowanceVectorsEqual(
                     firstVector,
                     referenceVector,
                     bucketOrdinal,
@@ -497,10 +462,7 @@ public sealed class CanonicalTemperatureEligibilityAgreementTests
                             referenceVector);
                 if (!adjacentVectorsMatch)
                 {
-                    Assert.AreNotEqual(
-                        previousClassification,
-                        classification,
-                        "Different adjacent direct eligibility vectors shared " +
+                    await Assert.That(classification).IsNotEqualTo(previousClassification).Because("Different adjacent direct eligibility vectors shared " +
                         $"one class at bucket {bucketOrdinal}.");
                 }
                 else if (!relevantEndpoints.Contains(
@@ -508,10 +470,7 @@ public sealed class CanonicalTemperatureEligibilityAgreementTests
                                  .GetRepresentativeTruncatedKelvin(
                                      bucketOrdinal)))
                 {
-                    Assert.AreEqual(
-                        previousClassification,
-                        classification,
-                        "Equivalent adjacent buckets without a relevant endpoint " +
+                    await Assert.That(classification).IsEqualTo(previousClassification).Because("Equivalent adjacent buckets without a relevant endpoint " +
                         $"were fragmented at bucket {bucketOrdinal}.");
                 }
             }
@@ -521,8 +480,8 @@ public sealed class CanonicalTemperatureEligibilityAgreementTests
         }
     }
 
-    [TestMethod]
-    public void Classify_WhenSnapshotIsStaleAcrossEveryDecisionBucket_UsesOnlyExactBucketIdentity()
+    [Test]
+    public async Task Classify_WhenSnapshotIsStaleAcrossEveryDecisionBucket_UsesOnlyExactBucketIdentity()
     {
         var iron = new Tag("Iron");
         var requests = new[]
@@ -560,21 +519,14 @@ public sealed class CanonicalTemperatureEligibilityAgreementTests
                 hasPrimaryElement: true,
                 temperatureKelvin);
 
-            Assert.AreEqual(
-                TemperatureEligibilityClassificationKind
-                    .ExactTemperatureDecisionBucket,
-                classification.ClassificationKind);
-            Assert.AreEqual(
-                expectedBucket,
-                classification.ExactTemperatureDecisionBucket);
+            await Assert.That(classification.ClassificationKind).IsEqualTo(TemperatureEligibilityClassificationKind
+                    .ExactTemperatureDecisionBucket);
+            await Assert.That(classification.ExactTemperatureDecisionBucket).IsEqualTo(expectedBucket);
             if (bucketByClassification.TryGetValue(
                     classification,
                     out var firstBucket))
             {
-                Assert.AreEqual(
-                    expectedBucket,
-                    firstBucket,
-                    "A stale-snapshot fallback key represented more than one " +
+                await Assert.That(firstBucket).IsEqualTo(expectedBucket).Because("A stale-snapshot fallback key represented more than one " +
                     "exact decision bucket.");
             }
             else
@@ -595,15 +547,12 @@ public sealed class CanonicalTemperatureEligibilityAgreementTests
             applicableRequestedTags: [iron],
             hasPrimaryElement: true,
             temperatureKelvin: 10.9f);
-        Assert.AreEqual(
-            firstSameBucketClassification,
-            secondSameBucketClassification,
-            "Temperatures in the same canonical exact bucket must retain one " +
+        await Assert.That(secondSameBucketClassification).IsEqualTo(firstSameBucketClassification).Because("Temperatures in the same canonical exact bucket must retain one " +
             "fallback identity.");
     }
 
-    [TestMethod]
-    public void Classify_WhenAnotherParentHasOneThousandEndpoints_DoesNotFragmentScopedParent()
+    [Test]
+    public async Task Classify_WhenAnotherParentHasOneThousandEndpoints_DoesNotFragmentScopedParent()
     {
         var iron = new Tag("Iron");
         var food = new Tag("Food");
@@ -636,13 +585,11 @@ public sealed class CanonicalTemperatureEligibilityAgreementTests
                 constraint);
         }
 
-        Assert.HasCount(
-            1000,
-            ReferenceTemperatureEligibilityModel
+        await Assert.That(ReferenceTemperatureEligibilityModel
                 .CreateSortedPickupDecisionEndpointUnion(
                     requests,
                     parentWorldId: 2,
-                    applicableRequestedTags: [food]));
+                    applicableRequestedTags: [food])).Count().IsEqualTo(1000);
         var snapshot = BuildCurrentEligibilitySnapshot(session, requests);
         var groupingSession = BeginGroupingSession(session, 1, snapshot);
         var parentOneClassifications =
@@ -659,21 +606,16 @@ public sealed class CanonicalTemperatureEligibilityAgreementTests
                 hasPrimaryElement: true,
                 temperatureKelvin: ReferenceTemperatureEligibilityModel
                     .GetRepresentativeTemperatureKelvin(bucketOrdinal));
-            Assert.AreEqual(
-                TemperatureEligibilityClassificationKind
-                    .OptimizedPartitionInterval,
-                classification.ClassificationKind);
+            await Assert.That(classification.ClassificationKind).IsEqualTo(TemperatureEligibilityClassificationKind
+                    .OptimizedPartitionInterval);
             parentOneClassifications.Add(classification);
         }
 
-        Assert.HasCount(
-            3,
-            parentOneClassifications,
-            "Parent 1/Iron must be partitioned only by endpoints 10 and 20; " +
+        await Assert.That(parentOneClassifications).Count().IsEqualTo(3).Because("Parent 1/Iron must be partitioned only by endpoints 10 and 20; " +
             "parent 2/Food endpoints are unrelated.");
     }
 
-    private static void ApplyWorldInventoryStateMachineOperation(
+    private static async Task ApplyWorldInventoryStateMachineOperation(
         Random random,
         WorldResourceTemperatureAmountCatalog catalog,
         ReferenceWorldResourceTemperatureAmounts reference,
@@ -707,10 +649,7 @@ public sealed class CanonicalTemperatureEligibilityAgreementTests
                     worldId,
                     generation,
                     completeWorldResourceSeries);
-                Assert.AreEqual(
-                    expectedAccepted,
-                    observedAccepted,
-                    WorldInventoryStateMachineDiagnostic(
+                await Assert.That(observedAccepted).IsEqualTo(expectedAccepted).Because(WorldInventoryStateMachineDiagnostic(
                         operationIndex,
                         parentWorldId: -1,
                         resourceTag: default,
@@ -734,10 +673,7 @@ public sealed class CanonicalTemperatureEligibilityAgreementTests
                         worldId,
                         generation,
                         presentResourceTags);
-                Assert.AreEqual(
-                    expectedAccepted,
-                    observedAccepted,
-                    WorldInventoryStateMachineDiagnostic(
+                await Assert.That(observedAccepted).IsEqualTo(expectedAccepted).Because(WorldInventoryStateMachineDiagnostic(
                         operationIndex,
                         parentWorldId: -1,
                         resourceTag: default,
@@ -769,10 +705,7 @@ public sealed class CanonicalTemperatureEligibilityAgreementTests
                         generation,
                         resourceTag,
                         temperatureAmounts);
-                Assert.AreEqual(
-                    expectedAccepted,
-                    observedAccepted,
-                    WorldInventoryStateMachineDiagnostic(
+                await Assert.That(observedAccepted).IsEqualTo(expectedAccepted).Because(WorldInventoryStateMachineDiagnostic(
                         operationIndex,
                         parentWorldId: -1,
                         resourceTag,
@@ -954,7 +887,7 @@ public sealed class CanonicalTemperatureEligibilityAgreementTests
         $"constraint=[{constraint.MinimumInclusiveKelvin}, " +
         $"{constraint.MaximumExclusiveKelvin}).";
 
-    private static void AssertAvailabilityMatchesReference(
+    private static async Task AssertAvailabilityMatchesReference(
         ReferenceWorldResourceTemperatureAmountAvailability expected,
         TemperatureConstrainedAmountAvailability actual,
         string failureReason)
@@ -976,57 +909,49 @@ public sealed class CanonicalTemperatureEligibilityAgreementTests
                 _ => throw new InvalidOperationException(
                     $"Unknown reference availability state {expected.State}.")
             };
-        Assert.AreEqual(expectedProductionState, actual.State, failureReason);
+        await Assert.That(actual.State).IsEqualTo(expectedProductionState).Because(failureReason);
         if (expected.State ==
             ReferenceWorldResourceTemperatureAmountAvailabilityState.Complete)
         {
-            Assert.IsTrue(expected.TryGetCompleteAmount(out float expectedAmount));
-            Assert.IsTrue(
-                actual.TryGetCompleteAvailableAmount(out float actualAmount),
-                failureReason);
-            Assert.AreEqual(expectedAmount, actualAmount, failureReason);
+            await Assert.That(expected.TryGetCompleteAmount(out float expectedAmount)).IsTrue();
+            await Assert.That(actual.TryGetCompleteAvailableAmount(out float actualAmount)).IsTrue().Because(failureReason);
+            await Assert.That(actualAmount).IsEqualTo(expectedAmount).Because(failureReason);
         }
         else
         {
-            Assert.IsFalse(actual.TryGetCompleteAvailableAmount(out _));
+            await Assert.That(actual.TryGetCompleteAvailableAmount(out _)).IsFalse();
         }
     }
 
-    private static void AssertEquivalentAvailability(
+    private static async Task AssertEquivalentAvailability(
         TemperatureConstrainedAmountAvailability expected,
         TemperatureConstrainedAmountAvailability actual,
         string failureReason)
     {
-        Assert.AreEqual(expected.State, actual.State, failureReason);
+        await Assert.That(actual.State).IsEqualTo(expected.State).Because(failureReason);
         bool expectedHasAmount =
             expected.TryGetCompleteAvailableAmount(out float expectedAmount);
         bool actualHasAmount =
             actual.TryGetCompleteAvailableAmount(out float actualAmount);
-        Assert.AreEqual(expectedHasAmount, actualHasAmount, failureReason);
+        await Assert.That(actualHasAmount).IsEqualTo(expectedHasAmount).Because(failureReason);
         if (expectedHasAmount)
         {
-            Assert.AreEqual(expectedAmount, actualAmount, failureReason);
+            await Assert.That(actualAmount).IsEqualTo(expectedAmount).Because(failureReason);
         }
     }
 
-    private static void AssertAllowanceVectorsEqual(
+    private static async Task AssertAllowanceVectorsEqual(
         IReadOnlyList<bool> expected,
         IReadOnlyList<bool> actual,
         int bucketOrdinal,
         string failureReason)
     {
-        Assert.AreEqual(
-            expected.Count,
-            actual.Count,
-            $"{failureReason} Bucket {bucketOrdinal} had a length mismatch.");
+        await Assert.That(actual.Count).IsEqualTo(expected.Count).Because($"{failureReason} Bucket {bucketOrdinal} had a length mismatch.");
         for (var constraintIndex = 0;
              constraintIndex < expected.Count;
              constraintIndex++)
         {
-            Assert.AreEqual(
-                expected[constraintIndex],
-                actual[constraintIndex],
-                $"{failureReason} Bucket {bucketOrdinal}, constraint " +
+            await Assert.That(actual[constraintIndex]).IsEqualTo(expected[constraintIndex]).Because($"{failureReason} Bucket {bucketOrdinal}, constraint " +
                 $"{constraintIndex} differed.");
         }
     }

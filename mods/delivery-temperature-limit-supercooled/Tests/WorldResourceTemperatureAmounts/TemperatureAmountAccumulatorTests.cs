@@ -1,12 +1,10 @@
 using System.Reflection;
 
 namespace DeliveryTemperatureLimit.Tests.WorldResourceTemperatureAmounts;
-
-[TestClass]
 public sealed class TemperatureAmountAccumulatorTests
 {
-    [TestMethod]
-    public void BeginResourceTag_WhenPreviousTagTouchedFewBuckets_DoesNotCarryAmountsForward()
+    [Test]
+    public async Task BeginResourceTag_WhenPreviousTagTouchedFewBuckets_DoesNotCarryAmountsForward()
     {
         var accumulator = new TemperatureAmountAccumulator();
         accumulator.BeginResourceTag();
@@ -17,14 +15,14 @@ public sealed class TemperatureAmountAccumulatorTests
         accumulator.AddTemperatureAmount(20.0f, 3.0f);
         var second = accumulator.BuildSeries();
 
-        Assert.AreEqual(1, second.OccupiedBucketCount);
-        Assert.AreEqual(3.0f, second.TotalAmount);
-        Assert.AreEqual(0.0f, second.GetAmountAllowedBy(Constraint(10, 11)));
-        Assert.AreEqual(3.0f, second.GetAmountAllowedBy(Constraint(20, 21)));
+        await Assert.That(second.OccupiedBucketCount).IsEqualTo(1);
+        await Assert.That(second.TotalAmount).IsEqualTo(3.0f);
+        await Assert.That(second.GetAmountAllowedBy(Constraint(10, 11))).IsEqualTo(0.0f);
+        await Assert.That(second.GetAmountAllowedBy(Constraint(20, 21))).IsEqualTo(3.0f);
     }
 
-    [TestMethod]
-    public void AddTemperatureAmount_WhenSeveralAmountsShareBucket_SumsThem()
+    [Test]
+    public async Task AddTemperatureAmount_WhenSeveralAmountsShareBucket_SumsThem()
     {
         var accumulator = new TemperatureAmountAccumulator();
         accumulator.BeginResourceTag();
@@ -33,13 +31,13 @@ public sealed class TemperatureAmountAccumulatorTests
         accumulator.AddTemperatureAmount(10.9f, 3.5f);
         var series = accumulator.BuildSeries();
 
-        Assert.AreEqual(1, series.OccupiedBucketCount);
-        Assert.AreEqual(5.5f, series.TotalAmount);
-        Assert.AreEqual(5.5f, series.GetAmountAllowedBy(Constraint(10, 11)));
+        await Assert.That(series.OccupiedBucketCount).IsEqualTo(1);
+        await Assert.That(series.TotalAmount).IsEqualTo(5.5f);
+        await Assert.That(series.GetAmountAllowedBy(Constraint(10, 11))).IsEqualTo(5.5f);
     }
 
-    [TestMethod]
-    public void AddTemperatureAmount_WhenAmountIsZero_DoesNotTouchBucket()
+    [Test]
+    public async Task AddTemperatureAmount_WhenAmountIsZero_DoesNotTouchBucket()
     {
         var accumulator = new TemperatureAmountAccumulator();
         accumulator.BeginResourceTag();
@@ -47,14 +45,12 @@ public sealed class TemperatureAmountAccumulatorTests
         accumulator.AddTemperatureAmount(10.0f, 0.0f);
         var series = accumulator.BuildSeries();
 
-        Assert.AreSame(TemperatureAmountSeries.Empty, series);
-        Assert.AreEqual(
-            0,
-            ReadPrivateInt32Field(accumulator, "touchedBucketCount"));
+        await Assert.That(series).IsSameReferenceAs(TemperatureAmountSeries.Empty);
+        await Assert.That((await ReadPrivateInt32Field(accumulator, "touchedBucketCount"))).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void AddTemperatureAmount_WhenAmountsCancelToZero_OmitsBucketFromSeries()
+    [Test]
+    public async Task AddTemperatureAmount_WhenAmountsCancelToZero_OmitsBucketFromSeries()
     {
         var accumulator = new TemperatureAmountAccumulator();
         accumulator.BeginResourceTag();
@@ -63,13 +59,13 @@ public sealed class TemperatureAmountAccumulatorTests
         accumulator.AddTemperatureAmount(10.5f, -4.0f);
         var series = accumulator.BuildSeries();
 
-        Assert.AreSame(TemperatureAmountSeries.Empty, series);
-        Assert.AreEqual(0, series.OccupiedBucketCount);
-        Assert.AreEqual(0.0f, series.TotalAmount);
+        await Assert.That(series).IsSameReferenceAs(TemperatureAmountSeries.Empty);
+        await Assert.That(series.OccupiedBucketCount).IsEqualTo(0);
+        await Assert.That(series.TotalAmount).IsEqualTo(0.0f);
     }
 
-    [TestMethod]
-    public void AddTemperatureAmount_WhenTemperatureIsBelowMinimumKelvin_UsesBelowRangeBucket()
+    [Test]
+    public async Task AddTemperatureAmount_WhenTemperatureIsBelowMinimumKelvin_UsesBelowRangeBucket()
     {
         var accumulator = new TemperatureAmountAccumulator();
         accumulator.BeginResourceTag();
@@ -78,14 +74,14 @@ public sealed class TemperatureAmountAccumulatorTests
         accumulator.AddTemperatureAmount(-100.0f, 3.0f);
         var series = accumulator.BuildSeries();
 
-        Assert.AreEqual(1, series.OccupiedBucketCount);
-        Assert.AreEqual(5.0f, series.TotalAmount);
-        Assert.AreEqual(0.0f, series.GetAmountAllowedBy(Constraint(0, 100)));
-        Assert.AreEqual(5.0f, series.GetAmountAllowedBy(Constraint(100, 0)));
+        await Assert.That(series.OccupiedBucketCount).IsEqualTo(1);
+        await Assert.That(series.TotalAmount).IsEqualTo(5.0f);
+        await Assert.That(series.GetAmountAllowedBy(Constraint(0, 100))).IsEqualTo(0.0f);
+        await Assert.That(series.GetAmountAllowedBy(Constraint(100, 0))).IsEqualTo(5.0f);
     }
 
-    [TestMethod]
-    public void AddTemperatureAmount_WhenTemperatureIsAtOrAboveMaximumKelvin_UsesAboveRangeBucket()
+    [Test]
+    public async Task AddTemperatureAmount_WhenTemperatureIsAtOrAboveMaximumKelvin_UsesAboveRangeBucket()
     {
         var accumulator = new TemperatureAmountAccumulator();
         accumulator.BeginResourceTag();
@@ -98,24 +94,22 @@ public sealed class TemperatureAmountAccumulatorTests
             3.0f);
         var series = accumulator.BuildSeries();
 
-        Assert.AreEqual(1, series.OccupiedBucketCount);
-        Assert.AreEqual(5.0f, series.TotalAmount);
-        Assert.AreEqual(
-            0.0f,
-            series.GetAmountAllowedBy(Constraint(
+        await Assert.That(series.OccupiedBucketCount).IsEqualTo(1);
+        await Assert.That(series.TotalAmount).IsEqualTo(5.0f);
+        await Assert.That(series.GetAmountAllowedBy(Constraint(
                 0,
-                OniStorableTemperatureBounds.MaximumTemperatureKelvin)));
-        Assert.AreEqual(5.0f, series.GetAmountAllowedBy(Constraint(100, 0)));
+                OniStorableTemperatureBounds.MaximumTemperatureKelvin))).IsEqualTo(0.0f);
+        await Assert.That(series.GetAmountAllowedBy(Constraint(100, 0))).IsEqualTo(5.0f);
     }
 
-    [TestMethod]
-    public void BeginResourceTag_WhenStampWraps_PerformsOneSafeFullReset()
+    [Test]
+    public async Task BeginResourceTag_WhenStampWraps_PerformsOneSafeFullReset()
     {
         var accumulator = new TemperatureAmountAccumulator();
         accumulator.BeginResourceTag();
         accumulator.AddTemperatureAmount(10.0f, 4.0f);
         _ = accumulator.BuildSeries();
-        var stampField = RequirePrivateField(
+        var stampField = await RequirePrivateField(
             typeof(TemperatureAmountAccumulator),
             "stamp",
             typeof(int));
@@ -125,30 +119,26 @@ public sealed class TemperatureAmountAccumulatorTests
         accumulator.AddTemperatureAmount(20.0f, 3.0f);
         var seriesAfterWrap = accumulator.BuildSeries();
 
-        Assert.AreEqual(1, ReadPrivateInt32Field(accumulator, "stamp"));
-        Assert.AreEqual(1, seriesAfterWrap.OccupiedBucketCount);
-        Assert.AreEqual(3.0f, seriesAfterWrap.TotalAmount);
-        Assert.AreEqual(
-            0.0f,
-            seriesAfterWrap.GetAmountAllowedBy(Constraint(10, 11)));
-        Assert.AreEqual(
-            3.0f,
-            seriesAfterWrap.GetAmountAllowedBy(Constraint(20, 21)));
+        await Assert.That((await ReadPrivateInt32Field(accumulator, "stamp"))).IsEqualTo(1);
+        await Assert.That(seriesAfterWrap.OccupiedBucketCount).IsEqualTo(1);
+        await Assert.That(seriesAfterWrap.TotalAmount).IsEqualTo(3.0f);
+        await Assert.That(seriesAfterWrap.GetAmountAllowedBy(Constraint(10, 11))).IsEqualTo(0.0f);
+        await Assert.That(seriesAfterWrap.GetAmountAllowedBy(Constraint(20, 21))).IsEqualTo(3.0f);
 
-        var amountsByBucket = ReadPrivateArray<float>(
+        var amountsByBucket = await ReadPrivateArray<float>(
             accumulator,
             "amountsByBucket");
-        var stampsByBucket = ReadPrivateArray<int>(
+        var stampsByBucket = await ReadPrivateArray<int>(
             accumulator,
             "stampsByBucket");
         var oldBucketOrdinal =
             TemperatureDecisionBucket.FromTemperature(10.0f).Ordinal;
-        Assert.AreEqual(0.0f, amountsByBucket[oldBucketOrdinal]);
-        Assert.AreEqual(0, stampsByBucket[oldBucketOrdinal]);
+        await Assert.That(amountsByBucket[oldBucketOrdinal]).IsEqualTo(0.0f);
+        await Assert.That(stampsByBucket[oldBucketOrdinal]).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void BuildSeries_WhenTouchedBucketsWereUnordered_SortsByBucketOrdinal()
+    [Test]
+    public async Task BuildSeries_WhenTouchedBucketsWereUnordered_SortsByBucketOrdinal()
     {
         var accumulator = new TemperatureAmountAccumulator();
         accumulator.BeginResourceTag();
@@ -157,58 +147,56 @@ public sealed class TemperatureAmountAccumulatorTests
         accumulator.AddTemperatureAmount(10.0f, 3.0f);
 
         var series = accumulator.BuildSeries();
-        var occupiedBucketOrdinals = ReadPrivateArray<int>(
+        var occupiedBucketOrdinals = await ReadPrivateArray<int>(
             series,
             "occupiedBucketOrdinals");
 
-        Assert.AreSequenceEqual(
-            new[]
+        await Assert.That(occupiedBucketOrdinals).IsEquivalentTo(new[]
             {
                 TemperatureDecisionBucket.FromTemperature(5.0f).Ordinal,
                 TemperatureDecisionBucket.FromTemperature(10.0f).Ordinal,
                 TemperatureDecisionBucket.FromTemperature(20.0f).Ordinal,
-            },
-            occupiedBucketOrdinals);
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void BuildSeries_WhenCalledWithoutBegin_ThrowsInvalidOperationException()
+    [Test]
+    public async Task BuildSeries_WhenCalledWithoutBegin_ThrowsInvalidOperationException()
     {
         var accumulator = new TemperatureAmountAccumulator();
 
-        var exception = Assert.ThrowsExactly<InvalidOperationException>(() =>
-            accumulator.BuildSeries());
+        var exception = (await Assert.That(() =>
+            accumulator.BuildSeries()).ThrowsExactly<InvalidOperationException>())!;
 
-        StringAssert.Contains(exception.Message, "BeginResourceTag");
+        await Assert.That(exception.Message).Contains("BeginResourceTag");
     }
 
-    [TestMethod]
-    public void AddTemperatureAmount_WhenCalledAfterBuildWithoutNewBegin_ThrowsInvalidOperationException()
+    [Test]
+    public async Task AddTemperatureAmount_WhenCalledAfterBuildWithoutNewBegin_ThrowsInvalidOperationException()
     {
         var accumulator = new TemperatureAmountAccumulator();
         accumulator.BeginResourceTag();
         _ = accumulator.BuildSeries();
 
-        var exception = Assert.ThrowsExactly<InvalidOperationException>(() =>
-            accumulator.AddTemperatureAmount(10.0f, 1.0f));
+        var exception = (await Assert.That(() =>
+            accumulator.AddTemperatureAmount(10.0f, 1.0f)).ThrowsExactly<InvalidOperationException>())!;
 
-        StringAssert.Contains(exception.Message, "BeginResourceTag");
+        await Assert.That(exception.Message).Contains("BeginResourceTag");
     }
 
-    [TestMethod]
-    public void BeginResourceTag_WhenCurrentResourceTagIsOpen_ThrowsInvalidOperationException()
+    [Test]
+    public async Task BeginResourceTag_WhenCurrentResourceTagIsOpen_ThrowsInvalidOperationException()
     {
         var accumulator = new TemperatureAmountAccumulator();
         accumulator.BeginResourceTag();
 
-        var exception = Assert.ThrowsExactly<InvalidOperationException>(() =>
-            accumulator.BeginResourceTag());
+        var exception = (await Assert.That(() =>
+            accumulator.BeginResourceTag()).ThrowsExactly<InvalidOperationException>())!;
 
-        StringAssert.Contains(exception.Message, "already collecting");
+        await Assert.That(exception.Message).Contains("already collecting");
     }
 
-    [TestMethod]
-    public void AccumulatorRepresentation_WhenInspected_UsesExactlyThreeFormulaSizedArrays()
+    [Test]
+    public async Task AccumulatorRepresentation_WhenInspected_UsesExactlyThreeFormulaSizedArrays()
     {
         var accumulator = new TemperatureAmountAccumulator();
         var arrayFields = typeof(TemperatureAmountAccumulator)
@@ -217,23 +205,20 @@ public sealed class TemperatureAmountAccumulatorTests
             .OrderBy(field => field.Name, StringComparer.Ordinal)
             .ToArray();
 
-        Assert.AreSequenceEqual(
-            new[]
+        await Assert.That(arrayFields.Select(field => field.Name).ToArray()).IsEquivalentTo(new[]
             {
                 "amountsByBucket",
                 "stampsByBucket",
                 "touchedBucketOrdinals",
-            },
-            arrayFields.Select(field => field.Name).ToArray());
-        Assert.AreEqual(typeof(float[]), arrayFields[0].FieldType);
-        Assert.AreEqual(typeof(int[]), arrayFields[1].FieldType);
-        Assert.AreEqual(typeof(int[]), arrayFields[2].FieldType);
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(arrayFields[0].FieldType).IsEqualTo(typeof(float[]));
+        await Assert.That(arrayFields[1].FieldType).IsEqualTo(typeof(int[]));
+        await Assert.That(arrayFields[2].FieldType).IsEqualTo(typeof(int[]));
 
         foreach (var arrayField in arrayFields)
         {
-            var array = Assert.IsInstanceOfType<Array>(
-                arrayField.GetValue(accumulator));
-            Assert.AreEqual(TemperatureDecisionBucket.BucketCount, array.Length);
+            var array = (await Assert.That(arrayField.GetValue(accumulator)).IsAssignableTo<Array>())!;
+            await Assert.That(array.Length).IsEqualTo(TemperatureDecisionBucket.BucketCount);
         }
 
         var currentArrayElementStorageBytes =
@@ -244,17 +229,11 @@ public sealed class TemperatureAmountAccumulatorTests
             formerBucketCount *
             (sizeof(float) + sizeof(int) + sizeof(int));
 
-        Assert.AreEqual(120024, currentArrayElementStorageBytes);
-        Assert.AreEqual(60000, currentArrayElementStorageBytes - formerArrayElementStorageBytes);
-        Assert.AreEqual(
-            117.2109375,
-            currentArrayElementStorageBytes / 1024.0,
-            delta: 0.0001);
-        Assert.AreEqual(
-            58.59375,
-            (currentArrayElementStorageBytes - formerArrayElementStorageBytes) /
-                1024.0,
-            delta: 0.0001);
+        await Assert.That(currentArrayElementStorageBytes).IsEqualTo(120024);
+        await Assert.That(currentArrayElementStorageBytes - formerArrayElementStorageBytes).IsEqualTo(60000);
+        await Assert.That(Math.Abs(currentArrayElementStorageBytes / 1024.0 - 117.2109375)).IsLessThanOrEqualTo(0.0001);
+        await Assert.That(Math.Abs((currentArrayElementStorageBytes - formerArrayElementStorageBytes) /
+                1024.0 - 58.59375)).IsLessThanOrEqualTo(0.0001);
 
         var mutableStaticFields = typeof(TemperatureAmountAccumulator)
             .GetFields(
@@ -263,20 +242,20 @@ public sealed class TemperatureAmountAccumulatorTests
                 BindingFlags.NonPublic)
             .Where(field => !field.IsLiteral && !field.IsInitOnly)
             .ToArray();
-        Assert.IsEmpty(mutableStaticFields);
+        await Assert.That(mutableStaticFields).IsEmpty();
     }
 
-    [TestMethod]
-    public void BeginResourceTag_WhenOrdinary_DoesNotReplaceArraysOrTouchUnobservedUpperRange()
+    [Test]
+    public async Task BeginResourceTag_WhenOrdinary_DoesNotReplaceArraysOrTouchUnobservedUpperRange()
     {
         var accumulator = new TemperatureAmountAccumulator();
-        var amountsByBucket = ReadPrivateArray<float>(
+        var amountsByBucket = await ReadPrivateArray<float>(
             accumulator,
             "amountsByBucket");
-        var stampsByBucket = ReadPrivateArray<int>(
+        var stampsByBucket = await ReadPrivateArray<int>(
             accumulator,
             "stampsByBucket");
-        var touchedBucketOrdinals = ReadPrivateArray<int>(
+        var touchedBucketOrdinals = await ReadPrivateArray<int>(
             accumulator,
             "touchedBucketOrdinals");
         var unobservedUpperRangeOrdinal =
@@ -293,65 +272,59 @@ public sealed class TemperatureAmountAccumulatorTests
             _ = accumulator.BuildSeries();
         }
 
-        Assert.AreSame(
-            amountsByBucket,
-            ReadPrivateArray<float>(accumulator, "amountsByBucket"));
-        Assert.AreSame(
-            stampsByBucket,
-            ReadPrivateArray<int>(accumulator, "stampsByBucket"));
-        Assert.AreSame(
-            touchedBucketOrdinals,
-            ReadPrivateArray<int>(accumulator, "touchedBucketOrdinals"));
-        Assert.AreEqual(0.0f, amountsByBucket[unobservedUpperRangeOrdinal]);
-        Assert.AreEqual(0, stampsByBucket[unobservedUpperRangeOrdinal]);
+        await Assert.That((await ReadPrivateArray<float>(accumulator, "amountsByBucket"))).IsSameReferenceAs(amountsByBucket);
+        await Assert.That((await ReadPrivateArray<int>(accumulator, "stampsByBucket"))).IsSameReferenceAs(stampsByBucket);
+        await Assert.That((await ReadPrivateArray<int>(accumulator, "touchedBucketOrdinals"))).IsSameReferenceAs(touchedBucketOrdinals);
+        await Assert.That(amountsByBucket[unobservedUpperRangeOrdinal]).IsEqualTo(0.0f);
+        await Assert.That(stampsByBucket[unobservedUpperRangeOrdinal]).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void ProductionSource_WhenInspected_HasNoRecurringCompleteRangeTraversalOrDictionary()
+    [Test]
+    public async Task ProductionSource_WhenInspected_HasNoRecurringCompleteRangeTraversalOrDictionary()
     {
         var accumulatorSource = File.ReadAllText(
             ResolveProductionSourcePath("TemperatureAmountAccumulator.cs"));
         var seriesSource = File.ReadAllText(
             ResolveProductionSourcePath("TemperatureAmountSeries.cs"));
 
-        Assert.IsFalse(accumulatorSource.Contains("Dictionary<", StringComparison.Ordinal));
-        Assert.IsFalse(accumulatorSource.Contains("System.Linq", StringComparison.Ordinal));
-        Assert.IsFalse(seriesSource.Contains("Dictionary<", StringComparison.Ordinal));
-        Assert.IsFalse(seriesSource.Contains("System.Linq", StringComparison.Ordinal));
+        await Assert.That(accumulatorSource.Contains("Dictionary<", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(accumulatorSource.Contains("System.Linq", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(seriesSource.Contains("Dictionary<", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(seriesSource.Contains("System.Linq", StringComparison.Ordinal)).IsFalse();
 
-        var beginResourceTagSource = ExtractMethodRegion(
+        var beginResourceTagSource = await ExtractMethodRegion(
             accumulatorSource,
             "internal void BeginResourceTag()",
             "internal void AddTemperatureAmount(");
-        Assert.IsFalse(beginResourceTagSource.Contains("for (", StringComparison.Ordinal));
-        Assert.IsFalse(beginResourceTagSource.Contains("foreach (", StringComparison.Ordinal));
-        Assert.IsFalse(beginResourceTagSource.Contains("while (", StringComparison.Ordinal));
-        Assert.IsFalse(beginResourceTagSource.Contains("new float[", StringComparison.Ordinal));
-        Assert.IsFalse(beginResourceTagSource.Contains("new int[", StringComparison.Ordinal));
+        await Assert.That(beginResourceTagSource.Contains("for (", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(beginResourceTagSource.Contains("foreach (", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(beginResourceTagSource.Contains("while (", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(beginResourceTagSource.Contains("new float[", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(beginResourceTagSource.Contains("new int[", StringComparison.Ordinal)).IsFalse();
 
-        var addTemperatureAmountSource = ExtractMethodRegion(
+        var addTemperatureAmountSource = await ExtractMethodRegion(
             accumulatorSource,
             "internal void AddTemperatureAmount(",
             "internal TemperatureAmountSeries BuildSeries()");
-        Assert.IsFalse(addTemperatureAmountSource.Contains("for (", StringComparison.Ordinal));
-        Assert.IsFalse(addTemperatureAmountSource.Contains("foreach (", StringComparison.Ordinal));
-        Assert.IsFalse(addTemperatureAmountSource.Contains("while (", StringComparison.Ordinal));
+        await Assert.That(addTemperatureAmountSource.Contains("for (", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(addTemperatureAmountSource.Contains("foreach (", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(addTemperatureAmountSource.Contains("while (", StringComparison.Ordinal)).IsFalse();
 
-        var buildSeriesSource = ExtractMethodRegion(
+        var buildSeriesSource = await ExtractMethodRegion(
             accumulatorSource,
             "internal TemperatureAmountSeries BuildSeries()",
             "private void ThrowIfResourceTagIsNotOpen()");
-        Assert.IsFalse(buildSeriesSource.Contains(
+        await Assert.That(buildSeriesSource.Contains(
             "< TemperatureDecisionBucket.BucketCount",
-            StringComparison.Ordinal));
+            StringComparison.Ordinal)).IsFalse();
 
-        var querySource = ExtractMethodRegion(
+        var querySource = await ExtractMethodRegion(
             seriesSource,
             "internal float GetAmountAllowedBy(",
             "private static int LowerBound(");
-        Assert.IsFalse(querySource.Contains("for (", StringComparison.Ordinal));
-        Assert.IsFalse(querySource.Contains("foreach (", StringComparison.Ordinal));
-        Assert.IsFalse(querySource.Contains("TemperatureDecisionBucket.BucketCount", StringComparison.Ordinal));
+        await Assert.That(querySource.Contains("for (", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(querySource.Contains("foreach (", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(querySource.Contains("TemperatureDecisionBucket.BucketCount", StringComparison.Ordinal)).IsFalse();
     }
 
     private static DeliveryTemperatureConstraint Constraint(
@@ -361,29 +334,29 @@ public sealed class TemperatureAmountAccumulatorTests
             minimumInclusiveKelvin,
             maximumExclusiveKelvin);
 
-    private static int ReadPrivateInt32Field(
+    private static async Task<int> ReadPrivateInt32Field(
         TemperatureAmountAccumulator accumulator,
         string exactFieldName)
     {
-        var field = RequirePrivateField(
+        var field = await RequirePrivateField(
             typeof(TemperatureAmountAccumulator),
             exactFieldName,
             typeof(int));
-        return Assert.IsInstanceOfType<int>(field.GetValue(accumulator));
+        return ((await Assert.That(field.GetValue(accumulator)).IsAssignableTo<int>())!);
     }
 
-    private static T[] ReadPrivateArray<T>(
+    private static async Task<T[]> ReadPrivateArray<T>(
         object instance,
         string exactFieldName)
     {
-        var field = RequirePrivateField(
+        var field = await RequirePrivateField(
             instance.GetType(),
             exactFieldName,
             typeof(T[]));
-        return Assert.IsInstanceOfType<T[]>(field.GetValue(instance));
+        return ((await Assert.That(field.GetValue(instance)).IsAssignableTo<T[]>())!);
     }
 
-    private static FieldInfo RequirePrivateField(
+    private static async Task<FieldInfo> RequirePrivateField(
         Type declaringType,
         string exactFieldName,
         Type exactFieldType)
@@ -391,11 +364,9 @@ public sealed class TemperatureAmountAccumulatorTests
         var field = declaringType.GetField(
             exactFieldName,
             BindingFlags.Instance | BindingFlags.NonPublic);
-        Assert.IsNotNull(
-            field,
-            $"The representation contract requires the exact private field " +
+        if (field is null) throw new TUnit.Assertions.Exceptions.AssertionException($"The representation contract requires the exact private field " +
             $"{declaringType.Name}.{exactFieldName}.");
-        Assert.AreEqual(exactFieldType, field.FieldType);
+        await Assert.That(field.FieldType).IsEqualTo(exactFieldType);
         return field;
     }
 
@@ -436,18 +407,18 @@ public sealed class TemperatureAmountAccumulatorTests
         return string.Empty;
     }
 
-    private static string ExtractMethodRegion(
+    private static async Task<string> ExtractMethodRegion(
         string source,
         string startMarker,
         string endMarker)
     {
         var startIndex = source.IndexOf(startMarker, StringComparison.Ordinal);
-        Assert.IsTrue(startIndex >= 0);
+        await Assert.That(startIndex >= 0).IsTrue();
         var endIndex = source.IndexOf(
             endMarker,
             startIndex + startMarker.Length,
             StringComparison.Ordinal);
-        Assert.IsTrue(endIndex > startIndex);
+        await Assert.That(endIndex > startIndex).IsTrue();
         return source.Substring(startIndex, endIndex - startIndex);
     }
 }

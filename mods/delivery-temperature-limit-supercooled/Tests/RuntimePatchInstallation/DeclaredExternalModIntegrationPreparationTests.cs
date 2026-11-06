@@ -2,8 +2,6 @@ using System.Reflection;
 using System.Reflection.Emit;
 
 namespace DeliveryTemperatureLimit.Tests.RuntimePatchInstallation;
-
-[TestClass]
 public sealed class DeclaredExternalModIntegrationPreparationTests
 {
     private static readonly DeclaredModIntegrationId FastTrackId =
@@ -11,8 +9,8 @@ public sealed class DeclaredExternalModIntegrationPreparationTests
     private static readonly DeclaredModIntegrationId SyntheticAdditiveId =
         new("synthetic-additive-protocol");
 
-    [TestMethod]
-    public void Prepare_WhenExactStaticIdAndSameEntryAssemblyMatch_InvokesDeclaredInspector()
+    [Test]
+    public async Task Prepare_WhenExactStaticIdAndSameEntryAssemblyMatch_InvokesDeclaredInspector()
     {
         Assembly fastTrackAssembly = DynamicAssembly("FastTrack");
         var inspector = new RecordingRuntimeInspector(FastTrackId);
@@ -29,16 +27,14 @@ public sealed class DeclaredExternalModIntegrationPreparationTests
                 new[] { inspector },
                 Array.Empty<IAdditiveInteroperabilityInspector>());
 
-        Assert.AreEqual(1, inspector.InvocationCount);
-        Assert.AreSame(fastTrackAssembly, inspector.ObservedAssembly);
-        Assert.HasCount(1, result.ExternalModIntegrationOutcomes);
-        Assert.AreEqual(
-            DeclaredModMatchState.Matched,
-            result.ExternalModIntegrationOutcomes[0].MatchState);
+        await Assert.That(inspector.InvocationCount).IsEqualTo(1);
+        await Assert.That(inspector.ObservedAssembly).IsSameReferenceAs(fastTrackAssembly);
+        await Assert.That(result.ExternalModIntegrationOutcomes).Count().IsEqualTo(1);
+        await Assert.That(result.ExternalModIntegrationOutcomes[0].MatchState).IsEqualTo(DeclaredModMatchState.Matched);
     }
 
-    [TestMethod]
-    public void Prepare_WhenMatchingModIsInactive_DoesNotInvokeInspector()
+    [Test]
+    public async Task Prepare_WhenMatchingModIsInactive_DoesNotInvokeInspector()
     {
         var inspector = new RecordingRuntimeInspector(FastTrackId);
         LoadedModInspectionContext context = Context(
@@ -51,19 +47,15 @@ public sealed class DeclaredExternalModIntegrationPreparationTests
             context,
             inspector);
 
-        Assert.AreEqual(0, inspector.InvocationCount);
-        Assert.AreEqual(
-            DeclaredModMatchState.NotMatched,
-            result.ExternalModIntegrationOutcomes[0].MatchState);
-        Assert.AreEqual(
-            RuntimeAuthorityObservation.DoesNotOwn,
-            result.ExternalModIntegrationOutcomes[0]
+        await Assert.That(inspector.InvocationCount).IsEqualTo(0);
+        await Assert.That(result.ExternalModIntegrationOutcomes[0].MatchState).IsEqualTo(DeclaredModMatchState.NotMatched);
+        await Assert.That(result.ExternalModIntegrationOutcomes[0]
                 .Capabilities[0]
-                .AuthorityObservation);
+                .AuthorityObservation).IsEqualTo(RuntimeAuthorityObservation.DoesNotOwn);
     }
 
-    [TestMethod]
-    public void Prepare_WhenTwoActiveEntriesUseAcceptedStaticId_ReportsAmbiguity()
+    [Test]
+    public async Task Prepare_WhenTwoActiveEntriesUseAcceptedStaticId_ReportsAmbiguity()
     {
         var inspector = new RecordingRuntimeInspector(FastTrackId);
         LoadedModInspectionContext context = Context(
@@ -80,23 +72,17 @@ public sealed class DeclaredExternalModIntegrationPreparationTests
             context,
             inspector);
 
-        Assert.AreEqual(0, inspector.InvocationCount);
-        Assert.AreEqual(
-            DeclaredModMatchState.Ambiguous,
-            result.ExternalModIntegrationOutcomes[0].MatchState);
-        Assert.AreEqual(
-            RuntimeAuthorityObservation.OwnershipUnavailable,
-            result.ExternalModIntegrationOutcomes[0]
+        await Assert.That(inspector.InvocationCount).IsEqualTo(0);
+        await Assert.That(result.ExternalModIntegrationOutcomes[0].MatchState).IsEqualTo(DeclaredModMatchState.Ambiguous);
+        await Assert.That(result.ExternalModIntegrationOutcomes[0]
                 .Capabilities[0]
-                .AuthorityObservation);
-        Assert.HasCount(1, result.RuntimeAuthorityContributions);
-        Assert.AreEqual(
-            RuntimeAuthorityObservation.OwnershipUnavailable,
-            result.RuntimeAuthorityContributions[0].AuthorityObservation);
+                .AuthorityObservation).IsEqualTo(RuntimeAuthorityObservation.OwnershipUnavailable);
+        await Assert.That(result.RuntimeAuthorityContributions).Count().IsEqualTo(1);
+        await Assert.That(result.RuntimeAuthorityContributions[0].AuthorityObservation).IsEqualTo(RuntimeAuthorityObservation.OwnershipUnavailable);
     }
 
-    [TestMethod]
-    public void Prepare_WhenSameEntryHasTwoAcceptedNameAssemblies_ReportsAmbiguity()
+    [Test]
+    public async Task Prepare_WhenSameEntryHasTwoAcceptedNameAssemblies_ReportsAmbiguity()
     {
         var inspector = new RecordingRuntimeInspector(FastTrackId);
         LoadedModInspectionContext context = Context(
@@ -113,14 +99,12 @@ public sealed class DeclaredExternalModIntegrationPreparationTests
             context,
             inspector);
 
-        Assert.AreEqual(0, inspector.InvocationCount);
-        Assert.AreEqual(
-            DeclaredModMatchState.Ambiguous,
-            result.ExternalModIntegrationOutcomes[0].MatchState);
+        await Assert.That(inspector.InvocationCount).IsEqualTo(0);
+        await Assert.That(result.ExternalModIntegrationOutcomes[0].MatchState).IsEqualTo(DeclaredModMatchState.Ambiguous);
     }
 
-    [TestMethod]
-    public void Prepare_WhenAcceptedAssemblyBelongsToDifferentModEntry_DoesNotLeakAssociation()
+    [Test]
+    public async Task Prepare_WhenAcceptedAssemblyBelongsToDifferentModEntry_DoesNotLeakAssociation()
     {
         var inspector = new RecordingRuntimeInspector(FastTrackId);
         LoadedModInspectionContext context = Context(
@@ -137,24 +121,18 @@ public sealed class DeclaredExternalModIntegrationPreparationTests
             context,
             inspector);
 
-        Assert.AreEqual(0, inspector.InvocationCount);
-        Assert.AreEqual(
-            DeclaredModMatchState.Matched,
-            result.ExternalModIntegrationOutcomes[0].MatchState);
-        Assert.AreEqual(
-            IntegrationContractState.VerificationUnavailable,
-            result.ExternalModIntegrationOutcomes[0]
+        await Assert.That(inspector.InvocationCount).IsEqualTo(0);
+        await Assert.That(result.ExternalModIntegrationOutcomes[0].MatchState).IsEqualTo(DeclaredModMatchState.Matched);
+        await Assert.That(result.ExternalModIntegrationOutcomes[0]
                 .Capabilities[0]
-                .ContractState);
-        Assert.AreEqual(
-            "declared-integration-assembly-missing",
-            result.ExternalModIntegrationOutcomes[0]
+                .ContractState).IsEqualTo(IntegrationContractState.VerificationUnavailable);
+        await Assert.That(result.ExternalModIntegrationOutcomes[0]
                 .Capabilities[0]
-                .DiagnosticCode);
+                .DiagnosticCode).IsEqualTo("declared-integration-assembly-missing");
     }
 
-    [TestMethod]
-    public void Prepare_WhenUnknownModCoexists_IgnoresItAndUsesDeclaredMatch()
+    [Test]
+    public async Task Prepare_WhenUnknownModCoexists_IgnoresItAndUsesDeclaredMatch()
     {
         var inspector = new RecordingRuntimeInspector(FastTrackId);
         LoadedModInspectionContext context = Context(
@@ -171,13 +149,13 @@ public sealed class DeclaredExternalModIntegrationPreparationTests
             context,
             inspector);
 
-        Assert.AreEqual(1, inspector.InvocationCount);
-        Assert.HasCount(1, result.ExternalModIntegrationOutcomes);
-        Assert.AreEqual(FastTrackId, result.ExternalModIntegrationOutcomes[0].IntegrationId);
+        await Assert.That(inspector.InvocationCount).IsEqualTo(1);
+        await Assert.That(result.ExternalModIntegrationOutcomes).Count().IsEqualTo(1);
+        await Assert.That(result.ExternalModIntegrationOutcomes[0].IntegrationId).IsEqualTo(FastTrackId);
     }
 
-    [TestMethod]
-    public void Prepare_WhenRuntimeInspectorThrows_ConvertsFailureToUnavailableOutcome()
+    [Test]
+    public async Task Prepare_WhenRuntimeInspectorThrows_ConvertsFailureToUnavailableOutcome()
     {
         var inspector = new ThrowingRuntimeInspector(FastTrackId);
 
@@ -191,22 +169,16 @@ public sealed class DeclaredExternalModIntegrationPreparationTests
                 new[] { inspector },
                 Array.Empty<IAdditiveInteroperabilityInspector>());
 
-        Assert.HasCount(1, result.RuntimeAuthorityContributions);
-        Assert.AreEqual(
-            RuntimeAuthorityObservation.OwnershipUnavailable,
-            result.RuntimeAuthorityContributions[0].AuthorityObservation);
-        Assert.AreEqual(
-            DeclaredModMatchState.InspectionUnavailable,
-            result.ExternalModIntegrationOutcomes[0].MatchState);
-        Assert.AreEqual(
-            "runtime-integration-inspection-unavailable",
-            result.ExternalModIntegrationOutcomes[0]
+        await Assert.That(result.RuntimeAuthorityContributions).Count().IsEqualTo(1);
+        await Assert.That(result.RuntimeAuthorityContributions[0].AuthorityObservation).IsEqualTo(RuntimeAuthorityObservation.OwnershipUnavailable);
+        await Assert.That(result.ExternalModIntegrationOutcomes[0].MatchState).IsEqualTo(DeclaredModMatchState.InspectionUnavailable);
+        await Assert.That(result.ExternalModIntegrationOutcomes[0]
                 .Capabilities[0]
-                .DiagnosticCode);
+                .DiagnosticCode).IsEqualTo("runtime-integration-inspection-unavailable");
     }
 
-    [TestMethod]
-    public void Prepare_WhenRuntimeInspectorOmitsDeclaredCapability_RejectsWholeInspection()
+    [Test]
+    public async Task Prepare_WhenRuntimeInspectorOmitsDeclaredCapability_RejectsWholeInspection()
     {
         var inspector = new RecordingRuntimeInspector(FastTrackId);
         DeclaredModIntegrationDescriptor descriptor = FastTrackDescriptor(
@@ -223,20 +195,16 @@ public sealed class DeclaredExternalModIntegrationPreparationTests
                 new[] { inspector },
                 Array.Empty<IAdditiveInteroperabilityInspector>());
 
-        Assert.HasCount(2, result.RuntimeAuthorityContributions);
-        Assert.IsTrue(result.RuntimeAuthorityContributions.All(contribution =>
+        await Assert.That(result.RuntimeAuthorityContributions).Count().IsEqualTo(2);
+        await Assert.That(result.RuntimeAuthorityContributions.All(contribution =>
             contribution.AuthorityObservation ==
-                RuntimeAuthorityObservation.OwnershipUnavailable));
-        Assert.HasCount(
-            2,
-            result.ExternalModIntegrationOutcomes[0].Capabilities);
-        Assert.AreEqual(
-            DeclaredModMatchState.InspectionUnavailable,
-            result.ExternalModIntegrationOutcomes[0].MatchState);
+                RuntimeAuthorityObservation.OwnershipUnavailable)).IsTrue();
+        await Assert.That(result.ExternalModIntegrationOutcomes[0].Capabilities).Count().IsEqualTo(2);
+        await Assert.That(result.ExternalModIntegrationOutcomes[0].MatchState).IsEqualTo(DeclaredModMatchState.InspectionUnavailable);
     }
 
-    [TestMethod]
-    public void Prepare_WhenInspectionUnavailableClaimsCompatibleAuthority_ContainsWholeRuntimeInspection()
+    [Test]
+    public async Task Prepare_WhenInspectionUnavailableClaimsCompatibleAuthority_ContainsWholeRuntimeInspection()
     {
         var inspector = new PredefinedRuntimeAuthorityInspector(
             FastTrackId,
@@ -256,11 +224,11 @@ public sealed class DeclaredExternalModIntegrationPreparationTests
                 new[] { inspector },
                 Array.Empty<IAdditiveInteroperabilityInspector>());
 
-        AssertRuntimeInspectionWasContained(result);
+        await AssertRuntimeInspectionWasContained(result);
     }
 
-    [TestMethod]
-    public void Prepare_WhenNonOwnerUsesUnavailableContract_ContainsWholeRuntimeInspection()
+    [Test]
+    public async Task Prepare_WhenNonOwnerUsesUnavailableContract_ContainsWholeRuntimeInspection()
     {
         var inspector = new PredefinedRuntimeAuthorityInspector(
             FastTrackId,
@@ -282,11 +250,11 @@ public sealed class DeclaredExternalModIntegrationPreparationTests
                 new[] { inspector },
                 Array.Empty<IAdditiveInteroperabilityInspector>());
 
-        AssertRuntimeInspectionWasContained(result);
+        await AssertRuntimeInspectionWasContained(result);
     }
 
-    [TestMethod]
-    public void Prepare_WhenRuntimeDiagnosticsReuseCodeForDifferentMessages_ContainsWholeRuntimeInspection()
+    [Test]
+    public async Task Prepare_WhenRuntimeDiagnosticsReuseCodeForDifferentMessages_ContainsWholeRuntimeInspection()
     {
         var inspector = new RecordingRuntimeInspector(
             FastTrackId,
@@ -306,11 +274,11 @@ public sealed class DeclaredExternalModIntegrationPreparationTests
                 new[] { inspector },
                 Array.Empty<IAdditiveInteroperabilityInspector>());
 
-        AssertRuntimeInspectionWasContained(result);
+        await AssertRuntimeInspectionWasContained(result);
     }
 
-    [TestMethod]
-    public void Prepare_WhenMatchedAdditiveInspectorReportsSelectedCapability_ContainsAdditiveCategory()
+    [Test]
+    public async Task Prepare_WhenMatchedAdditiveInspectorReportsSelectedCapability_ContainsAdditiveCategory()
     {
         var inspector = new PredefinedAdditiveInteroperabilityInspector(
             SyntheticAdditiveId,
@@ -330,19 +298,13 @@ public sealed class DeclaredExternalModIntegrationPreparationTests
 
         ExternalModIntegrationOutcome outcome =
             result.ExternalModIntegrationOutcomes[0];
-        Assert.AreEqual(
-            DeclaredModMatchState.InspectionUnavailable,
-            outcome.MatchState);
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.Unavailable,
-            outcome.Capabilities[0].Disposition);
-        Assert.AreEqual(
-            "additive-integration-inspection-unavailable",
-            outcome.Capabilities[0].DiagnosticCode);
+        await Assert.That(outcome.MatchState).IsEqualTo(DeclaredModMatchState.InspectionUnavailable);
+        await Assert.That(outcome.Capabilities[0].Disposition).IsEqualTo(IntegrationCapabilityDisposition.Unavailable);
+        await Assert.That(outcome.Capabilities[0].DiagnosticCode).IsEqualTo("additive-integration-inspection-unavailable");
     }
 
-    [TestMethod]
-    public void Prepare_WhenRuntimeInspectorUsesReservedAdditiveConflictDiagnostic_ContainsRuntimeCategory()
+    [Test]
+    public async Task Prepare_WhenRuntimeInspectorUsesReservedAdditiveConflictDiagnostic_ContainsRuntimeCategory()
     {
         var runtimeInspector = new RecordingRuntimeInspector(
             FastTrackId,
@@ -364,22 +326,14 @@ public sealed class DeclaredExternalModIntegrationPreparationTests
 
         ExternalModIntegrationOutcome outcome =
             result.ExternalModIntegrationOutcomes[0];
-        Assert.AreEqual(
-            DeclaredModMatchState.InspectionUnavailable,
-            outcome.MatchState);
-        Assert.AreEqual(
-            RuntimeAuthorityObservation.OwnershipUnavailable,
-            outcome.Capabilities[0].AuthorityObservation);
-        Assert.AreEqual(
-            "runtime-integration-inspection-unavailable",
-            outcome.Capabilities[0].DiagnosticCode);
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.Ready,
-            outcome.Capabilities[1].Disposition);
+        await Assert.That(outcome.MatchState).IsEqualTo(DeclaredModMatchState.InspectionUnavailable);
+        await Assert.That(outcome.Capabilities[0].AuthorityObservation).IsEqualTo(RuntimeAuthorityObservation.OwnershipUnavailable);
+        await Assert.That(outcome.Capabilities[0].DiagnosticCode).IsEqualTo("runtime-integration-inspection-unavailable");
+        await Assert.That(outcome.Capabilities[1].Disposition).IsEqualTo(IntegrationCapabilityDisposition.Ready);
     }
 
-    [TestMethod]
-    public void Prepare_WhenAdditiveInspectorThrows_PreservesValidRuntimeContribution()
+    [Test]
+    public async Task Prepare_WhenAdditiveInspectorThrows_PreservesValidRuntimeContribution()
     {
         var runtimeInspector = new RecordingRuntimeInspector(FastTrackId);
         var additiveInspector =
@@ -401,25 +355,19 @@ public sealed class DeclaredExternalModIntegrationPreparationTests
                 new[] { runtimeInspector },
                 new[] { additiveInspector });
 
-        Assert.HasCount(1, result.RuntimeAuthorityContributions);
-        Assert.AreEqual(
-            FastTrackId,
-            result.RuntimeAuthorityContributions[0]
+        await Assert.That(result.RuntimeAuthorityContributions).Count().IsEqualTo(1);
+        await Assert.That(result.RuntimeAuthorityContributions[0]
                 .ImplementationIdentity
-                .DeclaredExternalIntegrationId);
-        Assert.HasCount(2, result.ExternalModIntegrationOutcomes);
-        Assert.AreEqual(
-            DeclaredModMatchState.InspectionUnavailable,
-            result.ExternalModIntegrationOutcomes[1].MatchState);
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.Unavailable,
-            result.ExternalModIntegrationOutcomes[1]
+                .DeclaredExternalIntegrationId).IsEqualTo(FastTrackId);
+        await Assert.That(result.ExternalModIntegrationOutcomes).Count().IsEqualTo(2);
+        await Assert.That(result.ExternalModIntegrationOutcomes[1].MatchState).IsEqualTo(DeclaredModMatchState.InspectionUnavailable);
+        await Assert.That(result.ExternalModIntegrationOutcomes[1]
                 .Capabilities[0]
-                .Disposition);
+                .Disposition).IsEqualTo(IntegrationCapabilityDisposition.Unavailable);
     }
 
-    [TestMethod]
-    public void Prepare_WhenOneIntegrationDeclaresBothCategories_InvokesAndMergesBothInspectors()
+    [Test]
+    public async Task Prepare_WhenOneIntegrationDeclaresBothCategories_InvokesAndMergesBothInspectors()
     {
         var runtimeInspector = new RecordingRuntimeInspector(FastTrackId);
         var additiveInspector = new RecordingAdditiveInspector(FastTrackId);
@@ -436,31 +384,27 @@ public sealed class DeclaredExternalModIntegrationPreparationTests
                 new[] { runtimeInspector },
                 new[] { additiveInspector });
 
-        Assert.AreEqual(1, runtimeInspector.InvocationCount);
-        Assert.AreEqual(1, additiveInspector.InvocationCount);
-        Assert.HasCount(1, result.RuntimeAuthorityContributions);
-        Assert.HasCount(1, result.ExternalModIntegrationOutcomes);
-        CollectionAssert.AreEqual(
-            new[]
+        await Assert.That(runtimeInspector.InvocationCount).IsEqualTo(1);
+        await Assert.That(additiveInspector.InvocationCount).IsEqualTo(1);
+        await Assert.That(result.RuntimeAuthorityContributions).Count().IsEqualTo(1);
+        await Assert.That(result.ExternalModIntegrationOutcomes).Count().IsEqualTo(1);
+        await Assert.That(result.ExternalModIntegrationOutcomes[0]
+                .Capabilities
+                .Select(capability => capability.CapabilityId)
+                .ToArray()).IsEquivalentTo(new[]
             {
                 RuntimeCapabilityId.DirectDeliveryEligibility,
                 RuntimeCapabilityId.TemperatureStatusAvailability
-            },
-            result.ExternalModIntegrationOutcomes[0]
-                .Capabilities
-                .Select(capability => capability.CapabilityId)
-                .ToArray());
-        CollectionAssert.AreEqual(
-            new[]
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(result.ExternalModIntegrationOutcomes[0].Categories.ToArray()).IsEquivalentTo(new[]
             {
                 ExternalModIntegrationCategory.ExclusiveRuntimeAuthority,
                 ExternalModIntegrationCategory.AdditiveInteroperability
-            },
-            result.ExternalModIntegrationOutcomes[0].Categories.ToArray());
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void Prepare_WhenAdditiveOutcomeConflictsWithRuntimeFacts_ContainsAdditiveCategory()
+    [Test]
+    public async Task Prepare_WhenAdditiveOutcomeConflictsWithRuntimeFacts_ContainsAdditiveCategory()
     {
         var runtimeInspector = new RecordingRuntimeInspector(FastTrackId);
         var additiveInspector =
@@ -476,28 +420,18 @@ public sealed class DeclaredExternalModIntegrationPreparationTests
                 new[] { runtimeInspector },
                 new[] { additiveInspector });
 
-        Assert.HasCount(1, result.RuntimeAuthorityContributions);
+        await Assert.That(result.RuntimeAuthorityContributions).Count().IsEqualTo(1);
         ExternalModIntegrationOutcome outcome =
             result.ExternalModIntegrationOutcomes[0];
-        Assert.AreEqual(
-            DeclaredModMatchState.InspectionUnavailable,
-            outcome.MatchState);
-        Assert.AreEqual(
-            "FastTrack, Version=0.18.4.0",
-            outcome.AssemblyIdentity);
-        Assert.AreEqual(
-            RuntimeAuthorityObservation.OwnsCompatible,
-            outcome.Capabilities[0].AuthorityObservation);
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.Unavailable,
-            outcome.Capabilities[1].Disposition);
-        Assert.AreEqual(
-            "additive-integration-outcome-conflict",
-            outcome.Capabilities[1].DiagnosticCode);
+        await Assert.That(outcome.MatchState).IsEqualTo(DeclaredModMatchState.InspectionUnavailable);
+        await Assert.That(outcome.AssemblyIdentity).IsEqualTo("FastTrack, Version=0.18.4.0");
+        await Assert.That(outcome.Capabilities[0].AuthorityObservation).IsEqualTo(RuntimeAuthorityObservation.OwnsCompatible);
+        await Assert.That(outcome.Capabilities[1].Disposition).IsEqualTo(IntegrationCapabilityDisposition.Unavailable);
+        await Assert.That(outcome.Capabilities[1].DiagnosticCode).IsEqualTo("additive-integration-outcome-conflict");
     }
 
-    [TestMethod]
-    public void Prepare_WhenAdditiveOutcomeConflictsWithRuntimeDiagnostic_ContainsAdditiveCategory()
+    [Test]
+    public async Task Prepare_WhenAdditiveOutcomeConflictsWithRuntimeDiagnostic_ContainsAdditiveCategory()
     {
         var runtimeInspector = new RecordingRuntimeInspector(
             FastTrackId,
@@ -517,29 +451,21 @@ public sealed class DeclaredExternalModIntegrationPreparationTests
                 new[] { runtimeInspector },
                 new[] { additiveInspector });
 
-        Assert.HasCount(1, result.RuntimeAuthorityContributions);
+        await Assert.That(result.RuntimeAuthorityContributions).Count().IsEqualTo(1);
         ExternalModIntegrationOutcome outcome =
             result.ExternalModIntegrationOutcomes[0];
-        Assert.AreEqual(
-            DeclaredModMatchState.InspectionUnavailable,
-            outcome.MatchState);
-        Assert.AreEqual(
-            RuntimeAuthorityObservation.OwnsCompatible,
-            outcome.Capabilities[0].AuthorityObservation);
-        Assert.AreEqual(
-            "additive-integration-outcome-conflict",
-            outcome.Capabilities[1].DiagnosticCode);
-        CollectionAssert.AreEqual(
-            new[]
+        await Assert.That(outcome.MatchState).IsEqualTo(DeclaredModMatchState.InspectionUnavailable);
+        await Assert.That(outcome.Capabilities[0].AuthorityObservation).IsEqualTo(RuntimeAuthorityObservation.OwnsCompatible);
+        await Assert.That(outcome.Capabilities[1].DiagnosticCode).IsEqualTo("additive-integration-outcome-conflict");
+        await Assert.That(outcome.Diagnostics.Select(diagnostic => diagnostic.Code).ToArray()).IsEquivalentTo(new[]
             {
                 "shared-category-diagnostic",
                 "additive-integration-outcome-conflict"
-            },
-            outcome.Diagnostics.Select(diagnostic => diagnostic.Code).ToArray());
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void Prepare_WhenAdditiveCapabilityDiagnosticConflictsWithRuntimeCapabilityDiagnostic_ContainsAdditiveCategory()
+    [Test]
+    public async Task Prepare_WhenAdditiveCapabilityDiagnosticConflictsWithRuntimeCapabilityDiagnostic_ContainsAdditiveCategory()
     {
         var runtimeInspector = new RecordingRuntimeInspector(
             FastTrackId,
@@ -559,18 +485,12 @@ public sealed class DeclaredExternalModIntegrationPreparationTests
                 new[] { runtimeInspector },
                 new[] { additiveInspector });
 
-        Assert.HasCount(1, result.RuntimeAuthorityContributions);
+        await Assert.That(result.RuntimeAuthorityContributions).Count().IsEqualTo(1);
         ExternalModIntegrationOutcome outcome =
             result.ExternalModIntegrationOutcomes[0];
-        Assert.AreEqual(
-            "shared-capability-diagnostic",
-            outcome.Capabilities[0].DiagnosticCode);
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.Unavailable,
-            outcome.Capabilities[1].Disposition);
-        Assert.AreEqual(
-            "additive-integration-outcome-conflict",
-            outcome.Capabilities[1].DiagnosticCode);
+        await Assert.That(outcome.Capabilities[0].DiagnosticCode).IsEqualTo("shared-capability-diagnostic");
+        await Assert.That(outcome.Capabilities[1].Disposition).IsEqualTo(IntegrationCapabilityDisposition.Unavailable);
+        await Assert.That(outcome.Capabilities[1].DiagnosticCode).IsEqualTo("additive-integration-outcome-conflict");
     }
 
     private static DeclaredIntegrationPreparationResult PrepareFastTrack(
@@ -582,30 +502,18 @@ public sealed class DeclaredExternalModIntegrationPreparationTests
             new[] { inspector },
             Array.Empty<IAdditiveInteroperabilityInspector>());
 
-    private static void AssertRuntimeInspectionWasContained(
+    private static async Task AssertRuntimeInspectionWasContained(
         DeclaredIntegrationPreparationResult result)
     {
-        Assert.HasCount(1, result.RuntimeAuthorityContributions);
-        Assert.AreEqual(
-            RuntimeAuthorityObservation.OwnershipUnavailable,
-            result.RuntimeAuthorityContributions[0].AuthorityObservation);
+        await Assert.That(result.RuntimeAuthorityContributions).Count().IsEqualTo(1);
+        await Assert.That(result.RuntimeAuthorityContributions[0].AuthorityObservation).IsEqualTo(RuntimeAuthorityObservation.OwnershipUnavailable);
         ExternalModIntegrationOutcome outcome =
             result.ExternalModIntegrationOutcomes[0];
-        Assert.AreEqual(
-            DeclaredModMatchState.InspectionUnavailable,
-            outcome.MatchState);
-        Assert.AreEqual(
-            RuntimeAuthorityObservation.OwnershipUnavailable,
-            outcome.Capabilities[0].AuthorityObservation);
-        Assert.AreEqual(
-            IntegrationContractState.VerificationUnavailable,
-            outcome.Capabilities[0].ContractState);
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.Unavailable,
-            outcome.Capabilities[0].Disposition);
-        Assert.AreEqual(
-            "runtime-integration-inspection-unavailable",
-            outcome.Capabilities[0].DiagnosticCode);
+        await Assert.That(outcome.MatchState).IsEqualTo(DeclaredModMatchState.InspectionUnavailable);
+        await Assert.That(outcome.Capabilities[0].AuthorityObservation).IsEqualTo(RuntimeAuthorityObservation.OwnershipUnavailable);
+        await Assert.That(outcome.Capabilities[0].ContractState).IsEqualTo(IntegrationContractState.VerificationUnavailable);
+        await Assert.That(outcome.Capabilities[0].Disposition).IsEqualTo(IntegrationCapabilityDisposition.Unavailable);
+        await Assert.That(outcome.Capabilities[0].DiagnosticCode).IsEqualTo("runtime-integration-inspection-unavailable");
     }
 
     private static LoadedModInspectionContext Context(

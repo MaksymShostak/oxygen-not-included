@@ -1,12 +1,10 @@
 using MaksymShostak.OniModPipeline.WorkshopContent;
 
 namespace MaksymShostak.OniModPipeline.Tests.WorkshopContent;
-
-[TestClass]
 public sealed class WorkshopContentValidatorTests
 {
-    [TestMethod]
-    public void ValidateInventory_WhenForbiddenContentIsPresent_RejectsEveryV1ForbiddenPath()
+    [Test]
+    public async Task ValidateInventory_WhenForbiddenContentIsPresent_RejectsEveryV1ForbiddenPath()
     {
         string[] forbiddenPaths =
         [
@@ -47,13 +45,13 @@ public sealed class WorkshopContentValidatorTests
                 ["mod.yaml", "mod_info.yaml", "Example.dll", forbiddenPath],
                 "Example.dll");
 
-            Assert.IsFalse(result.IsSuccess, forbiddenPath);
-            Assert.AreEqual("ONIP5002", result.Diagnostics.Single().Id, forbiddenPath);
+            await Assert.That(result.IsSuccess).IsFalse().Because(forbiddenPath);
+            await Assert.That(result.Diagnostics.Single().Id).IsEqualTo("ONIP5002").Because(forbiddenPath);
         }
     }
 
-    [TestMethod]
-    public void ValidateInventory_WhenRequiredRootMetadataIsMissing_RejectsInventory()
+    [Test]
+    public async Task ValidateInventory_WhenRequiredRootMetadataIsMissing_RejectsInventory()
     {
         var validator = new WorkshopContentValidator();
 
@@ -64,44 +62,42 @@ public sealed class WorkshopContentValidatorTests
             ["mod.yaml", "Example.dll"],
             "Example.dll");
 
-        Assert.IsFalse(missingModYaml.IsSuccess);
-        Assert.IsFalse(missingModInfo.IsSuccess);
-        StringAssert.Contains(missingModYaml.Diagnostics.Single().Evidence, "mod.yaml");
-        StringAssert.Contains(missingModInfo.Diagnostics.Single().Evidence, "mod_info.yaml");
+        await Assert.That(missingModYaml.IsSuccess).IsFalse();
+        await Assert.That(missingModInfo.IsSuccess).IsFalse();
+        await Assert.That(missingModYaml.Diagnostics.Single().Evidence).Contains("mod.yaml");
+        await Assert.That(missingModInfo.Diagnostics.Single().Evidence).Contains("mod_info.yaml");
     }
 
-    [TestMethod]
-    public void ValidateInventory_WhenRootMetadataUsesDifferentCase_RejectsInventory()
+    [Test]
+    public async Task ValidateInventory_WhenRootMetadataUsesDifferentCase_RejectsInventory()
     {
         var result = new WorkshopContentValidator().ValidateInventory(
             ["MOD.YAML", "MOD_INFO.YAML", "Example.dll"],
             "Example.dll");
 
-        Assert.IsFalse(result.IsSuccess);
-        StringAssert.Contains(result.Diagnostics.Single().Evidence, "mod.yaml");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Diagnostics.Single().Evidence).Contains("mod.yaml");
     }
 
-    [TestMethod]
-    public void ValidateInventory_WhenPrimaryAssemblyIsNested_RejectsInventory()
+    [Test]
+    public async Task ValidateInventory_WhenPrimaryAssemblyIsNested_RejectsInventory()
     {
         var result = new WorkshopContentValidator().ValidateInventory(
             ["mod.yaml", "mod_info.yaml", "assemblies/Example.dll"],
             "assemblies/Example.dll");
 
-        Assert.IsFalse(result.IsSuccess);
-        StringAssert.Contains(result.Diagnostics.Single().Evidence, "root");
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Diagnostics.Single().Evidence).Contains("root");
     }
 
-    [TestMethod]
-    public void ValidateInventory_WhenRuntimeSetIsClosed_AcceptsNormalizedPaths()
+    [Test]
+    public async Task ValidateInventory_WhenRuntimeSetIsClosed_AcceptsNormalizedPaths()
     {
         var result = new WorkshopContentValidator().ValidateInventory(
             ["mod.yaml", "mod_info.yaml", "Example.dll", "assets/config.json"],
             "Example.dll");
 
-        Assert.IsTrue(result.IsSuccess);
-        CollectionAssert.AreEqual(
-            new[] { "Example.dll", "assets/config.json", "mod.yaml", "mod_info.yaml" },
-            result.Value?.ToArray());
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value?.ToArray()).IsEquivalentTo(new[] { "Example.dll", "assets/config.json", "mod.yaml", "mod_info.yaml" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 }

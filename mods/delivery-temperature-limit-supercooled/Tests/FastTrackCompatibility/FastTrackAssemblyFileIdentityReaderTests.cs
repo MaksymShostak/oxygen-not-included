@@ -4,12 +4,10 @@ using System.Reflection.Emit;
 using System.Security.Cryptography;
 
 namespace DeliveryTemperatureLimit.Tests.FastTrackCompatibility;
-
-[TestClass]
 public sealed class FastTrackAssemblyFileIdentityReaderTests
 {
-    [TestMethod]
-    public void Read_WhenAssemblyIsDynamic_ReturnsDynamicAssemblyWithoutFileMetadata()
+    [Test]
+    public async Task Read_WhenAssemblyIsDynamic_ReturnsDynamicAssemblyWithoutFileMetadata()
     {
         Assembly dynamicAssembly = AssemblyBuilder.DefineDynamicAssembly(
             new AssemblyName($"DynamicFastTrack.{Guid.NewGuid():N}"),
@@ -18,33 +16,29 @@ public sealed class FastTrackAssemblyFileIdentityReaderTests
 
         FastTrackAssemblyFileIdentity result = reader.Read(dynamicAssembly);
 
-        Assert.AreEqual(
-            FastTrackAssemblyFileIdentityReadState.DynamicAssembly,
-            result.ReadState);
-        Assert.IsNull(result.FileVersion);
-        Assert.IsNull(result.AssemblySha256);
-        Assert.IsNotNull(result.FailureMessage);
+        await Assert.That(result.ReadState).IsEqualTo(FastTrackAssemblyFileIdentityReadState.DynamicAssembly);
+        await Assert.That(result.FileVersion).IsNull();
+        await Assert.That(result.AssemblySha256).IsNull();
+        Assert.NotNull(result.FailureMessage);
     }
 
-    [TestMethod]
-    public void Read_WhenAssemblyLocationIsUnavailable_ReturnsLocationUnavailable()
+    [Test]
+    public async Task Read_WhenAssemblyLocationIsUnavailable_ReturnsLocationUnavailable()
     {
         byte[] assemblyBytes = File.ReadAllBytes(
             typeof(FastTrackAssemblyFileIdentityReaderTests).Assembly.Location);
-        Assembly locationlessAssembly = Assembly.Load(assemblyBytes);
+        Assembly locationlessAssembly = System.Reflection.Assembly.Load(assemblyBytes);
         var reader = new FastTrackAssemblyFileIdentityReader();
 
         FastTrackAssemblyFileIdentity result = reader.Read(locationlessAssembly);
 
-        Assert.AreEqual(
-            FastTrackAssemblyFileIdentityReadState.LocationUnavailable,
-            result.ReadState);
-        Assert.IsNull(result.FileVersion);
-        Assert.IsNull(result.AssemblySha256);
+        await Assert.That(result.ReadState).IsEqualTo(FastTrackAssemblyFileIdentityReadState.LocationUnavailable);
+        await Assert.That(result.FileVersion).IsNull();
+        await Assert.That(result.AssemblySha256).IsNull();
     }
 
-    [TestMethod]
-    public void Read_WhenAssemblyFileNoLongerExists_ReturnsAssemblyFileMissing()
+    [Test]
+    public async Task Read_WhenAssemblyFileNoLongerExists_ReturnsAssemblyFileMissing()
     {
         using var assemblyCopy = TemporaryAssemblyCopy.Create();
         Assembly loadedAssembly = new AssemblyWithSpecifiedLocation(
@@ -54,15 +48,13 @@ public sealed class FastTrackAssemblyFileIdentityReaderTests
 
         FastTrackAssemblyFileIdentity result = reader.Read(loadedAssembly);
 
-        Assert.AreEqual(
-            FastTrackAssemblyFileIdentityReadState.AssemblyFileMissing,
-            result.ReadState);
-        Assert.IsNull(result.FileVersion);
-        Assert.IsNull(result.AssemblySha256);
+        await Assert.That(result.ReadState).IsEqualTo(FastTrackAssemblyFileIdentityReadState.AssemblyFileMissing);
+        await Assert.That(result.FileVersion).IsNull();
+        await Assert.That(result.AssemblySha256).IsNull();
     }
 
-    [TestMethod]
-    public void Read_WhenAssemblyFileCannotBeOpened_ReturnsReadFailedWithoutCatchingUnrelatedFailures()
+    [Test]
+    public async Task Read_WhenAssemblyFileCannotBeOpened_ReturnsReadFailedWithoutCatchingUnrelatedFailures()
     {
         using var assemblyCopy = TemporaryAssemblyCopy.Create();
         Assembly loadedAssembly = new AssemblyWithSpecifiedLocation(
@@ -76,16 +68,14 @@ public sealed class FastTrackAssemblyFileIdentityReaderTests
 
         FastTrackAssemblyFileIdentity result = reader.Read(loadedAssembly);
 
-        Assert.AreEqual(
-            FastTrackAssemblyFileIdentityReadState.ReadFailed,
-            result.ReadState);
-        Assert.IsNull(result.FileVersion);
-        Assert.IsNull(result.AssemblySha256);
-        Assert.IsNotNull(result.FailureMessage);
+        await Assert.That(result.ReadState).IsEqualTo(FastTrackAssemblyFileIdentityReadState.ReadFailed);
+        await Assert.That(result.FileVersion).IsNull();
+        await Assert.That(result.AssemblySha256).IsNull();
+        Assert.NotNull(result.FailureMessage);
     }
 
-    [TestMethod]
-    public void Read_WhenPhysicalAssemblyIsReadable_ReturnsExactFileVersionAndUppercaseSha256()
+    [Test]
+    public async Task Read_WhenPhysicalAssemblyIsReadable_ReturnsExactFileVersionAndUppercaseSha256()
     {
         Assembly assembly =
             typeof(FastTrackAssemblyFileIdentityReaderTests).Assembly;
@@ -101,37 +91,33 @@ public sealed class FastTrackAssemblyFileIdentityReaderTests
 
         FastTrackAssemblyFileIdentity result = reader.Read(assembly);
 
-        Assert.AreEqual(
-            FastTrackAssemblyFileIdentityReadState.Success,
-            result.ReadState);
-        Assert.AreEqual(expectedVersion, result.FileVersion);
-        Assert.AreEqual(expectedSha256, result.AssemblySha256);
-        Assert.AreEqual(
-            result.AssemblySha256,
-            result.AssemblySha256!.ToUpperInvariant());
-        Assert.IsNull(result.FailureMessage);
+        await Assert.That(result.ReadState).IsEqualTo(FastTrackAssemblyFileIdentityReadState.Success);
+        await Assert.That(result.FileVersion).IsEqualTo(expectedVersion);
+        await Assert.That(result.AssemblySha256).IsEqualTo(expectedSha256);
+        await Assert.That(result.AssemblySha256!.ToUpperInvariant()).IsEqualTo(result.AssemblySha256);
+        await Assert.That(result.FailureMessage).IsNull();
     }
 
-    [TestMethod]
-    public void Constructor_WhenSuccessOmitsFileVersion_ThrowsArgumentException()
+    [Test]
+    public async Task Constructor_WhenSuccessOmitsFileVersion_ThrowsArgumentException()
     {
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             new FastTrackAssemblyFileIdentity(
                 FastTrackAssemblyFileIdentityReadState.Success,
                 fileVersion: null,
                 assemblySha256: "ABCDEF",
-                failureMessage: null));
+                failureMessage: null)).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void Constructor_WhenFailureCarriesDigest_ThrowsArgumentException()
+    [Test]
+    public async Task Constructor_WhenFailureCarriesDigest_ThrowsArgumentException()
     {
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             new FastTrackAssemblyFileIdentity(
                 FastTrackAssemblyFileIdentityReadState.ReadFailed,
                 fileVersion: null,
                 assemblySha256: "ABCDEF",
-                failureMessage: "Read failed."));
+                failureMessage: "Read failed.")).ThrowsExactly<ArgumentException>();
     }
 
     private static string ComputeUppercaseSha256(string assemblyPath)

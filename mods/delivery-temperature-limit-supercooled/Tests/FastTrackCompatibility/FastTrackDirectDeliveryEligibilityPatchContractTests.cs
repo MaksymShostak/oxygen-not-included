@@ -1,63 +1,44 @@
 namespace DeliveryTemperatureLimit.Tests.FastTrackCompatibility;
-
-[TestClass]
 public sealed class FastTrackDirectDeliveryEligibilityPatchContractTests
 {
-    [TestMethod]
-    public void AdapterSource_WhenInspected_BindsOnlyReadyComparatorAndNarrowsOnlySuccessReturn()
+    [Test]
+    public async Task AdapterSource_WhenInspected_BindsOnlyReadyComparatorAndNarrowsOnlySuccessReturn()
     {
         string sourcePath = ResolveProductionSourcePath(
             "DirectDeliveryEligibilityAdapters",
             "FastTrackDirectDeliveryEligibilityPatches.cs");
-        Assert.IsTrue(
-            File.Exists(sourcePath),
-            $"Missing inactive FastTrack direct-delivery adapter {sourcePath}.");
+        await Assert.That(File.Exists(sourcePath)).IsTrue().Because($"Missing inactive FastTrack direct-delivery adapter {sourcePath}.");
         string source = File.ReadAllText(sourcePath);
 
-        StringAssert.Contains(
-            source,
-            "BindVerifiedDirectDeliveryEligibilityFeature");
-        StringAssert.Contains(
-            source,
-            "FastTrackFeature.DirectDeliveryEligibility");
-        StringAssert.Contains(
-            source,
-            "FastTrackFeatureCompatibilityState.Ready");
-        StringAssert.Contains(
-            source,
-            "ResolveChoreComparatorCheckFetchChoreTarget");
-        StringAssert.Contains(source, "CheckFetchChoreTranspiler");
-        StringAssert.Contains(source, "originalSuccessReturn");
-        StringAssert.Contains(source, "IsPickupAllowedForFetchChore");
-        StringAssert.Contains(source, "TryGetConstraint");
-        StringAssert.Contains(source, "constraint.Allows(temperatureKelvin)");
-        StringAssert.Contains(source, "PrimaryElement primaryElement");
-        Assert.IsFalse(source.Contains("[HarmonyPatch", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("AccessTools", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("Type.GetType", StringComparison.Ordinal));
-        Assert.IsFalse(
-            source.Contains("Assembly.GetAssemblies", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("FastTrackOptions", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("Unpatch", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("GetComponent", StringComparison.Ordinal));
+        await Assert.That(source).Contains("BindVerifiedDirectDeliveryEligibilityFeature");
+        await Assert.That(source).Contains("FastTrackFeature.DirectDeliveryEligibility");
+        await Assert.That(source).Contains("FastTrackFeatureCompatibilityState.Ready");
+        await Assert.That(source).Contains("ResolveChoreComparatorCheckFetchChoreTarget");
+        await Assert.That(source).Contains("CheckFetchChoreTranspiler");
+        await Assert.That(source).Contains("originalSuccessReturn");
+        await Assert.That(source).Contains("IsPickupAllowedForFetchChore");
+        await Assert.That(source).Contains("TryGetConstraint");
+        await Assert.That(source).Contains("constraint.Allows(temperatureKelvin)");
+        await Assert.That(source).Contains("PrimaryElement primaryElement");
+        await Assert.That(source.Contains("[HarmonyPatch", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("AccessTools", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("Type.GetType", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("Assembly.GetAssemblies", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("FastTrackOptions", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("Unpatch", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("GetComponent", StringComparison.Ordinal)).IsFalse();
     }
 
-    [TestMethod]
-    public void PreservedAssemblyContractSource_WhenInspected_ExercisesDirectReplacementAbsence()
+    [Test]
+    public async Task PreservedAssemblyContractSource_WhenInspected_ExercisesDirectReplacementAbsence()
     {
         string staticContractPath = ResolveTestSourcePath(
             "PreservedFastTrackAssemblyContractTests.cs");
         string staticContractSource = File.ReadAllText(staticContractPath);
 
-        StringAssert.Contains(
-            staticContractSource,
-            "PreservedFixture_DirectDeliveryReplacementMatchesDeclaredPresence");
-        StringAssert.Contains(
-            staticContractSource,
-            "PeterHan.FastTrack.GamePatches.ChoreComparator");
-        StringAssert.Contains(
-            staticContractSource,
-            "GlobalChoreProvider_CollectChores_Patch");
+        await Assert.That(staticContractSource).Contains("PreservedFixture_DirectDeliveryReplacementMatchesDeclaredPresence");
+        await Assert.That(staticContractSource).Contains("PeterHan.FastTrack.GamePatches.ChoreComparator");
+        await Assert.That(staticContractSource).Contains("GlobalChoreProvider_CollectChores_Patch");
     }
 
     private static string ResolveProductionSourcePath(

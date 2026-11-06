@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+    <!-- TUnit sets latest in its props; let the SDK choose the TFM default. -->
+    <LangVersion />
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="TUnit.Engine" />
+    <PackageReference Include="TUnit.Assertions" />
+    <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
+    <Compile Include="$(MSBuildThisFileDirectory)TUnitProjectDefaults.cs" Link="TUnitProjectDefaults.cs" />
+  </ItemGroup>
+</Project>

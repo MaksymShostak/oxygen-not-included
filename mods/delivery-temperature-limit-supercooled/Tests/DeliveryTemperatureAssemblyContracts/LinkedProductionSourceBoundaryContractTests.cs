@@ -3,8 +3,6 @@ using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
-
-[TestClass]
 public sealed class LinkedProductionSourceBoundaryContractTests
 {
     private static readonly string[] ApprovedCompileIncludes =
@@ -39,10 +37,10 @@ public sealed class LinkedProductionSourceBoundaryContractTests
             @"..\Source\RuntimePatchInstallation\DeliveryTemperatureRuntimePatchPlan.cs"
         };
 
-    [TestMethod]
-    public void TestProject_WhenCompileLinksAreInspected_UsesExactApprovedProductionBoundary()
+    [Test]
+    public async Task TestProject_WhenCompileLinksAreInspected_UsesExactApprovedProductionBoundary()
     {
-        var testProjectPath = TestProjectPath();
+        var testProjectPath = await TestProjectPath();
         var document = XDocument.Load(testProjectPath, LoadOptions.SetLineInfo);
         var compileItems = document.Root!
             .Elements("ItemGroup")
@@ -55,42 +53,33 @@ public sealed class LinkedProductionSourceBoundaryContractTests
             })
             .ToArray();
 
-        CollectionAssert.AreEquivalent(
-            ApprovedCompileIncludes,
-            compileItems.Select(item => item.Include).ToArray());
-        Assert.IsTrue(
-            compileItems.All(item =>
+        await Assert.That(compileItems.Select(item => item.Include).ToArray()).IsEquivalentTo((ApprovedCompileIncludes).Cast<string?>(), TUnit.Assertions.Enums.CollectionOrdering.Any);
+        await Assert.That(compileItems.All(item =>
                 !string.IsNullOrWhiteSpace(item.Link)
-                && item.Link!.StartsWith(@"Production\", StringComparison.Ordinal)),
-            "Every linked production source must have a semantic Production\\ link path.");
-        Assert.IsFalse(
-            compileItems.Any(item => string.Equals(
+                && item.Link!.StartsWith(@"Production\", StringComparison.Ordinal))).IsTrue().Because("Every linked production source must have a semantic Production\\ link path.");
+        await Assert.That(compileItems.Any(item => string.Equals(
                 item.Include,
                 @"..\Source\FastTrackCompatibility\**\*.cs",
-                StringComparison.Ordinal)),
-            "Runtime FastTrack adapters must never enter the pure linked-source boundary.");
+                StringComparison.Ordinal))).IsFalse().Because("Runtime FastTrack adapters must never enter the pure linked-source boundary.");
 
         foreach (var compileItem in compileItems)
         {
-            Assert.IsNotNull(compileItem.Include);
+            Assert.NotNull(compileItem.Include);
             var shouldBeConditional = ConditionallyLinkedFutureSourceIncludes.Contains(
                 compileItem.Include);
             var expectedCondition = shouldBeConditional
                 ? $"Exists('{compileItem.Include}')"
                 : null;
-            Assert.AreEqual(
-                expectedCondition,
-                compileItem.Condition,
-                shouldBeConditional
+            await Assert.That(compileItem.Condition).IsEqualTo(expectedCondition).Because(shouldBeConditional
                     ? $"Future exact link {compileItem.Include} must use a path-identical existence guard."
                     : $"Existing or wildcard link {compileItem.Include} must remain unconditional.");
         }
     }
 
-    [TestMethod]
-    public void LinkedProductionSources_WhenInspected_AreProductionCompileInputsWithoutTestForks()
+    [Test]
+    public async Task LinkedProductionSources_WhenInspected_AreProductionCompileInputsWithoutTestForks()
     {
-        var repositoryRoot = RequiredEnvironmentVariable(
+        var repositoryRoot = await RequiredEnvironmentVariable(
             "ONI_MOD_PIPELINE_REPOSITORY_ROOT");
         var modRoot = Path.Combine(
             repositoryRoot,
@@ -100,31 +89,20 @@ public sealed class LinkedProductionSourceBoundaryContractTests
         var productionProject = XDocument.Load(
             Path.Combine(sourceRoot, "DeliveryTemperatureLimit.csproj"));
 
-        Assert.IsFalse(
-            productionProject.Descendants("Compile")
-                .Any(element => element.Attribute("Remove") is not null),
-            "Production compile exclusions could let a test-linked copy evade the C# 8 build.");
-        Assert.AreNotEqual(
-            "false",
-            productionProject.Descendants("EnableDefaultCompileItems")
-                .LastOrDefault()?.Value.Trim(),
-            "The production project must retain SDK default compile discovery.");
-        Assert.IsFalse(
-            Directory.Exists(Path.Combine(modRoot, "Tests", "Production")),
-            "Production algorithms must be linked from Source, never copied under Tests.");
+        await Assert.That(productionProject.Descendants("Compile")
+                .Any(element => element.Attribute("Remove") is not null)).IsFalse().Because("Production compile exclusions could let a test-linked copy evade the C# 8 build.");
+        await Assert.That(productionProject.Descendants("EnableDefaultCompileItems")
+                .LastOrDefault()?.Value.Trim()).IsNotEqualTo("false").Because("The production project must retain SDK default compile discovery.");
+        await Assert.That(Directory.Exists(Path.Combine(modRoot, "Tests", "Production"))).IsFalse().Because("Production algorithms must be linked from Source, never copied under Tests.");
 
         foreach (var include in ApprovedCompileIncludes)
         {
             foreach (var sourcePath in ExpandExistingCompileInclude(modRoot, include))
             {
                 var fullPath = Path.GetFullPath(sourcePath);
-                Assert.IsTrue(
-                    IsDescendantOf(sourceRoot, fullPath),
-                    $"Linked file escapes the production source tree: {fullPath}");
-                Assert.IsFalse(
-                    IsDescendantOf(Path.Combine(sourceRoot, "obj"), fullPath)
-                    || IsDescendantOf(Path.Combine(sourceRoot, "bin"), fullPath),
-                    $"Generated output must not be linked as production source: {fullPath}");
+                await Assert.That(IsDescendantOf(sourceRoot, fullPath)).IsTrue().Because($"Linked file escapes the production source tree: {fullPath}");
+                await Assert.That(IsDescendantOf(Path.Combine(sourceRoot, "obj"), fullPath)
+                    || IsDescendantOf(Path.Combine(sourceRoot, "bin"), fullPath)).IsFalse().Because($"Generated output must not be linked as production source: {fullPath}");
 
                 if (!string.Equals(
                     fullPath,
@@ -134,16 +112,16 @@ public sealed class LinkedProductionSourceBoundaryContractTests
                         "TemperatureLimitedDeliveryTargetPrefabConfigurator.cs"),
                     StringComparison.OrdinalIgnoreCase))
                 {
-                    AssertPureLinkedSource(fullPath);
+                    await AssertPureLinkedSource(fullPath);
                 }
             }
         }
     }
 
-    [TestMethod]
-    public void DeclaredStaticMethodProtocol_WhenLocated_IsCoveredByThePureCoreWildcard()
+    [Test]
+    public async Task DeclaredStaticMethodProtocol_WhenLocated_IsCoveredByThePureCoreWildcard()
     {
-        string repositoryRoot = RequiredEnvironmentVariable(
+        string repositoryRoot = await RequiredEnvironmentVariable(
             "ONI_MOD_PIPELINE_REPOSITORY_ROOT");
         string protocolPath = Path.Combine(
             repositoryRoot,
@@ -155,26 +133,20 @@ public sealed class LinkedProductionSourceBoundaryContractTests
             "ExternalModIntegration",
             "DeclaredStaticMethodProtocol.cs");
 
-        Assert.IsTrue(
-            File.Exists(protocolPath),
-            "The BCL-only declared protocol verifier must remain inside the " +
+        await Assert.That(File.Exists(protocolPath)).IsTrue().Because("The BCL-only declared protocol verifier must remain inside the " +
             "already linked GameplayActivation/Core boundary.");
-        AssertPureLinkedSource(protocolPath);
+        await AssertPureLinkedSource(protocolPath);
     }
 
-    [TestMethod]
-    public void OniGameTypeStubs_WhenIdentityAndMembersAreInspected_MatchPureSourceDependenciesExactly()
+    [Test]
+    public async Task OniGameTypeStubs_WhenIdentityAndMembersAreInspected_MatchPureSourceDependenciesExactly()
     {
         var tagType = typeof(global::Tag);
-        Assert.AreEqual("Tag", tagType.FullName);
-        Assert.IsTrue(tagType.IsValueType);
-        Assert.IsTrue(
-            tagType.CustomAttributes.Any(attribute =>
-                attribute.AttributeType == typeof(IsReadOnlyAttribute)),
-            "The global Tag test double must be readonly.");
-        CollectionAssert.AreEquivalent(
-            new[] { typeof(IEquatable<global::Tag>) },
-            tagType.GetInterfaces());
+        await Assert.That(tagType.FullName).IsEqualTo("Tag");
+        await Assert.That(tagType.IsValueType).IsTrue();
+        await Assert.That(tagType.CustomAttributes.Any(attribute =>
+                attribute.AttributeType == typeof(IsReadOnlyAttribute))).IsTrue().Because("The global Tag test double must be readonly.");
+        await Assert.That(tagType.GetInterfaces()).IsEquivalentTo(new[] { typeof(IEquatable<global::Tag>) }, TUnit.Assertions.Enums.CollectionOrdering.Any);
 
         var tagFields = tagType.GetFields(
             BindingFlags.Public
@@ -182,33 +154,31 @@ public sealed class LinkedProductionSourceBoundaryContractTests
             | BindingFlags.Instance
             | BindingFlags.Static
             | BindingFlags.DeclaredOnly);
-        Assert.HasCount(1, tagFields);
-        Assert.AreEqual("value", tagFields[0].Name);
-        Assert.AreEqual(typeof(string), tagFields[0].FieldType);
-        Assert.IsTrue(tagFields[0].IsPrivate);
-        Assert.IsTrue(tagFields[0].IsInitOnly);
-        Assert.IsFalse(tagFields[0].IsStatic);
+        await Assert.That(tagFields).Count().IsEqualTo(1);
+        await Assert.That(tagFields[0].Name).IsEqualTo("value");
+        await Assert.That(tagFields[0].FieldType).IsEqualTo(typeof(string));
+        await Assert.That(tagFields[0].IsPrivate).IsTrue();
+        await Assert.That(tagFields[0].IsInitOnly).IsTrue();
+        await Assert.That(tagFields[0].IsStatic).IsFalse();
 
-        Assert.IsEmpty(tagType.GetProperties(
+        await Assert.That(tagType.GetProperties(
             BindingFlags.Public
             | BindingFlags.NonPublic
             | BindingFlags.Instance
             | BindingFlags.Static
-            | BindingFlags.DeclaredOnly));
+            | BindingFlags.DeclaredOnly)).IsEmpty();
 
         var tagConstructors = tagType.GetConstructors(
             BindingFlags.Public
             | BindingFlags.NonPublic
             | BindingFlags.Instance
             | BindingFlags.DeclaredOnly);
-        Assert.HasCount(1, tagConstructors);
-        Assert.IsTrue(tagConstructors[0].IsPublic);
-        Assert.AreSequenceEqual(
-            new[] { typeof(string) },
-            tagConstructors[0]
+        await Assert.That(tagConstructors).Count().IsEqualTo(1);
+        await Assert.That(tagConstructors[0].IsPublic).IsTrue();
+        await Assert.That(tagConstructors[0]
                 .GetParameters()
                 .Select(parameter => parameter.ParameterType)
-                .ToArray());
+                .ToArray()).IsEquivalentTo(new[] { typeof(string) }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
 
         var tagMethodSignatures = tagType.GetMethods(
             BindingFlags.Public
@@ -218,64 +188,58 @@ public sealed class LinkedProductionSourceBoundaryContractTests
             | BindingFlags.DeclaredOnly)
             .Select(MethodSignature)
             .ToArray();
-        CollectionAssert.AreEquivalent(
-            new[]
+        await Assert.That(tagMethodSignatures).IsEquivalentTo(new[]
             {
                 "Equals(System.Object):System.Boolean",
                 "Equals(Tag):System.Boolean",
                 "GetHashCode():System.Int32"
-            },
-            tagMethodSignatures);
+            }, TUnit.Assertions.Enums.CollectionOrdering.Any);
 
         var temperatureLimitType = typeof(global::DeliveryTemperatureLimit.TemperatureLimit);
-        Assert.AreEqual(
-            "DeliveryTemperatureLimit.TemperatureLimit",
-            temperatureLimitType.FullName);
-        Assert.IsNull(
-            temperatureLimitType.Assembly.GetType(
+        await Assert.That(temperatureLimitType.FullName).IsEqualTo("DeliveryTemperatureLimit.TemperatureLimit");
+        await Assert.That(temperatureLimitType.Assembly.GetType(
                 "TemperatureLimit",
                 throwOnError: false,
-                ignoreCase: false),
-            "A global TemperatureLimit alias would conceal a production namespace dependency.");
-        Assert.IsEmpty(temperatureLimitType.GetFields(
+                ignoreCase: false)).IsNull().Because("A global TemperatureLimit alias would conceal a production namespace dependency.");
+        await Assert.That(temperatureLimitType.GetFields(
             BindingFlags.Public
             | BindingFlags.NonPublic
             | BindingFlags.Instance
             | BindingFlags.Static
-            | BindingFlags.DeclaredOnly));
-        Assert.IsEmpty(temperatureLimitType.GetProperties(
+            | BindingFlags.DeclaredOnly)).IsEmpty();
+        await Assert.That(temperatureLimitType.GetProperties(
             BindingFlags.Public
             | BindingFlags.NonPublic
             | BindingFlags.Instance
             | BindingFlags.Static
-            | BindingFlags.DeclaredOnly));
-        Assert.IsEmpty(temperatureLimitType.GetMethods(
+            | BindingFlags.DeclaredOnly)).IsEmpty();
+        await Assert.That(temperatureLimitType.GetMethods(
             BindingFlags.Public
             | BindingFlags.NonPublic
             | BindingFlags.Instance
             | BindingFlags.Static
-            | BindingFlags.DeclaredOnly));
+            | BindingFlags.DeclaredOnly)).IsEmpty();
 
         var constructors = temperatureLimitType.GetConstructors(
             BindingFlags.Public
             | BindingFlags.NonPublic
             | BindingFlags.Instance
             | BindingFlags.DeclaredOnly);
-        Assert.HasCount(1, constructors);
-        Assert.IsTrue(constructors[0].IsPublic);
-        Assert.IsEmpty(constructors[0].GetParameters());
+        await Assert.That(constructors).Count().IsEqualTo(1);
+        await Assert.That(constructors[0].IsPublic).IsTrue();
+        await Assert.That(constructors[0].GetParameters()).IsEmpty();
     }
 
-    [TestMethod]
-    public void OniGameTypeStubs_WhenLocated_HaveSemanticFileIdentityWithoutLegacyAliasFile()
+    [Test]
+    public async Task OniGameTypeStubs_WhenLocated_HaveSemanticFileIdentityWithoutLegacyAliasFile()
     {
-        var testRoot = Path.GetDirectoryName(TestProjectPath())!;
+        var testRoot = Path.GetDirectoryName((await TestProjectPath()))!;
 
-        Assert.IsTrue(File.Exists(Path.Combine(
+        await Assert.That(File.Exists(Path.Combine(
             testRoot,
             "TestDoubles",
-            "OniGameTypeStubs.cs")));
-        Assert.IsFalse(File.Exists(Path.Combine(testRoot, "GameStubs.cs")));
+            "OniGameTypeStubs.cs"))).IsTrue();
+        await Assert.That(File.Exists(Path.Combine(testRoot, "GameStubs.cs"))).IsFalse();
     }
 
     private static IEnumerable<string> ExpandExistingCompileInclude(
@@ -314,7 +278,7 @@ public sealed class LinkedProductionSourceBoundaryContractTests
         return File.Exists(absolutePattern) ? [absolutePattern] : [];
     }
 
-    private static void AssertPureLinkedSource(string sourcePath)
+    private static async Task AssertPureLinkedSource(string sourcePath)
     {
         var source = File.ReadAllText(sourcePath);
         var forbiddenFragments = new[]
@@ -331,21 +295,19 @@ public sealed class LinkedProductionSourceBoundaryContractTests
         };
         foreach (var forbiddenFragment in forbiddenFragments)
         {
-            Assert.IsFalse(
-                source.Contains(forbiddenFragment, StringComparison.Ordinal),
-                $"Linked pure source {sourcePath} contains '{forbiddenFragment}' and crosses " +
+            await Assert.That(source.Contains(forbiddenFragment, StringComparison.Ordinal)).IsFalse().Because($"Linked pure source {sourcePath} contains '{forbiddenFragment}' and crosses " +
                 "the game/runtime or conditional-test boundary.");
         }
 
-        AssertHarmonyNamespaceReferencesAreReflectionContractLiterals(
+        await AssertHarmonyNamespaceReferencesAreReflectionContractLiterals(
             sourcePath,
             source);
-        AssertPeterHanNamespaceReferencesAreReflectionContractLiterals(
+        await AssertPeterHanNamespaceReferencesAreReflectionContractLiterals(
             sourcePath,
             source);
     }
 
-    private static void AssertHarmonyNamespaceReferencesAreReflectionContractLiterals(
+    private static async Task AssertHarmonyNamespaceReferencesAreReflectionContractLiterals(
         string sourcePath,
         string source)
     {
@@ -363,15 +325,13 @@ public sealed class LinkedProductionSourceBoundaryContractTests
                 "\"(?:\\\\.|[^\"\\\\])*\"",
                 string.Empty,
                 System.Text.RegularExpressions.RegexOptions.CultureInvariant);
-        Assert.IsFalse(
-            sourceOutsideRegularStringLiterals.Contains(
+        await Assert.That(sourceOutsideRegularStringLiterals.Contains(
                 thirdPartyNamespacePrefix,
-                StringComparison.Ordinal),
-            $"Linked pure source {sourcePath} may name HarmonyLib types only " +
+                StringComparison.Ordinal)).IsFalse().Because($"Linked pure source {sourcePath} may name HarmonyLib types only " +
             "inside reflection-contract string literals.");
     }
 
-    private static void AssertPeterHanNamespaceReferencesAreReflectionContractLiterals(
+    private static async Task AssertPeterHanNamespaceReferencesAreReflectionContractLiterals(
         string sourcePath,
         string source)
     {
@@ -390,22 +350,18 @@ public sealed class LinkedProductionSourceBoundaryContractTests
         var permittedRuntimePlanPath = Path.Combine(
             "RuntimePatchInstallation",
             "DeliveryTemperatureRuntimePatchPlan.cs");
-        Assert.IsTrue(
-            sourcePath.Contains(
+        await Assert.That(sourcePath.Contains(
                 permittedReflectionContractDirectory,
                 StringComparison.Ordinal) ||
             sourcePath.EndsWith(
                 permittedRuntimePlanPath,
-                StringComparison.Ordinal),
-            $"Linked pure source {sourcePath} may name PeterHan types only in " +
+                StringComparison.Ordinal)).IsTrue().Because($"Linked pure source {sourcePath} may name PeterHan types only in " +
             "the reflection-only feature contracts or as the exact Harmony " +
             "owner literal in the immutable runtime plan.");
 
         while (referenceIndex >= 0)
         {
-            Assert.IsTrue(
-                referenceIndex > 0 && source[referenceIndex - 1] == '"',
-                $"Linked pure source {sourcePath} contains a PeterHan namespace " +
+            await Assert.That(referenceIndex > 0 && source[referenceIndex - 1] == '"').IsTrue().Because($"Linked pure source {sourcePath} contains a PeterHan namespace " +
                 "reference that is not the start of an explicit reflection " +
                 "contract string literal.");
             referenceIndex = source.IndexOf(
@@ -436,20 +392,18 @@ public sealed class LinkedProductionSourceBoundaryContractTests
         return $"{method.Name}({parameterTypes}):{method.ReturnType.FullName}";
     }
 
-    private static string TestProjectPath() =>
+    private static async Task<string> TestProjectPath() =>
         Path.Combine(
-            RequiredEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT"),
+            (await RequiredEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT")),
             "mods",
             "delivery-temperature-limit-supercooled",
             "Tests",
             "DeliveryTemperatureLimit.Tests.csproj");
 
-    private static string RequiredEnvironmentVariable(string name)
+    private static async Task<string> RequiredEnvironmentVariable(string name)
     {
         var value = Environment.GetEnvironmentVariable(name);
-        Assert.IsFalse(
-            string.IsNullOrWhiteSpace(value),
-            $"Required environment variable {name} was not provided by oni-mod-pipeline.");
-        return value;
+        await Assert.That(string.IsNullOrWhiteSpace(value)).IsFalse().Because($"Required environment variable {name} was not provided by oni-mod-pipeline.");
+        return value!;
     }
 }

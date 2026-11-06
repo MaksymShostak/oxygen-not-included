@@ -1,10 +1,8 @@
 namespace DeliveryTemperatureLimit.Tests.SupportReporting;
-
-[TestClass]
 public sealed class SupportReportFileNameTests
 {
-    [TestMethod]
-    public void Create_WhenUtcIdentityIsValid_UsesStableTimestampAndShortReportId()
+    [Test]
+    public async Task Create_WhenUtcIdentityIsValid_UsesStableTimestampAndShortReportId()
     {
         var generatedAtUtc = new DateTimeOffset(
             2026,
@@ -21,13 +19,11 @@ public sealed class SupportReportFileNameTests
             generatedAtUtc,
             reportId);
 
-        Assert.AreEqual(
-            "temperature-limit-support-20260831T070809123Z-00112233.json",
-            fileName);
+        await Assert.That(fileName).IsEqualTo("temperature-limit-support-20260831T070809123Z-00112233.json");
     }
 
-    [TestMethod]
-    public void Create_WhenTimestampIsNotUtc_RejectsAmbiguousFilenameTime()
+    [Test]
+    public async Task Create_WhenTimestampIsNotUtc_RejectsAmbiguousFilenameTime()
     {
         var generatedAt = new DateTimeOffset(
             2026,
@@ -38,16 +34,16 @@ public sealed class SupportReportFileNameTests
             9,
             TimeSpan.FromHours(3));
 
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             SupportReportFileName.Create(
                 generatedAt,
-                new Guid("00112233-4455-6677-8899-aabbccddeeff")));
+                new Guid("00112233-4455-6677-8899-aabbccddeeff"))).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void Create_WhenReportIdIsEmpty_RejectsCollisionProneFilename()
+    [Test]
+    public async Task Create_WhenReportIdIsEmpty_RejectsCollisionProneFilename()
     {
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             SupportReportFileName.Create(
                 new DateTimeOffset(
                     2026,
@@ -57,6 +53,6 @@ public sealed class SupportReportFileNameTests
                     8,
                     9,
                     TimeSpan.Zero),
-                Guid.Empty));
+                Guid.Empty)).ThrowsExactly<ArgumentException>();
     }
 }

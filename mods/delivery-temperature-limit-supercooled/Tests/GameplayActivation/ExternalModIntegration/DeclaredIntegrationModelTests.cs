@@ -1,12 +1,10 @@
 using System.Reflection;
 
 namespace DeliveryTemperatureLimit.Tests.GameplayActivation.ExternalModIntegration;
-
-[TestClass]
 public sealed class DeclaredIntegrationModelTests
 {
-    [TestMethod]
-    public void Descriptor_WhenSourceCollectionsChange_RetainsExactOrderedDeclaration()
+    [Test]
+    public async Task Descriptor_WhenSourceCollectionsChange_RetainsExactOrderedDeclaration()
     {
         var declaredCapabilities = new List<DeclaredModIntegrationCapability>
         {
@@ -31,42 +29,30 @@ public sealed class DeclaredIntegrationModelTests
         staticIds[0] = "Changed.StaticId";
         assemblyNames[0] = "ChangedAssembly";
 
-        Assert.AreEqual("fast-track", descriptor.IntegrationId.Value);
-        Assert.AreEqual("Fast Track", descriptor.DisplayName);
-        CollectionAssert.AreEqual(
-            new[]
+        await Assert.That(descriptor.IntegrationId.Value).IsEqualTo("fast-track");
+        await Assert.That(descriptor.DisplayName).IsEqualTo("Fast Track");
+        await Assert.That(descriptor.Categories.ToArray()).IsEquivalentTo(new[]
             {
                 ExternalModIntegrationCategory.ExclusiveRuntimeAuthority,
                 ExternalModIntegrationCategory.AdditiveInteroperability
-            },
-            descriptor.Categories.ToArray());
-        CollectionAssert.AreEqual(
-            new[] { "PeterHan.FastTrack" },
-            descriptor.AcceptedStaticIds.ToArray());
-        CollectionAssert.AreEqual(
-            new[] { "FastTrack" },
-            descriptor.AcceptedAssemblySimpleNames.ToArray());
-        Assert.AreEqual(
-            "https://github.com/peterhaneve/ONIMods/releases/tag/FastTrackBeta",
-            descriptor.UpstreamEvidenceReference);
-        CollectionAssert.AreEqual(
-            new[]
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(descriptor.AcceptedStaticIds.ToArray()).IsEquivalentTo(new[] { "PeterHan.FastTrack" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(descriptor.AcceptedAssemblySimpleNames.ToArray()).IsEquivalentTo(new[] { "FastTrack" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(descriptor.UpstreamEvidenceReference).IsEqualTo("https://github.com/peterhaneve/ONIMods/releases/tag/FastTrackBeta");
+        await Assert.That(descriptor.DeclaredCapabilityIds.ToArray()).IsEquivalentTo(new[]
             {
                 RuntimeCapabilityId.WorldInventoryTemperaturePublication,
                 RuntimeCapabilityId.TemperatureStatusAvailability
-            },
-            descriptor.DeclaredCapabilityIds.ToArray());
-        CollectionAssert.AreEqual(
-            new[] { RuntimeCapabilityId.TemperatureStatusAvailability },
-            descriptor.GetDeclaredCapabilityIds(
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(descriptor.GetDeclaredCapabilityIds(
                     ExternalModIntegrationCategory.AdditiveInteroperability)
-                .ToArray());
+                .ToArray()).IsEquivalentTo(new[] { RuntimeCapabilityId.TemperatureStatusAvailability }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void Descriptor_WhenCapabilityCrossesInspectionBoundaries_RejectsDeclaration()
+    [Test]
+    public async Task Descriptor_WhenCapabilityCrossesInspectionBoundaries_RejectsDeclaration()
     {
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             CreateDescriptor(declaredCapabilities: new[]
             {
                 new DeclaredModIntegrationCapability(
@@ -75,40 +61,40 @@ public sealed class DeclaredIntegrationModelTests
                 new DeclaredModIntegrationCapability(
                     RuntimeCapabilityId.DirectDeliveryEligibility,
                     ExternalModIntegrationCategory.AdditiveInteroperability)
-            }));
+            })).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void Descriptor_WhenHumanReadableOrUpstreamEvidenceIsInvalid_RejectsIt()
+    [Test]
+    public async Task Descriptor_WhenHumanReadableOrUpstreamEvidenceIsInvalid_RejectsIt()
     {
-        Assert.ThrowsExactly<ArgumentException>(() => CreateDescriptor(" "));
-        Assert.ThrowsExactly<ArgumentException>(() =>
-            CreateDescriptor(new string('x', 129)));
-        Assert.ThrowsExactly<ArgumentException>(() =>
-            CreateDescriptor("Fast Track", upstreamEvidenceReference: " "));
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() => CreateDescriptor(" ")).ThrowsExactly<ArgumentException>();
+        await Assert.That(() =>
+            CreateDescriptor(new string('x', 129))).ThrowsExactly<ArgumentException>();
+        await Assert.That(() =>
+            CreateDescriptor("Fast Track", upstreamEvidenceReference: " ")).ThrowsExactly<ArgumentException>();
+        await Assert.That(() =>
             CreateDescriptor(
                 "Fast Track",
-                upstreamEvidenceReference: "relative/evidence"));
+                upstreamEvidenceReference: "relative/evidence")).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void Descriptor_WhenDeclaredElementsAreNullDuplicateOrNotExact_RejectsThem()
+    [Test]
+    public async Task Descriptor_WhenDeclaredElementsAreNullDuplicateOrNotExact_RejectsThem()
     {
-        Assert.ThrowsExactly<ArgumentException>(() => CreateDescriptor(
-            acceptedStaticIds: new[] { "PeterHan.FastTrack", null! }));
-        Assert.ThrowsExactly<ArgumentException>(() => CreateDescriptor(
-            acceptedAssemblySimpleNames: new[] { "FastTrack", null! }));
-        Assert.ThrowsExactly<ArgumentException>(() => CreateDescriptor(
+        await Assert.That(() => CreateDescriptor(
+            acceptedStaticIds: new[] { "PeterHan.FastTrack", null! })).ThrowsExactly<ArgumentException>();
+        await Assert.That(() => CreateDescriptor(
+            acceptedAssemblySimpleNames: new[] { "FastTrack", null! })).ThrowsExactly<ArgumentException>();
+        await Assert.That(() => CreateDescriptor(
             acceptedStaticIds:
-                new[] { "PeterHan.FastTrack", "PeterHan.FastTrack" }));
-        Assert.ThrowsExactly<ArgumentException>(() => CreateDescriptor(
-            acceptedAssemblySimpleNames: new[] { "FastTrack", "FastTrack" }));
-        Assert.ThrowsExactly<ArgumentException>(() => CreateDescriptor(
-            acceptedStaticIds: new[] { " PeterHan.FastTrack" }));
-        Assert.ThrowsExactly<ArgumentException>(() => CreateDescriptor(
-            acceptedAssemblySimpleNames: new[] { "FastTrack.dll" }));
-        Assert.ThrowsExactly<ArgumentException>(() => CreateDescriptor(
+                new[] { "PeterHan.FastTrack", "PeterHan.FastTrack" })).ThrowsExactly<ArgumentException>();
+        await Assert.That(() => CreateDescriptor(
+            acceptedAssemblySimpleNames: new[] { "FastTrack", "FastTrack" })).ThrowsExactly<ArgumentException>();
+        await Assert.That(() => CreateDescriptor(
+            acceptedStaticIds: new[] { " PeterHan.FastTrack" })).ThrowsExactly<ArgumentException>();
+        await Assert.That(() => CreateDescriptor(
+            acceptedAssemblySimpleNames: new[] { "FastTrack.dll" })).ThrowsExactly<ArgumentException>();
+        await Assert.That(() => CreateDescriptor(
             declaredCapabilities: new[]
             {
                 new DeclaredModIntegrationCapability(
@@ -117,11 +103,11 @@ public sealed class DeclaredIntegrationModelTests
                 new DeclaredModIntegrationCapability(
                     RuntimeCapabilityId.DirectDeliveryEligibility,
                     ExternalModIntegrationCategory.ExclusiveRuntimeAuthority)
-            }));
+            })).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void RuntimeCapabilityDefinition_WhenConstructed_PreservesTypedPolicy()
+    [Test]
+    public async Task RuntimeCapabilityDefinition_WhenConstructed_PreservesTypedPolicy()
     {
         var baseline = KleiBaselineContribution(
             RuntimeCapabilityId.DirectDeliveryEligibility);
@@ -133,24 +119,20 @@ public sealed class DeclaredIntegrationModelTests
             () => baseline,
             bundleId);
 
-        Assert.AreEqual(
-            RuntimeCapabilityId.DirectDeliveryEligibility,
-            definition.Id);
-        Assert.AreEqual(
-            RuntimeCapabilityCriticality.Required,
-            definition.Criticality);
-        Assert.IsTrue(definition.IsRequired);
-        Assert.AreSame(baseline, definition.PrepareKleiBaselineContribution());
-        Assert.AreEqual(bundleId, definition.AtomicBundleId);
+        await Assert.That(definition.Id).IsEqualTo(RuntimeCapabilityId.DirectDeliveryEligibility);
+        await Assert.That(definition.Criticality).IsEqualTo(RuntimeCapabilityCriticality.Required);
+        await Assert.That(definition.IsRequired).IsTrue();
+        await Assert.That(definition.PrepareKleiBaselineContribution()).IsSameReferenceAs(baseline);
+        await Assert.That(definition.AtomicBundleId).IsEqualTo(bundleId);
     }
 
-    [TestMethod]
-    public void RuntimeCapabilityDefinition_WhenBaselineDescribesAnotherCapability_RejectsIt()
+    [Test]
+    public async Task RuntimeCapabilityDefinition_WhenBaselineDescribesAnotherCapability_RejectsIt()
     {
         var mismatchedBaseline = KleiBaselineContribution(
             RuntimeCapabilityId.PickupTemperatureGrouping);
 
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
         {
             var definition = new RuntimeCapabilityDefinition(
                 RuntimeCapabilityId.DirectDeliveryEligibility,
@@ -158,11 +140,11 @@ public sealed class DeclaredIntegrationModelTests
                 () => mismatchedBaseline,
                 null);
             _ = definition.PrepareKleiBaselineContribution();
-        });
+        }).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void RuntimeCapabilityDefinition_WhenBaselineRequiresExternalReplacement_RejectsIt()
+    [Test]
+    public async Task RuntimeCapabilityDefinition_WhenBaselineRequiresExternalReplacement_RejectsIt()
     {
         PreparedRuntimeAuthorityContribution replacementBackedBaseline =
             new PreparedRuntimeAuthorityContribution(
@@ -175,7 +157,7 @@ public sealed class DeclaredIntegrationModelTests
                 null,
                 null);
 
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
         {
             var definition = new RuntimeCapabilityDefinition(
                 RuntimeCapabilityId.DirectDeliveryEligibility,
@@ -183,11 +165,11 @@ public sealed class DeclaredIntegrationModelTests
                 () => replacementBackedBaseline,
                 null);
             _ = definition.PrepareKleiBaselineContribution();
-        });
+        }).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void RuntimeCapabilitySelectionEntry_ForSelectedContribution_PreservesSelectedResult()
+    [Test]
+    public async Task RuntimeCapabilitySelectionEntry_ForSelectedContribution_PreservesSelectedResult()
     {
         PreparedRuntimeAuthorityContribution baseline =
             KleiBaselineContribution(
@@ -203,17 +185,15 @@ public sealed class DeclaredIntegrationModelTests
                 definition,
                 baseline);
 
-        Assert.AreSame(definition, selection.Definition);
-        Assert.AreSame(baseline, selection.PrepareSelectedContribution());
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.Selected,
-            selection.Disposition);
-        Assert.IsNull(selection.DiagnosticCode);
-        Assert.IsNull(selection.DiagnosticMessage);
+        await Assert.That(selection.Definition).IsSameReferenceAs(definition);
+        await Assert.That(selection.PrepareSelectedContribution()).IsSameReferenceAs(baseline);
+        await Assert.That(selection.Disposition).IsEqualTo(IntegrationCapabilityDisposition.Selected);
+        await Assert.That(selection.DiagnosticCode).IsNull();
+        await Assert.That(selection.DiagnosticMessage).IsNull();
     }
 
-    [TestMethod]
-    public void RuntimeCapabilitySelectionEntry_ForSelectedContribution_WhenCapabilityDiffers_RejectsIt()
+    [Test]
+    public async Task RuntimeCapabilitySelectionEntry_ForSelectedContribution_WhenCapabilityDiffers_RejectsIt()
     {
         PreparedRuntimeAuthorityContribution baseline =
             KleiBaselineContribution(
@@ -227,14 +207,14 @@ public sealed class DeclaredIntegrationModelTests
             KleiBaselineContribution(
                 RuntimeCapabilityId.PickupTemperatureGrouping);
 
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             RuntimeCapabilitySelectionEntry.ForSelectedContribution(
                 definition,
-                mismatchedContribution));
+                mismatchedContribution)).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void RuntimeCapabilitySelectionEntry_ForOptionalOmission_PreservesUnavailableDiagnostic()
+    [Test]
+    public async Task RuntimeCapabilitySelectionEntry_ForOptionalOmission_PreservesUnavailableDiagnostic()
     {
         var definition = new RuntimeCapabilityDefinition(
             RuntimeCapabilityId.TemperatureStatusAvailability,
@@ -248,21 +228,15 @@ public sealed class DeclaredIntegrationModelTests
                 "optional-runtime-capability-without-implementation",
                 "No implementation was available for the optional capability.");
 
-        Assert.AreSame(definition, omission.Definition);
-        Assert.IsFalse(omission.HasSelectedContribution);
-        Assert.AreEqual(
-            IntegrationCapabilityDisposition.Unavailable,
-            omission.Disposition);
-        Assert.AreEqual(
-            "optional-runtime-capability-without-implementation",
-            omission.DiagnosticCode);
-        Assert.AreEqual(
-            "No implementation was available for the optional capability.",
-            omission.DiagnosticMessage);
+        await Assert.That(omission.Definition).IsSameReferenceAs(definition);
+        await Assert.That(omission.HasSelectedContribution).IsFalse();
+        await Assert.That(omission.Disposition).IsEqualTo(IntegrationCapabilityDisposition.Unavailable);
+        await Assert.That(omission.DiagnosticCode).IsEqualTo("optional-runtime-capability-without-implementation");
+        await Assert.That(omission.DiagnosticMessage).IsEqualTo("No implementation was available for the optional capability.");
     }
 
-    [TestMethod]
-    public void RuntimeCapabilitySelectionEntry_ForOptionalOmission_WhenCapabilityIsRequired_RejectsIt()
+    [Test]
+    public async Task RuntimeCapabilitySelectionEntry_ForOptionalOmission_WhenCapabilityIsRequired_RejectsIt()
     {
         PreparedRuntimeAuthorityContribution baseline =
             KleiBaselineContribution(
@@ -273,15 +247,15 @@ public sealed class DeclaredIntegrationModelTests
             () => baseline,
             null);
 
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             RuntimeCapabilitySelectionEntry.ForOptionalOmission(
                 definition,
                 "required-runtime-capability-omitted",
-                "A required capability cannot be omitted."));
+                "A required capability cannot be omitted.")).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void RuntimeAuthorityRequirement_WhenSourceOwnersChange_RetainsExactEvidence()
+    [Test]
+    public async Task RuntimeAuthorityRequirement_WhenSourceOwnersChange_RetainsExactEvidence()
     {
         var owners = new List<string>
         {
@@ -301,66 +275,62 @@ public sealed class DeclaredIntegrationModelTests
 
         owners.Clear();
 
-        Assert.AreSame(target, requirement.TargetMethod);
-        Assert.AreEqual(
-            RuntimeAuthorityRequirementKind.ExactOwnedReplacement,
-            requirement.Kind);
-        Assert.AreEqual("PeterHan.FastTrack", requirement.RequiredHarmonyOwner);
-        Assert.AreSame(prefix, requirement.RequiredPrefixMethod);
-        CollectionAssert.AreEqual(
-            new[]
+        await Assert.That(requirement.TargetMethod).IsSameReferenceAs(target);
+        await Assert.That(requirement.Kind).IsEqualTo(RuntimeAuthorityRequirementKind.ExactOwnedReplacement);
+        await Assert.That(requirement.RequiredHarmonyOwner).IsEqualTo("PeterHan.FastTrack");
+        await Assert.That(requirement.RequiredPrefixMethod).IsSameReferenceAs(prefix);
+        await Assert.That(requirement.PermittedSkippingPrefixOwners.ToArray()).IsEquivalentTo(new[]
             {
                 "PeterHan.FastTrack",
                 "MaksymShostak.DeliveryTemperatureLimit"
-            },
-            requirement.PermittedSkippingPrefixOwners.ToArray());
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void RuntimeAuthorityRequirement_WhenEvidenceContradictsKind_RejectsIt()
+    [Test]
+    public async Task RuntimeAuthorityRequirement_WhenEvidenceContradictsKind_RejectsIt()
     {
         MethodInfo target = TargetMethod();
         MethodInfo prefix = PatchMethod();
 
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             new RuntimeAuthorityRequirement(
                 target,
                 RuntimeAuthorityRequirementKind.KleiOriginal,
                 "PeterHan.FastTrack",
                 null,
-                new[] { "PeterHan.FastTrack" }));
-        Assert.ThrowsExactly<ArgumentException>(() =>
+                new[] { "PeterHan.FastTrack" })).ThrowsExactly<ArgumentException>();
+        await Assert.That(() =>
             new RuntimeAuthorityRequirement(
                 target,
                 RuntimeAuthorityRequirementKind.ExactOwnedReplacement,
                 null,
                 prefix,
-                new[] { "PeterHan.FastTrack" }));
-        Assert.ThrowsExactly<ArgumentException>(() =>
+                new[] { "PeterHan.FastTrack" })).ThrowsExactly<ArgumentException>();
+        await Assert.That(() =>
             new RuntimeAuthorityRequirement(
                 target,
                 RuntimeAuthorityRequirementKind.ExactOwnedReplacement,
                 "PeterHan.FastTrack",
                 null,
-                new[] { "PeterHan.FastTrack" }));
-        Assert.ThrowsExactly<ArgumentException>(() =>
+                new[] { "PeterHan.FastTrack" })).ThrowsExactly<ArgumentException>();
+        await Assert.That(() =>
             new RuntimeAuthorityRequirement(
                 target,
                 RuntimeAuthorityRequirementKind.ExactOwnedReplacement,
                 "PeterHan.FastTrack",
                 prefix,
-                new[] { "Some.Other.Owner" }));
-        Assert.ThrowsExactly<ArgumentException>(() =>
+                new[] { "Some.Other.Owner" })).ThrowsExactly<ArgumentException>();
+        await Assert.That(() =>
             new RuntimeAuthorityRequirement(
                 target,
                 RuntimeAuthorityRequirementKind.KleiOriginal,
                 null,
                 null,
-                new[] { " " }));
+                new[] { " " })).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void ActivePrefixDescriptor_WhenConstructed_PreservesCopiedAuthorityFacts()
+    [Test]
+    public async Task ActivePrefixDescriptor_WhenConstructed_PreservesCopiedAuthorityFacts()
     {
         MethodInfo target = TargetMethod();
         MethodInfo prefix = PatchMethod();
@@ -371,16 +341,16 @@ public sealed class DeclaredIntegrationModelTests
             "PeterHan.FastTrack",
             800);
 
-        Assert.AreSame(target, descriptor.TargetMethod);
-        Assert.AreSame(prefix, descriptor.PrefixMethod);
-        Assert.AreEqual("PeterHan.FastTrack", descriptor.HarmonyOwner);
-        Assert.AreEqual(800, descriptor.Priority);
-        Assert.ThrowsExactly<ArgumentException>(() =>
-            new ActiveHarmonyPrefixDescriptor(target, prefix, " ", 0));
+        await Assert.That(descriptor.TargetMethod).IsSameReferenceAs(target);
+        await Assert.That(descriptor.PrefixMethod).IsSameReferenceAs(prefix);
+        await Assert.That(descriptor.HarmonyOwner).IsEqualTo("PeterHan.FastTrack");
+        await Assert.That(descriptor.Priority).IsEqualTo(800);
+        await Assert.That(() =>
+            new ActiveHarmonyPrefixDescriptor(target, prefix, " ", 0)).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void CompatibleContribution_WhenSourceCollectionsChange_RetainsCompleteEvidence()
+    [Test]
+    public async Task CompatibleContribution_WhenSourceCollectionsChange_RetainsCompleteEvidence()
     {
         var patchGroups = new List<RuntimePatchGroupId>
         {
@@ -411,18 +381,16 @@ public sealed class DeclaredIntegrationModelTests
         patchBindings.Clear();
         requirements.Clear();
 
-        Assert.HasCount(1, contribution.PatchGroupIds);
-        Assert.HasCount(1, contribution.PatchBindings);
-        Assert.HasCount(1, contribution.AuthorityRequirements);
-        Assert.AreEqual(
-            RuntimeAuthorityObservation.OwnsCompatible,
-            contribution.AuthorityObservation);
+        await Assert.That(contribution.PatchGroupIds).Count().IsEqualTo(1);
+        await Assert.That(contribution.PatchBindings).Count().IsEqualTo(1);
+        await Assert.That(contribution.AuthorityRequirements).Count().IsEqualTo(1);
+        await Assert.That(contribution.AuthorityObservation).IsEqualTo(RuntimeAuthorityObservation.OwnsCompatible);
     }
 
-    [TestMethod]
-    public void Contribution_WhenAuthorityClaimIsIncompleteOrContradictory_RejectsIt()
+    [Test]
+    public async Task Contribution_WhenAuthorityClaimIsIncompleteOrContradictory_RejectsIt()
     {
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             new PreparedRuntimeAuthorityContribution(
                 default,
                 RuntimeCapabilityId.DirectDeliveryEligibility,
@@ -431,9 +399,9 @@ public sealed class DeclaredIntegrationModelTests
                 Array.Empty<HarmonyPatchContractBinding>(),
                 Array.Empty<RuntimeAuthorityRequirement>(),
                 null,
-                null));
+                null)).ThrowsExactly<ArgumentException>();
 
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             new PreparedRuntimeAuthorityContribution(
                 RuntimeAuthorityImplementationIdentity
                     .ForDeclaredExternalIntegration(
@@ -444,9 +412,9 @@ public sealed class DeclaredIntegrationModelTests
                 new[] { Binding() },
                 Array.Empty<RuntimeAuthorityRequirement>(),
                 null,
-                null));
+                null)).ThrowsExactly<ArgumentException>();
 
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             new PreparedRuntimeAuthorityContribution(
                 RuntimeAuthorityImplementationIdentity
                     .ForDeclaredExternalIntegration(
@@ -457,10 +425,10 @@ public sealed class DeclaredIntegrationModelTests
                 Array.Empty<HarmonyPatchContractBinding>(),
                 Array.Empty<RuntimeAuthorityRequirement>(),
                 null,
-                null));
+                null)).ThrowsExactly<ArgumentException>();
 
         HarmonyPatchContractBinding binding = Binding();
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             new PreparedRuntimeAuthorityContribution(
                 RuntimeAuthorityImplementationIdentity
                     .ForDeclaredExternalIntegration(
@@ -471,9 +439,9 @@ public sealed class DeclaredIntegrationModelTests
                 new[] { binding, binding },
                 new[] { ExactReplacementRequirement() },
                 null,
-                null));
+                null)).ThrowsExactly<ArgumentException>();
 
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             new PreparedRuntimeAuthorityContribution(
                 RuntimeAuthorityImplementationIdentity
                     .ForDeclaredExternalIntegration(
@@ -484,19 +452,19 @@ public sealed class DeclaredIntegrationModelTests
                 Array.Empty<HarmonyPatchContractBinding>(),
                 Array.Empty<RuntimeAuthorityRequirement>(),
                 null,
-                null));
+                null)).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void Diagnostics_WhenCodeOrMessageIsUnbounded_RejectsIt()
+    [Test]
+    public async Task Diagnostics_WhenCodeOrMessageIsUnbounded_RejectsIt()
     {
-        Assert.ThrowsExactly<ArgumentException>(() =>
-            new ExternalModIntegrationDiagnostic(" ", "Useful message"));
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
+            new ExternalModIntegrationDiagnostic(" ", "Useful message")).ThrowsExactly<ArgumentException>();
+        await Assert.That(() =>
             new ExternalModIntegrationDiagnostic(
                 "contract-incompatible",
-                new string('x', 2049)));
-        Assert.ThrowsExactly<ArgumentException>(() =>
+                new string('x', 2049))).ThrowsExactly<ArgumentException>();
+        await Assert.That(() =>
             new ExternalModIntegrationCapabilityOutcome(
                 RuntimeCapabilityId.DirectDeliveryEligibility,
                 ExternalModIntegrationCategory.ExclusiveRuntimeAuthority,
@@ -504,11 +472,11 @@ public sealed class DeclaredIntegrationModelTests
                 IntegrationContractState.Incompatible,
                 IntegrationCapabilityDisposition.ActivationBlocking,
                 "contract-incompatible",
-                null));
+                null)).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void IntegrationOutcome_WhenSourceCollectionsChange_RetainsSanitizedFacts()
+    [Test]
+    public async Task IntegrationOutcome_WhenSourceCollectionsChange_RetainsSanitizedFacts()
     {
         var categories = new List<ExternalModIntegrationCategory>
         {
@@ -549,20 +517,16 @@ public sealed class DeclaredIntegrationModelTests
         capabilities.Clear();
         diagnostics.Clear();
 
-        CollectionAssert.AreEqual(
-            new[]
+        await Assert.That(outcome.Categories.ToArray()).IsEquivalentTo(new[]
             {
                 ExternalModIntegrationCategory.ExclusiveRuntimeAuthority,
                 ExternalModIntegrationCategory.AdditiveInteroperability
-            },
-            outcome.Categories.ToArray());
-        Assert.HasCount(1, outcome.Capabilities);
-        Assert.AreEqual(
-            ExternalModIntegrationCategory.ExclusiveRuntimeAuthority,
-            outcome.Capabilities[0].Category);
-        Assert.HasCount(1, outcome.Diagnostics);
-        Assert.AreEqual(DeclaredModMatchState.Matched, outcome.MatchState);
-        Assert.AreEqual("0.18.4.0", outcome.AssemblyVersion);
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(outcome.Capabilities).Count().IsEqualTo(1);
+        await Assert.That(outcome.Capabilities[0].Category).IsEqualTo(ExternalModIntegrationCategory.ExclusiveRuntimeAuthority);
+        await Assert.That(outcome.Diagnostics).Count().IsEqualTo(1);
+        await Assert.That(outcome.MatchState).IsEqualTo(DeclaredModMatchState.Matched);
+        await Assert.That(outcome.AssemblyVersion).IsEqualTo("0.18.4.0");
 
         Type[] forbiddenRetainedTypes =
         {
@@ -576,18 +540,16 @@ public sealed class DeclaredIntegrationModelTests
                          BindingFlags.Public |
                          BindingFlags.NonPublic))
         {
-            Assert.IsFalse(
-                forbiddenRetainedTypes.Any(type =>
-                    type.IsAssignableFrom(property.PropertyType)),
-                $"Outcome property {property.Name} retains runtime object graph type " +
+            await Assert.That(forbiddenRetainedTypes.Any(type =>
+                    type.IsAssignableFrom(property.PropertyType))).IsFalse().Because($"Outcome property {property.Name} retains runtime object graph type " +
                 property.PropertyType.FullName);
         }
     }
 
-    [TestMethod]
-    public void IntegrationOutcome_WhenCapabilityCategoryIsNotDeclared_RejectsIt()
+    [Test]
+    public async Task IntegrationOutcome_WhenCapabilityCategoryIsNotDeclared_RejectsIt()
     {
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             new ExternalModIntegrationOutcome(
                 new DeclaredModIntegrationId("synthetic-additive-protocol"),
                 "Synthetic Additive Protocol",
@@ -611,11 +573,11 @@ public sealed class DeclaredIntegrationModelTests
                         null,
                         null)
                 },
-                Array.Empty<ExternalModIntegrationDiagnostic>()));
+                Array.Empty<ExternalModIntegrationDiagnostic>())).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void PreparedInspection_WhenSourceContributionsChange_RetainsMatchingOutcome()
+    [Test]
+    public async Task PreparedInspection_WhenSourceContributionsChange_RetainsMatchingOutcome()
     {
         var outcome = Outcome(new DeclaredModIntegrationId("fast-track"));
         var contributions = new List<PreparedRuntimeAuthorityContribution>
@@ -631,9 +593,9 @@ public sealed class DeclaredIntegrationModelTests
 
         contributions.Clear();
 
-        Assert.AreSame(outcome, inspection.Outcome);
-        Assert.HasCount(1, inspection.Contributions);
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(inspection.Outcome).IsSameReferenceAs(outcome);
+        await Assert.That(inspection.Contributions).Count().IsEqualTo(1);
+        await Assert.That(() =>
             new PreparedRuntimeAuthorityInspection(
                 outcome,
                 new[]
@@ -641,20 +603,20 @@ public sealed class DeclaredIntegrationModelTests
                     CompatibleContribution(
                         new DeclaredModIntegrationId("other-authority"),
                         RuntimeCapabilityId.DirectDeliveryEligibility)
-                }));
+                })).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void PreparedInspection_WhenOwnedOutcomeLacksContribution_RejectsIt()
+    [Test]
+    public async Task PreparedInspection_WhenOwnedOutcomeLacksContribution_RejectsIt()
     {
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             new PreparedRuntimeAuthorityInspection(
                 Outcome(new DeclaredModIntegrationId("fast-track")),
-                Array.Empty<PreparedRuntimeAuthorityContribution>()));
+                Array.Empty<PreparedRuntimeAuthorityContribution>())).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void PreparedInspection_WhenContributionContradictsOutcomeAuthority_RejectsIt()
+    [Test]
+    public async Task PreparedInspection_WhenContributionContradictsOutcomeAuthority_RejectsIt()
     {
         var integrationId = new DeclaredModIntegrationId("fast-track");
         var contradictoryContribution =
@@ -669,10 +631,10 @@ public sealed class DeclaredIntegrationModelTests
                 "runtime-authority-unavailable",
                 "The declared runtime authority could not be inspected.");
 
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             new PreparedRuntimeAuthorityInspection(
                 Outcome(integrationId),
-                new[] { contradictoryContribution }));
+                new[] { contradictoryContribution })).ThrowsExactly<ArgumentException>();
     }
 
     private static DeclaredModIntegrationDescriptor CreateDescriptor(

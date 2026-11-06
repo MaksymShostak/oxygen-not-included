@@ -5,11 +5,9 @@ using MaksymShostak.OniModPipeline.ReleaseCandidates;
 using System.Text.Json;
 
 namespace MaksymShostak.OniModPipeline.Tests.Cli;
-
-[TestClass]
 public sealed class PrepareReleaseCommandTests
 {
-    [TestMethod]
+    [Test]
     public async Task PrepareRelease_WhenInputsAreClean_PrintsCandidatePathDigestAndState()
     {
         using var fixture = new PipelineCommandFixture(includeTests: true);
@@ -21,29 +19,20 @@ public sealed class PrepareReleaseCommandTests
             command,
             fixture.CreateArguments("prepare-release"));
 
-        Assert.AreEqual(0, invocation.ExitCode);
-        Assert.AreEqual(string.Empty, invocation.StandardError);
-        Assert.IsNotNull(preparer.Request);
-        Assert.AreEqual("Example.Mod", preparer.Request.Metadata.StaticId);
-        Assert.AreEqual("1.2.3", preparer.Request.Metadata.Version);
-        Assert.IsTrue(preparer.Request.InitialProvenance.IsClean);
-        Assert.AreEqual(PipelineCommandFixture.Commit, preparer.Request.InitialProvenance.Commit);
-        Assert.AreEqual(fixture.ArtifactsDirectory, preparer.Request.Environment.ArtifactsDirectory);
-        Assert.Contains(
-            $"Candidate: {preparer.CandidateDirectory}",
-            invocation.StandardOutput,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            $"Content digest: {CapturingCandidatePreparer.ContentDigest}",
-            invocation.StandardOutput,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "State: awaiting-acceptance",
-            invocation.StandardOutput,
-            StringComparison.Ordinal);
+        await Assert.That(invocation.ExitCode).IsEqualTo(0);
+        await Assert.That(invocation.StandardError).IsEqualTo(string.Empty);
+        Assert.NotNull(preparer.Request);
+        await Assert.That(preparer.Request.Metadata.StaticId).IsEqualTo("Example.Mod");
+        await Assert.That(preparer.Request.Metadata.Version).IsEqualTo("1.2.3");
+        await Assert.That(preparer.Request.InitialProvenance.IsClean).IsTrue();
+        await Assert.That(preparer.Request.InitialProvenance.Commit).IsEqualTo(PipelineCommandFixture.Commit);
+        await Assert.That(preparer.Request.Environment.ArtifactsDirectory).IsEqualTo(fixture.ArtifactsDirectory);
+        await Assert.That(invocation.StandardOutput).Contains($"Candidate: {preparer.CandidateDirectory}", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardOutput).Contains($"Content digest: {CapturingCandidatePreparer.ContentDigest}", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardOutput).Contains("State: awaiting-acceptance", StringComparison.Ordinal);
     }
 
-    [TestMethod]
+    [Test]
     public async Task PrepareRelease_WhenJsonRequested_ReturnsStructuredCandidate()
     {
         using var fixture = new PipelineCommandFixture(includeTests: true);
@@ -55,23 +44,17 @@ public sealed class PrepareReleaseCommandTests
             command,
             fixture.CreateArguments("prepare-release", "--format", "json"));
 
-        Assert.AreEqual(0, invocation.ExitCode);
-        Assert.AreEqual(string.Empty, invocation.StandardError);
+        await Assert.That(invocation.ExitCode).IsEqualTo(0);
+        await Assert.That(invocation.StandardError).IsEqualTo(string.Empty);
         using var document = JsonDocument.Parse(invocation.StandardOutput);
         var value = document.RootElement.GetProperty("value");
-        Assert.AreEqual(
-            preparer.CandidateDirectory,
-            value.GetProperty("candidateDirectory").GetString());
-        Assert.AreEqual(
-            CapturingCandidatePreparer.ContentDigest,
-            value.GetProperty("contentManifest").GetProperty("contentDigest").GetString());
-        Assert.AreEqual(
-            preparer.CandidateDirectory,
-            value.GetProperty("layout").GetProperty("candidateDirectory").GetString());
-        Assert.AreEqual("awaiting-acceptance", value.GetProperty("state").GetString());
+        await Assert.That(value.GetProperty("candidateDirectory").GetString()).IsEqualTo(preparer.CandidateDirectory);
+        await Assert.That(value.GetProperty("contentManifest").GetProperty("contentDigest").GetString()).IsEqualTo(CapturingCandidatePreparer.ContentDigest);
+        await Assert.That(value.GetProperty("layout").GetProperty("candidateDirectory").GetString()).IsEqualTo(preparer.CandidateDirectory);
+        await Assert.That(value.GetProperty("state").GetString()).IsEqualTo("awaiting-acceptance");
     }
 
-    [TestMethod]
+    [Test]
     public async Task PrepareRelease_WhenContributingInputIsDirty_FailsBeforePreparer()
     {
         using var fixture = new PipelineCommandFixture(includeTests: true);
@@ -85,16 +68,16 @@ public sealed class PrepareReleaseCommandTests
             command,
             fixture.CreateArguments("prepare-release"));
 
-        Assert.AreEqual((int)PipelineExitCode.ReleaseNotReady, invocation.ExitCode);
-        Assert.Contains(DiagnosticIds.DirtyReleaseInput, invocation.StandardError);
-        Assert.IsNull(preparer.Request);
+        await Assert.That(invocation.ExitCode).IsEqualTo((int)PipelineExitCode.ReleaseNotReady);
+        await Assert.That(invocation.StandardError).Contains(DiagnosticIds.DirtyReleaseInput);
+        await Assert.That(preparer.Request).IsNull();
     }
 
-    [TestMethod]
-    [DataRow("--allow-dirty")]
-    [DataRow("--skip-tests")]
-    [DataRow("--overwrite")]
-    [DataRow("--publish")]
+    [Test]
+    [Arguments("--allow-dirty")]
+    [Arguments("--skip-tests")]
+    [Arguments("--overwrite")]
+    [Arguments("--publish")]
     public async Task PrepareRelease_WhenBypassOrPublishOptionIsSupplied_RejectsCommand(
         string unsupportedOption)
     {
@@ -107,8 +90,8 @@ public sealed class PrepareReleaseCommandTests
             command,
             fixture.CreateArguments("prepare-release", unsupportedOption));
 
-        Assert.AreEqual((int)PipelineExitCode.InvalidInput, invocation.ExitCode);
-        Assert.IsNull(preparer.Request);
+        await Assert.That(invocation.ExitCode).IsEqualTo((int)PipelineExitCode.InvalidInput);
+        await Assert.That(preparer.Request).IsNull();
     }
 }
 

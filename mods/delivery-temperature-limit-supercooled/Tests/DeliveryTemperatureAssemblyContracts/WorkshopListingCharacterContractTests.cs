@@ -3,72 +3,62 @@
 using System.Globalization;
 
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
-
-[TestClass]
 public sealed class WorkshopListingCharacterContractTests
 {
-    [TestMethod]
-    public void ChangeNotes_WhenInspected_ContainsOnlyAsciiAndExplicitlyAllowedCharacters()
+    [Test]
+    public async Task ChangeNotes_WhenInspected_ContainsOnlyAsciiAndExplicitlyAllowedCharacters()
     {
         string modRoot = ResolveModRoot();
         string changeNotesPath = Path.Combine(modRoot, "STEAM_CHANGE_NOTES.bbcode");
-        Assert.IsTrue(File.Exists(changeNotesPath), "STEAM_CHANGE_NOTES.bbcode must exist.");
+        await Assert.That(File.Exists(changeNotesPath)).IsTrue().Because("STEAM_CHANGE_NOTES.bbcode must exist.");
 
         string content = File.ReadAllText(changeNotesPath);
         var violations = FindDisallowedCharacters(content, allowIcons: false);
 
-        Assert.AreEqual(
-            0,
-            violations.Count,
-            $"STEAM_CHANGE_NOTES.bbcode contains disallowed characters:\n{string.Join("\n", violations)}");
+        await Assert.That(violations.Count).IsEqualTo(0).Because($"STEAM_CHANGE_NOTES.bbcode contains disallowed characters:\n{string.Join("\n", violations)}");
     }
 
-    [TestMethod]
-    public void WorkshopDescription_WhenInspected_ContainsOnlyAsciiAndAllowedCharactersOrIcons()
+    [Test]
+    public async Task WorkshopDescription_WhenInspected_ContainsOnlyAsciiAndAllowedCharactersOrIcons()
     {
         string modRoot = ResolveModRoot();
         string descriptionPath = Path.Combine(modRoot, "STEAM_DESCRIPTION.bbcode");
-        Assert.IsTrue(File.Exists(descriptionPath), "STEAM_DESCRIPTION.bbcode must exist.");
+        await Assert.That(File.Exists(descriptionPath)).IsTrue().Because("STEAM_DESCRIPTION.bbcode must exist.");
 
         string content = File.ReadAllText(descriptionPath);
         var violations = FindDisallowedCharacters(content, allowIcons: true);
 
-        Assert.AreEqual(
-            0,
-            violations.Count,
-            $"STEAM_DESCRIPTION.bbcode contains disallowed characters:\n{string.Join("\n", violations)}");
+        await Assert.That(violations.Count).IsEqualTo(0).Because($"STEAM_DESCRIPTION.bbcode contains disallowed characters:\n{string.Join("\n", violations)}");
     }
 
-    [TestMethod]
-    public void ExplicitlyAllowedCharacters_WhenInspected_ContainsDegreeSign()
+    [Test]
+    public async Task ExplicitlyAllowedCharacters_WhenInspected_ContainsDegreeSign()
     {
-        Assert.IsTrue(
-            ExplicitlyAllowedCharacters.Contains(0x00B0),
-            "Explicitly allowed characters must contain degree sign (U+00B0).");
+        await Assert.That(ExplicitlyAllowedCharacters.Contains(0x00B0)).IsTrue().Because("Explicitly allowed characters must contain degree sign (U+00B0).");
     }
 
-    [TestMethod]
-    public void IsAllowedSymbolOrEmoji_WhenTested_AcceptsStandardIconsAndRejectsTypography()
+    [Test]
+    public async Task IsAllowedSymbolOrEmoji_WhenTested_AcceptsStandardIconsAndRejectsTypography()
     {
         // Standard icons and emojis should be permitted
-        Assert.IsTrue(IsAllowedSymbolOrEmoji(0x1F3AE)); // 🎮
-        Assert.IsTrue(IsAllowedSymbolOrEmoji(0x1F680)); // 🚀
-        Assert.IsTrue(IsAllowedSymbolOrEmoji(0x26A1));  // ⚡
-        Assert.IsTrue(IsAllowedSymbolOrEmoji(0x1F310)); // 🌐
-        Assert.IsTrue(IsAllowedSymbolOrEmoji(0x1F41B)); // 🐛
-        Assert.IsTrue(IsAllowedSymbolOrEmoji(0x2744));  // ❄
-        Assert.IsTrue(IsAllowedSymbolOrEmoji(0xFE0F));  // Variation Selector-16
-        Assert.IsTrue(IsAllowedSymbolOrEmoji(0x00B0));  // ° (degree sign)
+        await Assert.That(IsAllowedSymbolOrEmoji(0x1F3AE)).IsTrue(); // 🎮
+        await Assert.That(IsAllowedSymbolOrEmoji(0x1F680)).IsTrue(); // 🚀
+        await Assert.That(IsAllowedSymbolOrEmoji(0x26A1)).IsTrue();  // ⚡
+        await Assert.That(IsAllowedSymbolOrEmoji(0x1F310)).IsTrue(); // 🌐
+        await Assert.That(IsAllowedSymbolOrEmoji(0x1F41B)).IsTrue(); // 🐛
+        await Assert.That(IsAllowedSymbolOrEmoji(0x2744)).IsTrue();  // ❄
+        await Assert.That(IsAllowedSymbolOrEmoji(0xFE0F)).IsTrue();  // Variation Selector-16
+        await Assert.That(IsAllowedSymbolOrEmoji(0x00B0)).IsTrue();  // ° (degree sign)
 
         // Non-ASCII typographic punctuation and letters must be rejected
-        Assert.IsFalse(IsAllowedSymbolOrEmoji(0x2014)); // — (em dash)
-        Assert.IsFalse(IsAllowedSymbolOrEmoji(0x2013)); // – (en dash)
-        Assert.IsFalse(IsAllowedSymbolOrEmoji(0x201C)); // “ (left double quote)
-        Assert.IsFalse(IsAllowedSymbolOrEmoji(0x201D)); // ” (right double quote)
-        Assert.IsFalse(IsAllowedSymbolOrEmoji(0x2018)); // ‘ (left single quote)
-        Assert.IsFalse(IsAllowedSymbolOrEmoji(0x2019)); // ’ (right single quote)
-        Assert.IsFalse(IsAllowedSymbolOrEmoji(0x00A0)); // non-breaking space
-        Assert.IsFalse(IsAllowedSymbolOrEmoji(0x00E9)); // é
+        await Assert.That(IsAllowedSymbolOrEmoji(0x2014)).IsFalse(); // — (em dash)
+        await Assert.That(IsAllowedSymbolOrEmoji(0x2013)).IsFalse(); // – (en dash)
+        await Assert.That(IsAllowedSymbolOrEmoji(0x201C)).IsFalse(); // “ (left double quote)
+        await Assert.That(IsAllowedSymbolOrEmoji(0x201D)).IsFalse(); // ” (right double quote)
+        await Assert.That(IsAllowedSymbolOrEmoji(0x2018)).IsFalse(); // ‘ (left single quote)
+        await Assert.That(IsAllowedSymbolOrEmoji(0x2019)).IsFalse(); // ’ (right single quote)
+        await Assert.That(IsAllowedSymbolOrEmoji(0x00A0)).IsFalse(); // non-breaking space
+        await Assert.That(IsAllowedSymbolOrEmoji(0x00E9)).IsFalse(); // é
     }
 
     private static readonly HashSet<int> ExplicitlyAllowedCharacters =
@@ -76,14 +66,14 @@ public sealed class WorkshopListingCharacterContractTests
         0x00B0, // ° (degree sign)
     ];
 
-    [TestMethod]
-    [DataRow(false)]
-    [DataRow(true)]
-    public void CharacterValidation_AllowsDegreeSignsAndRejectsTypography(bool allowIcons)
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task CharacterValidation_AllowsDegreeSignsAndRejectsTypography(bool allowIcons)
     {
-        Assert.HasCount(0, FindDisallowedCharacters("Temperature: 20\u00B0C / 68\u00B0F", allowIcons));
-        Assert.HasCount(3, FindDisallowedCharacters("\u2014\u00A0\u00E9", allowIcons));
-        Assert.HasCount(allowIcons ? 0 : 1, FindDisallowedCharacters("\u26A1", allowIcons));
+        await Assert.That(FindDisallowedCharacters("Temperature: 20\u00B0C / 68\u00B0F", allowIcons)).Count().IsEqualTo(0);
+        await Assert.That(FindDisallowedCharacters("\u2014\u00A0\u00E9", allowIcons)).Count().IsEqualTo(3);
+        await Assert.That(FindDisallowedCharacters("\u26A1", allowIcons)).Count().IsEqualTo(allowIcons ? 0 : 1);
     }
 
     private static bool IsAllowedSymbolOrEmoji(int codePoint)

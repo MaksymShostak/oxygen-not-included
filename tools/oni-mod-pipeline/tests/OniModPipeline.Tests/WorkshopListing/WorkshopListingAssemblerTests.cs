@@ -4,11 +4,9 @@ using MaksymShostak.OniModPipeline.WorkshopListing;
 using System.Text;
 
 namespace MaksymShostak.OniModPipeline.Tests.WorkshopListing;
-
-[TestClass]
 public sealed class WorkshopListingAssemblerTests
 {
-    [TestMethod]
+    [Test]
     public async Task AssembleAsync_WhenSourcesAreValid_WritesExactUploaderArtifactsAndReports()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -24,22 +22,16 @@ public sealed class WorkshopListingAssemblerTests
             target,
             CancellationToken.None);
 
-        Assert.IsTrue(result.IsSuccess);
-        CollectionAssert.AreEquivalent(
-            new[] { "change-notes.bbcode", "description.bbcode", "preview.jpg" },
-            Directory.EnumerateFiles(target).Select(Path.GetFileName).ToArray());
-        CollectionAssert.AreEqual(
-            Encoding.UTF8.GetBytes("Description\r\n"),
-            await File.ReadAllBytesAsync(Path.Combine(target, "description.bbcode")));
-        CollectionAssert.AreEqual(
-            previewBytes,
-            await File.ReadAllBytesAsync(Path.Combine(target, "preview.jpg")));
-        Assert.AreEqual("crlf", result.Value?.DescriptionReport.LineEndings);
-        Assert.AreEqual("jpeg", result.Value?.Preview.Format);
-        Assert.AreEqual(3, result.Value?.Files.Count);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(Directory.EnumerateFiles(target).Select(Path.GetFileName).ToArray()).IsEquivalentTo((new[] { "change-notes.bbcode", "description.bbcode", "preview.jpg" }).Cast<string?>(), TUnit.Assertions.Enums.CollectionOrdering.Any);
+        await Assert.That(await File.ReadAllBytesAsync(Path.Combine(target, "description.bbcode"))).IsEquivalentTo(Encoding.UTF8.GetBytes("Description\r\n"), TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(await File.ReadAllBytesAsync(Path.Combine(target, "preview.jpg"))).IsEquivalentTo(previewBytes, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(result.Value?.DescriptionReport.LineEndings).IsEqualTo("crlf");
+        await Assert.That(result.Value?.Preview.Format).IsEqualTo("jpeg");
+        await Assert.That(result.Value?.Files.Count).IsEqualTo(3);
     }
 
-    [TestMethod]
+    [Test]
     public async Task AssembleAsync_WhenTargetIsNotEmpty_RejectsWithoutChangingIt()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -57,12 +49,12 @@ public sealed class WorkshopListingAssemblerTests
             target,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual("keep", await File.ReadAllTextAsync(stalePath));
-        CollectionAssert.AreEqual(new[] { stalePath }, Directory.EnumerateFiles(target).ToArray());
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(await File.ReadAllTextAsync(stalePath)).IsEqualTo("keep");
+        await Assert.That(Directory.EnumerateFiles(target).ToArray()).IsEquivalentTo(new[] { stalePath }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
+    [Test]
     public async Task AssembleAsync_WhenSourceIsInvalid_PreservesStandaloneDiagnostics()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -81,18 +73,14 @@ public sealed class WorkshopListingAssemblerTests
             target,
             CancellationToken.None);
 
-        Assert.IsFalse(validation.IsSuccess);
-        Assert.IsFalse(assembly.IsSuccess);
-        CollectionAssert.AreEqual(
-            validation.Diagnostics.Select(diagnostic => diagnostic.Id).ToArray(),
-            assembly.Diagnostics.Select(diagnostic => diagnostic.Id).ToArray());
-        CollectionAssert.AreEqual(
-            validation.Diagnostics.Select(diagnostic => diagnostic.Evidence).ToArray(),
-            assembly.Diagnostics.Select(diagnostic => diagnostic.Evidence).ToArray());
-        Assert.AreEqual(0, Directory.EnumerateFileSystemEntries(target).Count());
+        await Assert.That(validation.IsSuccess).IsFalse();
+        await Assert.That(assembly.IsSuccess).IsFalse();
+        await Assert.That(assembly.Diagnostics.Select(diagnostic => diagnostic.Id).ToArray()).IsEquivalentTo(validation.Diagnostics.Select(diagnostic => diagnostic.Id).ToArray(), TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(assembly.Diagnostics.Select(diagnostic => diagnostic.Evidence).ToArray()).IsEquivalentTo(validation.Diagnostics.Select(diagnostic => diagnostic.Evidence).ToArray(), TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(Directory.EnumerateFileSystemEntries(target).Count()).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public async Task ValidateAsync_WhenProfileUsesKnownIdentifiers_ReturnsUploaderLabels()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -120,12 +108,9 @@ public sealed class WorkshopListingAssemblerTests
             profile,
             CancellationToken.None);
 
-        Assert.IsTrue(result.IsSuccess);
-        CollectionAssert.AreEqual(
-            new[] { "language", "worldgen", "new features", "tweaks", "ui" },
-            result.Value?.ModTypeLabels.ToArray());
-        CollectionAssert.AreEqual(
-            new[]
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value?.ModTypeLabels.ToArray()).IsEquivalentTo(new[] { "language", "worldgen", "new features", "tweaks", "ui" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(result.Value?.DlcLabels.ToArray()).IsEquivalentTo(new[]
             {
                 "Base Game",
                 "Spaced Out!",
@@ -133,8 +118,7 @@ public sealed class WorkshopListingAssemblerTests
                 "The Bionic Booster Pack",
                 "The Prehistoric Planet Pack",
                 "The Aquatic Planet Pack"
-            },
-            result.Value?.DlcLabels.ToArray());
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     private static ModProfile CreateProfile(

@@ -1,12 +1,10 @@
 using System.Text;
 
 namespace DeliveryTemperatureLimit.Tests.SupportReporting;
-
-[TestClass]
 public sealed class SupportLogExcerptBuilderTests
 {
-    [TestMethod]
-    public void Create_WhenLogIsShort_PreservesUtf8ContentAndByteCounts()
+    [Test]
+    public async Task Create_WhenLogIsShort_PreservesUtf8ContentAndByteCounts()
     {
         const string content = "Start → Привіт → end\n";
         byte[] bytes = Encoding.UTF8.GetBytes(content);
@@ -17,15 +15,15 @@ public sealed class SupportLogExcerptBuilderTests
             "unity-console-log-path",
             CreateRedactor());
 
-        Assert.AreEqual("available", snapshot.State);
-        Assert.AreEqual(bytes.Length, snapshot.OriginalByteCount);
-        Assert.AreEqual(bytes.Length, snapshot.IncludedRawByteCount);
-        Assert.IsFalse(snapshot.Truncated);
-        Assert.AreEqual(content, snapshot.Content);
+        await Assert.That(snapshot.State).IsEqualTo("available");
+        await Assert.That(snapshot.OriginalByteCount).IsEqualTo(bytes.Length);
+        await Assert.That(snapshot.IncludedRawByteCount).IsEqualTo(bytes.Length);
+        await Assert.That(snapshot.Truncated).IsFalse();
+        await Assert.That(snapshot.Content).IsEqualTo(content);
     }
 
-    [TestMethod]
-    public void Create_WhenLogExceedsRawLimit_KeepsExactlyTheMostRecentBytes()
+    [Test]
+    public async Task Create_WhenLogExceedsRawLimit_KeepsExactlyTheMostRecentBytes()
     {
         byte[] prefix = Encoding.UTF8.GetBytes("discarded-prefix");
         byte[] retained = Enumerable.Repeat(
@@ -42,20 +40,16 @@ public sealed class SupportLogExcerptBuilderTests
             "unity-console-log-path",
             CreateRedactor());
 
-        Assert.AreEqual(log.Length, snapshot.OriginalByteCount);
-        Assert.AreEqual(
-            SupportReportLimits.MaximumRawPlayerLogBytes,
-            snapshot.IncludedRawByteCount);
-        Assert.IsTrue(snapshot.Truncated);
-        Assert.IsNotNull(snapshot.Content);
-        Assert.HasCount(
-            SupportReportLimits.MaximumRawPlayerLogBytes,
-            snapshot.Content);
-        Assert.IsTrue(snapshot.Content.All(character => character == 'x'));
+        await Assert.That(snapshot.OriginalByteCount).IsEqualTo(log.Length);
+        await Assert.That(snapshot.IncludedRawByteCount).IsEqualTo(SupportReportLimits.MaximumRawPlayerLogBytes);
+        await Assert.That(snapshot.Truncated).IsTrue();
+        Assert.NotNull(snapshot.Content);
+        await Assert.That(snapshot.Content.Length).IsEqualTo(SupportReportLimits.MaximumRawPlayerLogBytes);
+        await Assert.That(snapshot.Content.All(character => character == 'x')).IsTrue();
     }
 
-    [TestMethod]
-    public void Create_WhenRawTailBeginsInsideUtf8Character_DropsOnlyLeadingReplacement()
+    [Test]
+    public async Task Create_WhenRawTailBeginsInsideUtf8Character_DropsOnlyLeadingReplacement()
     {
         byte[] log = new byte[
             SupportReportLimits.MaximumRawPlayerLogBytes + 1];
@@ -69,16 +63,14 @@ public sealed class SupportLogExcerptBuilderTests
             "unity-console-log-path",
             CreateRedactor());
 
-        Assert.IsNotNull(snapshot.Content);
-        Assert.IsFalse(snapshot.Content.Contains('\uFFFD'));
-        Assert.HasCount(
-            SupportReportLimits.MaximumRawPlayerLogBytes - 1,
-            snapshot.Content);
-        Assert.IsTrue(snapshot.Content.All(character => character == 'z'));
+        Assert.NotNull(snapshot.Content);
+        await Assert.That(snapshot.Content.Contains('\uFFFD')).IsFalse();
+        await Assert.That(snapshot.Content.Length).IsEqualTo(SupportReportLimits.MaximumRawPlayerLogBytes - 1);
+        await Assert.That(snapshot.Content.All(character => character == 'z')).IsTrue();
     }
 
-    [TestMethod]
-    public void Create_WhenKnownPathsOccur_RedactsContentAndReportsUsedPlaceholders()
+    [Test]
+    public async Task Create_WhenKnownPathsOccur_RedactsContentAndReportsUsedPlaceholders()
     {
         const string content =
             @"Loading C:\Users\Максим\Documents\Klei\OxygenNotIncluded\mods\Dev\TemperatureLimit";
@@ -97,16 +89,12 @@ public sealed class SupportLogExcerptBuilderTests
             "unity-console-log-path",
             redactor);
 
-        Assert.AreEqual(
-            @"Loading <ONI_DATA>\mods\Dev\TemperatureLimit",
-            snapshot.Content);
-        CollectionAssert.AreEqual(
-            new[] { "<ONI_DATA>" },
-            snapshot.RedactedPlaceholders.ToArray());
+        await Assert.That(snapshot.Content).IsEqualTo(@"Loading <ONI_DATA>\mods\Dev\TemperatureLimit");
+        await Assert.That(snapshot.RedactedPlaceholders.ToArray()).IsEquivalentTo(new[] { "<ONI_DATA>" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void Create_WhenJsonEscapingWouldExceedLimit_KeepsNewestEscapedContentWithinLimit()
+    [Test]
+    public async Task Create_WhenJsonEscapingWouldExceedLimit_KeepsNewestEscapedContentWithinLimit()
     {
         byte[] log = Enumerable.Repeat(
                 (byte)'\\',
@@ -121,20 +109,18 @@ public sealed class SupportLogExcerptBuilderTests
 
         int expectedCharacters =
             SupportReportLimits.MaximumEscapedPlayerLogBytes / 2;
-        Assert.IsNotNull(snapshot.Content);
-        Assert.HasCount(expectedCharacters, snapshot.Content);
-        Assert.IsTrue(snapshot.Content.All(character => character == '\\'));
-        Assert.IsTrue(snapshot.Truncated);
-        Assert.AreEqual(
-            SupportReportLimits.MaximumEscapedPlayerLogBytes,
-            snapshot.Content.Length * 2);
+        Assert.NotNull(snapshot.Content);
+        await Assert.That(snapshot.Content.Length).IsEqualTo(expectedCharacters);
+        await Assert.That(snapshot.Content.All(character => character == '\\')).IsTrue();
+        await Assert.That(snapshot.Truncated).IsTrue();
+        await Assert.That(snapshot.Content.Length * 2).IsEqualTo(SupportReportLimits.MaximumEscapedPlayerLogBytes);
     }
 
-    [TestMethod]
-    [DataRow("\u0085", 2)]
-    [DataRow("\u2028", 3)]
-    [DataRow("\u2029", 3)]
-    public void Create_WhenJsonNetUsesUnicodeEscape_KeepsEscapedContentWithinLimit(
+    [Test]
+    [Arguments("\u0085", 2)]
+    [Arguments("\u2028", 3)]
+    [Arguments("\u2029", 3)]
+    public async Task Create_WhenJsonNetUsesUnicodeEscape_KeepsEscapedContentWithinLimit(
         string escapedCharacter,
         int rawUtf8ByteCount)
     {
@@ -142,9 +128,7 @@ public sealed class SupportLogExcerptBuilderTests
             SupportReportLimits.MaximumRawPlayerLogBytes / rawUtf8ByteCount;
         string content = new(escapedCharacter[0], sourceCharacterCount);
         byte[] log = Encoding.UTF8.GetBytes(content);
-        Assert.HasCount(
-            SupportReportLimits.MaximumRawPlayerLogBytes,
-            log);
+        await Assert.That(log).Count().IsEqualTo(SupportReportLimits.MaximumRawPlayerLogBytes);
         var builder = new SupportLogExcerptBuilder();
 
         SupportPlayerLogSnapshot snapshot = builder.Create(
@@ -154,24 +138,24 @@ public sealed class SupportLogExcerptBuilderTests
 
         int expectedCharacters =
             SupportReportLimits.MaximumEscapedPlayerLogBytes / 6;
-        Assert.IsNotNull(snapshot.Content);
-        Assert.HasCount(expectedCharacters, snapshot.Content);
-        Assert.IsTrue(snapshot.Content.All(
-            character => character == escapedCharacter[0]));
-        Assert.IsTrue(snapshot.Truncated);
+        Assert.NotNull(snapshot.Content);
+        await Assert.That(snapshot.Content.Length).IsEqualTo(expectedCharacters);
+        await Assert.That(snapshot.Content.All(
+            character => character == escapedCharacter[0])).IsTrue();
+        await Assert.That(snapshot.Truncated).IsTrue();
     }
 
-    [TestMethod]
-    public void Create_WhenStreamCannotSeek_RejectsUnsupportedInput()
+    [Test]
+    public async Task Create_WhenStreamCannotSeek_RejectsUnsupportedInput()
     {
         var builder = new SupportLogExcerptBuilder();
         using var stream = new NonSeekableReadStream(
             Encoding.UTF8.GetBytes("content"));
 
-        Assert.ThrowsExactly<ArgumentException>(() => builder.Create(
+        await Assert.That(() => builder.Create(
             stream,
             "unity-console-log-path",
-            CreateRedactor()));
+            CreateRedactor())).ThrowsExactly<ArgumentException>();
     }
 
     private static SupportPathRedactor CreateRedactor() =>

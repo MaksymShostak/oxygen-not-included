@@ -3,15 +3,13 @@ using System.Reflection;
 using DeliveryTemperatureLimit.Tests.ReferenceTemperatureModels;
 
 namespace DeliveryTemperatureLimit.Tests.FetchTemperatureEligibility;
-
-[TestClass]
 public sealed class FetchTemperatureEligibilityBuilderTests
 {
     private const int CombinedFetchEligibilitySeed = 0xFE7C4;
     private const int RandomizedTopologyCount = 2000;
 
-    [TestMethod]
-    public void AddFetchRequest_WhenTagHasConstrainedAndUnconstrainedDestinations_PreservesDistinctStorageAndPickupFacts()
+    [Test]
+    public async Task AddFetchRequest_WhenTagHasConstrainedAndUnconstrainedDestinations_PreservesDistinctStorageAndPickupFacts()
     {
         var builder = BeginBuilder();
         var iron = new Tag("Iron");
@@ -25,15 +23,13 @@ public sealed class FetchTemperatureEligibilityBuilderTests
 
         var snapshot = builder.Build();
 
-        Assert.IsTrue(snapshot.TryGetStorageEligibility(1, iron, out var storage));
-        Assert.IsTrue(storage.AllowsEveryTemperature);
-        Assert.AreSequenceEqual(
-            new[] { 10, 20 },
-            snapshot.CreateSortedDecisionEndpointUnion(1, [iron]).ToArray());
+        await Assert.That(snapshot.TryGetStorageEligibility(1, iron, out var storage)).IsTrue();
+        await Assert.That(storage.AllowsEveryTemperature).IsTrue();
+        await Assert.That(snapshot.CreateSortedDecisionEndpointUnion(1, [iron]).ToArray()).IsEquivalentTo(new[] { 10, 20 }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void AddUnconstrainedFetchRequest_WhenTagsAreRequested_ContributesUnconstrainedStorageAndNoEndpoints()
+    [Test]
+    public async Task AddUnconstrainedFetchRequest_WhenTagsAreRequested_ContributesUnconstrainedStorageAndNoEndpoints()
     {
         var builder = BeginBuilder();
         var iron = new Tag("Iron");
@@ -41,27 +37,27 @@ public sealed class FetchTemperatureEligibilityBuilderTests
 
         var snapshot = builder.Build();
 
-        Assert.IsTrue(snapshot.TryGetStorageEligibility(1, iron, out var storage));
-        Assert.IsTrue(storage.AllowsEveryTemperature);
-        Assert.IsEmpty(snapshot.CreateSortedDecisionEndpointUnion(1, [iron]));
+        await Assert.That(snapshot.TryGetStorageEligibility(1, iron, out var storage)).IsTrue();
+        await Assert.That(storage.AllowsEveryTemperature).IsTrue();
+        await Assert.That(snapshot.CreateSortedDecisionEndpointUnion(1, [iron])).IsEmpty();
     }
 
-    [TestMethod]
-    public void AddTemperatureConstrainedFetchRequest_WhenConstraintIsDisabled_ThrowsArgumentException()
+    [Test]
+    public async Task AddTemperatureConstrainedFetchRequest_WhenConstraintIsDisabled_ThrowsArgumentException()
     {
         var builder = BeginBuilder();
 
-        var exception = Assert.ThrowsExactly<ArgumentException>(() =>
+        var exception = (await Assert.That(() =>
             builder.AddTemperatureConstrainedFetchRequest(
                 parentWorldId: 1,
                 requestedTags: [new Tag("Iron")],
-                enabledConstraint: Constraint(10, 0)));
+                enabledConstraint: Constraint(10, 0))).ThrowsExactly<ArgumentException>())!;
 
-        StringAssert.Contains(exception.Message, "enabledConstraint");
+        await Assert.That(exception.Message).Contains("enabledConstraint");
     }
 
-    [TestMethod]
-    public void AddTemperatureConstrainedFetchRequest_WhenEnabledConstraintIsEmpty_ContributesAllowsNoneAndNoEndpoints()
+    [Test]
+    public async Task AddTemperatureConstrainedFetchRequest_WhenEnabledConstraintIsEmpty_ContributesAllowsNoneAndNoEndpoints()
     {
         var builder = BeginBuilder();
         var iron = new Tag("Iron");
@@ -72,13 +68,13 @@ public sealed class FetchTemperatureEligibilityBuilderTests
 
         var snapshot = builder.Build();
 
-        Assert.IsTrue(snapshot.TryGetStorageEligibility(1, iron, out var storage));
-        Assert.IsTrue(storage.AllowsNoTemperature);
-        Assert.IsEmpty(snapshot.CreateSortedDecisionEndpointUnion(1, [iron]));
+        await Assert.That(snapshot.TryGetStorageEligibility(1, iron, out var storage)).IsTrue();
+        await Assert.That(storage.AllowsNoTemperature).IsTrue();
+        await Assert.That(snapshot.CreateSortedDecisionEndpointUnion(1, [iron])).IsEmpty();
     }
 
-    [TestMethod]
-    public void AddTemperatureConstrainedFetchRequest_WhenEnabledConstraintIsNonEmpty_ContributesIntervalAndBothEndpoints()
+    [Test]
+    public async Task AddTemperatureConstrainedFetchRequest_WhenEnabledConstraintIsNonEmpty_ContributesIntervalAndBothEndpoints()
     {
         var builder = BeginBuilder();
         var iron = new Tag("Iron");
@@ -89,17 +85,13 @@ public sealed class FetchTemperatureEligibilityBuilderTests
 
         var snapshot = builder.Build();
 
-        Assert.IsTrue(snapshot.TryGetStorageEligibility(1, iron, out var storage));
-        Assert.AreSequenceEqual(
-            new[] { new AllowedTemperatureInterval(10, 20) },
-            storage.Intervals);
-        Assert.AreSequenceEqual(
-            new[] { 10, 20 },
-            snapshot.CreateSortedDecisionEndpointUnion(1, [iron]));
+        await Assert.That(snapshot.TryGetStorageEligibility(1, iron, out var storage)).IsTrue();
+        await Assert.That(storage.Intervals).IsEquivalentTo(new[] { new AllowedTemperatureInterval(10, 20) }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(snapshot.CreateSortedDecisionEndpointUnion(1, [iron])).IsEquivalentTo(new[] { 10, 20 }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void AddTemperatureConstrainedFetchRequest_WhenTagsRepeat_DeduplicatesPerRequest()
+    [Test]
+    public async Task AddTemperatureConstrainedFetchRequest_WhenTagsRepeat_DeduplicatesPerRequest()
     {
         var builder = BeginBuilder();
         var iron = new Tag("Iron");
@@ -110,18 +102,14 @@ public sealed class FetchTemperatureEligibilityBuilderTests
 
         var snapshot = builder.Build();
 
-        Assert.AreSequenceEqual(new[] { iron }, snapshot.GetRequestedTags(1));
-        Assert.IsTrue(snapshot.TryGetStorageEligibility(1, iron, out var storage));
-        Assert.AreSequenceEqual(
-            new[] { new AllowedTemperatureInterval(10, 20) },
-            storage.Intervals);
-        Assert.AreSequenceEqual(
-            new[] { 10, 20 },
-            snapshot.CreateSortedDecisionEndpointUnion(1, [iron]));
+        await Assert.That(snapshot.GetRequestedTags(1)).IsEquivalentTo(new[] { iron }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(snapshot.TryGetStorageEligibility(1, iron, out var storage)).IsTrue();
+        await Assert.That(storage.Intervals).IsEquivalentTo(new[] { new AllowedTemperatureInterval(10, 20) }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(snapshot.CreateSortedDecisionEndpointUnion(1, [iron])).IsEquivalentTo(new[] { 10, 20 }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void AddTemperatureConstrainedFetchRequest_WhenSameTagExistsInDifferentParents_DoesNotCrossContaminate()
+    [Test]
+    public async Task AddTemperatureConstrainedFetchRequest_WhenSameTagExistsInDifferentParents_DoesNotCrossContaminate()
     {
         var builder = BeginBuilder();
         var iron = new Tag("Iron");
@@ -130,16 +118,12 @@ public sealed class FetchTemperatureEligibilityBuilderTests
 
         var snapshot = builder.Build();
 
-        Assert.AreSequenceEqual(
-            new[] { 10, 20 },
-            snapshot.CreateSortedDecisionEndpointUnion(1, [iron]));
-        Assert.AreSequenceEqual(
-            new[] { 30, 40 },
-            snapshot.CreateSortedDecisionEndpointUnion(2, [iron]));
+        await Assert.That(snapshot.CreateSortedDecisionEndpointUnion(1, [iron])).IsEquivalentTo(new[] { 10, 20 }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(snapshot.CreateSortedDecisionEndpointUnion(2, [iron])).IsEquivalentTo(new[] { 30, 40 }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void Build_WhenNoFetchRequests_PublishesCompleteEmptySnapshot()
+    [Test]
+    public async Task Build_WhenNoFetchRequests_PublishesCompleteEmptySnapshot()
     {
         var gameSessionGeneration = new GameSessionGeneration(7);
         var constraintSnapshot = ConstraintSnapshot(generationValue: 11);
@@ -154,57 +138,55 @@ public sealed class FetchTemperatureEligibilityBuilderTests
 
         var snapshot = builder.Build();
 
-        Assert.AreEqual(gameSessionGeneration, snapshot.GameSessionGeneration);
-        Assert.AreEqual(
-            constraintSnapshot.Generation,
-            snapshot.ConstraintGeneration);
-        Assert.AreEqual(fetchTopologyVersion, snapshot.FetchTopologyVersion);
-        Assert.AreEqual(worldTopology.Version, snapshot.WorldTopologyVersion);
-        Assert.IsFalse(snapshot.TryGetStorageEligibility(
+        await Assert.That(snapshot.GameSessionGeneration).IsEqualTo(gameSessionGeneration);
+        await Assert.That(snapshot.ConstraintGeneration).IsEqualTo(constraintSnapshot.Generation);
+        await Assert.That(snapshot.FetchTopologyVersion).IsEqualTo(fetchTopologyVersion);
+        await Assert.That(snapshot.WorldTopologyVersion).IsEqualTo(worldTopology.Version);
+        await Assert.That(snapshot.TryGetStorageEligibility(
             parentWorldId: 1,
             requestedTag: new Tag("Iron"),
-            out _));
-        Assert.IsEmpty(snapshot.GetRequestedTags(1));
-        Assert.IsEmpty(snapshot.CreateSortedDecisionEndpointUnion(
+            out _)).IsFalse();
+        await Assert.That(snapshot.GetRequestedTags(1)).IsEmpty();
+        await Assert.That(snapshot.CreateSortedDecisionEndpointUnion(
             parentWorldId: 1,
-            applicableRequestedTags: [new Tag("Iron")]));
+            applicableRequestedTags: [new Tag("Iron")])).IsEmpty();
     }
 
-    [TestMethod]
-    public void Build_WhenCalledBeforeBegin_ThrowsInvalidOperationException()
+    [Test]
+    public async Task Build_WhenCalledBeforeBegin_ThrowsInvalidOperationException()
     {
         var builder = new FetchTemperatureEligibilityBuilder();
 
-        Assert.ThrowsExactly<InvalidOperationException>(() => builder.Build());
+        await Assert.That(() => builder.Build()).ThrowsExactly<InvalidOperationException>();
     }
 
-    [TestMethod]
-    public void Build_WhenCalledTwice_ThrowsInvalidOperationException()
+    [Test]
+    public async Task Build_WhenCalledTwice_ThrowsInvalidOperationException()
     {
         var builder = BeginBuilder();
         builder.Build();
 
-        Assert.ThrowsExactly<InvalidOperationException>(() => builder.Build());
+        await Assert.That(() => builder.Build()).ThrowsExactly<InvalidOperationException>();
     }
 
-    [TestMethod]
-    public void Discard_WhenEnumerationThrows_DropsAllCandidateReferences()
+    [Test]
+    public async Task Discard_WhenEnumerationThrows_DropsAllCandidateReferences()
     {
         var builder = BeginBuilder();
         var throwingTags = new ThrowingRequestedTagList(new Tag("Iron"));
 
-        Assert.ThrowsExactly<InvalidOperationException>(() =>
-            builder.AddUnconstrainedFetchRequest(1, throwingTags));
+        await Assert.That(() =>
+            builder.AddUnconstrainedFetchRequest(1, throwingTags)).ThrowsExactly<InvalidOperationException>();
         builder.Discard();
 
-        Assert.IsEmpty(GetDestinationRequirementDictionary(builder));
+        await Assert.That(((System.Collections.IEnumerable)(await GetDestinationRequirementDictionary(builder))).Cast<object?>()).IsEmpty();
         BeginBuilder(builder);
         var emptySnapshot = builder.Build();
-        Assert.IsEmpty(emptySnapshot.GetRequestedTags(1));
+        await Assert.That(emptySnapshot.GetRequestedTags(1)).IsEmpty();
     }
 
-    [TestMethod]
-    public void Discard_WhenBuiltCandidatePublicationIsRejected_AllowsNextAuthoritativeTraversal()
+    [Test]
+    public async Task Discard_WhenBuiltCandidatePublicationIsRejected_AllowsNextAuthoritativeTraversal()
     {
         var builder = BeginBuilder();
         var iron = new Tag("Iron");
@@ -222,19 +204,17 @@ public sealed class FetchTemperatureEligibilityBuilderTests
         builder.AddUnconstrainedFetchRequest(2, [iron]);
         var nextCandidate = builder.Build();
 
-        Assert.AreSequenceEqual(
-            new[] { 10, 20 },
-            rejectedCandidate.CreateSortedDecisionEndpointUnion(1, [iron]));
-        Assert.IsTrue(nextCandidate.TryGetStorageEligibility(
+        await Assert.That(rejectedCandidate.CreateSortedDecisionEndpointUnion(1, [iron])).IsEquivalentTo(new[] { 10, 20 }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(nextCandidate.TryGetStorageEligibility(
             parentWorldId: 2,
             requestedTag: iron,
-            out var nextEligibility));
-        Assert.IsTrue(nextEligibility.Allows(
-            TemperatureDecisionBucket.FromTemperature(10_000.0f)));
+            out var nextEligibility)).IsTrue();
+        await Assert.That(nextEligibility.Allows(
+            TemperatureDecisionBucket.FromTemperature(10_000.0f))).IsTrue();
     }
 
-    [TestMethod]
-    public void Builder_WhenPriorEntryCountExceedsHighWater_ReplacesMutableMaps()
+    [Test]
+    public async Task Builder_WhenPriorEntryCountExceedsHighWater_ReplacesMutableMaps()
     {
         var builder = new FetchTemperatureEligibilityBuilder();
         var retentionLimit =
@@ -242,53 +222,47 @@ public sealed class FetchTemperatureEligibilityBuilderTests
                 .MaximumRetainedFetchEligibilityEntryCount;
 
         BeginBuilder(builder);
-        var dictionaryAtLimit = GetDestinationRequirementDictionary(builder);
+        var dictionaryAtLimit = await GetDestinationRequirementDictionary(builder);
         AddUniqueUnconstrainedTags(builder, retentionLimit, tagIdentityOffset: 0);
         var atLimitSnapshot = builder.Build();
-        AssertEveryGeneratedTagExists(
+        await AssertEveryGeneratedTagExists(
             atLimitSnapshot,
             retentionLimit,
             tagIdentityOffset: 0);
-        Assert.AreSame(
-            dictionaryAtLimit,
-            GetDestinationRequirementDictionary(builder));
+        await Assert.That((await GetDestinationRequirementDictionary(builder))).IsSameReferenceAs(dictionaryAtLimit);
 
         BeginBuilder(builder);
         var dictionaryBeforeLimitExceeded =
-            GetDestinationRequirementDictionary(builder);
+            await GetDestinationRequirementDictionary(builder);
         AddUniqueUnconstrainedTags(
             builder,
             retentionLimit + 1,
             tagIdentityOffset: retentionLimit);
         var limitExceededSnapshot = builder.Build();
-        AssertEveryGeneratedTagExists(
+        await AssertEveryGeneratedTagExists(
             limitExceededSnapshot,
             retentionLimit + 1,
             tagIdentityOffset: retentionLimit);
-        Assert.AreNotSame(
-            dictionaryBeforeLimitExceeded,
-            GetDestinationRequirementDictionary(builder));
+        await Assert.That((await GetDestinationRequirementDictionary(builder))).IsNotSameReferenceAs(dictionaryBeforeLimitExceeded);
 
         BeginBuilder(builder);
         var dictionaryBeforeLargerWorkload =
-            GetDestinationRequirementDictionary(builder);
+            await GetDestinationRequirementDictionary(builder);
         var largerEntryCount = (retentionLimit * 2) + 17;
         AddUniqueUnconstrainedTags(
             builder,
             largerEntryCount,
             tagIdentityOffset: retentionLimit * 3);
         var largerSnapshot = builder.Build();
-        AssertEveryGeneratedTagExists(
+        await AssertEveryGeneratedTagExists(
             largerSnapshot,
             largerEntryCount,
             tagIdentityOffset: retentionLimit * 3);
-        Assert.AreNotSame(
-            dictionaryBeforeLargerWorkload,
-            GetDestinationRequirementDictionary(builder));
+        await Assert.That((await GetDestinationRequirementDictionary(builder))).IsNotSameReferenceAs(dictionaryBeforeLargerWorkload);
     }
 
-    [TestMethod]
-    public void Snapshot_WhenBuilderIsReused_RemainsImmutable()
+    [Test]
+    public async Task Snapshot_WhenBuilderIsReused_RemainsImmutable()
     {
         var builder = BeginBuilder();
         var iron = new Tag("Iron");
@@ -299,16 +273,12 @@ public sealed class FetchTemperatureEligibilityBuilderTests
         builder.AddTemperatureConstrainedFetchRequest(1, [iron], Constraint(30, 40));
         var secondSnapshot = builder.Build();
 
-        Assert.AreSequenceEqual(
-            new[] { 10, 20 },
-            firstSnapshot.CreateSortedDecisionEndpointUnion(1, [iron]));
-        Assert.AreSequenceEqual(
-            new[] { 30, 40 },
-            secondSnapshot.CreateSortedDecisionEndpointUnion(1, [iron]));
+        await Assert.That(firstSnapshot.CreateSortedDecisionEndpointUnion(1, [iron])).IsEquivalentTo(new[] { 10, 20 }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(secondSnapshot.CreateSortedDecisionEndpointUnion(1, [iron])).IsEquivalentTo(new[] { 30, 40 }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void CreateSortedDecisionEndpointUnion_WhenPickupMatchesSeveralTags_ReturnsEveryApplicableEndpointOnce()
+    [Test]
+    public async Task CreateSortedDecisionEndpointUnion_WhenPickupMatchesSeveralTags_ReturnsEveryApplicableEndpointOnce()
     {
         var builder = BeginBuilder();
         var iron = new Tag("Iron");
@@ -331,15 +301,13 @@ public sealed class FetchTemperatureEligibilityBuilderTests
             1,
             [metal, iron, metal]);
 
-        Assert.AreSequenceEqual(
-            new[] { 10, 20, 30, 40, 50 },
-            endpoints);
-        Assert.IsFalse(endpoints is int[]);
-        Assert.IsFalse(endpoints is ICollection<int> mutable && !mutable.IsReadOnly);
+        await Assert.That(endpoints).IsEquivalentTo(new[] { 10, 20, 30, 40, 50 }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(endpoints is int[]).IsFalse();
+        await Assert.That(endpoints is ICollection<int> mutable && !mutable.IsReadOnly).IsFalse();
     }
 
-    [TestMethod]
-    public void CreateSortedDecisionEndpointUnion_WhenPickupMatchesNoRequestedTag_ReturnsEmptySequence()
+    [Test]
+    public async Task CreateSortedDecisionEndpointUnion_WhenPickupMatchesNoRequestedTag_ReturnsEmptySequence()
     {
         var builder = BeginBuilder();
         builder.AddTemperatureConstrainedFetchRequest(
@@ -348,16 +316,16 @@ public sealed class FetchTemperatureEligibilityBuilderTests
             Constraint(10, 20));
         var snapshot = builder.Build();
 
-        Assert.IsEmpty(snapshot.CreateSortedDecisionEndpointUnion(
+        await Assert.That(snapshot.CreateSortedDecisionEndpointUnion(
             1,
-            [new Tag("Copper")]));
-        Assert.IsEmpty(snapshot.CreateSortedDecisionEndpointUnion(
+            [new Tag("Copper")])).IsEmpty();
+        await Assert.That(snapshot.CreateSortedDecisionEndpointUnion(
             99,
-            [new Tag("Iron")]));
+            [new Tag("Iron")])).IsEmpty();
     }
 
-    [TestMethod]
-    public void GetRequestedTags_WhenParentContainsSeveralRequests_ReturnsImmutableFirstEncounterOrder()
+    [Test]
+    public async Task GetRequestedTags_WhenParentContainsSeveralRequests_ReturnsImmutableFirstEncounterOrder()
     {
         var builder = BeginBuilder();
         var iron = new Tag("Iron");
@@ -372,27 +340,26 @@ public sealed class FetchTemperatureEligibilityBuilderTests
 
         var requestedTags = snapshot.GetRequestedTags(1);
 
-        Assert.AreSequenceEqual(new[] { iron, copper, metal }, requestedTags);
-        Assert.IsFalse(requestedTags is Tag[]);
-        Assert.IsFalse(
-            requestedTags is ICollection<Tag> mutable && !mutable.IsReadOnly);
+        await Assert.That(requestedTags).IsEquivalentTo(new[] { iron, copper, metal }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(requestedTags is Tag[]).IsFalse();
+        await Assert.That(requestedTags is ICollection<Tag> mutable && !mutable.IsReadOnly).IsFalse();
     }
 
-    [TestMethod]
-    public void GetRequestedTags_WhenParentIsUnknown_ReturnsEmptyImmutableSequence()
+    [Test]
+    public async Task GetRequestedTags_WhenParentIsUnknown_ReturnsEmptyImmutableSequence()
     {
         var snapshot = BeginBuilder().Build();
 
         var first = snapshot.GetRequestedTags(99);
         var second = snapshot.GetRequestedTags(100);
 
-        Assert.IsEmpty(first);
-        Assert.AreSame(first, second);
-        Assert.IsFalse(first is Tag[]);
+        await Assert.That(first).IsEmpty();
+        await Assert.That(second).IsSameReferenceAs(first);
+        await Assert.That(first is Tag[]).IsFalse();
     }
 
-    [TestMethod]
-    public void Snapshot_WhenRepresentativeTopologiesCoverEveryDecisionBucket_MatchesReferenceModel()
+    [Test]
+    public async Task Snapshot_WhenRepresentativeTopologiesCoverEveryDecisionBucket_MatchesReferenceModel()
     {
         var iron = new Tag("Iron");
         var copper = new Tag("Copper");
@@ -443,15 +410,15 @@ public sealed class FetchTemperatureEligibilityBuilderTests
              topologyIndex < representativeTopologies.Length;
              topologyIndex++)
         {
-            AssertSnapshotMatchesReference(
+            await AssertSnapshotMatchesReference(
                 representativeTopologies[topologyIndex],
                 everyBucketOrdinal,
                 "representative topology=" + topologyIndex);
         }
     }
 
-    [TestMethod]
-    public void Snapshot_WhenTwoThousandSeededTopologiesAreSampled_MatchesIndependentReferenceModel()
+    [Test]
+    public async Task Snapshot_WhenTwoThousandSeededTopologiesAreSampled_MatchesIndependentReferenceModel()
     {
         var random = new Random(CombinedFetchEligibilitySeed);
 
@@ -463,7 +430,7 @@ public sealed class FetchTemperatureEligibilityBuilderTests
             var selectedBucketOrdinals =
                 CreateSelectedBucketOrdinals(random, requests);
 
-            AssertSnapshotMatchesReference(
+            await AssertSnapshotMatchesReference(
                 requests,
                 selectedBucketOrdinals,
                 "Seed=0x" + CombinedFetchEligibilitySeed.ToString("X") +
@@ -471,7 +438,7 @@ public sealed class FetchTemperatureEligibilityBuilderTests
         }
     }
 
-    private static void AssertSnapshotMatchesReference(
+    private static async Task AssertSnapshotMatchesReference(
         IReadOnlyList<ReferenceFetchTemperatureRequest> requests,
         IReadOnlyList<int> selectedBucketOrdinals,
         string assertionContext)
@@ -489,10 +456,7 @@ public sealed class FetchTemperatureEligibilityBuilderTests
                     .GetRequestedTagsInFirstEncounterOrder(
                         requests,
                         parentWorldId);
-            Assert.AreSequenceEqual(
-                expectedRequestedTags,
-                snapshot.GetRequestedTags(parentWorldId),
-                assertionContext + "; parent=" + parentWorldId + ".");
+            await Assert.That(snapshot.GetRequestedTags(parentWorldId)).IsEquivalentTo(expectedRequestedTags, TUnit.Assertions.Enums.CollectionOrdering.Matching).Because(assertionContext + "; parent=" + parentWorldId + ".");
 
             foreach (var requestedTag in expectedRequestedTags)
             {
@@ -502,13 +466,11 @@ public sealed class FetchTemperatureEligibilityBuilderTests
                             requests,
                             parentWorldId,
                             requestedTag);
-                Assert.IsNotEmpty(logicalDestinationConstraints, assertionContext);
-                Assert.IsTrue(
-                    snapshot.TryGetStorageEligibility(
+                await Assert.That(logicalDestinationConstraints).IsNotEmpty().Because(assertionContext);
+                await Assert.That(snapshot.TryGetStorageEligibility(
                         parentWorldId,
                         requestedTag,
-                        out var storageEligibility),
-                    assertionContext + "; missing storage entry.");
+                        out var storageEligibility)).IsTrue().Because(assertionContext + "; missing storage entry.");
 
                 foreach (var bucketOrdinal in selectedBucketOrdinals)
                 {
@@ -521,14 +483,11 @@ public sealed class FetchTemperatureEligibilityBuilderTests
                                 temperatureKelvin);
                     var observedAllows = storageEligibility.Allows(
                         BucketFromOrdinal(bucketOrdinal));
-                    Assert.AreEqual(
-                        expectedAllows,
-                        observedAllows,
-                        assertionContext + "; parent=" + parentWorldId +
+                    await Assert.That(observedAllows).IsEqualTo(expectedAllows).Because(assertionContext + "; parent=" + parentWorldId +
                         "; bucket=" + bucketOrdinal + ".");
                 }
 
-                AssertEndpointUnionMatchesReference(
+                await AssertEndpointUnionMatchesReference(
                     snapshot,
                     requests,
                     parentWorldId,
@@ -540,7 +499,7 @@ public sealed class FetchTemperatureEligibilityBuilderTests
             // A pickup can satisfy several requested tags. The union must contain
             // only endpoints from those explicit matches, once each, regardless of
             // other parents or other tags retained by the same snapshot.
-            AssertEndpointUnionMatchesReference(
+            await AssertEndpointUnionMatchesReference(
                 snapshot,
                 requests,
                 parentWorldId,
@@ -549,14 +508,14 @@ public sealed class FetchTemperatureEligibilityBuilderTests
                 assertionContext);
         }
 
-        Assert.IsFalse(snapshot.TryGetStorageEligibility(
+        await Assert.That(snapshot.TryGetStorageEligibility(
             int.MaxValue,
             new Tag("Unknown"),
-            out _));
-        Assert.IsEmpty(snapshot.GetRequestedTags(int.MaxValue));
+            out _)).IsFalse();
+        await Assert.That(snapshot.GetRequestedTags(int.MaxValue)).IsEmpty();
     }
 
-    private static void AssertEndpointUnionMatchesReference(
+    private static async Task AssertEndpointUnionMatchesReference(
         FetchTemperatureEligibilitySnapshot snapshot,
         IReadOnlyList<ReferenceFetchTemperatureRequest> requests,
         int parentWorldId,
@@ -573,10 +532,7 @@ public sealed class FetchTemperatureEligibilityBuilderTests
         var observedEndpoints = snapshot.CreateSortedDecisionEndpointUnion(
             parentWorldId,
             applicableRequestedTags);
-        Assert.AreSequenceEqual(
-            expectedEndpoints,
-            observedEndpoints,
-            assertionContext + "; endpoint union mismatch for parent=" +
+        await Assert.That(observedEndpoints).IsEquivalentTo(expectedEndpoints, TUnit.Assertions.Enums.CollectionOrdering.Matching).Because(assertionContext + "; endpoint union mismatch for parent=" +
             parentWorldId + ".");
 
         if (expectedEndpoints.Length == 0)
@@ -609,9 +565,7 @@ public sealed class FetchTemperatureEligibilityBuilderTests
                     intervalOrdinal,
                     out var firstVector))
             {
-                Assert.IsTrue(
-                    VectorsAreEqual(firstVector, referenceVector),
-                    assertionContext + "; partition merged distinct vectors for " +
+                await Assert.That(VectorsAreEqual(firstVector, referenceVector)).IsTrue().Because(assertionContext + "; partition merged distinct vectors for " +
                     "parent=" + parentWorldId + "; bucket=" + bucketOrdinal + ".");
             }
             else
@@ -770,36 +724,33 @@ public sealed class FetchTemperatureEligibilityBuilderTests
         }
     }
 
-    private static void AssertEveryGeneratedTagExists(
+    private static async Task AssertEveryGeneratedTagExists(
         FetchTemperatureEligibilitySnapshot snapshot,
         int tagCount,
         int tagIdentityOffset)
     {
-        Assert.AreEqual(tagCount, snapshot.GetRequestedTags(1).Count);
+        await Assert.That(snapshot.GetRequestedTags(1).Count).IsEqualTo(tagCount);
         for (var tagIndex = 0; tagIndex < tagCount; tagIndex++)
         {
-            Assert.IsTrue(snapshot.TryGetStorageEligibility(
+            await Assert.That(snapshot.TryGetStorageEligibility(
                 parentWorldId: 1,
                 requestedTag: new Tag(
                     "RetainedTag-" + (tagIdentityOffset + tagIndex)),
-                out var eligibility));
-            Assert.IsTrue(eligibility.AllowsEveryTemperature);
+                out var eligibility)).IsTrue();
+            await Assert.That(eligibility.AllowsEveryTemperature).IsTrue();
         }
     }
 
-    private static IDictionary GetDestinationRequirementDictionary(
+    private static async Task<IDictionary> GetDestinationRequirementDictionary(
         FetchTemperatureEligibilityBuilder builder)
     {
         var dictionaryField = typeof(FetchTemperatureEligibilityBuilder).GetField(
             "destinationRequirementsByParentWorldAndRequestedTag",
             BindingFlags.Instance | BindingFlags.NonPublic);
-        Assert.IsNotNull(
-            dictionaryField,
-            "The representation contract requires the exact private dictionary " +
+        if (dictionaryField is null) throw new TUnit.Assertions.Exceptions.AssertionException("The representation contract requires the exact private dictionary " +
             "FetchTemperatureEligibilityBuilder." +
             "destinationRequirementsByParentWorldAndRequestedTag.");
-        return Assert.IsInstanceOfType<IDictionary>(
-            dictionaryField.GetValue(builder));
+        return ((await Assert.That(dictionaryField.GetValue(builder)).IsAssignableTo<IDictionary>())!);
     }
 
     private static bool VectorsAreEqual(

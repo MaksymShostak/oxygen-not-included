@@ -5,11 +5,9 @@ using MaksymShostak.OniModPipeline.Processes;
 using MaksymShostak.OniModPipeline.Tests.Fixtures;
 
 namespace MaksymShostak.OniModPipeline.Tests.ModTest;
-
-[TestClass]
 public sealed class AutomatedTestRunnerTests
 {
-    [TestMethod]
+    [Test]
     public async Task RunAsync_WhenRequiredIdsAreDuplicated_ReturnsOnip3005()
     {
         using var fixture = new AutomatedTestFixture(
@@ -22,12 +20,12 @@ public sealed class AutomatedTestRunnerTests
             fixture.ResultsRoot,
             CancellationToken.None);
 
-        AssertDiagnostic(result, DiagnosticIds.AutomatedTestFailed);
-        Assert.AreEqual(0, fixture.ProcessRunner.Requests.Count);
-        Assert.IsFalse(Directory.Exists(fixture.ResultsRoot));
+        await AssertDiagnostic(result, DiagnosticIds.AutomatedTestFailed);
+        await Assert.That(fixture.ProcessRunner.Requests.Count).IsEqualTo(0);
+        await Assert.That(Directory.Exists(fixture.ResultsRoot)).IsFalse();
     }
 
-    [TestMethod]
+    [Test]
     public async Task RunAsync_WhenRequiredProjectIsMissing_ReturnsOnip3005()
     {
         using var fixture = new AutomatedTestFixture(
@@ -40,11 +38,11 @@ public sealed class AutomatedTestRunnerTests
             fixture.ResultsRoot,
             CancellationToken.None);
 
-        AssertDiagnostic(result, DiagnosticIds.AutomatedTestFailed);
-        Assert.AreEqual(0, fixture.ProcessRunner.Requests.Count);
+        await AssertDiagnostic(result, DiagnosticIds.AutomatedTestFailed);
+        await Assert.That(fixture.ProcessRunner.Requests.Count).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public async Task RunAsync_WhenRequiredTestProcessFails_CapturesLogsAndReturnsOnip3005()
     {
         using var fixture = new AutomatedTestFixture(
@@ -59,16 +57,16 @@ public sealed class AutomatedTestRunnerTests
             fixture.ResultsRoot,
             CancellationToken.None);
 
-        AssertDiagnostic(result, DiagnosticIds.AutomatedTestFailed);
-        Assert.IsNotNull(result.Value);
+        await AssertDiagnostic(result, DiagnosticIds.AutomatedTestFailed);
+        Assert.NotNull(result.Value);
         var testResult = result.Value.Single();
-        Assert.AreEqual(7, testResult.ExitCode);
-        Assert.AreEqual("captured standard output", testResult.StandardOutput);
-        Assert.AreEqual("captured standard error", testResult.StandardError);
-        Assert.IsFalse(testResult.Passed);
+        await Assert.That(testResult.ExitCode).IsEqualTo(7);
+        await Assert.That(testResult.StandardOutput).IsEqualTo("captured standard output");
+        await Assert.That(testResult.StandardError).IsEqualTo("captured standard error");
+        await Assert.That(testResult.Passed).IsFalse();
     }
 
-    [TestMethod]
+    [Test]
     public async Task RunAsync_WhenRequiredProcessSucceedsWithoutTrx_ReturnsOnip3005()
     {
         using var fixture = new AutomatedTestFixture(
@@ -81,13 +79,13 @@ public sealed class AutomatedTestRunnerTests
             fixture.ResultsRoot,
             CancellationToken.None);
 
-        AssertDiagnostic(result, DiagnosticIds.AutomatedTestFailed);
-        Assert.IsNotNull(result.Value);
-        Assert.AreEqual(0, result.Value.Single().ExitCode);
-        Assert.IsFalse(result.Value.Single().Passed);
+        await AssertDiagnostic(result, DiagnosticIds.AutomatedTestFailed);
+        Assert.NotNull(result.Value);
+        await Assert.That(result.Value.Single().ExitCode).IsEqualTo(0);
+        await Assert.That(result.Value.Single().Passed).IsFalse();
     }
 
-    [TestMethod]
+    [Test]
     public async Task RunAsync_WhenProjectsPass_WritesExactTrxFilenamesAndChildEnvironment()
     {
         using var fixture = new AutomatedTestFixture(
@@ -100,17 +98,15 @@ public sealed class AutomatedTestRunnerTests
             fixture.ResultsRoot,
             CancellationToken.None);
 
-        Assert.AreEqual(PipelineExitCode.Success, result.ExitCode);
-        Assert.IsNotNull(result.Value);
-        Assert.AreEqual(2, result.Value.Count);
-        Assert.IsTrue(result.Value.All(test => test.Passed));
-        CollectionAssert.AreEqual(
-            new[] { "first-project.trx", "second-project.trx" },
-            Directory.EnumerateFiles(fixture.ResultsRoot, "*.trx")
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.Success);
+        Assert.NotNull(result.Value);
+        await Assert.That(result.Value.Count).IsEqualTo(2);
+        await Assert.That(result.Value.All(test => test.Passed)).IsTrue();
+        await Assert.That(Directory.EnumerateFiles(fixture.ResultsRoot, "*.trx")
                 .Select(Path.GetFileName)
                 .OrderBy(path => path, StringComparer.Ordinal)
-                .ToArray());
-        Assert.AreEqual(4, fixture.ProcessRunner.Requests.Count);
+                .ToArray()).IsEquivalentTo((new[] { "first-project.trx", "second-project.trx" }).Cast<string?>(), TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(fixture.ProcessRunner.Requests.Count).IsEqualTo(4);
 
         for (var index = 0; index < result.Value.Count; index++)
         {
@@ -118,12 +114,9 @@ public sealed class AutomatedTestRunnerTests
             var projectPath = Path.GetFullPath(Path.Combine(fixture.ModRoot, profile.Path));
             var restore = fixture.ProcessRunner.Requests[index * 2];
             var test = fixture.ProcessRunner.Requests[index * 2 + 1];
-            CollectionAssert.AreEqual(
-                new[] { "restore", projectPath, "--locked-mode" },
-                restore.Arguments.ToArray());
-            Assert.AreEqual(0, restore.EnvironmentVariables.Count);
-            CollectionAssert.AreEqual(
-                new[]
+            await Assert.That(restore.Arguments.ToArray()).IsEquivalentTo(new[] { "restore", projectPath, "--locked-mode" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+            await Assert.That(restore.EnvironmentVariables.Count).IsEqualTo(0);
+            await Assert.That(test.Arguments.ToArray()).IsEquivalentTo(new[]
                 {
                     "test",
                     "--project",
@@ -137,22 +130,19 @@ public sealed class AutomatedTestRunnerTests
                     "--report-trx",
                     "--report-trx-filename",
                     $"{profile.Id}.trx"
-                },
-                test.Arguments.ToArray());
-            Assert.AreEqual(2, test.EnvironmentVariables.Count);
-            Assert.AreEqual(
-                fixture.ManagedDirectory,
-                test.EnvironmentVariables["ONI_MANAGED_ASSEMBLY_DIRECTORY"]);
-            Assert.IsTrue(test.EnvironmentVariables.TryGetValue(
+                }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+            await Assert.That(test.EnvironmentVariables.Count).IsEqualTo(2);
+            await Assert.That(test.EnvironmentVariables["ONI_MANAGED_ASSEMBLY_DIRECTORY"]).IsEqualTo(fixture.ManagedDirectory);
+            await Assert.That(test.EnvironmentVariables.TryGetValue(
                 "ONI_MOD_PIPELINE_REPOSITORY_ROOT",
-                out var repositoryRoot));
-            Assert.AreEqual(fixture.RepositoryRoot, repositoryRoot);
-            Assert.IsFalse(test.EnvironmentVariables.ContainsKey(
-                "ONI_PIPELINE_REPOSITORY_ROOT"));
+                out var repositoryRoot)).IsTrue();
+            await Assert.That(repositoryRoot).IsEqualTo(fixture.RepositoryRoot);
+            await Assert.That(test.EnvironmentVariables.ContainsKey(
+                "ONI_PIPELINE_REPOSITORY_ROOT")).IsFalse();
         }
     }
 
-    [TestMethod]
+    [Test]
     public async Task RunAsync_WhenBuildIsBound_ExportsThatExactBuildAndRequiresIt()
     {
         using var fixture = new AutomatedTestFixture(
@@ -171,22 +161,19 @@ public sealed class AutomatedTestRunnerTests
             new BoundPipelineBuild(buildResultPath, artifactsDirectory),
             CancellationToken.None);
 
-        Assert.AreEqual(PipelineExitCode.Success, result.ExitCode);
-        Assert.AreEqual(2, fixture.ProcessRunner.Requests.Count);
-        Assert.AreEqual(
-            0,
-            fixture.ProcessRunner.Requests[0].EnvironmentVariables.Count,
-            "Restore must not receive build-inspection variables.");
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.Success);
+        await Assert.That(fixture.ProcessRunner.Requests.Count).IsEqualTo(2);
+        await Assert.That(fixture.ProcessRunner.Requests[0].EnvironmentVariables.Count).IsEqualTo(0).Because("Restore must not receive build-inspection variables.");
         var environment = fixture.ProcessRunner.Requests[1].EnvironmentVariables;
-        Assert.AreEqual(5, environment.Count);
-        Assert.AreEqual(fixture.ManagedDirectory, environment["ONI_MANAGED_ASSEMBLY_DIRECTORY"]);
-        Assert.AreEqual(fixture.RepositoryRoot, environment["ONI_MOD_PIPELINE_REPOSITORY_ROOT"]);
-        Assert.AreEqual(buildResultPath, environment["ONI_MOD_PIPELINE_BUILD_RESULT_PATH"]);
-        Assert.AreEqual(artifactsDirectory, environment["ONI_MOD_PIPELINE_ARTIFACTS_DIRECTORY"]);
-        Assert.AreEqual("true", environment["ONI_MOD_PIPELINE_REQUIRE_BUILD_RESULT"]);
+        await Assert.That(environment.Count).IsEqualTo(5);
+        await Assert.That(environment["ONI_MANAGED_ASSEMBLY_DIRECTORY"]).IsEqualTo(fixture.ManagedDirectory);
+        await Assert.That(environment["ONI_MOD_PIPELINE_REPOSITORY_ROOT"]).IsEqualTo(fixture.RepositoryRoot);
+        await Assert.That(environment["ONI_MOD_PIPELINE_BUILD_RESULT_PATH"]).IsEqualTo(buildResultPath);
+        await Assert.That(environment["ONI_MOD_PIPELINE_ARTIFACTS_DIRECTORY"]).IsEqualTo(artifactsDirectory);
+        await Assert.That(environment["ONI_MOD_PIPELINE_REQUIRE_BUILD_RESULT"]).IsEqualTo("true");
     }
 
-    [TestMethod]
+    [Test]
     public async Task RunAsync_WhenResultsRootAlreadyExists_ReturnsOnip3005WithoutDeletingIt()
     {
         using var fixture = new AutomatedTestFixture(
@@ -201,19 +188,17 @@ public sealed class AutomatedTestRunnerTests
             fixture.ResultsRoot,
             CancellationToken.None);
 
-        AssertDiagnostic(result, DiagnosticIds.AutomatedTestFailed);
-        Assert.AreEqual("keep", await File.ReadAllTextAsync(marker));
-        Assert.AreEqual(0, fixture.ProcessRunner.Requests.Count);
+        await AssertDiagnostic(result, DiagnosticIds.AutomatedTestFailed);
+        await Assert.That(await File.ReadAllTextAsync(marker)).IsEqualTo("keep");
+        await Assert.That(fixture.ProcessRunner.Requests.Count).IsEqualTo(0);
     }
 
-    private static void AssertDiagnostic(
+    private static async Task AssertDiagnostic(
         OperationResult<IReadOnlyList<AutomatedTestResult>> result,
         string expectedId)
     {
-        Assert.AreEqual(PipelineExitCode.BuildOrTestFailed, result.ExitCode);
-        Assert.IsTrue(
-            result.Diagnostics.Any(diagnostic => diagnostic.Id == expectedId),
-            $"Expected {expectedId}; received " +
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.BuildOrTestFailed);
+        await Assert.That(result.Diagnostics.Any(diagnostic => diagnostic.Id == expectedId)).IsTrue().Because($"Expected {expectedId}; received " +
             string.Join(", ", result.Diagnostics.Select(diagnostic => diagnostic.Id)));
     }
 
@@ -290,7 +275,7 @@ public sealed class AutomatedTestRunnerTests
 
         internal string StandardError { get; set; } = string.Empty;
 
-        public Task<ProcessResult> RunAsync(
+        public async Task<ProcessResult> RunAsync(
             ProcessRequest request,
             CancellationToken cancellationToken)
         {
@@ -298,10 +283,10 @@ public sealed class AutomatedTestRunnerTests
             Requests.Add(request);
             if (request.Arguments[0] == "restore")
             {
-                return Task.FromResult(new ProcessResult(0, "restore output", string.Empty));
+                return new ProcessResult(0, "restore output", string.Empty);
             }
 
-            Assert.AreEqual("test", request.Arguments[0]);
+            await Assert.That(request.Arguments[0]).IsEqualTo("test");
             if (TestExitCode == 0 && WriteTrx)
             {
                 var resultsIndex = request.Arguments.IndexOf("--results-directory");
@@ -313,10 +298,10 @@ public sealed class AutomatedTestRunnerTests
                 File.WriteAllText(trxPath, "<TestRun />\n");
             }
 
-            return Task.FromResult(new ProcessResult(
+            return new ProcessResult(
                 TestExitCode,
                 StandardOutput,
-                StandardError));
+                StandardError);
         }
     }
 }

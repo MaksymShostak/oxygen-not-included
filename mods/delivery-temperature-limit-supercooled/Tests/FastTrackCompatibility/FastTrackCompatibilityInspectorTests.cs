@@ -1,8 +1,6 @@
 using System.Reflection;
 
 namespace DeliveryTemperatureLimit.Tests.FastTrackCompatibility;
-
-[TestClass]
 public sealed class FastTrackCompatibilityInspectorTests
 {
     private static readonly Version SupportedFileVersion = new(0, 18, 4, 0);
@@ -13,8 +11,8 @@ public sealed class FastTrackCompatibilityInspectorTests
     private const string UnknownDigest =
         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
-    [TestMethod]
-    public void Inspect_WhenFastTrackModIsNotLoaded_ClassifiesEveryFeatureAsModNotLoaded()
+    [Test]
+    public async Task Inspect_WhenFastTrackModIsNotLoaded_ClassifiesEveryFeatureAsModNotLoaded()
     {
         var identityReader = new RecordingAssemblyFileIdentityReader(
             SuccessfulFileIdentity());
@@ -28,18 +26,18 @@ public sealed class FastTrackCompatibilityInspectorTests
 
         FastTrackCompatibilityReport report = inspector.Inspect(inspectionInput);
 
-        AssertEveryFeatureHasState(
+        await AssertEveryFeatureHasState(
             report,
             FastTrackFeatureCompatibilityState.ModNotLoaded);
-        Assert.IsNull(report.AssemblyIdentity);
-        Assert.IsNull(report.AssemblyVersion);
-        Assert.IsNull(report.FileVersion);
-        Assert.IsNull(report.AssemblySha256);
-        Assert.AreEqual(0, identityReader.ReadCallCount);
+        await Assert.That(report.AssemblyIdentity).IsNull();
+        await Assert.That(report.AssemblyVersion).IsNull();
+        await Assert.That(report.FileVersion).IsNull();
+        await Assert.That(report.AssemblySha256).IsNull();
+        await Assert.That(identityReader.ReadCallCount).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void Inspect_WhenAssemblyIsLoadedButWorldInventoryReplacementIsInactive_ClassifiesWorldInventoryAsReplacementInactive()
+    [Test]
+    public async Task Inspect_WhenAssemblyIsLoadedButWorldInventoryReplacementIsInactive_ClassifiesWorldInventoryAsReplacementInactive()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract();
@@ -48,22 +46,22 @@ public sealed class FastTrackCompatibilityInspectorTests
             fixture.PickupGroupingReplacement,
             fixture.DirectDeliveryEligibilityReplacement);
 
-        AssertFeatureState(
+        await AssertFeatureState(
             report,
             FastTrackFeature.WorldInventory,
             FastTrackFeatureCompatibilityState.ReplacementInactive);
-        AssertFeatureState(
+        await AssertFeatureState(
             report,
             FastTrackFeature.PickupGrouping,
             FastTrackFeatureCompatibilityState.Ready);
-        AssertFeatureState(
+        await AssertFeatureState(
             report,
             FastTrackFeature.DirectDeliveryEligibility,
             FastTrackFeatureCompatibilityState.Ready);
     }
 
-    [TestMethod]
-    public void Inspect_WhenAssemblyIsLoadedButPickupPrefixIsNotActive_ClassifiesPickupGroupingAsReplacementInactive()
+    [Test]
+    public async Task Inspect_WhenAssemblyIsLoadedButPickupPrefixIsNotActive_ClassifiesPickupGroupingAsReplacementInactive()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract();
@@ -72,14 +70,14 @@ public sealed class FastTrackCompatibilityInspectorTests
             fixture.WorldInventoryReplacement,
             fixture.DirectDeliveryEligibilityReplacement);
 
-        AssertFeatureState(
+        await AssertFeatureState(
             report,
             FastTrackFeature.PickupGrouping,
             FastTrackFeatureCompatibilityState.ReplacementInactive);
     }
 
-    [TestMethod]
-    public void Inspect_WhenFeaturesHaveDifferentActivationStates_ClassifiesEachIndependently()
+    [Test]
+    public async Task Inspect_WhenFeaturesHaveDifferentActivationStates_ClassifiesEachIndependently()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract();
@@ -87,22 +85,22 @@ public sealed class FastTrackCompatibilityInspectorTests
             fixture,
             fixture.WorldInventoryReplacement);
 
-        AssertFeatureState(
+        await AssertFeatureState(
             report,
             FastTrackFeature.WorldInventory,
             FastTrackFeatureCompatibilityState.Ready);
-        AssertFeatureState(
+        await AssertFeatureState(
             report,
             FastTrackFeature.PickupGrouping,
             FastTrackFeatureCompatibilityState.ReplacementInactive);
-        AssertFeatureState(
+        await AssertFeatureState(
             report,
             FastTrackFeature.DirectDeliveryEligibility,
             FastTrackFeatureCompatibilityState.ReplacementInactive);
     }
 
-    [TestMethod]
-    public void Inspect_WhenActiveBuildHasKnownVersionButDifferentDigest_ClassifiesActiveFeaturesAsUnsupportedAssemblyBuild()
+    [Test]
+    public async Task Inspect_WhenActiveBuildHasKnownVersionButDifferentDigest_ClassifiesActiveFeaturesAsUnsupportedAssemblyBuild()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract();
@@ -129,13 +127,13 @@ public sealed class FastTrackCompatibilityInspectorTests
             fixture.PickupGroupingReplacement,
             fixture.DirectDeliveryEligibilityReplacement);
 
-        AssertEveryFeatureHasFailure(
+        await AssertEveryFeatureHasFailure(
             report,
             FastTrackFeatureCompatibilityFailureCode.UnsupportedAssemblyBuild);
     }
 
-    [TestMethod]
-    public void Inspect_WhenActiveBuildHasUnknownVersionButKnownDigest_ClassifiesActiveFeaturesAsUnsupportedAssemblyBuild()
+    [Test]
+    public async Task Inspect_WhenActiveBuildHasUnknownVersionButKnownDigest_ClassifiesActiveFeaturesAsUnsupportedAssemblyBuild()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract();
@@ -150,13 +148,13 @@ public sealed class FastTrackCompatibilityInspectorTests
             CreateSupportedTestCatalog(),
             fixture.AllReplacements.ToArray());
 
-        AssertEveryFeatureHasFailure(
+        await AssertEveryFeatureHasFailure(
             report,
             FastTrackFeatureCompatibilityFailureCode.UnsupportedAssemblyBuild);
     }
 
-    [TestMethod]
-    public void Inspect_WhenActiveBuildHasKnownVersionButUnknownDigest_ClassifiesActiveFeaturesAsUnsupportedAssemblyBuild()
+    [Test]
+    public async Task Inspect_WhenActiveBuildHasKnownVersionButUnknownDigest_ClassifiesActiveFeaturesAsUnsupportedAssemblyBuild()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract();
@@ -169,13 +167,13 @@ public sealed class FastTrackCompatibilityInspectorTests
             CreateSupportedTestCatalog(),
             fixture.AllReplacements.ToArray());
 
-        AssertEveryFeatureHasFailure(
+        await AssertEveryFeatureHasFailure(
             report,
             FastTrackFeatureCompatibilityFailureCode.UnsupportedAssemblyBuild);
     }
 
-    [TestMethod]
-    public void Inspect_WhenActiveBuildDigestUsesLowercase_ProceedsToStructuralVerification()
+    [Test]
+    public async Task Inspect_WhenActiveBuildDigestUsesLowercase_ProceedsToStructuralVerification()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract();
@@ -190,13 +188,13 @@ public sealed class FastTrackCompatibilityInspectorTests
             CreateSupportedTestCatalog(),
             fixture.AllReplacements.ToArray());
 
-        AssertEveryFeatureHasState(
+        await AssertEveryFeatureHasState(
             report,
             FastTrackFeatureCompatibilityState.Ready);
     }
 
-    [TestMethod]
-    public void Inspect_WhenActiveBuildDigestIsMalformed_ClassifiesActiveFeaturesAsUnsupportedWithoutThrowing()
+    [Test]
+    public async Task Inspect_WhenActiveBuildDigestIsMalformed_ClassifiesActiveFeaturesAsUnsupportedWithoutThrowing()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract();
@@ -211,13 +209,13 @@ public sealed class FastTrackCompatibilityInspectorTests
             CreateSupportedTestCatalog(),
             fixture.AllReplacements.ToArray());
 
-        AssertEveryFeatureHasFailure(
+        await AssertEveryFeatureHasFailure(
             report,
             FastTrackFeatureCompatibilityFailureCode.UnsupportedAssemblyBuild);
     }
 
-    [TestMethod]
-    public void Inspect_WhenUnsupportedBuildHasOneActiveReplacement_RejectsOnlyThatFeature()
+    [Test]
+    public async Task Inspect_WhenUnsupportedBuildHasOneActiveReplacement_RejectsOnlyThatFeature()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract();
@@ -230,21 +228,19 @@ public sealed class FastTrackCompatibilityInspectorTests
             CreateSupportedTestCatalog(),
             fixture.WorldInventoryReplacement);
 
-        Assert.AreEqual(
-            FastTrackFeatureCompatibilityFailureCode.UnsupportedAssemblyBuild,
-            report.GetFeature(FastTrackFeature.WorldInventory).FailureCode);
-        AssertFeatureState(
+        await Assert.That(report.GetFeature(FastTrackFeature.WorldInventory).FailureCode).IsEqualTo(FastTrackFeatureCompatibilityFailureCode.UnsupportedAssemblyBuild);
+        await AssertFeatureState(
             report,
             FastTrackFeature.PickupGrouping,
             FastTrackFeatureCompatibilityState.ReplacementInactive);
-        AssertFeatureState(
+        await AssertFeatureState(
             report,
             FastTrackFeature.DirectDeliveryEligibility,
             FastTrackFeatureCompatibilityState.ReplacementInactive);
     }
 
-    [TestMethod]
-    public void Inspect_WhenUnsupportedBuildHasNoActiveReplacement_ClassifiesEveryFeatureAsReplacementInactive()
+    [Test]
+    public async Task Inspect_WhenUnsupportedBuildHasNoActiveReplacement_ClassifiesEveryFeatureAsReplacementInactive()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract();
@@ -257,14 +253,14 @@ public sealed class FastTrackCompatibilityInspectorTests
             CreateSupportedTestCatalog(),
             Array.Empty<ActiveHarmonyPrefixDescriptor>());
 
-        AssertEveryFeatureHasState(
+        await AssertEveryFeatureHasState(
             report,
             FastTrackFeatureCompatibilityState.ReplacementInactive);
-        Assert.AreEqual(1, identityReader.ReadCallCount);
+        await Assert.That(identityReader.ReadCallCount).IsEqualTo(1);
     }
 
-    [TestMethod]
-    public void Inspect_WhenAssemblyBuildIsUnsupported_DiagnosticIncludesObservedPairWithoutCatalogEnumeration()
+    [Test]
+    public async Task Inspect_WhenAssemblyBuildIsUnsupported_DiagnosticIncludesObservedPairWithoutCatalogEnumeration()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract();
@@ -291,18 +287,18 @@ public sealed class FastTrackCompatibilityInspectorTests
         string diagnostic = report
             .GetFeature(FastTrackFeature.WorldInventory)
             .FailureMessage!;
-        StringAssert.Contains(diagnostic, "0.18.9.0");
-        StringAssert.Contains(diagnostic, UnknownDigest);
-        Assert.IsFalse(diagnostic.Contains(
+        await Assert.That(diagnostic).Contains("0.18.9.0");
+        await Assert.That(diagnostic).Contains(UnknownDigest);
+        await Assert.That(diagnostic.Contains(
             SupportedDigest,
-            StringComparison.Ordinal));
-        Assert.IsFalse(diagnostic.Contains(
+            StringComparison.Ordinal)).IsFalse();
+        await Assert.That(diagnostic.Contains(
             OtherAdmittedDigest,
-            StringComparison.Ordinal));
+            StringComparison.Ordinal)).IsFalse();
     }
 
-    [TestMethod]
-    public void Inspect_WhenAssemblyIsPresentButDisabledForLoadedGame_PerformsNoFeatureBinding()
+    [Test]
+    public async Task Inspect_WhenAssemblyIsPresentButDisabledForLoadedGame_PerformsNoFeatureBinding()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract();
@@ -318,15 +314,15 @@ public sealed class FastTrackCompatibilityInspectorTests
 
         FastTrackCompatibilityReport report = inspector.Inspect(input);
 
-        AssertEveryFeatureHasState(
+        await AssertEveryFeatureHasState(
             report,
             FastTrackFeatureCompatibilityState.ModNotLoaded);
-        Assert.AreEqual(0, identityReader.ReadCallCount);
-        Assert.IsNull(report.AssemblyIdentity);
+        await Assert.That(identityReader.ReadCallCount).IsEqualTo(0);
+        await Assert.That(report.AssemblyIdentity).IsNull();
     }
 
-    [TestMethod]
-    public void GetFeature_WhenFeatureValueIsUnknown_ThrowsArgumentOutOfRangeException()
+    [Test]
+    public async Task GetFeature_WhenFeatureValueIsUnknown_ThrowsArgumentOutOfRangeException()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract();
@@ -334,272 +330,248 @@ public sealed class FastTrackCompatibilityInspectorTests
             fixture,
             fixture.WorldInventoryReplacement);
 
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
-            report.GetFeature((FastTrackFeature)int.MaxValue));
+        await Assert.That(() =>
+            report.GetFeature((FastTrackFeature)int.MaxValue)).ThrowsExactly<ArgumentOutOfRangeException>();
     }
 
-    [TestMethod]
-    public void Inspect_WhenWorldInventoryRunUpdateSignatureChanges_ClassifiesOnlyWorldInventoryAsIncompatible()
+    [Test]
+    public async Task Inspect_WhenWorldInventoryRunUpdateSignatureChanges_ClassifiesOnlyWorldInventoryAsIncompatible()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateWithRunUpdateSignatureChanged();
 
         FastTrackCompatibilityReport report = InspectAllActive(fixture);
 
-        AssertOnlyFeatureIsIncompatible(
+        await AssertOnlyFeatureIsIncompatible(
             report,
             FastTrackFeature.WorldInventory,
             FastTrackFeatureCompatibilityFailureCode.WorldInventoryContractViolation);
     }
 
-    [TestMethod]
-    public void Inspect_WhenRunUpdateNoLongerHasCompleteAndSingleTagBranches_ClassifiesWorldInventoryAsIncompatible()
+    [Test]
+    public async Task Inspect_WhenRunUpdateNoLongerHasCompleteAndSingleTagBranches_ClassifiesWorldInventoryAsIncompatible()
     {
         FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
             .CreateWithRunUpdateMissingSingleTagBranch();
 
         FastTrackCompatibilityReport report = InspectAllActive(fixture);
 
-        AssertOnlyFeatureIsIncompatible(
+        await AssertOnlyFeatureIsIncompatible(
             report,
             FastTrackFeature.WorldInventory,
             FastTrackFeatureCompatibilityFailureCode.WorldInventoryContractViolation);
-        StringAssert.Contains(
-            report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!,
-            "complete and single-resource-tag branches");
+        await Assert.That(report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!).Contains("complete and single-resource-tag branches");
     }
 
-    [TestMethod]
-    public void Inspect_WhenRunUpdateFirstUpdateBranchIsReversed_ClassifiesWorldInventoryAsIncompatible()
+    [Test]
+    public async Task Inspect_WhenRunUpdateFirstUpdateBranchIsReversed_ClassifiesWorldInventoryAsIncompatible()
     {
         FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
             .CreateWithRunUpdateFirstUpdateBranchReversed();
 
         FastTrackCompatibilityReport report = InspectAllActive(fixture);
 
-        AssertOnlyFeatureIsIncompatible(
+        await AssertOnlyFeatureIsIncompatible(
             report,
             FastTrackFeature.WorldInventory,
             FastTrackFeatureCompatibilityFailureCode.WorldInventoryContractViolation);
-        StringAssert.Contains(
-            report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!,
-            "firstUpdate false branch");
+        await Assert.That(report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!).Contains("firstUpdate false branch");
     }
 
-    [TestMethod]
-    public void Inspect_WhenRunUpdateCallsBothTotalsBeforeSingleTagBranch_ClassifiesWorldInventoryAsIncompatible()
+    [Test]
+    public async Task Inspect_WhenRunUpdateCallsBothTotalsBeforeSingleTagBranch_ClassifiesWorldInventoryAsIncompatible()
     {
         FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
             .CreateWithRunUpdateTotalsInCompleteBranchOnly();
 
         FastTrackCompatibilityReport report = InspectAllActive(fixture);
 
-        AssertOnlyFeatureIsIncompatible(
+        await AssertOnlyFeatureIsIncompatible(
             report,
             FastTrackFeature.WorldInventory,
             FastTrackFeatureCompatibilityFailureCode.WorldInventoryContractViolation);
-        StringAssert.Contains(
-            report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!,
-            "opposite sides");
+        await Assert.That(report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!).Contains("opposite sides");
     }
 
-    [TestMethod]
-    public void Inspect_WhenRunUpdateResourceTagPublicationAnchorIsMissing_ClassifiesWorldInventoryAsIncompatible()
+    [Test]
+    public async Task Inspect_WhenRunUpdateResourceTagPublicationAnchorIsMissing_ClassifiesWorldInventoryAsIncompatible()
     {
         FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
             .CreateWithRunUpdateResourceTagPublicationAnchorMissing();
 
         FastTrackCompatibilityReport report = InspectAllActive(fixture);
 
-        AssertOnlyFeatureIsIncompatible(
+        await AssertOnlyFeatureIsIncompatible(
             report,
             FastTrackFeature.WorldInventory,
             FastTrackFeatureCompatibilityFailureCode.WorldInventoryContractViolation);
-        StringAssert.Contains(
-            report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!,
-            "resource-tag publication anchor");
+        await Assert.That(report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!).Contains("resource-tag publication anchor");
     }
 
-    [TestMethod]
-    public void Inspect_WhenRunUpdateResourceTagPublicationAnchorIsDuplicated_ClassifiesWorldInventoryAsIncompatible()
+    [Test]
+    public async Task Inspect_WhenRunUpdateResourceTagPublicationAnchorIsDuplicated_ClassifiesWorldInventoryAsIncompatible()
     {
         FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
             .CreateWithRunUpdateResourceTagPublicationAnchorDuplicated();
 
         FastTrackCompatibilityReport report = InspectAllActive(fixture);
 
-        AssertOnlyFeatureIsIncompatible(
+        await AssertOnlyFeatureIsIncompatible(
             report,
             FastTrackFeature.WorldInventory,
             FastTrackFeatureCompatibilityFailureCode.WorldInventoryContractViolation);
-        StringAssert.Contains(
-            report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!,
-            "resource-tag publication anchor");
+        await Assert.That(report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!).Contains("resource-tag publication anchor");
     }
 
-    [TestMethod]
-    public void Inspect_WhenRunUpdateInventoryFieldAnchorIsMissing_ClassifiesWorldInventoryAsIncompatible()
+    [Test]
+    public async Task Inspect_WhenRunUpdateInventoryFieldAnchorIsMissing_ClassifiesWorldInventoryAsIncompatible()
     {
         FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
             .CreateWithRunUpdateInventoryFieldAnchorMissing();
 
         FastTrackCompatibilityReport report = InspectAllActive(fixture);
 
-        AssertOnlyFeatureIsIncompatible(
+        await AssertOnlyFeatureIsIncompatible(
             report,
             FastTrackFeature.WorldInventory,
             FastTrackFeatureCompatibilityFailureCode.WorldInventoryContractViolation);
-        StringAssert.Contains(
-            report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!,
-            "WorldInventory.Inventory field anchor");
+        await Assert.That(report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!).Contains("WorldInventory.Inventory field anchor");
     }
 
-    [TestMethod]
-    public void Inspect_WhenRunUpdateInventoryFieldAnchorIsDuplicated_ClassifiesWorldInventoryAsIncompatible()
+    [Test]
+    public async Task Inspect_WhenRunUpdateInventoryFieldAnchorIsDuplicated_ClassifiesWorldInventoryAsIncompatible()
     {
         FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
             .CreateWithRunUpdateInventoryFieldAnchorDuplicated();
 
         FastTrackCompatibilityReport report = InspectAllActive(fixture);
 
-        AssertOnlyFeatureIsIncompatible(
+        await AssertOnlyFeatureIsIncompatible(
             report,
             FastTrackFeature.WorldInventory,
             FastTrackFeatureCompatibilityFailureCode.WorldInventoryContractViolation);
-        StringAssert.Contains(
-            report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!,
-            "WorldInventory.Inventory field anchor");
+        await Assert.That(report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!).Contains("WorldInventory.Inventory field anchor");
     }
 
-    [TestMethod]
-    public void Inspect_WhenSumTotalFilteredContributionAnchorIsMissing_ClassifiesWorldInventoryAsIncompatible()
+    [Test]
+    public async Task Inspect_WhenSumTotalFilteredContributionAnchorIsMissing_ClassifiesWorldInventoryAsIncompatible()
     {
         FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
             .CreateWithSumTotalFilteredContributionAnchorMissing();
 
         FastTrackCompatibilityReport report = InspectAllActive(fixture);
 
-        AssertOnlyFeatureIsIncompatible(
+        await AssertOnlyFeatureIsIncompatible(
             report,
             FastTrackFeature.WorldInventory,
             FastTrackFeatureCompatibilityFailureCode.WorldInventoryContractViolation);
-        StringAssert.Contains(
-            report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!,
-            "filtered Pickupable.TotalAmount contribution anchor");
+        await Assert.That(report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!).Contains("filtered Pickupable.TotalAmount contribution anchor");
     }
 
-    [TestMethod]
-    public void Inspect_WhenSumTotalFilteredContributionAnchorIsDuplicated_ClassifiesWorldInventoryAsIncompatible()
+    [Test]
+    public async Task Inspect_WhenSumTotalFilteredContributionAnchorIsDuplicated_ClassifiesWorldInventoryAsIncompatible()
     {
         FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
             .CreateWithSumTotalFilteredContributionAnchorDuplicated();
 
         FastTrackCompatibilityReport report = InspectAllActive(fixture);
 
-        AssertOnlyFeatureIsIncompatible(
+        await AssertOnlyFeatureIsIncompatible(
             report,
             FastTrackFeature.WorldInventory,
             FastTrackFeatureCompatibilityFailureCode.WorldInventoryContractViolation);
-        StringAssert.Contains(
-            report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!,
-            "filtered Pickupable.TotalAmount contribution anchor");
+        await Assert.That(report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!).Contains("filtered Pickupable.TotalAmount contribution anchor");
     }
 
-    [TestMethod]
-    public void Inspect_WhenRemovedFetchableCanDeleteTagKey_ClassifiesWorldInventoryAsIncompatible()
+    [Test]
+    public async Task Inspect_WhenRemovedFetchableCanDeleteTagKey_ClassifiesWorldInventoryAsIncompatible()
     {
         FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
             .CreateWithRemovedFetchableDeletingTagKey();
 
         FastTrackCompatibilityReport report = InspectAllActive(fixture);
 
-        AssertOnlyFeatureIsIncompatible(
+        await AssertOnlyFeatureIsIncompatible(
             report,
             FastTrackFeature.WorldInventory,
             FastTrackFeatureCompatibilityFailureCode.WorldInventoryContractViolation);
-        StringAssert.Contains(
-            report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!,
-            "dictionary key");
+        await Assert.That(report.GetFeature(FastTrackFeature.WorldInventory).FailureMessage!).Contains("dictionary key");
     }
 
-    [TestMethod]
-    public void Inspect_WhenPickupTagKeyEqualityUsesMoreThanAllocatedHash_ClassifiesPickupGroupingAsIncompatible()
+    [Test]
+    public async Task Inspect_WhenPickupTagKeyEqualityUsesMoreThanAllocatedHash_ClassifiesPickupGroupingAsIncompatible()
     {
         FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
             .CreateWithPickupTagKeyEqualityUsingAllocatedIdentity();
 
         FastTrackCompatibilityReport report = InspectAllActive(fixture);
 
-        AssertOnlyFeatureIsIncompatible(
+        await AssertOnlyFeatureIsIncompatible(
             report,
             FastTrackFeature.PickupGrouping,
             FastTrackFeatureCompatibilityFailureCode.PickupGroupingContractViolation);
-        StringAssert.Contains(
-            report.GetFeature(FastTrackFeature.PickupGrouping).FailureMessage!,
-            "allocated hash");
+        await Assert.That(report.GetFeature(FastTrackFeature.PickupGrouping).FailureMessage!).Contains("allocated hash");
     }
 
-    [TestMethod]
-    public void Inspect_WhenAddItemConstructorAnchorIsMissing_ClassifiesPickupGroupingAsIncompatible()
+    [Test]
+    public async Task Inspect_WhenAddItemConstructorAnchorIsMissing_ClassifiesPickupGroupingAsIncompatible()
     {
         FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
             .CreateWithAddItemConstructorAnchorMissing();
 
         FastTrackCompatibilityReport report = InspectAllActive(fixture);
 
-        AssertOnlyFeatureIsIncompatible(
+        await AssertOnlyFeatureIsIncompatible(
             report,
             FastTrackFeature.PickupGrouping,
             FastTrackFeatureCompatibilityFailureCode.PickupGroupingContractViolation);
-        StringAssert.Contains(
-            report.GetFeature(FastTrackFeature.PickupGrouping).FailureMessage!,
-            "exactly one PickupTagKey constructor anchor");
+        await Assert.That(report.GetFeature(FastTrackFeature.PickupGrouping).FailureMessage!).Contains("exactly one PickupTagKey constructor anchor");
     }
 
-    [TestMethod]
-    public void Inspect_WhenAddItemConstructorAnchorIsDuplicated_ClassifiesPickupGroupingAsIncompatible()
+    [Test]
+    public async Task Inspect_WhenAddItemConstructorAnchorIsDuplicated_ClassifiesPickupGroupingAsIncompatible()
     {
         FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
             .CreateWithAddItemConstructorAnchorDuplicated();
 
         FastTrackCompatibilityReport report = InspectAllActive(fixture);
 
-        AssertOnlyFeatureIsIncompatible(
+        await AssertOnlyFeatureIsIncompatible(
             report,
             FastTrackFeature.PickupGrouping,
             FastTrackFeatureCompatibilityFailureCode.PickupGroupingContractViolation);
     }
 
-    [TestMethod]
-    public void Inspect_WhenPickupTagKeyConstructorArgumentsAreReversed_ClassifiesPickupGroupingAsIncompatible()
+    [Test]
+    public async Task Inspect_WhenPickupTagKeyConstructorArgumentsAreReversed_ClassifiesPickupGroupingAsIncompatible()
     {
         FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
             .CreateWithPickupTagKeyConstructorArgumentsReversed();
 
         FastTrackCompatibilityReport report = InspectAllActive(fixture);
 
-        AssertOnlyFeatureIsIncompatible(
+        await AssertOnlyFeatureIsIncompatible(
             report,
             FastTrackFeature.PickupGrouping,
             FastTrackFeatureCompatibilityFailureCode.PickupGroupingContractViolation);
     }
 
-    [TestMethod]
-    public void Inspect_WhenAddItemSignatureChanges_ClassifiesPickupGroupingAsIncompatible()
+    [Test]
+    public async Task Inspect_WhenAddItemSignatureChanges_ClassifiesPickupGroupingAsIncompatible()
     {
         FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
             .CreateWithAddItemSignatureChanged();
 
         FastTrackCompatibilityReport report = InspectAllActive(fixture);
 
-        AssertOnlyFeatureIsIncompatible(
+        await AssertOnlyFeatureIsIncompatible(
             report,
             FastTrackFeature.PickupGrouping,
             FastTrackFeatureCompatibilityFailureCode.PickupGroupingContractViolation);
     }
 
-    [TestMethod]
-    public void Inspect_WhenPickupGroupingContractIsReady_ProvidesConstructorAndPickupableIdentityFieldAnchors()
+    [Test]
+    public async Task Inspect_WhenPickupGroupingContractIsReady_ProvidesConstructorAndPickupableIdentityFieldAnchors()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract();
@@ -607,23 +579,19 @@ public sealed class FastTrackCompatibilityInspectorTests
         FastTrackFeatureCompatibility compatibility = InspectAllActive(fixture)
             .GetFeature(FastTrackFeature.PickupGrouping);
 
-        Assert.AreEqual(
-            FastTrackFeatureCompatibilityState.Ready,
-            compatibility.State);
-        Assert.IsInstanceOfType<ConstructorInfo>(
-            compatibility.GetVerifiedMember(
-                FastTrackVerifiedMember.PickupGroupingKeyConstructor));
+        await Assert.That(compatibility.State).IsEqualTo(FastTrackFeatureCompatibilityState.Ready);
+        await Assert.That(compatibility.GetVerifiedMember(
+                FastTrackVerifiedMember.PickupGroupingKeyConstructor)).IsAssignableTo<ConstructorInfo>();
         FieldInfo pickupablePrefabIdentityField =
-            Assert.IsInstanceOfType<FieldInfo>(
-                compatibility.GetVerifiedMember(
+            (await Assert.That(compatibility.GetVerifiedMember(
                     FastTrackVerifiedMember
-                        .PickupGroupingPickupablePrefabIdentityField));
-        Assert.AreEqual("Pickupable", pickupablePrefabIdentityField.DeclaringType!.FullName);
-        Assert.AreEqual("KPrefabID", pickupablePrefabIdentityField.Name);
+                        .PickupGroupingPickupablePrefabIdentityField)).IsAssignableTo<FieldInfo>())!;
+        await Assert.That(pickupablePrefabIdentityField.DeclaringType!.FullName).IsEqualTo("Pickupable");
+        await Assert.That(pickupablePrefabIdentityField.Name).IsEqualTo("KPrefabID");
     }
 
-    [TestMethod]
-    public void Inspect_WhenHarmonyOwnerDoesNotMatchFastTrack_ClassifiesReplacementAsInactiveRatherThanClaimingReady()
+    [Test]
+    public async Task Inspect_WhenHarmonyOwnerDoesNotMatchFastTrack_ClassifiesReplacementAsInactiveRatherThanClaimingReady()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract();
@@ -638,72 +606,68 @@ public sealed class FastTrackCompatibilityInspectorTests
             fixture.PickupGroupingReplacement,
             fixture.DirectDeliveryEligibilityReplacement);
 
-        AssertFeatureState(
+        await AssertFeatureState(
             report,
             FastTrackFeature.WorldInventory,
             FastTrackFeatureCompatibilityState.ReplacementInactive);
-        AssertFeatureState(
+        await AssertFeatureState(
             report,
             FastTrackFeature.PickupGrouping,
             FastTrackFeatureCompatibilityState.Ready);
-        AssertFeatureState(
+        await AssertFeatureState(
             report,
             FastTrackFeature.DirectDeliveryEligibility,
             FastTrackFeatureCompatibilityState.Ready);
     }
 
-    [TestMethod]
-    public void Inspect_WhenDirectComparatorContractChanges_ClassifiesOnlyDirectDeliveryEligibilityAsIncompatible()
+    [Test]
+    public async Task Inspect_WhenDirectComparatorContractChanges_ClassifiesOnlyDirectDeliveryEligibilityAsIncompatible()
     {
         FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
             .CreateWithDirectComparatorContractChanged();
 
         FastTrackCompatibilityReport report = InspectAllActive(fixture);
 
-        AssertOnlyFeatureIsIncompatible(
+        await AssertOnlyFeatureIsIncompatible(
             report,
             FastTrackFeature.DirectDeliveryEligibility,
             FastTrackFeatureCompatibilityFailureCode.DirectDeliveryEligibilityContractViolation);
     }
 
-    [TestMethod]
-    public void Inspect_WhenDirectComparatorHasNoUniqueSuccessReturn_ClassifiesOnlyDirectDeliveryEligibilityAsIncompatible()
+    [Test]
+    public async Task Inspect_WhenDirectComparatorHasNoUniqueSuccessReturn_ClassifiesOnlyDirectDeliveryEligibilityAsIncompatible()
     {
         FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
             .CreateWithDirectComparatorSuccessReturnMissing();
 
         FastTrackCompatibilityReport report = InspectAllActive(fixture);
 
-        AssertOnlyFeatureIsIncompatible(
+        await AssertOnlyFeatureIsIncompatible(
             report,
             FastTrackFeature.DirectDeliveryEligibility,
             FastTrackFeatureCompatibilityFailureCode.DirectDeliveryEligibilityContractViolation);
-        StringAssert.Contains(
-            report.GetFeature(FastTrackFeature.DirectDeliveryEligibility)
-                .FailureMessage!,
-            "exactly one success return");
+        await Assert.That(report.GetFeature(FastTrackFeature.DirectDeliveryEligibility)
+                .FailureMessage!).Contains("exactly one success return");
     }
 
-    [TestMethod]
-    public void Inspect_WhenDirectComparatorHasTwoSuccessReturns_ClassifiesOnlyDirectDeliveryEligibilityAsIncompatible()
+    [Test]
+    public async Task Inspect_WhenDirectComparatorHasTwoSuccessReturns_ClassifiesOnlyDirectDeliveryEligibilityAsIncompatible()
     {
         FastTrackEmittedAssembly fixture = FastTrackReflectionEmitFixture
             .CreateWithDirectComparatorSuccessReturnDuplicated();
 
         FastTrackCompatibilityReport report = InspectAllActive(fixture);
 
-        AssertOnlyFeatureIsIncompatible(
+        await AssertOnlyFeatureIsIncompatible(
             report,
             FastTrackFeature.DirectDeliveryEligibility,
             FastTrackFeatureCompatibilityFailureCode.DirectDeliveryEligibilityContractViolation);
-        StringAssert.Contains(
-            report.GetFeature(FastTrackFeature.DirectDeliveryEligibility)
-                .FailureMessage!,
-            "exactly one success return");
+        await Assert.That(report.GetFeature(FastTrackFeature.DirectDeliveryEligibility)
+                .FailureMessage!).Contains("exactly one success return");
     }
 
-    [TestMethod]
-    public void Inspect_WhenDirectDeliveryContractIsReady_ProvidesSortedClearablePickupableFieldAnchor()
+    [Test]
+    public async Task Inspect_WhenDirectDeliveryContractIsReady_ProvidesSortedClearablePickupableFieldAnchor()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract();
@@ -711,21 +675,16 @@ public sealed class FastTrackCompatibilityInspectorTests
         FastTrackFeatureCompatibility compatibility = InspectAllActive(fixture)
             .GetFeature(FastTrackFeature.DirectDeliveryEligibility);
 
-        Assert.AreEqual(
-            FastTrackFeatureCompatibilityState.Ready,
-            compatibility.State);
-        FieldInfo pickupableField = Assert.IsInstanceOfType<FieldInfo>(
-            compatibility.GetVerifiedMember(
+        await Assert.That(compatibility.State).IsEqualTo(FastTrackFeatureCompatibilityState.Ready);
+        FieldInfo pickupableField = (await Assert.That(compatibility.GetVerifiedMember(
                 FastTrackVerifiedMember
-                    .DirectDeliveryEligibilitySortedPickupableField));
-        Assert.AreEqual(
-            "ClearableManager+SortedClearable",
-            pickupableField.DeclaringType!.FullName);
-        Assert.AreEqual("pickupable", pickupableField.Name);
+                    .DirectDeliveryEligibilitySortedPickupableField)).IsAssignableTo<FieldInfo>())!;
+        await Assert.That(pickupableField.DeclaringType!.FullName).IsEqualTo("ClearableManager+SortedClearable");
+        await Assert.That(pickupableField.Name).IsEqualTo("pickupable");
     }
 
-    [TestMethod]
-    public void Inspect_WhenActiveAssemblyIdentityCannotBeRead_PropagatesReaderStateOnlyToActiveFeatures()
+    [Test]
+    public async Task Inspect_WhenActiveAssemblyIdentityCannotBeRead_PropagatesReaderStateOnlyToActiveFeatures()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract();
@@ -742,28 +701,24 @@ public sealed class FastTrackCompatibilityInspectorTests
             identityReader,
             fixture.WorldInventoryReplacement);
 
-        AssertFeatureState(
+        await AssertFeatureState(
             report,
             FastTrackFeature.WorldInventory,
             FastTrackFeatureCompatibilityState.Incompatible);
-        Assert.AreEqual(
-            FastTrackFeatureCompatibilityFailureCode.AssemblyFileIdentityUnavailable,
-            report.GetFeature(FastTrackFeature.WorldInventory).FailureCode);
-        AssertFeatureState(
+        await Assert.That(report.GetFeature(FastTrackFeature.WorldInventory).FailureCode).IsEqualTo(FastTrackFeatureCompatibilityFailureCode.AssemblyFileIdentityUnavailable);
+        await AssertFeatureState(
             report,
             FastTrackFeature.PickupGrouping,
             FastTrackFeatureCompatibilityState.ReplacementInactive);
-        AssertFeatureState(
+        await AssertFeatureState(
             report,
             FastTrackFeature.DirectDeliveryEligibility,
             FastTrackFeatureCompatibilityState.ReplacementInactive);
-        Assert.AreEqual(
-            FastTrackAssemblyFileIdentityReadState.LocationUnavailable,
-            report.AssemblyFileIdentityReadState);
+        await Assert.That(report.AssemblyFileIdentityReadState).IsEqualTo(FastTrackAssemblyFileIdentityReadState.LocationUnavailable);
     }
 
-    [TestMethod]
-    public void Inspect_WhenEnabledAssemblyIsLoaded_ReadsPhysicalIdentityExactlyOnce()
+    [Test]
+    public async Task Inspect_WhenEnabledAssemblyIsLoaded_ReadsPhysicalIdentityExactlyOnce()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract();
@@ -775,21 +730,17 @@ public sealed class FastTrackCompatibilityInspectorTests
             identityReader,
             fixture.AllReplacements.ToArray());
 
-        Assert.AreEqual(1, identityReader.ReadCallCount);
-        Assert.AreSame(fixture.Assembly, identityReader.LastAssembly);
-        Assert.AreEqual(fixture.Assembly.FullName, report.AssemblyIdentity);
-        Assert.AreEqual(new Version(0, 18, 0, 0), report.AssemblyVersion);
-        Assert.AreEqual(SupportedFileVersion, report.FileVersion);
-        Assert.AreEqual(
-            SupportedDigest,
-            report.AssemblySha256);
-        Assert.AreEqual(
-            FastTrackAssemblyFileIdentityReadState.Success,
-            report.AssemblyFileIdentityReadState);
+        await Assert.That(identityReader.ReadCallCount).IsEqualTo(1);
+        await Assert.That(identityReader.LastAssembly).IsSameReferenceAs(fixture.Assembly);
+        await Assert.That(report.AssemblyIdentity).IsEqualTo(fixture.Assembly.FullName);
+        await Assert.That(report.AssemblyVersion).IsEqualTo(new Version(0, 18, 0, 0));
+        await Assert.That(report.FileVersion).IsEqualTo(SupportedFileVersion);
+        await Assert.That(report.AssemblySha256).IsEqualTo(SupportedDigest);
+        await Assert.That(report.AssemblyFileIdentityReadState).IsEqualTo(FastTrackAssemblyFileIdentityReadState.Success);
     }
 
-    [TestMethod]
-    public void Inspect_WhenFeatureIsReady_ExposesOnlyItsVerifiedReflectedMembersWithoutDiagnostics()
+    [Test]
+    public async Task Inspect_WhenFeatureIsReady_ExposesOnlyItsVerifiedReflectedMembersWithoutDiagnostics()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract();
@@ -800,16 +751,14 @@ public sealed class FastTrackCompatibilityInspectorTests
         {
             FastTrackFeatureCompatibility compatibility =
                 report.GetFeature(feature);
-            Assert.AreEqual(
-                FastTrackFeatureCompatibilityState.Ready,
-                compatibility.State);
-            Assert.IsNotEmpty(compatibility.VerifiedMembers);
-            Assert.IsNull(compatibility.FailureCode);
-            Assert.IsNull(compatibility.FailureMessage);
+            await Assert.That(compatibility.State).IsEqualTo(FastTrackFeatureCompatibilityState.Ready);
+            await Assert.That(compatibility.VerifiedMembers).IsNotEmpty();
+            await Assert.That(compatibility.FailureCode).IsNull();
+            await Assert.That(compatibility.FailureMessage).IsNull();
             foreach (KeyValuePair<FastTrackVerifiedMember, MemberInfo> verified in
                      compatibility.VerifiedMembers)
             {
-                Assert.IsNotNull(verified.Value);
+                Assert.NotNull(verified.Value);
             }
         }
     }
@@ -871,17 +820,17 @@ public sealed class FastTrackCompatibilityInspectorTests
                 SupportedDigest)
         });
 
-    private static void AssertEveryFeatureHasState(
+    private static async Task AssertEveryFeatureHasState(
         FastTrackCompatibilityReport report,
         FastTrackFeatureCompatibilityState expectedState)
     {
         foreach (FastTrackFeature feature in EnumerateFeatures())
         {
-            AssertFeatureState(report, feature, expectedState);
+            await AssertFeatureState(report, feature, expectedState);
         }
     }
 
-    private static void AssertEveryFeatureHasFailure(
+    private static async Task AssertEveryFeatureHasFailure(
         FastTrackCompatibilityReport report,
         FastTrackFeatureCompatibilityFailureCode expectedFailureCode)
     {
@@ -889,15 +838,13 @@ public sealed class FastTrackCompatibilityInspectorTests
         {
             FastTrackFeatureCompatibility compatibility =
                 report.GetFeature(feature);
-            Assert.AreEqual(
-                FastTrackFeatureCompatibilityState.Incompatible,
-                compatibility.State);
-            Assert.AreEqual(expectedFailureCode, compatibility.FailureCode);
-            Assert.IsNotNull(compatibility.FailureMessage);
+            await Assert.That(compatibility.State).IsEqualTo(FastTrackFeatureCompatibilityState.Incompatible);
+            await Assert.That(compatibility.FailureCode).IsEqualTo(expectedFailureCode);
+            Assert.NotNull(compatibility.FailureMessage);
         }
     }
 
-    private static void AssertOnlyFeatureIsIncompatible(
+    private static async Task AssertOnlyFeatureIsIncompatible(
         FastTrackCompatibilityReport report,
         FastTrackFeature incompatibleFeature,
         FastTrackFeatureCompatibilityFailureCode expectedFailureCode)
@@ -908,39 +855,34 @@ public sealed class FastTrackCompatibilityInspectorTests
                 report.GetFeature(feature);
             if (feature == incompatibleFeature)
             {
-                Assert.AreEqual(
-                    FastTrackFeatureCompatibilityState.Incompatible,
-                    compatibility.State);
-                Assert.AreEqual(expectedFailureCode, compatibility.FailureCode);
-                Assert.IsNotNull(compatibility.FailureMessage);
+                await Assert.That(compatibility.State).IsEqualTo(FastTrackFeatureCompatibilityState.Incompatible);
+                await Assert.That(compatibility.FailureCode).IsEqualTo(expectedFailureCode);
+                Assert.NotNull(compatibility.FailureMessage);
             }
             else
             {
-                Assert.AreEqual(
-                    FastTrackFeatureCompatibilityState.Ready,
-                    compatibility.State,
-                    $"Mutation for {incompatibleFeature} changed {feature}.");
+                await Assert.That(compatibility.State).IsEqualTo(FastTrackFeatureCompatibilityState.Ready).Because($"Mutation for {incompatibleFeature} changed {feature}.");
             }
         }
     }
 
-    private static void AssertFeatureState(
+    private static async Task AssertFeatureState(
         FastTrackCompatibilityReport report,
         FastTrackFeature feature,
         FastTrackFeatureCompatibilityState expectedState)
     {
         FastTrackFeatureCompatibility compatibility = report.GetFeature(feature);
-        Assert.AreEqual(feature, compatibility.Feature);
-        Assert.AreEqual(expectedState, compatibility.State);
+        await Assert.That(compatibility.Feature).IsEqualTo(feature);
+        await Assert.That(compatibility.State).IsEqualTo(expectedState);
         if (expectedState == FastTrackFeatureCompatibilityState.Incompatible)
         {
-            Assert.IsNotNull(compatibility.FailureCode);
-            Assert.IsNotNull(compatibility.FailureMessage);
+            Assert.NotNull(compatibility.FailureCode);
+            Assert.NotNull(compatibility.FailureMessage);
         }
         else
         {
-            Assert.IsNull(compatibility.FailureCode);
-            Assert.IsNull(compatibility.FailureMessage);
+            await Assert.That(compatibility.FailureCode).IsNull();
+            await Assert.That(compatibility.FailureMessage).IsNull();
         }
     }
 

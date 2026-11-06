@@ -7,12 +7,10 @@ using System.Reflection.PortableExecutable;
 using DeliveryTemperatureLimit.Tests.OniModPipelineIntegration;
 
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
-
-[TestClass]
 public sealed class DeliveryTemperatureUserInterfaceContractTests
 {
-    [TestMethod]
-    public void TemperatureSection_InitializesBeforeBindingAnInactiveScreenTarget()
+    [Test]
+    public async Task TemperatureSection_InitializesBeforeBindingAnInactiveScreenTarget()
     {
         string managedDirectory = Environment.GetEnvironmentVariable(
             "ONI_MANAGED_ASSEMBLY_DIRECTORY")
@@ -25,47 +23,40 @@ public sealed class DeliveryTemperatureUserInterfaceContractTests
             instruction.ResolvedOperand == "SideScreenContent.SetTarget");
         int show = refresh.FindIndex(instruction =>
             instruction.ResolvedOperand == "KScreen.Show");
-        Assert.IsTrue(setTarget >= 0 && show > setTarget,
-            "The game binds the target before showing the inactive side screen.");
+        await Assert.That(setTarget >= 0 && show > setTarget).IsTrue().Because("The game binds the target before showing the inactive side screen.");
 
         string path = PipelineProvenanceBoundAssemblyLocator
             .CreateForCurrentPipelineEnvironment().ResolvePipelineBuildOrInconclusive().AssemblyPath;
         var binding = DeliveryTemperatureAssemblyMetadataReader.ReadMethodBodies(
                 path, "DeliveryTemperatureLimit.TemperatureLimitSideScreen", "SetTarget")
             .Single().Instructions.Where(instruction => instruction.Operation != "nop").ToList();
-        Assert.AreEqual("ldarg.0", binding[0].Operation);
-        Assert.AreEqual("KMonoBehaviour.InitializeComponent", binding[1].ResolvedOperand,
-            "Initialize through ONI's idempotent lifecycle before accessing the container or widget; Show has not run yet.");
+        await Assert.That(binding[0].Operation).IsEqualTo("ldarg.0");
+        await Assert.That(binding[1].ResolvedOperand).IsEqualTo("KMonoBehaviour.InitializeComponent").Because("Initialize through ONI's idempotent lifecycle before accessing the container or widget; Show has not run yet.");
     }
 
-    [TestMethod]
-    public void TemperatureSection_InstantiatesItsOwnNativeHeaderBeforeSettingItsTitle()
+    [Test]
+    public async Task TemperatureSection_InstantiatesItsOwnNativeHeaderBeforeSettingItsTitle()
     {
         var instructions = ReadSideScreenInitialization();
         int clone = instructions.FindIndex(instruction =>
             instruction.ResolvedOperand == "Util.KInstantiateUI");
-        Assert.IsTrue(clone >= 0,
-            "GetTitle only supplies the tab's top title. The temperature section needs its own native header instance.");
+        await Assert.That(clone >= 0).IsTrue().Because("GetTitle only supplies the tab's top title. The temperature section needs its own native header instance.");
         int title = instructions.FindIndex(instruction =>
             instruction.ResolvedOperand == "TMPro.TMP_Text.SetText");
-        Assert.IsTrue(title > clone,
-            "Set the section title on the cloned header, preserving the shared tab title.");
-        Assert.IsTrue(instructions.Take(clone).Any(instruction =>
-            instruction.ResolvedOperand == "DetailsScreen.GetTabOfType"),
-            "The header must come from the game's side-screen tab, so its styling follows ONI.");
+        await Assert.That(title > clone).IsTrue().Because("Set the section title on the cloned header, preserving the shared tab title.");
+        await Assert.That(instructions.Take(clone).Any(instruction =>
+            instruction.ResolvedOperand == "DetailsScreen.GetTabOfType")).IsTrue().Because("The header must come from the game's side-screen tab, so its styling follows ONI.");
     }
 
-    [TestMethod]
-    public void TemperatureSection_KeepsThePaddedEditorInASeparateContentContainer()
+    [Test]
+    public async Task TemperatureSection_KeepsThePaddedEditorInASeparateContentContainer()
     {
         var instructions = ReadSideScreenInitialization();
         int container = instructions.FindIndex(instruction =>
             instruction.Operation == "stfld"
             && instruction.ResolvedOperand == "SideScreenContent.ContentContainer");
-        Assert.IsTrue(container > 0);
-        Assert.AreEqual("PeterHan.PLib.UI.PUIElements.CreateUI",
-            instructions[container - 1].ResolvedOperand,
-            "Editor padding must apply to a child container, leaving the native section header at full width.");
+        await Assert.That(container > 0).IsTrue();
+        await Assert.That(instructions[container - 1].ResolvedOperand).IsEqualTo("PeterHan.PLib.UI.PUIElements.CreateUI").Because("Editor padding must apply to a child container, leaving the native section header at full width.");
     }
 
     private static List<AssemblyInstructionContract> ReadSideScreenInitialization()
@@ -77,14 +68,14 @@ public sealed class DeliveryTemperatureUserInterfaceContractTests
             .Single().Instructions.ToList();
     }
 
-    [TestMethod]
-    public void TemperatureLimitWidget_WhenCompiled_DoesNotAddLegacyInputFieldToTmpInputs()
+    [Test]
+    public async Task TemperatureLimitWidget_WhenCompiled_DoesNotAddLegacyInputFieldToTmpInputs()
     {
         var builds = PipelineProvenanceBoundAssemblyLocator
             .CreateForCurrentPipelineEnvironment().ProbeExactPipelineBuildDataRows();
         if (builds.Count == 0)
         {
-            Assert.Inconclusive("Supply DELIVERY_TEMPERATURE_LIMIT_BUILD_RESULT_PATH to inspect the compiled widget.");
+            Skip.Test("Supply DELIVERY_TEMPERATURE_LIMIT_BUILD_RESULT_PATH to inspect the compiled widget.");
         }
 
         string assemblyPath = builds.Single().AssemblyPath;
@@ -109,7 +100,7 @@ public sealed class DeliveryTemperatureUserInterfaceContractTests
                         (MethodSpecificationHandle)MetadataTokens.EntityHandle((int)instruction.Operand!));
                     BlobReader signature = metadata.GetBlobReader(specification.Signature);
                     signature.ReadSignatureHeader();
-                    Assert.AreEqual(1, signature.ReadCompressedInteger());
+                    await Assert.That(signature.ReadCompressedInteger()).IsEqualTo(1);
                     if (signature.ReadSignatureTypeCode() != SignatureTypeCode.TypeHandle)
                     {
                         continue;
@@ -122,63 +113,42 @@ public sealed class DeliveryTemperatureUserInterfaceContractTests
                     }
 
                     TypeReference component = metadata.GetTypeReference((TypeReferenceHandle)argument);
-                    Assert.IsFalse(
-                        metadata.GetString(component.Namespace) == "UnityEngine.UI"
-                        && metadata.GetString(component.Name) == "InputField",
-                        $"{methodName} adds a legacy InputField to a PLib TMP input. Unity rejects the second Selectable, returning null before dummyField.enabled is assigned.");
+                    await Assert.That(metadata.GetString(component.Namespace) == "UnityEngine.UI"
+                        && metadata.GetString(component.Name) == "InputField").IsFalse().Because($"{methodName} adds a legacy InputField to a PLib TMP input. Unity rejects the second Selectable, returning null before dummyField.enabled is assigned.");
                 }
             }
         }
     }
 
-    [TestMethod]
-    public void TemperatureLimitSideScreen_WhenInspected_DoesNotPollOrSwallowKeysInUpdate()
+    [Test]
+    public async Task TemperatureLimitSideScreen_WhenInspected_DoesNotPollOrSwallowKeysInUpdate()
     {
         string sourceRoot = ResolveSourceRoot();
         string sideScreenSource = File.ReadAllText(
             Path.Combine(sourceRoot, "TemperatureLimitUserInterface", "TemperatureLimitSideScreen.cs"));
 
-        Assert.IsFalse(
-            sideScreenSource.Contains("Input.GetKeyDown(KeyCode.W)", StringComparison.Ordinal),
-            "TemperatureLimitSideScreen must not poll WASD keys in Update.");
-        Assert.IsFalse(
-            sideScreenSource.Contains("[DEBUG-KEY]", StringComparison.Ordinal),
-            "TemperatureLimitSideScreen must not retain diagnostic debug log probes.");
+        await Assert.That(sideScreenSource.Contains("Input.GetKeyDown(KeyCode.W)", StringComparison.Ordinal)).IsFalse().Because("TemperatureLimitSideScreen must not poll WASD keys in Update.");
+        await Assert.That(sideScreenSource.Contains("[DEBUG-KEY]", StringComparison.Ordinal)).IsFalse().Because("TemperatureLimitSideScreen must not retain diagnostic debug log probes.");
     }
 
-    [TestMethod]
-    public void DeliveryTemperatureOptionsUiBridge_WhenInspected_ResolvesImplementedMethodBeforeHarmonyPatch()
+    [Test]
+    public async Task DeliveryTemperatureOptionsUiBridge_WhenInspected_ResolvesImplementedMethodBeforeHarmonyPatch()
     {
         string sourceRoot = ResolveSourceRoot();
         string bridgeSource = File.ReadAllText(
             Path.Combine(sourceRoot, "Options", "DeliveryTemperatureOptionsUiBridge.cs"));
 
-        StringAssert.Contains(
-            bridgeSource,
-            "GetImplementedMethod",
-            "DeliveryTemperatureOptionsUiBridge must resolve the implemented method before Harmony patching.");
-        StringAssert.Contains(
-            bridgeSource,
-            "MethodBase.GetMethodFromHandle",
-            "DeliveryTemperatureOptionsUiBridge must resolve methods to their declaring type via MethodBase.GetMethodFromHandle.");
-        StringAssert.Contains(
-            bridgeSource,
-            "MethodInfo patchTarget = GetImplementedMethod(target);",
-            "DeliveryTemperatureOptionsUiBridge.Patch must resolve patchTarget via GetImplementedMethod.");
+        await Assert.That(bridgeSource).Contains("GetImplementedMethod").Because("DeliveryTemperatureOptionsUiBridge must resolve the implemented method before Harmony patching.");
+        await Assert.That(bridgeSource).Contains("MethodBase.GetMethodFromHandle").Because("DeliveryTemperatureOptionsUiBridge must resolve methods to their declaring type via MethodBase.GetMethodFromHandle.");
+        await Assert.That(bridgeSource).Contains("MethodInfo patchTarget = GetImplementedMethod(target);").Because("DeliveryTemperatureOptionsUiBridge.Patch must resolve patchTarget via GetImplementedMethod.");
 
         MethodInfo derivedMethod = typeof(ContractTestDerivedDialogScreenDouble).GetMethod("Deactivate")!;
-        Assert.AreNotEqual(
-            derivedMethod.DeclaringType,
-            derivedMethod.ReflectedType,
-            "Derived class reflection must produce an inherited method where ReflectedType differs from DeclaringType.");
+        await Assert.That(derivedMethod.ReflectedType).IsNotEqualTo(derivedMethod.DeclaringType).Because("Derived class reflection must produce an inherited method where ReflectedType differs from DeclaringType.");
 
         MethodInfo resolvedMethod = ((MethodInfo?)MethodBase.GetMethodFromHandle(
             derivedMethod.MethodHandle,
             derivedMethod.DeclaringType!.TypeHandle))!;
-        Assert.AreEqual(
-            resolvedMethod.DeclaringType,
-            resolvedMethod.ReflectedType,
-            "Resolved method handle on DeclaringType must produce ReflectedType == DeclaringType to satisfy Harmony.");
+        await Assert.That(resolvedMethod.ReflectedType).IsEqualTo(resolvedMethod.DeclaringType).Because("Resolved method handle on DeclaringType must produce ReflectedType == DeclaringType to satisfy Harmony.");
     }
 
     private class ContractTestBaseKScreenDouble

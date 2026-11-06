@@ -14,22 +14,20 @@ using System.Security.Cryptography;
 using System.Text.Json;
 
 namespace MaksymShostak.OniModPipeline.Tests.ReleaseCandidates;
-
-[TestClass]
 public sealed class ReleaseCandidatePreparerTests
 {
-    [TestMethod]
+    [Test]
     public async Task Prepare_WithUnqualifiedReadme_StopsBeforeCreatingCandidate()
     {
         using var fixture = new PreparationFixture();
         var request = fixture.Request with { Profile = fixture.Request.Profile with { Readme = new ReadmeProfile("README.md") } };
         var result = await fixture.Preparer.PrepareAsync(request, CancellationToken.None);
-        Assert.AreEqual(PipelineExitCode.ReleaseNotReady, result.ExitCode);
-        Assert.IsFalse(Directory.Exists(fixture.Layout.CandidateDirectory));
-        Assert.IsTrue(result.Diagnostics.Any(diagnostic => diagnostic.Id == "ONIP1009"));
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.ReleaseNotReady);
+        await Assert.That(Directory.Exists(fixture.Layout.CandidateDirectory)).IsFalse();
+        await Assert.That(result.Diagnostics.Any(diagnostic => diagnostic.Id == "ONIP1009")).IsTrue();
     }
 
-    [TestMethod]
+    [Test]
     public async Task Prepare_WithStaleReadme_LeavesSourceAndCandidateUntouched()
     {
         using var fixture = new PreparationFixture();
@@ -45,16 +43,16 @@ public sealed class ReleaseCandidatePreparerTests
         File.WriteAllText(Path.Combine(rendererDirectory, "render-description.mjs"), "process.stdin.pipe(process.stdout);");
         var request = fixture.Request with { Profile = fixture.Request.Profile with { Readme = new ReadmeProfile("README.md") } };
         var result = await fixture.Preparer.PrepareAsync(request, CancellationToken.None);
-        Assert.AreEqual(PipelineExitCode.ReleaseNotReady, result.ExitCode);
-        Assert.IsTrue(result.Diagnostics.Any(diagnostic => diagnostic.Evidence.Contains("stale", StringComparison.Ordinal)));
-        Assert.AreEqual(original, File.ReadAllText(readme));
-        Assert.IsFalse(Directory.Exists(fixture.Layout.CandidateDirectory));
-        Assert.AreEqual(0, fixture.Trace.Count);
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.ReleaseNotReady);
+        await Assert.That(result.Diagnostics.Any(diagnostic => diagnostic.Evidence.Contains("stale", StringComparison.Ordinal))).IsTrue();
+        await Assert.That(File.ReadAllText(readme)).IsEqualTo(original);
+        await Assert.That(Directory.Exists(fixture.Layout.CandidateDirectory)).IsFalse();
+        await Assert.That(fixture.Trace.Count).IsEqualTo(0);
     }
     private const string RunId =
         "20260827T140302.1234567Z-0123456789abcdef";
 
-    [TestMethod]
+    [Test]
     public async Task PrepareAsync_WhenEveryGatePasses_PromotesExactAwaitingAcceptanceContract()
     {
         using var fixture = new PreparationFixture();
@@ -63,22 +61,19 @@ public sealed class ReleaseCandidatePreparerTests
             fixture.Request,
             CancellationToken.None);
 
-        Assert.IsTrue(result.IsSuccess, RenderDiagnostics(result.Diagnostics));
-        Assert.IsNotNull(result.Value);
-        Assert.AreEqual(fixture.Layout.CandidateDirectory, result.Value.CandidateDirectory);
-        Assert.AreEqual(ReleaseCandidateState.AwaitingAcceptance, result.Value.State);
-        Assert.AreEqual(RunId, result.Value.Layout.RunId);
-        Assert.IsTrue(Directory.Exists(fixture.Layout.CandidateDirectory));
-        AssertTransientSiblingsAreAbsent(fixture.Layout);
+        await Assert.That(result.IsSuccess).IsTrue().Because(RenderDiagnostics(result.Diagnostics));
+        Assert.NotNull(result.Value);
+        await Assert.That(result.Value.CandidateDirectory).IsEqualTo(fixture.Layout.CandidateDirectory);
+        await Assert.That(result.Value.State).IsEqualTo(ReleaseCandidateState.AwaitingAcceptance);
+        await Assert.That(result.Value.Layout.RunId).IsEqualTo(RunId);
+        await Assert.That(Directory.Exists(fixture.Layout.CandidateDirectory)).IsTrue();
+        await AssertTransientSiblingsAreAbsent(fixture.Layout);
 
-        CollectionAssert.AreEqual(
-            new[] { "release-evidence", "workshop-content", "workshop-listing" },
-            Directory.EnumerateDirectories(fixture.Layout.CandidateDirectory)
+        await Assert.That(Directory.EnumerateDirectories(fixture.Layout.CandidateDirectory)
                 .Select(Path.GetFileName)
                 .OrderBy(name => name, StringComparer.Ordinal)
-                .ToArray());
-        CollectionAssert.AreEqual(
-            new[]
+                .ToArray()).IsEquivalentTo((new[] { "release-evidence", "workshop-content", "workshop-listing" }).Cast<string?>(), TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(EnumerateRelativeFiles(fixture.Layout.CandidateDirectory)).IsEquivalentTo(new[]
             {
                 "release-evidence/acceptance-test-plan.json",
                 "release-evidence/automated-test-results/example-regressions.trx",
@@ -93,121 +88,91 @@ public sealed class ReleaseCandidatePreparerTests
                 "workshop-listing/change-notes.bbcode",
                 "workshop-listing/description.bbcode",
                 "workshop-listing/preview.png"
-            },
-            EnumerateRelativeFiles(fixture.Layout.CandidateDirectory));
-        Assert.IsFalse(File.Exists(fixture.Layout.InstallationReceiptPath));
-        Assert.IsFalse(File.Exists(fixture.Layout.AcceptanceTestResultsPath));
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(File.Exists(fixture.Layout.InstallationReceiptPath)).IsFalse();
+        await Assert.That(File.Exists(fixture.Layout.AcceptanceTestResultsPath)).IsFalse();
 
         using var plan = JsonDocument.Parse(
             await File.ReadAllBytesAsync(fixture.Layout.AcceptanceTestPlanPath));
-        Assert.AreEqual(1, plan.RootElement.GetProperty("schemaVersion").GetInt32());
-        Assert.AreEqual("Example.Mod", plan.RootElement.GetProperty("staticId").GetString());
-        Assert.AreEqual("1.2.3", plan.RootElement.GetProperty("version").GetString());
-        Assert.AreEqual(
-            result.Value.ContentManifest.ContentDigest,
-            plan.RootElement.GetProperty("contentDigest").GetString());
+        await Assert.That(plan.RootElement.GetProperty("schemaVersion").GetInt32()).IsEqualTo(1);
+        await Assert.That(plan.RootElement.GetProperty("staticId").GetString()).IsEqualTo("Example.Mod");
+        await Assert.That(plan.RootElement.GetProperty("version").GetString()).IsEqualTo("1.2.3");
+        await Assert.That(plan.RootElement.GetProperty("contentDigest").GetString()).IsEqualTo(result.Value.ContentManifest.ContentDigest);
         var checks = plan.RootElement.GetProperty("checks").EnumerateArray().ToArray();
-        Assert.AreEqual(2, checks.Length);
-        Assert.AreEqual("first-check", checks[0].GetProperty("id").GetString());
-        Assert.AreEqual("First setup", checks[0].GetProperty("setup").GetString());
-        Assert.AreEqual("second-check", checks[1].GetProperty("id").GetString());
-        Assert.AreEqual(
-            new DateTimeOffset(2026, 8, 27, 14, 3, 2, TimeSpan.Zero).AddTicks(1234567),
-            plan.RootElement.GetProperty("preparedAtUtc").GetDateTimeOffset());
+        await Assert.That(checks.Length).IsEqualTo(2);
+        await Assert.That(checks[0].GetProperty("id").GetString()).IsEqualTo("first-check");
+        await Assert.That(checks[0].GetProperty("setup").GetString()).IsEqualTo("First setup");
+        await Assert.That(checks[1].GetProperty("id").GetString()).IsEqualTo("second-check");
+        await Assert.That(plan.RootElement.GetProperty("preparedAtUtc").GetDateTimeOffset()).IsEqualTo(new DateTimeOffset(2026, 8, 27, 14, 3, 2, TimeSpan.Zero).AddTicks(1234567));
 
         using var provenance = JsonDocument.Parse(
             await File.ReadAllBytesAsync(fixture.Layout.BuildProvenancePath));
-        Assert.AreEqual("Example.Mod", provenance.RootElement.GetProperty("staticId").GetString());
-        Assert.AreEqual(PreparationFixture.Commit, provenance.RootElement
-            .GetProperty("repositoryCommit").GetString());
-        Assert.IsTrue(provenance.RootElement.GetProperty("relevantPathsClean").GetBoolean());
-        Assert.AreEqual(
-            "netstandard2.1",
-            provenance.RootElement.GetProperty("targetFramework").GetString());
-        Assert.AreEqual(
-            ".NETStandard,Version=v2.1",
-            provenance.RootElement
+        await Assert.That(provenance.RootElement.GetProperty("staticId").GetString()).IsEqualTo("Example.Mod");
+        await Assert.That(provenance.RootElement
+            .GetProperty("repositoryCommit").GetString()).IsEqualTo(PreparationFixture.Commit);
+        await Assert.That(provenance.RootElement.GetProperty("relevantPathsClean").GetBoolean()).IsTrue();
+        await Assert.That(provenance.RootElement.GetProperty("targetFramework").GetString()).IsEqualTo("netstandard2.1");
+        await Assert.That(provenance.RootElement
                 .GetProperty("primaryAssemblyTargetFrameworkName")
-                .GetString());
-        Assert.AreEqual("Release", provenance.RootElement.GetProperty("configuration").GetString());
-        Assert.AreEqual(
-            plan.RootElement.GetProperty("preparedAtUtc").GetDateTimeOffset(),
-            provenance.RootElement.GetProperty("preparedAtUtc").GetDateTimeOffset());
-        Assert.AreEqual(result.Value.ContentManifest.ContentDigest, provenance.RootElement
-            .GetProperty("releaseContentDigest").GetString());
+                .GetString()).IsEqualTo(".NETStandard,Version=v2.1");
+        await Assert.That(provenance.RootElement.GetProperty("configuration").GetString()).IsEqualTo("Release");
+        await Assert.That(provenance.RootElement.GetProperty("preparedAtUtc").GetDateTimeOffset()).IsEqualTo(plan.RootElement.GetProperty("preparedAtUtc").GetDateTimeOffset());
+        await Assert.That(provenance.RootElement
+            .GetProperty("releaseContentDigest").GetString()).IsEqualTo(result.Value.ContentManifest.ContentDigest);
         var primaryOutput = provenance.RootElement.GetProperty("primaryOutput");
-        Assert.AreEqual(64, primaryOutput.GetProperty("sha256").GetString()?.Length);
-        Assert.Contains(
-            "${ARTIFACTS}",
-            primaryOutput.GetProperty("path").GetString()!,
-            StringComparison.Ordinal);
+        await Assert.That(primaryOutput.GetProperty("sha256").GetString()?.Length).IsEqualTo(64);
+        await Assert.That(primaryOutput.GetProperty("path").GetString()!).Contains("${ARTIFACTS}", StringComparison.Ordinal);
         var provenanceJson = provenance.RootElement.GetRawText();
-        Assert.Contains("${WORKTREE}", provenanceJson, StringComparison.Ordinal);
-        Assert.Contains("${GAME}", provenanceJson, StringComparison.Ordinal);
-        Assert.Contains("${ARTIFACTS}", provenanceJson, StringComparison.Ordinal);
-        Assert.DoesNotContain(fixture.WorktreeRoot, provenanceJson, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain(fixture.GameDirectory, provenanceJson, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain(fixture.ArtifactsDirectory, provenanceJson, StringComparison.OrdinalIgnoreCase);
+        await Assert.That(provenanceJson).Contains("${WORKTREE}", StringComparison.Ordinal);
+        await Assert.That(provenanceJson).Contains("${GAME}", StringComparison.Ordinal);
+        await Assert.That(provenanceJson).Contains("${ARTIFACTS}", StringComparison.Ordinal);
+        await Assert.That(provenanceJson).DoesNotContain(fixture.WorktreeRoot, StringComparison.OrdinalIgnoreCase);
+        await Assert.That(provenanceJson).DoesNotContain(fixture.GameDirectory, StringComparison.OrdinalIgnoreCase);
+        await Assert.That(provenanceJson).DoesNotContain(fixture.ArtifactsDirectory, StringComparison.OrdinalIgnoreCase);
         var gameBuildMetadata = provenance.RootElement
             .GetProperty("gameBuildMetadata")
             .GetString()!;
-        Assert.Contains("${WORKTREE}", gameBuildMetadata, StringComparison.Ordinal);
-        Assert.Contains("${GAME}", gameBuildMetadata, StringComparison.Ordinal);
-        Assert.Contains("${ARTIFACTS}", gameBuildMetadata, StringComparison.Ordinal);
-        Assert.DoesNotContain(
-            fixture.WorktreeRoot,
-            gameBuildMetadata,
-            StringComparison.OrdinalIgnoreCase);
+        await Assert.That(gameBuildMetadata).Contains("${WORKTREE}", StringComparison.Ordinal);
+        await Assert.That(gameBuildMetadata).Contains("${GAME}", StringComparison.Ordinal);
+        await Assert.That(gameBuildMetadata).Contains("${ARTIFACTS}", StringComparison.Ordinal);
+        await Assert.That(gameBuildMetadata).DoesNotContain(fixture.WorktreeRoot, StringComparison.OrdinalIgnoreCase);
 
         using var readiness = JsonDocument.Parse(
             await File.ReadAllBytesAsync(fixture.Layout.ReleaseReadinessReportPath));
-        Assert.AreEqual(
-            "awaiting-acceptance",
-            readiness.RootElement.GetProperty("state").GetString());
+        await Assert.That(readiness.RootElement.GetProperty("state").GetString()).IsEqualTo("awaiting-acceptance");
         var blockers = readiness.RootElement.GetProperty("blockingConditions")
             .EnumerateArray()
             .Select(element => element.GetProperty("id").GetString())
             .ToArray();
-        CollectionAssert.AreEqual(
-            new[]
+        await Assert.That(blockers).IsEquivalentTo((new[]
             {
                 "acceptance-test-results-missing",
                 "installation-receipt-missing"
-            },
-            blockers);
+            }).Cast<string?>(), TUnit.Assertions.Enums.CollectionOrdering.Matching);
         var evidencePaths = readiness.RootElement.GetProperty("evidenceIndex")
             .EnumerateArray()
             .Select(element => element.GetProperty("path").GetString())
             .ToArray();
-        CollectionAssert.Contains(evidencePaths, "release-evidence/release-summary.md");
-        CollectionAssert.Contains(evidencePaths, "release-evidence/uploader-checklist.md");
-        CollectionAssert.DoesNotContain(
-            evidencePaths,
-            "release-evidence/release-readiness-report.json");
+        await Assert.That(evidencePaths).Contains("release-evidence/release-summary.md");
+        await Assert.That(evidencePaths).Contains("release-evidence/uploader-checklist.md");
+        await Assert.That(evidencePaths).DoesNotContain("release-evidence/release-readiness-report.json");
 
         var summary = await File.ReadAllTextAsync(fixture.Layout.ReleaseSummaryPath);
-        Assert.Contains(fixture.Layout.WorkshopContentDirectory, summary, StringComparison.Ordinal);
-        Assert.Contains(fixture.Layout.DescriptionPath, summary, StringComparison.Ordinal);
-        Assert.Contains(result.Value.ContentManifest.ContentDigest, summary, StringComparison.Ordinal);
-        Assert.Contains("awaiting-acceptance", summary, StringComparison.Ordinal);
-        Assert.Contains("tweaks", summary, StringComparison.Ordinal);
-        Assert.Contains("Base Game", summary, StringComparison.Ordinal);
+        await Assert.That(summary).Contains(fixture.Layout.WorkshopContentDirectory, StringComparison.Ordinal);
+        await Assert.That(summary).Contains(fixture.Layout.DescriptionPath, StringComparison.Ordinal);
+        await Assert.That(summary).Contains(result.Value.ContentManifest.ContentDigest, StringComparison.Ordinal);
+        await Assert.That(summary).Contains("awaiting-acceptance", StringComparison.Ordinal);
+        await Assert.That(summary).Contains("tweaks", StringComparison.Ordinal);
+        await Assert.That(summary).Contains("Base Game", StringComparison.Ordinal);
 
         var checklist = await File.ReadAllTextAsync(fixture.Layout.UploaderChecklistPath);
-        Assert.Contains(
-            "Publication remains blocked until candidate state is ready-for-upload.",
-            checklist,
-            StringComparison.Ordinal);
-        Assert.Contains(fixture.Layout.WorkshopContentDirectory, checklist, StringComparison.Ordinal);
-        Assert.Contains(fixture.Layout.DescriptionPath, checklist, StringComparison.Ordinal);
-        Assert.Contains(fixture.Layout.ChangeNotesPath, checklist, StringComparison.Ordinal);
-        Assert.Contains(
-            Path.Combine(fixture.Layout.WorkshopListingDirectory, "preview.png"),
-            checklist,
-            StringComparison.Ordinal);
+        await Assert.That(checklist).Contains("Publication remains blocked until candidate state is ready-for-upload.", StringComparison.Ordinal);
+        await Assert.That(checklist).Contains(fixture.Layout.WorkshopContentDirectory, StringComparison.Ordinal);
+        await Assert.That(checklist).Contains(fixture.Layout.DescriptionPath, StringComparison.Ordinal);
+        await Assert.That(checklist).Contains(fixture.Layout.ChangeNotesPath, StringComparison.Ordinal);
+        await Assert.That(checklist).Contains(Path.Combine(fixture.Layout.WorkshopListingDirectory, "preview.png"), StringComparison.Ordinal);
 
-        CollectionAssert.AreEqual(
-            new[]
+        await Assert.That(fixture.Trace.Where(step => PreparationFixture.MajorSteps.Contains(step)).ToArray()).IsEquivalentTo(new[]
             {
                 "build",
                 "tests",
@@ -217,13 +182,12 @@ public sealed class ReleaseCandidatePreparerTests
                 "source-recheck",
                 "delete-work",
                 "promote"
-            },
-            fixture.Trace.Where(step => PreparationFixture.MajorSteps.Contains(step)).ToArray());
-        Assert.AreEqual(1, fixture.SourceInspector.CallCount);
-        Assert.AreEqual(1, fixture.Clock.GetUtcNowCallCount);
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(fixture.SourceInspector.CallCount).IsEqualTo(1);
+        await Assert.That(fixture.Clock.GetUtcNowCallCount).IsEqualTo(1);
     }
 
-    [TestMethod]
+    [Test]
     public async Task PrepareAsync_WhenTestsRun_BindsTheBuildThisPreparationProduced()
     {
         using var fixture = new PreparationFixture();
@@ -232,26 +196,20 @@ public sealed class ReleaseCandidatePreparerTests
             fixture.Request,
             CancellationToken.None);
 
-        Assert.IsTrue(result.IsSuccess);
-        Assert.IsNotNull(fixture.BuiltRunRoot);
-        Assert.IsNotNull(
-            fixture.TestRunBoundBuild,
-            "Release tests must inspect the build this preparation produced.");
-        Assert.AreEqual(
-            Path.Combine(fixture.BuiltRunRoot, "build-result.json"),
-            fixture.TestRunBoundBuild.BuildResultPath);
-        Assert.AreEqual(
-            fixture.ArtifactsDirectory,
-            fixture.TestRunBoundBuild.ArtifactsDirectory);
+        await Assert.That(result.IsSuccess).IsTrue();
+        Assert.NotNull(fixture.BuiltRunRoot);
+        if (fixture.TestRunBoundBuild is null) throw new TUnit.Assertions.Exceptions.AssertionException("Release tests must inspect the build this preparation produced.");
+        await Assert.That(fixture.TestRunBoundBuild.BuildResultPath).IsEqualTo(Path.Combine(fixture.BuiltRunRoot, "build-result.json"));
+        await Assert.That(fixture.TestRunBoundBuild.ArtifactsDirectory).IsEqualTo(fixture.ArtifactsDirectory);
     }
 
-    [TestMethod]
-    [DataRow(PreparationFailure.Restore)]
-    [DataRow(PreparationFailure.AutomatedTest)]
-    [DataRow(PreparationFailure.Listing)]
-    [DataRow(PreparationFailure.Packaging)]
-    [DataRow(PreparationFailure.InvalidBuildContract)]
-    [DataRow(PreparationFailure.InvalidTestContract)]
+    [Test]
+    [Arguments(PreparationFailure.Restore)]
+    [Arguments(PreparationFailure.AutomatedTest)]
+    [Arguments(PreparationFailure.Listing)]
+    [Arguments(PreparationFailure.Packaging)]
+    [Arguments(PreparationFailure.InvalidBuildContract)]
+    [Arguments(PreparationFailure.InvalidTestContract)]
     public async Task PrepareAsync_WhenExpectedStageFails_RemovesEveryOwnedTransientDirectory(
         PreparationFailure failure)
     {
@@ -261,13 +219,13 @@ public sealed class ReleaseCandidatePreparerTests
             fixture.Request,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(fixture.ExpectedPrimaryDiagnosticId, result.Diagnostics[0].Id);
-        Assert.IsFalse(Directory.Exists(fixture.Layout.CandidateDirectory));
-        AssertTransientSiblingsAreAbsent(fixture.Layout);
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Diagnostics[0].Id).IsEqualTo(fixture.ExpectedPrimaryDiagnosticId);
+        await Assert.That(Directory.Exists(fixture.Layout.CandidateDirectory)).IsFalse();
+        await AssertTransientSiblingsAreAbsent(fixture.Layout);
     }
 
-    [TestMethod]
+    [Test]
     public async Task PrepareAsync_WhenCompiledBuildOmitsTargetFrameworkMetadata_FailsClosedAndCleans()
     {
         using var fixture = new PreparationFixture(
@@ -277,17 +235,14 @@ public sealed class ReleaseCandidatePreparerTests
             fixture.Request,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(DiagnosticIds.BuildFailed, result.Diagnostics[0].Id);
-        Assert.Contains(
-            "target-framework metadata",
-            result.Diagnostics[0].Evidence,
-            StringComparison.Ordinal);
-        Assert.IsFalse(Directory.Exists(fixture.Layout.CandidateDirectory));
-        AssertTransientSiblingsAreAbsent(fixture.Layout);
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Diagnostics[0].Id).IsEqualTo(DiagnosticIds.BuildFailed);
+        await Assert.That(result.Diagnostics[0].Evidence).Contains("target-framework metadata", StringComparison.Ordinal);
+        await Assert.That(Directory.Exists(fixture.Layout.CandidateDirectory)).IsFalse();
+        await AssertTransientSiblingsAreAbsent(fixture.Layout);
     }
 
-    [TestMethod]
+    [Test]
     public async Task PrepareAsync_WhenTargetFrameworkIdentitiesDisagree_FailsClosedAndCleans()
     {
         using var fixture = new PreparationFixture(
@@ -297,19 +252,16 @@ public sealed class ReleaseCandidatePreparerTests
             fixture.Request,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(DiagnosticIds.BuildFailed, result.Diagnostics[0].Id);
-        Assert.Contains(
-            "does not match framework name",
-            result.Diagnostics[0].Evidence,
-            StringComparison.Ordinal);
-        Assert.IsFalse(Directory.Exists(fixture.Layout.CandidateDirectory));
-        AssertTransientSiblingsAreAbsent(fixture.Layout);
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Diagnostics[0].Id).IsEqualTo(DiagnosticIds.BuildFailed);
+        await Assert.That(result.Diagnostics[0].Evidence).Contains("does not match framework name", StringComparison.Ordinal);
+        await Assert.That(Directory.Exists(fixture.Layout.CandidateDirectory)).IsFalse();
+        await AssertTransientSiblingsAreAbsent(fixture.Layout);
     }
 
-    [TestMethod]
-    [DataRow(PreparationFailure.Hash)]
-    [DataRow(PreparationFailure.EvidenceWrite)]
+    [Test]
+    [Arguments(PreparationFailure.Hash)]
+    [Arguments(PreparationFailure.EvidenceWrite)]
     public async Task PrepareAsync_WhenInfrastructureStageThrows_ReturnsInternalFailureAndCleans(
         PreparationFailure failure)
     {
@@ -319,14 +271,14 @@ public sealed class ReleaseCandidatePreparerTests
             fixture.Request,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(DiagnosticIds.UnexpectedFailure, result.Diagnostics[0].Id);
-        Assert.AreEqual(PipelineExitCode.InternalFailure, result.ExitCode);
-        Assert.IsFalse(Directory.Exists(fixture.Layout.CandidateDirectory));
-        AssertTransientSiblingsAreAbsent(fixture.Layout);
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Diagnostics[0].Id).IsEqualTo(DiagnosticIds.UnexpectedFailure);
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.InternalFailure);
+        await Assert.That(Directory.Exists(fixture.Layout.CandidateDirectory)).IsFalse();
+        await AssertTransientSiblingsAreAbsent(fixture.Layout);
     }
 
-    [TestMethod]
+    [Test]
     public async Task PrepareAsync_WhenFinalPromotionCollides_ReturnsOnip5007AndCleans()
     {
         using var fixture = new PreparationFixture(PreparationFailure.PromotionCollision);
@@ -335,14 +287,14 @@ public sealed class ReleaseCandidatePreparerTests
             fixture.Request,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(DiagnosticIds.CandidateAlreadyExists, result.Diagnostics[0].Id);
-        Assert.AreEqual(PipelineExitCode.ReleaseNotReady, result.ExitCode);
-        Assert.IsFalse(Directory.Exists(fixture.Layout.CandidateDirectory));
-        AssertTransientSiblingsAreAbsent(fixture.Layout);
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Diagnostics[0].Id).IsEqualTo(DiagnosticIds.CandidateAlreadyExists);
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.ReleaseNotReady);
+        await Assert.That(Directory.Exists(fixture.Layout.CandidateDirectory)).IsFalse();
+        await AssertTransientSiblingsAreAbsent(fixture.Layout);
     }
 
-    [TestMethod]
+    [Test]
     public async Task PrepareAsync_WhenCleanupReportsFailure_PreservesPrimaryAndAppendsOnip9002()
     {
         using var fixture = new PreparationFixture(
@@ -353,16 +305,14 @@ public sealed class ReleaseCandidatePreparerTests
             fixture.Request,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        CollectionAssert.AreEqual(
-            new[] { DiagnosticIds.RestoreFailed, DiagnosticIds.CleanupFailed },
-            result.Diagnostics.Select(diagnostic => diagnostic.Id).ToArray());
-        Assert.AreEqual(PipelineExitCode.BuildOrTestFailed, result.ExitCode);
-        Assert.IsFalse(Directory.Exists(fixture.Layout.CandidateDirectory));
-        AssertTransientSiblingsAreAbsent(fixture.Layout);
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Diagnostics.Select(diagnostic => diagnostic.Id).ToArray()).IsEquivalentTo(new[] { DiagnosticIds.RestoreFailed, DiagnosticIds.CleanupFailed }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.BuildOrTestFailed);
+        await Assert.That(Directory.Exists(fixture.Layout.CandidateDirectory)).IsFalse();
+        await AssertTransientSiblingsAreAbsent(fixture.Layout);
     }
 
-    [TestMethod]
+    [Test]
     public async Task PrepareAsync_WhenCandidateAlreadyExists_FailsBeforeCreatingTransientState()
     {
         using var fixture = new PreparationFixture();
@@ -375,17 +325,15 @@ public sealed class ReleaseCandidatePreparerTests
             fixture.Request,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(DiagnosticIds.CandidateAlreadyExists, result.Diagnostics.Single().Id);
-        Assert.AreEqual(
-            "preserve",
-            await File.ReadAllTextAsync(
-                Path.Combine(fixture.Layout.CandidateDirectory, "foreign.txt")));
-        AssertTransientSiblingsAreAbsent(fixture.Layout);
-        Assert.AreEqual(0, fixture.Builder.CallCount);
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Diagnostics.Single().Id).IsEqualTo(DiagnosticIds.CandidateAlreadyExists);
+        await Assert.That(await File.ReadAllTextAsync(
+                Path.Combine(fixture.Layout.CandidateDirectory, "foreign.txt"))).IsEqualTo("preserve");
+        await AssertTransientSiblingsAreAbsent(fixture.Layout);
+        await Assert.That(fixture.Builder.CallCount).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public async Task PrepareAsync_WhenSourceChangesBeforePromotion_FailsClosedAndCleans()
     {
         using var fixture = new PreparationFixture(PreparationFailure.SourceRecheck);
@@ -394,10 +342,10 @@ public sealed class ReleaseCandidatePreparerTests
             fixture.Request,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(DiagnosticIds.DirtyReleaseInput, result.Diagnostics[0].Id);
-        Assert.IsFalse(Directory.Exists(fixture.Layout.CandidateDirectory));
-        AssertTransientSiblingsAreAbsent(fixture.Layout);
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Diagnostics[0].Id).IsEqualTo(DiagnosticIds.DirtyReleaseInput);
+        await Assert.That(Directory.Exists(fixture.Layout.CandidateDirectory)).IsFalse();
+        await AssertTransientSiblingsAreAbsent(fixture.Layout);
     }
 
     private static string[] EnumerateRelativeFiles(string root) =>
@@ -406,15 +354,15 @@ public sealed class ReleaseCandidatePreparerTests
             .OrderBy(path => path, StringComparer.Ordinal)
             .ToArray();
 
-    private static void AssertTransientSiblingsAreAbsent(CandidateLayout layout)
+    private static async Task AssertTransientSiblingsAreAbsent(CandidateLayout layout)
     {
         if (!Directory.Exists(layout.VersionDirectory))
         {
             return;
         }
 
-        Assert.IsFalse(Directory.EnumerateFileSystemEntries(layout.VersionDirectory)
-            .Any(layout.IsOwnedTransientSibling));
+        await Assert.That(Directory.EnumerateFileSystemEntries(layout.VersionDirectory)
+            .Any(layout.IsOwnedTransientSibling)).IsFalse();
     }
 
     private static string RenderDiagnostics(IReadOnlyList<Diagnostic> diagnostics) =>

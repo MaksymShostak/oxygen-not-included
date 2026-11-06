@@ -1,21 +1,19 @@
 namespace DeliveryTemperatureLimit.Tests.TemperatureLimitedDeliveryTargets;
-
-[TestClass]
 public sealed class TemperatureLimitedDeliveryTargetPrefabConfiguratorTests
 {
-    [TestMethod]
-    public void IsEligibleDeliveryTargetPrefab_WhenConfigurationIsStorageTile_ReturnsTrue()
+    [Test]
+    public async Task IsEligibleDeliveryTargetPrefab_WhenConfigurationIsStorageTile_ReturnsTrue()
     {
         bool isEligible = TemperatureLimitedDeliveryTargetPrefabConfigurator
             .IsEligibleDeliveryTargetPrefab(
                 new StorageTileConfig(),
                 new UnityEngine.GameObject());
 
-        Assert.IsTrue(isEligible);
+        await Assert.That(isEligible).IsTrue();
     }
 
-    [TestMethod]
-    public void IsEligibleDeliveryTargetPrefab_WhenPrefabHasManualDelivery_ReturnsTrue()
+    [Test]
+    public async Task IsEligibleDeliveryTargetPrefab_WhenPrefabHasManualDelivery_ReturnsTrue()
     {
         var prefab = new UnityEngine.GameObject();
         prefab.AddComponent<ManualDeliveryKG>();
@@ -23,11 +21,11 @@ public sealed class TemperatureLimitedDeliveryTargetPrefabConfiguratorTests
         bool isEligible = TemperatureLimitedDeliveryTargetPrefabConfigurator
             .IsEligibleDeliveryTargetPrefab(configuration: null, prefab);
 
-        Assert.IsTrue(isEligible);
+        await Assert.That(isEligible).IsTrue();
     }
 
-    [TestMethod]
-    public void IsEligibleDeliveryTargetPrefab_WhenStorageAllowsUserRemoval_ReturnsTrue()
+    [Test]
+    public async Task IsEligibleDeliveryTargetPrefab_WhenStorageAllowsUserRemoval_ReturnsTrue()
     {
         var prefab = new UnityEngine.GameObject();
         prefab.AddComponent<Storage>().allowUIItemRemoval = true;
@@ -35,11 +33,11 @@ public sealed class TemperatureLimitedDeliveryTargetPrefabConfiguratorTests
         bool isEligible = TemperatureLimitedDeliveryTargetPrefabConfigurator
             .IsEligibleDeliveryTargetPrefab(configuration: null, prefab);
 
-        Assert.IsTrue(isEligible);
+        await Assert.That(isEligible).IsTrue();
     }
 
-    [TestMethod]
-    public void IsEligibleDeliveryTargetPrefab_WhenStorageIsNotInteractiveAndNoDeliveryComponent_ReturnsFalse()
+    [Test]
+    public async Task IsEligibleDeliveryTargetPrefab_WhenStorageIsNotInteractiveAndNoDeliveryComponent_ReturnsFalse()
     {
         var prefab = new UnityEngine.GameObject();
         prefab.AddComponent<Storage>().allowUIItemRemoval = false;
@@ -47,17 +45,17 @@ public sealed class TemperatureLimitedDeliveryTargetPrefabConfiguratorTests
         bool isEligible = TemperatureLimitedDeliveryTargetPrefabConfigurator
             .IsEligibleDeliveryTargetPrefab(configuration: null, prefab);
 
-        Assert.IsFalse(isEligible);
+        await Assert.That(isEligible).IsFalse();
     }
 
-    [TestMethod]
-    public void IsEligibleDeliveryTargetPrefab_WhenPrefabIsNull_ReturnsFalse()
+    [Test]
+    public async Task IsEligibleDeliveryTargetPrefab_WhenPrefabIsNull_ReturnsFalse()
     {
         bool isEligible = TemperatureLimitedDeliveryTargetPrefabConfigurator
             .IsEligibleDeliveryTargetPrefab(
                 new StorageTileConfig(),
                 prefab: null);
 
-        Assert.IsFalse(isEligible);
+        await Assert.That(isEligible).IsFalse();
     }
 }

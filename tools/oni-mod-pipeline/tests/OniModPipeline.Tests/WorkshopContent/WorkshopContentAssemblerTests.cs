@@ -7,11 +7,9 @@ using MaksymShostak.OniModPipeline.WorkshopContent;
 using System.Security.Cryptography;
 
 namespace MaksymShostak.OniModPipeline.Tests.WorkshopContent;
-
-[TestClass]
 public sealed class WorkshopContentAssemblerTests
 {
-    [TestMethod]
+    [Test]
     public async Task AssembleAsync_WhenDeliveryProfileIsValid_ProducesExactRuntimeInventory()
     {
         using var fixture = new WorkshopContentFixture();
@@ -22,26 +20,22 @@ public sealed class WorkshopContentAssemblerTests
             fixture.StagingRoot,
             CancellationToken.None);
 
-        Assert.IsTrue(result.IsSuccess, RenderDiagnostics(result.Diagnostics));
-        CollectionAssert.AreEqual(
-            new[] { "DeliveryTemperatureLimit.dll", "mod.yaml", "mod_info.yaml" },
-            Directory.EnumerateFiles(fixture.StagingRoot)
+        await Assert.That(result.IsSuccess).IsTrue().Because(RenderDiagnostics(result.Diagnostics));
+        await Assert.That(Directory.EnumerateFiles(fixture.StagingRoot)
                 .Select(Path.GetFileName)
                 .OrderBy(path => path, StringComparer.Ordinal)
-                .ToArray());
-        CollectionAssert.AreEqual(
-            new[] { "DeliveryTemperatureLimit.dll", "mod.yaml", "mod_info.yaml" },
-            result.Value?
+                .ToArray()).IsEquivalentTo((new[] { "DeliveryTemperatureLimit.dll", "mod.yaml", "mod_info.yaml" }).Cast<string?>(), TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(result.Value?
                 .Select(file => Path.GetRelativePath(fixture.StagingRoot, file.Path)
                     .Replace('\\', '/'))
-                .ToArray());
-        Assert.IsFalse(File.Exists(Path.Combine(fixture.StagingRoot, "Preview.png")));
-        Assert.IsFalse(Directory.Exists(Path.Combine(fixture.StagingRoot, "Source")));
-        Assert.IsFalse(Directory.Exists(Path.Combine(fixture.StagingRoot, "Tests")));
-        Assert.IsFalse(Directory.Exists(Path.Combine(fixture.StagingRoot, "release-evidence")));
+                .ToArray()).IsEquivalentTo(new[] { "DeliveryTemperatureLimit.dll", "mod.yaml", "mod_info.yaml" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(File.Exists(Path.Combine(fixture.StagingRoot, "Preview.png"))).IsFalse();
+        await Assert.That(Directory.Exists(Path.Combine(fixture.StagingRoot, "Source"))).IsFalse();
+        await Assert.That(Directory.Exists(Path.Combine(fixture.StagingRoot, "Tests"))).IsFalse();
+        await Assert.That(Directory.Exists(Path.Combine(fixture.StagingRoot, "release-evidence"))).IsFalse();
     }
 
-    [TestMethod]
+    [Test]
     public async Task AssembleAsync_WhenContainedDirectoryIsDeclared_CopiesOnlyRegularDescendants()
     {
         using var fixture = new WorkshopContentFixture();
@@ -64,23 +58,21 @@ public sealed class WorkshopContentAssemblerTests
             fixture.StagingRoot,
             CancellationToken.None);
 
-        Assert.IsTrue(result.IsSuccess, RenderDiagnostics(result.Diagnostics));
-        CollectionAssert.AreEqual(
-            new[]
+        await Assert.That(result.IsSuccess).IsTrue().Because(RenderDiagnostics(result.Diagnostics));
+        await Assert.That(result.Value?
+                .Select(file => Path.GetRelativePath(fixture.StagingRoot, file.Path)
+                    .Replace('\\', '/'))
+                .ToArray()).IsEquivalentTo(new[]
             {
                 "DeliveryTemperatureLimit.dll",
                 "assets/config.json",
                 "assets/nested/data.bin",
                 "mod.yaml",
                 "mod_info.yaml"
-            },
-            result.Value?
-                .Select(file => Path.GetRelativePath(fixture.StagingRoot, file.Path)
-                    .Replace('\\', '/'))
-                .ToArray());
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
+    [Test]
     public async Task AssembleAsync_WhenDeclaredDirectoryContainsForbiddenOrIgnoredExtensions_StripsThemAutomatically()
     {
         using var fixture = new WorkshopContentFixture();
@@ -104,24 +96,22 @@ public sealed class WorkshopContentAssemblerTests
             fixture.StagingRoot,
             CancellationToken.None);
 
-        Assert.IsTrue(result.IsSuccess, RenderDiagnostics(result.Diagnostics));
-        CollectionAssert.AreEqual(
-            new[]
+        await Assert.That(result.IsSuccess).IsTrue().Because(RenderDiagnostics(result.Diagnostics));
+        await Assert.That(result.Value?
+                .Select(file => Path.GetRelativePath(fixture.StagingRoot, file.Path)
+                    .Replace('\\', '/'))
+                .ToArray()).IsEquivalentTo(new[]
             {
                 "DeliveryTemperatureLimit.dll",
                 "mod.yaml",
                 "mod_info.yaml",
                 "translations/de.po"
-            },
-            result.Value?
-                .Select(file => Path.GetRelativePath(fixture.StagingRoot, file.Path)
-                    .Replace('\\', '/'))
-                .ToArray());
-        Assert.IsFalse(File.Exists(Path.Combine(fixture.StagingRoot, "translations", "delivery_temperature_limit.pot")));
-        Assert.IsFalse(File.Exists(Path.Combine(fixture.StagingRoot, "translations", "TRANSLATOR_GUIDE.md")));
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(File.Exists(Path.Combine(fixture.StagingRoot, "translations", "delivery_temperature_limit.pot"))).IsFalse();
+        await Assert.That(File.Exists(Path.Combine(fixture.StagingRoot, "translations", "TRANSLATOR_GUIDE.md"))).IsFalse();
     }
 
-    [TestMethod]
+    [Test]
     public async Task AssembleAsync_WhenBuildOutputIsNotInHashedOutputs_RejectsBeforeCopy()
     {
         using var fixture = new WorkshopContentFixture();
@@ -133,11 +123,11 @@ public sealed class WorkshopContentAssemblerTests
             fixture.StagingRoot,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(0, Directory.EnumerateFileSystemEntries(fixture.StagingRoot).Count());
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(Directory.EnumerateFileSystemEntries(fixture.StagingRoot).Count()).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public async Task AssembleAsync_WhenPrimaryAssemblyIsEmpty_RejectsAndCleansStaging()
     {
         using var fixture = new WorkshopContentFixture(primaryBytes: []);
@@ -148,12 +138,12 @@ public sealed class WorkshopContentAssemblerTests
             fixture.StagingRoot,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual("ONIP5002", result.Diagnostics.Single().Id);
-        Assert.AreEqual(0, Directory.EnumerateFileSystemEntries(fixture.StagingRoot).Count());
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Diagnostics.Single().Id).IsEqualTo("ONIP5002");
+        await Assert.That(Directory.EnumerateFileSystemEntries(fixture.StagingRoot).Count()).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public async Task AssembleAsync_WhenDestinationsCollidePortably_RejectsBeforeCopy()
     {
         using var fixture = new WorkshopContentFixture();
@@ -173,11 +163,11 @@ public sealed class WorkshopContentAssemblerTests
             fixture.StagingRoot,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(0, Directory.EnumerateFileSystemEntries(fixture.StagingRoot).Count());
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(Directory.EnumerateFileSystemEntries(fixture.StagingRoot).Count()).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public async Task AssembleAsync_WhenDestinationEscapesStaging_RejectsBeforeCopy()
     {
         using var fixture = new WorkshopContentFixture();
@@ -196,14 +186,14 @@ public sealed class WorkshopContentAssemblerTests
             fixture.StagingRoot,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(0, Directory.EnumerateFileSystemEntries(fixture.StagingRoot).Count());
-        Assert.IsFalse(File.Exists(Path.Combine(
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(Directory.EnumerateFileSystemEntries(fixture.StagingRoot).Count()).IsEqualTo(0);
+        await Assert.That(File.Exists(Path.Combine(
             Path.GetDirectoryName(fixture.StagingRoot)!,
-            "escape.yaml")));
+            "escape.yaml"))).IsFalse();
     }
 
-    [TestMethod]
+    [Test]
     public async Task AssembleAsync_WhenBuildResultRepeatsOutputPath_RejectsAmbiguousEvidence()
     {
         using var fixture = new WorkshopContentFixture();
@@ -218,11 +208,11 @@ public sealed class WorkshopContentAssemblerTests
             fixture.StagingRoot,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(0, Directory.EnumerateFileSystemEntries(fixture.StagingRoot).Count());
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(Directory.EnumerateFileSystemEntries(fixture.StagingRoot).Count()).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public async Task AssembleAsync_WhenSourceIsReportedAsLink_RejectsBeforeCopy()
     {
         using var fixture = new WorkshopContentFixture();
@@ -244,11 +234,11 @@ public sealed class WorkshopContentAssemblerTests
             fixture.StagingRoot,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(0, Directory.EnumerateFileSystemEntries(fixture.StagingRoot).Count());
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(Directory.EnumerateFileSystemEntries(fixture.StagingRoot).Count()).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public async Task AssembleAsync_WhenStagingContainsStaleFile_RejectsWithoutChangingIt()
     {
         using var fixture = new WorkshopContentFixture();
@@ -261,11 +251,9 @@ public sealed class WorkshopContentAssemblerTests
             fixture.StagingRoot,
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual("keep", File.ReadAllText(stalePath));
-        CollectionAssert.AreEqual(
-            new[] { stalePath },
-            Directory.EnumerateFiles(fixture.StagingRoot).ToArray());
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(File.ReadAllText(stalePath)).IsEqualTo("keep");
+        await Assert.That(Directory.EnumerateFiles(fixture.StagingRoot).ToArray()).IsEquivalentTo(new[] { stalePath }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     private static string RenderDiagnostics(IEnumerable<Diagnostic> diagnostics) =>

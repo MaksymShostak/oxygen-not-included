@@ -46,7 +46,7 @@ internal static class DotnetCommandRunner
         }
 
         using var process = new Process { StartInfo = startInfo };
-        Assert.IsTrue(process.Start(), "The requested dotnet command did not start.");
+        await Assert.That(process.Start()).IsTrue().Because("The requested dotnet command did not start.");
         var standardOutput = process.StandardOutput.ReadToEndAsync(cancellationToken);
         var standardError = process.StandardError.ReadToEndAsync(cancellationToken);
         using var registration = cancellationToken.Register(

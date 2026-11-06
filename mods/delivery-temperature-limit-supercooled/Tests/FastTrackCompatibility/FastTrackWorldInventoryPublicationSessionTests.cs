@@ -2,8 +2,6 @@ using System.Collections;
 using System.Reflection;
 
 namespace DeliveryTemperatureLimit.Tests.FastTrackCompatibility;
-
-[TestClass]
 public sealed class FastTrackWorldInventoryPublicationSessionTests
 {
     private static readonly GameSessionGeneration FirstGameSessionGeneration =
@@ -11,8 +9,8 @@ public sealed class FastTrackWorldInventoryPublicationSessionTests
     private static readonly WorldInventoryCollectionGeneration
         FirstCollectionGeneration = new(73);
 
-    [TestMethod]
-    public void BeginCompleteWorldUpdate_WhenTwoTagsComplete_ProducesOneCompleteWorldPublication()
+    [Test]
+    public async Task BeginCompleteWorldUpdate_WhenTwoTagsComplete_ProducesOneCompleteWorldPublication()
     {
         var session = new FastTrackWorldInventoryPublicationSession();
         session.BeginCompleteWorldUpdate(
@@ -31,27 +29,19 @@ public sealed class FastTrackWorldInventoryPublicationSessionTests
 
         FastTrackWorldInventoryPublicationResult result = session.Complete();
 
-        Assert.AreEqual(
-            FastTrackWorldInventoryPublicationKind.CompleteWorldAmounts,
-            result.Kind);
-        Assert.IsTrue(
-            result.TryGetCompleteWorldResourceTemperatureAmounts(
-                out CompleteWorldResourceTemperatureAmounts completeWorldAmounts));
-        Assert.AreEqual(
-            FirstCollectionGeneration,
-            completeWorldAmounts.CollectionGeneration);
-        Assert.AreSequenceEqual(
-            new[] { new Tag("Iron"), new Tag("Copper") },
-            completeWorldAmounts.ResourceTags);
-        AssertSeriesTotal(completeWorldAmounts, new Tag("Iron"), 10.0f);
-        AssertSeriesTotal(completeWorldAmounts, new Tag("Copper"), 20.0f);
-        Assert.IsFalse(result.TryGetWorldResourceTagCoverage(out _));
-        Assert.IsFalse(
-            result.TryGetWorldResourceTemperatureSeriesPublication(out _));
+        await Assert.That(result.Kind).IsEqualTo(FastTrackWorldInventoryPublicationKind.CompleteWorldAmounts);
+        await Assert.That(result.TryGetCompleteWorldResourceTemperatureAmounts(
+                out CompleteWorldResourceTemperatureAmounts completeWorldAmounts)).IsTrue();
+        await Assert.That(completeWorldAmounts.CollectionGeneration).IsEqualTo(FirstCollectionGeneration);
+        await Assert.That(completeWorldAmounts.ResourceTags).IsEquivalentTo(new[] { new Tag("Iron"), new Tag("Copper") }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await AssertSeriesTotal(completeWorldAmounts, new Tag("Iron"), 10.0f);
+        await AssertSeriesTotal(completeWorldAmounts, new Tag("Copper"), 20.0f);
+        await Assert.That(result.TryGetWorldResourceTagCoverage(out _)).IsFalse();
+        await Assert.That(result.TryGetWorldResourceTemperatureSeriesPublication(out _)).IsFalse();
     }
 
-    [TestMethod]
-    public void BeginIncrementalResourceTagUpdateWithCurrentCoverage_WhenOneTagCompletes_ProducesResourceTemperatureSeries()
+    [Test]
+    public async Task BeginIncrementalResourceTagUpdateWithCurrentCoverage_WhenOneTagCompletes_ProducesResourceTemperatureSeries()
     {
         var session = new FastTrackWorldInventoryPublicationSession();
         session.BeginIncrementalResourceTagUpdateWithCurrentCoverage(
@@ -65,19 +55,16 @@ public sealed class FastTrackWorldInventoryPublicationSessionTests
 
         FastTrackWorldInventoryPublicationResult result = session.Complete();
 
-        Assert.AreEqual(
-            FastTrackWorldInventoryPublicationKind.ResourceTemperatureSeries,
-            result.Kind);
-        Assert.IsTrue(
-            result.TryGetWorldResourceTemperatureSeriesPublication(
-                out WorldResourceTemperatureSeriesPublication publication));
-        Assert.AreEqual(FirstCollectionGeneration, publication.CollectionGeneration);
-        Assert.AreEqual(new Tag("Iron"), publication.ResourceTag);
-        Assert.AreEqual(10.0f, publication.TemperatureAmounts.TotalAmount);
+        await Assert.That(result.Kind).IsEqualTo(FastTrackWorldInventoryPublicationKind.ResourceTemperatureSeries);
+        await Assert.That(result.TryGetWorldResourceTemperatureSeriesPublication(
+                out WorldResourceTemperatureSeriesPublication publication)).IsTrue();
+        await Assert.That(publication.CollectionGeneration).IsEqualTo(FirstCollectionGeneration);
+        await Assert.That(publication.ResourceTag).IsEqualTo(new Tag("Iron"));
+        await Assert.That(publication.TemperatureAmounts.TotalAmount).IsEqualTo(10.0f);
     }
 
-    [TestMethod]
-    public void BeginIncrementalResourceTagUpdateWithCurrentCoverage_WhenSecondTagBegins_ThrowsLifecycleViolation()
+    [Test]
+    public async Task BeginIncrementalResourceTagUpdateWithCurrentCoverage_WhenSecondTagBegins_ThrowsLifecycleViolation()
     {
         var session = new FastTrackWorldInventoryPublicationSession();
         session.BeginIncrementalResourceTagUpdateWithCurrentCoverage(
@@ -90,14 +77,14 @@ public sealed class FastTrackWorldInventoryPublicationSessionTests
             amount: 10.0f);
 
         InvalidOperationException exception =
-            Assert.ThrowsExactly<InvalidOperationException>(() =>
-                session.BeginResourceTag(new Tag("Copper")));
+            (await Assert.That(() =>
+                session.BeginResourceTag(new Tag("Copper"))).ThrowsExactly<InvalidOperationException>())!;
 
-        StringAssert.Contains(exception.Message, "exactly one resource tag");
+        await Assert.That(exception.Message).Contains("exactly one resource tag");
     }
 
-    [TestMethod]
-    public void BeginIncrementalResourceTagUpdateRequiringCoverage_WhenOneTagCompletes_ProducesCoverageAndTemperatureSeries()
+    [Test]
+    public async Task BeginIncrementalResourceTagUpdateRequiringCoverage_WhenOneTagCompletes_ProducesCoverageAndTemperatureSeries()
     {
         var presentResourceTags = new CountingTagCollection(
             new Tag("Iron"),
@@ -115,25 +102,20 @@ public sealed class FastTrackWorldInventoryPublicationSessionTests
 
         FastTrackWorldInventoryPublicationResult result = session.Complete();
 
-        Assert.AreEqual(1, presentResourceTags.EnumerationCount);
-        Assert.AreEqual(
-            FastTrackWorldInventoryPublicationKind
-                .ResourceTagCoverageAndTemperatureSeries,
-            result.Kind);
-        Assert.IsTrue(result.TryGetWorldResourceTagCoverage(
-            out WorldResourceTagCoverage coverage));
-        Assert.AreSequenceEqual(
-            new[] { new Tag("Iron"), new Tag("Copper") },
-            coverage.PresentResourceTags);
-        Assert.IsTrue(
-            result.TryGetWorldResourceTemperatureSeriesPublication(
-                out WorldResourceTemperatureSeriesPublication publication));
-        Assert.AreEqual(new Tag("Iron"), publication.ResourceTag);
-        Assert.AreEqual(10.0f, publication.TemperatureAmounts.TotalAmount);
+        await Assert.That(presentResourceTags.EnumerationCount).IsEqualTo(1);
+        await Assert.That(result.Kind).IsEqualTo(FastTrackWorldInventoryPublicationKind
+                .ResourceTagCoverageAndTemperatureSeries);
+        await Assert.That(result.TryGetWorldResourceTagCoverage(
+            out WorldResourceTagCoverage coverage)).IsTrue();
+        await Assert.That(coverage.PresentResourceTags).IsEquivalentTo(new[] { new Tag("Iron"), new Tag("Copper") }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(result.TryGetWorldResourceTemperatureSeriesPublication(
+                out WorldResourceTemperatureSeriesPublication publication)).IsTrue();
+        await Assert.That(publication.ResourceTag).IsEqualTo(new Tag("Iron"));
+        await Assert.That(publication.TemperatureAmounts.TotalAmount).IsEqualTo(10.0f);
     }
 
-    [TestMethod]
-    public void BeginIncrementalResourceTagUpdateWithCurrentCoverage_WhenOneTagCompletes_ProducesOnlyTemperatureSeries()
+    [Test]
+    public async Task BeginIncrementalResourceTagUpdateWithCurrentCoverage_WhenOneTagCompletes_ProducesOnlyTemperatureSeries()
     {
         var session = new FastTrackWorldInventoryPublicationSession();
         session.BeginIncrementalResourceTagUpdateWithCurrentCoverage(
@@ -147,15 +129,13 @@ public sealed class FastTrackWorldInventoryPublicationSessionTests
 
         FastTrackWorldInventoryPublicationResult result = session.Complete();
 
-        Assert.IsFalse(result.TryGetWorldResourceTagCoverage(out _));
-        Assert.IsFalse(
-            result.TryGetCompleteWorldResourceTemperatureAmounts(out _));
-        Assert.IsTrue(
-            result.TryGetWorldResourceTemperatureSeriesPublication(out _));
+        await Assert.That(result.TryGetWorldResourceTagCoverage(out _)).IsFalse();
+        await Assert.That(result.TryGetCompleteWorldResourceTemperatureAmounts(out _)).IsFalse();
+        await Assert.That(result.TryGetWorldResourceTemperatureSeriesPublication(out _)).IsTrue();
     }
 
-    [TestMethod]
-    public void BeginIncrementalResourceTagUpdateRequiringCoverage_WhenInventoryHasNoTags_ProducesCoverageOnly()
+    [Test]
+    public async Task BeginIncrementalResourceTagUpdateRequiringCoverage_WhenInventoryHasNoTags_ProducesCoverageOnly()
     {
         var session = new FastTrackWorldInventoryPublicationSession();
         session.BeginIncrementalResourceTagUpdateRequiringCoverage(
@@ -165,18 +145,15 @@ public sealed class FastTrackWorldInventoryPublicationSessionTests
 
         FastTrackWorldInventoryPublicationResult result = session.Complete();
 
-        Assert.AreEqual(
-            FastTrackWorldInventoryPublicationKind.ResourceTagCoverageOnly,
-            result.Kind);
-        Assert.IsTrue(result.TryGetWorldResourceTagCoverage(
-            out WorldResourceTagCoverage coverage));
-        Assert.IsEmpty(coverage.PresentResourceTags);
-        Assert.IsFalse(
-            result.TryGetWorldResourceTemperatureSeriesPublication(out _));
+        await Assert.That(result.Kind).IsEqualTo(FastTrackWorldInventoryPublicationKind.ResourceTagCoverageOnly);
+        await Assert.That(result.TryGetWorldResourceTagCoverage(
+            out WorldResourceTagCoverage coverage)).IsTrue();
+        await Assert.That(coverage.PresentResourceTags).IsEmpty();
+        await Assert.That(result.TryGetWorldResourceTemperatureSeriesPublication(out _)).IsFalse();
     }
 
-    [TestMethod]
-    public void Complete_WhenResourceTagIsStillOpen_ThrowsLifecycleViolation()
+    [Test]
+    public async Task Complete_WhenResourceTagIsStillOpen_ThrowsLifecycleViolation()
     {
         var session = new FastTrackWorldInventoryPublicationSession();
         session.BeginIncrementalResourceTagUpdateWithCurrentCoverage(
@@ -185,14 +162,14 @@ public sealed class FastTrackWorldInventoryPublicationSessionTests
         session.BeginResourceTag(new Tag("Iron"));
 
         InvalidOperationException exception =
-            Assert.ThrowsExactly<InvalidOperationException>(() =>
-                session.Complete());
+            (await Assert.That(() =>
+                session.Complete()).ThrowsExactly<InvalidOperationException>())!;
 
-        StringAssert.Contains(exception.Message, "CompleteResourceTag");
+        await Assert.That(exception.Message).Contains("CompleteResourceTag");
     }
 
-    [TestMethod]
-    public void Discard_AfterException_ReleasesCoverageTagsAndAccumulatorReferences()
+    [Test]
+    public async Task Discard_AfterException_ReleasesCoverageTagsAndAccumulatorReferences()
     {
         var session = new FastTrackWorldInventoryPublicationSession();
         session.BeginIncrementalResourceTagUpdateRequiringCoverage(
@@ -202,20 +179,18 @@ public sealed class FastTrackWorldInventoryPublicationSessionTests
         session.BeginResourceTag(new Tag("Iron"));
         session.AddTemperatureAmount(300.0f, 10.0f);
         TemperatureAmountAccumulator accumulatorBeforeDiscard =
-            ReadPrivateField<TemperatureAmountAccumulator>(
+            await ReadPrivateField<TemperatureAmountAccumulator>(
                 session,
                 "temperatureAmountAccumulator");
 
         session.Discard();
 
-        Assert.IsNull(ReadPrivateField<object?>(
+        await Assert.That((await ReadPrivateField<object?>(
             session,
-            "resourceTagCoverage"));
-        Assert.AreNotSame(
-            accumulatorBeforeDiscard,
-            ReadPrivateField<TemperatureAmountAccumulator>(
+            "resourceTagCoverage"))).IsNull();
+        await Assert.That((await ReadPrivateField<TemperatureAmountAccumulator>(
                 session,
-                "temperatureAmountAccumulator"));
+                "temperatureAmountAccumulator"))).IsNotSameReferenceAs(accumulatorBeforeDiscard);
 
         session.BeginIncrementalResourceTagUpdateWithCurrentCoverage(
             FirstGameSessionGeneration,
@@ -225,14 +200,12 @@ public sealed class FastTrackWorldInventoryPublicationSessionTests
             new Tag("Copper"),
             temperatureKelvin: 400.0f,
             amount: 20.0f);
-        Assert.AreEqual(
-            20.0f,
-            RequireSeriesPublication(session.Complete())
-                .TemperatureAmounts.TotalAmount);
+        await Assert.That((await RequireSeriesPublication(session.Complete()))
+                .TemperatureAmounts.TotalAmount).IsEqualTo(20.0f);
     }
 
-    [TestMethod]
-    public void Begin_WhenGameSessionGenerationChanges_DiscardsRetainedOldSessionState()
+    [Test]
+    public async Task Begin_WhenGameSessionGenerationChanges_DiscardsRetainedOldSessionState()
     {
         var session = new FastTrackWorldInventoryPublicationSession();
         session.BeginIncrementalResourceTagUpdateRequiringCoverage(
@@ -242,7 +215,7 @@ public sealed class FastTrackWorldInventoryPublicationSessionTests
         session.BeginResourceTag(new Tag("Iron"));
         session.AddTemperatureAmount(300.0f, 10.0f);
         TemperatureAmountAccumulator oldAccumulator =
-            ReadPrivateField<TemperatureAmountAccumulator>(
+            await ReadPrivateField<TemperatureAmountAccumulator>(
                 session,
                 "temperatureAmountAccumulator");
 
@@ -256,18 +229,16 @@ public sealed class FastTrackWorldInventoryPublicationSessionTests
             amount: 20.0f);
 
         WorldResourceTemperatureSeriesPublication publication =
-            RequireSeriesPublication(session.Complete());
-        Assert.AreNotSame(
-            oldAccumulator,
-            ReadPrivateField<TemperatureAmountAccumulator>(
+            await RequireSeriesPublication(session.Complete());
+        await Assert.That((await ReadPrivateField<TemperatureAmountAccumulator>(
                 session,
-                "temperatureAmountAccumulator"));
-        Assert.AreEqual(new Tag("Copper"), publication.ResourceTag);
-        Assert.AreEqual(20.0f, publication.TemperatureAmounts.TotalAmount);
+                "temperatureAmountAccumulator"))).IsNotSameReferenceAs(oldAccumulator);
+        await Assert.That(publication.ResourceTag).IsEqualTo(new Tag("Copper"));
+        await Assert.That(publication.TemperatureAmounts.TotalAmount).IsEqualTo(20.0f);
     }
 
-    [TestMethod]
-    public void BeginIncrementalResourceTagUpdateWithCurrentCoverage_WhenUnrelatedCollectionMutates_DoesNotRetainOrPublishIt()
+    [Test]
+    public async Task BeginIncrementalResourceTagUpdateWithCurrentCoverage_WhenUnrelatedCollectionMutates_DoesNotRetainOrPublishIt()
     {
         var unrelatedInventory = new List<Tag> { new("Copper") };
         var session = new FastTrackWorldInventoryPublicationSession();
@@ -284,14 +255,14 @@ public sealed class FastTrackWorldInventoryPublicationSessionTests
         FastTrackWorldInventoryPublicationResult result = session.Complete();
 
         WorldResourceTemperatureSeriesPublication publication =
-            RequireSeriesPublication(result);
-        Assert.AreEqual(new Tag("Iron"), publication.ResourceTag);
-        Assert.IsFalse(result.TryGetWorldResourceTagCoverage(out _));
-        Assert.IsNull(ReadPrivateField<object?>(session, "resourceTagCoverage"));
+            await RequireSeriesPublication(result);
+        await Assert.That(publication.ResourceTag).IsEqualTo(new Tag("Iron"));
+        await Assert.That(result.TryGetWorldResourceTagCoverage(out _)).IsFalse();
+        await Assert.That((await ReadPrivateField<object?>(session, "resourceTagCoverage"))).IsNull();
     }
 
-    [TestMethod]
-    public void BeginIncrementalResourceTagUpdateWithCurrentCoverage_WhenFreshSessionBegins_DoesNotAllocateCompleteWorldBuilder()
+    [Test]
+    public async Task BeginIncrementalResourceTagUpdateWithCurrentCoverage_WhenFreshSessionBegins_DoesNotAllocateCompleteWorldBuilder()
     {
         var session = new FastTrackWorldInventoryPublicationSession();
 
@@ -299,13 +270,13 @@ public sealed class FastTrackWorldInventoryPublicationSessionTests
             FirstGameSessionGeneration,
             FirstCollectionGeneration);
 
-        Assert.IsNull(ReadPrivateField<object?>(
+        await Assert.That((await ReadPrivateField<object?>(
             session,
-            "completeWorldResourceTemperatureAmountsBuilder"));
+            "completeWorldResourceTemperatureAmountsBuilder"))).IsNull();
     }
 
-    [TestMethod]
-    public void Begin_WhenSameGameSessionAlreadyHasActiveUpdate_ThrowsLifecycleViolation()
+    [Test]
+    public async Task Begin_WhenSameGameSessionAlreadyHasActiveUpdate_ThrowsLifecycleViolation()
     {
         var session = new FastTrackWorldInventoryPublicationSession();
         session.BeginCompleteWorldUpdate(
@@ -313,16 +284,16 @@ public sealed class FastTrackWorldInventoryPublicationSessionTests
             FirstCollectionGeneration);
 
         InvalidOperationException exception =
-            Assert.ThrowsExactly<InvalidOperationException>(() =>
+            (await Assert.That(() =>
                 session.BeginIncrementalResourceTagUpdateWithCurrentCoverage(
                     FirstGameSessionGeneration,
-                    FirstCollectionGeneration));
+                    FirstCollectionGeneration)).ThrowsExactly<InvalidOperationException>())!;
 
-        StringAssert.Contains(exception.Message, "already active");
+        await Assert.That(exception.Message).Contains("already active");
     }
 
-    [TestMethod]
-    public void CompleteThenThreeIncrementalUpdates_WhenNextGenerationRequiresCoverage_EnumeratesKeysOnceAndProducesOnlySingleTagSeries()
+    [Test]
+    public async Task CompleteThenThreeIncrementalUpdates_WhenNextGenerationRequiresCoverage_EnumeratesKeysOnceAndProducesOnlySingleTagSeries()
     {
         var session = new FastTrackWorldInventoryPublicationSession();
         var results = new List<FastTrackWorldInventoryPublicationResult>();
@@ -336,7 +307,7 @@ public sealed class FastTrackWorldInventoryPublicationSessionTests
             amount: 10.0f);
         results.Add(session.Complete());
         CompleteWorldResourceTemperatureAmountsBuilder completeWorldBuilder =
-            ReadPrivateField<CompleteWorldResourceTemperatureAmountsBuilder>(
+            await ReadPrivateField<CompleteWorldResourceTemperatureAmountsBuilder>(
                 session,
                 "completeWorldResourceTemperatureAmountsBuilder");
 
@@ -377,36 +348,23 @@ public sealed class FastTrackWorldInventoryPublicationSessionTests
             amount: 31.0f);
         results.Add(session.Complete());
 
-        Assert.AreEqual(1, presentResourceTags.EnumerationCount);
-        Assert.AreEqual(
-            FastTrackWorldInventoryPublicationKind.CompleteWorldAmounts,
-            results[0].Kind);
-        Assert.AreEqual(
-            FastTrackWorldInventoryPublicationKind
-                .ResourceTagCoverageAndTemperatureSeries,
-            results[1].Kind);
-        Assert.AreEqual(
-            FastTrackWorldInventoryPublicationKind.ResourceTemperatureSeries,
-            results[2].Kind);
-        Assert.AreEqual(
-            FastTrackWorldInventoryPublicationKind.ResourceTemperatureSeries,
-            results[3].Kind);
-        Assert.AreSequenceEqual(
-            new[] { new Tag("Iron"), new Tag("Copper"), new Tag("Gold") },
-            results.Skip(1)
-                .Select(RequireSeriesPublication)
-                .Select(publication => publication.ResourceTag));
-        Assert.AreSame(
-            completeWorldBuilder,
-            ReadPrivateField<CompleteWorldResourceTemperatureAmountsBuilder>(
+        await Assert.That(presentResourceTags.EnumerationCount).IsEqualTo(1);
+        await Assert.That(results[0].Kind).IsEqualTo(FastTrackWorldInventoryPublicationKind.CompleteWorldAmounts);
+        await Assert.That(results[1].Kind).IsEqualTo(FastTrackWorldInventoryPublicationKind
+                .ResourceTagCoverageAndTemperatureSeries);
+        await Assert.That(results[2].Kind).IsEqualTo(FastTrackWorldInventoryPublicationKind.ResourceTemperatureSeries);
+        await Assert.That(results[3].Kind).IsEqualTo(FastTrackWorldInventoryPublicationKind.ResourceTemperatureSeries);
+        await Assert.That((await Task.WhenAll(results.Skip(1)
+                .Select(RequireSeriesPublication)))
+                .Select(publication => publication.ResourceTag)).IsEquivalentTo(new[] { new Tag("Iron"), new Tag("Copper"), new Tag("Gold") }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That((await ReadPrivateField<CompleteWorldResourceTemperatureAmountsBuilder>(
                 session,
-                "completeWorldResourceTemperatureAmountsBuilder"));
+                "completeWorldResourceTemperatureAmountsBuilder"))).IsSameReferenceAs(completeWorldBuilder);
         foreach (FastTrackWorldInventoryPublicationResult incrementalResult in
                  results.Skip(1))
         {
-            Assert.IsFalse(
-                incrementalResult
-                    .TryGetCompleteWorldResourceTemperatureAmounts(out _));
+            await Assert.That(incrementalResult
+                    .TryGetCompleteWorldResourceTemperatureAmounts(out _)).IsFalse();
         }
     }
 
@@ -421,36 +379,33 @@ public sealed class FastTrackWorldInventoryPublicationSessionTests
         session.CompleteResourceTag();
     }
 
-    private static void AssertSeriesTotal(
+    private static async Task AssertSeriesTotal(
         CompleteWorldResourceTemperatureAmounts completeWorldAmounts,
         Tag resourceTag,
         float expectedTotal)
     {
-        Assert.IsTrue(completeWorldAmounts.TryGetSeries(
+        await Assert.That(completeWorldAmounts.TryGetSeries(
             resourceTag,
-            out TemperatureAmountSeries series));
-        Assert.AreEqual(expectedTotal, series.TotalAmount);
+            out TemperatureAmountSeries series)).IsTrue();
+        await Assert.That(series.TotalAmount).IsEqualTo(expectedTotal);
     }
 
-    private static WorldResourceTemperatureSeriesPublication
+    private static async Task<WorldResourceTemperatureSeriesPublication>
         RequireSeriesPublication(FastTrackWorldInventoryPublicationResult result)
     {
-        Assert.IsTrue(
-            result.TryGetWorldResourceTemperatureSeriesPublication(
-                out WorldResourceTemperatureSeriesPublication publication));
+        await Assert.That(result.TryGetWorldResourceTemperatureSeriesPublication(
+                out WorldResourceTemperatureSeriesPublication publication)).IsTrue();
         return publication;
     }
 
-    private static T ReadPrivateField<T>(
+    private static async Task<T> ReadPrivateField<T>(
         object instance,
         string exactFieldName)
     {
         FieldInfo? field = instance.GetType().GetField(
             exactFieldName,
             BindingFlags.Instance | BindingFlags.NonPublic);
-        Assert.IsNotNull(
-            field,
-            $"The representation contract requires the exact private field " +
+        if (field is null) throw new TUnit.Assertions.Exceptions.AssertionException($"The representation contract requires the exact private field " +
             $"{instance.GetType().Name}.{exactFieldName}.");
         return (T)field.GetValue(instance)!;
     }

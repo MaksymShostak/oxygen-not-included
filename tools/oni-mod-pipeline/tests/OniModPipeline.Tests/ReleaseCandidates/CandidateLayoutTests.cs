@@ -2,12 +2,10 @@ using MaksymShostak.OniModPipeline.ReleaseCandidates;
 using MaksymShostak.OniModPipeline.Tests.Fixtures;
 
 namespace MaksymShostak.OniModPipeline.Tests.ReleaseCandidates;
-
-[TestClass]
 public sealed class CandidateLayoutTests
 {
-    [TestMethod]
-    public void Create_WhenSegmentsAreValid_DerivesEveryCandidateAndEvidencePath()
+    [Test]
+    public async Task Create_WhenSegmentsAreValid_DerivesEveryCandidateAndEvidencePath()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var layout = CandidateLayout.Create(
@@ -22,93 +20,64 @@ public sealed class CandidateLayoutTests
             "2026.8.27",
             "20260827T140302.1234567Z-0123456789abcdef");
 
-        Assert.AreEqual(Path.GetFullPath(expectedCandidate), layout.CandidateDirectory);
-        Assert.AreEqual(
-            Path.Combine(expectedCandidate, "workshop-content"),
-            layout.WorkshopContentDirectory);
-        Assert.AreEqual(
-            Path.Combine(expectedCandidate, "workshop-listing"),
-            layout.WorkshopListingDirectory);
-        Assert.AreEqual(
-            Path.Combine(expectedCandidate, "workshop-listing", "description.bbcode"),
-            layout.DescriptionPath);
-        Assert.AreEqual(
-            Path.Combine(expectedCandidate, "workshop-listing", "change-notes.bbcode"),
-            layout.ChangeNotesPath);
-        Assert.AreEqual(
-            Path.Combine(expectedCandidate, "release-evidence"),
-            layout.ReleaseEvidenceDirectory);
-        Assert.AreEqual(
-            Path.Combine(expectedCandidate, "release-evidence", "release-readiness-report.json"),
-            layout.ReleaseReadinessReportPath);
-        Assert.AreEqual(
-            Path.Combine(expectedCandidate, "release-evidence", "release-content-manifest.json"),
-            layout.ReleaseContentManifestPath);
-        Assert.AreEqual(
-            Path.Combine(expectedCandidate, "release-evidence", "build-provenance.json"),
-            layout.BuildProvenancePath);
-        Assert.AreEqual(
-            Path.Combine(expectedCandidate, "release-evidence", "automated-test-results"),
-            layout.AutomatedTestResultsDirectory);
-        Assert.AreEqual(
-            Path.Combine(expectedCandidate, "release-evidence", "acceptance-test-plan.json"),
-            layout.AcceptanceTestPlanPath);
-        Assert.AreEqual(
-            Path.Combine(expectedCandidate, "release-evidence", "release-summary.md"),
-            layout.ReleaseSummaryPath);
-        Assert.AreEqual(
-            Path.Combine(expectedCandidate, "release-evidence", "uploader-checklist.md"),
-            layout.UploaderChecklistPath);
-        Assert.AreEqual(
-            Path.Combine(expectedCandidate, "release-evidence", "installation-receipt.json"),
-            layout.InstallationReceiptPath);
-        Assert.AreEqual(
-            Path.Combine(expectedCandidate, "release-evidence", "acceptance-test-results.json"),
-            layout.AcceptanceTestResultsPath);
+        await Assert.That(layout.CandidateDirectory).IsEqualTo(Path.GetFullPath(expectedCandidate));
+        await Assert.That(layout.WorkshopContentDirectory).IsEqualTo(Path.Combine(expectedCandidate, "workshop-content"));
+        await Assert.That(layout.WorkshopListingDirectory).IsEqualTo(Path.Combine(expectedCandidate, "workshop-listing"));
+        await Assert.That(layout.DescriptionPath).IsEqualTo(Path.Combine(expectedCandidate, "workshop-listing", "description.bbcode"));
+        await Assert.That(layout.ChangeNotesPath).IsEqualTo(Path.Combine(expectedCandidate, "workshop-listing", "change-notes.bbcode"));
+        await Assert.That(layout.ReleaseEvidenceDirectory).IsEqualTo(Path.Combine(expectedCandidate, "release-evidence"));
+        await Assert.That(layout.ReleaseReadinessReportPath).IsEqualTo(Path.Combine(expectedCandidate, "release-evidence", "release-readiness-report.json"));
+        await Assert.That(layout.ReleaseContentManifestPath).IsEqualTo(Path.Combine(expectedCandidate, "release-evidence", "release-content-manifest.json"));
+        await Assert.That(layout.BuildProvenancePath).IsEqualTo(Path.Combine(expectedCandidate, "release-evidence", "build-provenance.json"));
+        await Assert.That(layout.AutomatedTestResultsDirectory).IsEqualTo(Path.Combine(expectedCandidate, "release-evidence", "automated-test-results"));
+        await Assert.That(layout.AcceptanceTestPlanPath).IsEqualTo(Path.Combine(expectedCandidate, "release-evidence", "acceptance-test-plan.json"));
+        await Assert.That(layout.ReleaseSummaryPath).IsEqualTo(Path.Combine(expectedCandidate, "release-evidence", "release-summary.md"));
+        await Assert.That(layout.UploaderChecklistPath).IsEqualTo(Path.Combine(expectedCandidate, "release-evidence", "uploader-checklist.md"));
+        await Assert.That(layout.InstallationReceiptPath).IsEqualTo(Path.Combine(expectedCandidate, "release-evidence", "installation-receipt.json"));
+        await Assert.That(layout.AcceptanceTestResultsPath).IsEqualTo(Path.Combine(expectedCandidate, "release-evidence", "acceptance-test-results.json"));
     }
 
-    [TestMethod]
-    public void Create_WhenSegmentIsNotPortableAcrossSupportedHosts_RejectsInput()
+    [Test]
+    public async Task Create_WhenSegmentIsNotPortableAcrossSupportedHosts_RejectsInput()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         const string runId = "20260827T140302.1234567Z-0123456789abcdef";
 
         foreach (var invalidStaticId in new[] { "CON", "con.txt", "name:", "name. " })
         {
-            Assert.ThrowsExactly<ArgumentException>(() => CandidateLayout.Create(
+            await Assert.That(() => CandidateLayout.Create(
                 temporaryDirectory.Path,
                 invalidStaticId,
                 "1.0.0",
-                runId),
-                invalidStaticId);
+                runId)).ThrowsExactly<ArgumentException>().Because(invalidStaticId);
         }
     }
 
-    [TestMethod]
-    public void Create_WhenStaticIdOrVersionIsNotSingleSegment_RejectsInput()
+    [Test]
+    public async Task Create_WhenStaticIdOrVersionIsNotSingleSegment_RejectsInput()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         const string runId = "20260827T140302.1234567Z-0123456789abcdef";
 
-        Assert.ThrowsExactly<ArgumentException>(() => CandidateLayout.Create(
+        await Assert.That(() => CandidateLayout.Create(
             temporaryDirectory.Path,
             "../escape",
             "1.0.0",
-            runId));
-        Assert.ThrowsExactly<ArgumentException>(() => CandidateLayout.Create(
+            runId)).ThrowsExactly<ArgumentException>();
+        await Assert.That(() => CandidateLayout.Create(
             temporaryDirectory.Path,
             "Example.Mod",
             "nested/version",
-            runId));
-        Assert.ThrowsExactly<ArgumentException>(() => CandidateLayout.Create(
+            runId)).ThrowsExactly<ArgumentException>();
+        await Assert.That(() => CandidateLayout.Create(
             temporaryDirectory.Path,
             "Example.Mod",
             "..",
-            runId));
+            runId)).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void CreateTransientSibling_WhenGivenGuid_StaysUnderVersionDirectory()
+    [Test]
+    public async Task CreateTransientSibling_WhenGivenGuid_StaysUnderVersionDirectory()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var layout = CandidateLayout.Create(
@@ -121,18 +90,14 @@ public sealed class CandidateLayoutTests
         var staging = layout.CreateTransientSiblingPath("staging", guid);
         var work = layout.CreateTransientSiblingPath("work", guid);
 
-        Assert.AreEqual(
-            Path.Combine(
+        await Assert.That(staging).IsEqualTo(Path.Combine(
                 layout.VersionDirectory,
-                ".20260827T140302.1234567Z-0123456789abcdef.staging-0123456789abcdef0123456789abcdef"),
-            staging);
-        Assert.AreEqual(
-            Path.Combine(
+                ".20260827T140302.1234567Z-0123456789abcdef.staging-0123456789abcdef0123456789abcdef"));
+        await Assert.That(work).IsEqualTo(Path.Combine(
                 layout.VersionDirectory,
-                ".20260827T140302.1234567Z-0123456789abcdef.work-0123456789abcdef0123456789abcdef"),
-            work);
-        Assert.IsTrue(layout.IsOwnedTransientSibling(staging));
-        Assert.IsTrue(layout.IsOwnedTransientSibling(work));
-        Assert.IsFalse(layout.IsOwnedTransientSibling(layout.VersionDirectory));
+                ".20260827T140302.1234567Z-0123456789abcdef.work-0123456789abcdef0123456789abcdef"));
+        await Assert.That(layout.IsOwnedTransientSibling(staging)).IsTrue();
+        await Assert.That(layout.IsOwnedTransientSibling(work)).IsTrue();
+        await Assert.That(layout.IsOwnedTransientSibling(layout.VersionDirectory)).IsFalse();
     }
 }

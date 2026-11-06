@@ -1,92 +1,81 @@
 using System.Reflection;
 
 namespace DeliveryTemperatureLimit.Tests.WorldResourceTemperatureAmounts;
-
-[TestClass]
 public sealed class TemperatureStatusAvailabilityDecisionTests
 {
-    [DataRow(7.0f, 20.0f, 14.0f)]
-    [DataRow(7.0f, 3.0f, 10.0f)]
-    [TestMethod]
-    public void CalculateFetchable_WhenEligibleTotalAndRemainingAreKnown_ReturnsCharacterizedAmount(
+    [Arguments(7.0f, 20.0f, 14.0f)]
+    [Arguments(7.0f, 3.0f, 10.0f)]
+    [Test]
+    public async Task CalculateFetchable_WhenEligibleTotalAndRemainingAreKnown_ReturnsCharacterizedAmount(
         float eligibleTotal,
         float remaining,
         float expectedFetchable)
     {
-        Assert.AreEqual(
-            expectedFetchable,
-            TemperatureStatusAvailabilityDecision.CalculateFetchable(
+        await Assert.That(TemperatureStatusAvailabilityDecision.CalculateFetchable(
                 eligibleTotal,
-                remaining));
+                remaining)).IsEqualTo(expectedFetchable);
     }
 
-    [TestMethod]
-    public void ShouldTryReplacement_WhenOriginalStorageAndFetchableAreBelowMinimum_ReturnsFalse()
+    [Test]
+    public async Task ShouldTryReplacement_WhenOriginalStorageAndFetchableAreBelowMinimum_ReturnsFalse()
     {
-        Assert.IsFalse(
-            TemperatureStatusAvailabilityDecision.ShouldTryReplacement(
+        await Assert.That(TemperatureStatusAvailabilityDecision.ShouldTryReplacement(
                 originalStorageAmount: 2.0f,
                 originalFetchableAmount: 4.0f,
-                minimumRequiredAmount: 7.0f));
+                minimumRequiredAmount: 7.0f)).IsFalse();
     }
 
-    [TestMethod]
-    public void ShouldTryReplacement_WhenOriginalAmountsMeetMinimum_ReturnsTrue()
+    [Test]
+    public async Task ShouldTryReplacement_WhenOriginalAmountsMeetMinimum_ReturnsTrue()
     {
-        Assert.IsTrue(
-            TemperatureStatusAvailabilityDecision.ShouldTryReplacement(
+        await Assert.That(TemperatureStatusAvailabilityDecision.ShouldTryReplacement(
                 originalStorageAmount: 2.0f,
                 originalFetchableAmount: 5.0f,
-                minimumRequiredAmount: 7.0f));
+                minimumRequiredAmount: 7.0f)).IsTrue();
     }
 
-    [TestMethod]
-    public void ShouldTryReplacement_WhenOriginalSumIsNaN_PreservesOriginalLessThanBranchBehavior()
+    [Test]
+    public async Task ShouldTryReplacement_WhenOriginalSumIsNaN_PreservesOriginalLessThanBranchBehavior()
     {
-        Assert.IsTrue(
-            TemperatureStatusAvailabilityDecision.ShouldTryReplacement(
+        await Assert.That(TemperatureStatusAvailabilityDecision.ShouldTryReplacement(
                 originalStorageAmount: float.NaN,
                 originalFetchableAmount: 5.0f,
-                minimumRequiredAmount: 7.0f));
+                minimumRequiredAmount: 7.0f)).IsTrue();
     }
 
-    [TestMethod]
-    public void CalculateFetchable_WhenEligibleTotalIsZero_ReturnsZero()
+    [Test]
+    public async Task CalculateFetchable_WhenEligibleTotalIsZero_ReturnsZero()
     {
-        Assert.AreEqual(
-            0.0f,
-            TemperatureStatusAvailabilityDecision.CalculateFetchable(
+        await Assert.That(TemperatureStatusAvailabilityDecision.CalculateFetchable(
                 eligibleTotal: 0.0f,
-                remaining: 20.0f));
+                remaining: 20.0f)).IsEqualTo(0.0f);
     }
 
-    [TestMethod]
-    public void CalculateFetchable_WhenRemainingIsNegative_PreservesMathfMinEquivalent()
+    [Test]
+    public async Task CalculateFetchable_WhenRemainingIsNegative_PreservesMathfMinEquivalent()
     {
-        Assert.AreEqual(
-            4.0f,
-            TemperatureStatusAvailabilityDecision.CalculateFetchable(
+        await Assert.That(TemperatureStatusAvailabilityDecision.CalculateFetchable(
                 eligibleTotal: 7.0f,
-                remaining: -3.0f));
+                remaining: -3.0f)).IsEqualTo(4.0f);
     }
 
-    [TestMethod]
-    public void TryCalculateReplacementFetchable_WhenTemperatureConstraintIsDisabled_PreservesOriginalFetchable()
+    [Test]
+    public async Task TryCalculateReplacementFetchable_WhenTemperatureConstraintIsDisabled_PreservesOriginalFetchable()
     {
-        AssertPreservesOriginalFetchable(
+        await AssertPreservesOriginalFetchable(
             TemperatureConstrainedAmountAvailability
                 .TemperatureConstraintDisabled());
     }
 
-    [TestMethod]
-    public void TryCalculateReplacementFetchable_WhenInventoryIsIncomplete_PreservesOriginalFetchable()
+    [Test]
+    public async Task TryCalculateReplacementFetchable_WhenInventoryIsIncomplete_PreservesOriginalFetchable()
     {
-        AssertPreservesOriginalFetchable(
+        await AssertPreservesOriginalFetchable(
             TemperatureConstrainedAmountAvailability.InventoryIncomplete());
     }
 
-    [TestMethod]
-    public void TryCalculateReplacementFetchable_WhenInventoryIsComplete_AppliesCharacterizedFormula()
+    [Test]
+    public async Task TryCalculateReplacementFetchable_WhenInventoryIsComplete_AppliesCharacterizedFormula()
     {
         var fetchable = 41.0f;
 
@@ -99,11 +88,11 @@ public sealed class TemperatureStatusAvailabilityDecisionTests
             fetchable = replacementFetchable;
         }
 
-        Assert.AreEqual(10.0f, fetchable);
+        await Assert.That(fetchable).IsEqualTo(10.0f);
     }
 
-    [TestMethod]
-    public void TryCalculateReplacementFetchable_WhenCompleteEligibleTotalIsZero_ReplacesWithZero()
+    [Test]
+    public async Task TryCalculateReplacementFetchable_WhenCompleteEligibleTotalIsZero_ReplacesWithZero()
     {
         var fetchable = 41.0f;
 
@@ -116,11 +105,11 @@ public sealed class TemperatureStatusAvailabilityDecisionTests
             fetchable = replacementFetchable;
         }
 
-        Assert.AreEqual(0.0f, fetchable);
+        await Assert.That(fetchable).IsEqualTo(0.0f);
     }
 
-    [TestMethod]
-    public void TryCalculateReplacementFetchable_WhenAvailabilityStateIsUnknown_ThrowsRatherThanSilentlyReplacing()
+    [Test]
+    public async Task TryCalculateReplacementFetchable_WhenAvailabilityStateIsUnknown_ThrowsRatherThanSilentlyReplacing()
     {
         var privateConstructor =
             typeof(TemperatureConstrainedAmountAvailability).GetConstructor(
@@ -132,7 +121,7 @@ public sealed class TemperatureStatusAvailabilityDecisionTests
                     typeof(float)
                 },
                 modifiers: null);
-        Assert.IsNotNull(privateConstructor);
+        Assert.NotNull(privateConstructor);
         var unknownAvailability =
             (TemperatureConstrainedAmountAvailability)privateConstructor.Invoke(
                 new object[]
@@ -141,15 +130,15 @@ public sealed class TemperatureStatusAvailabilityDecisionTests
                     19.0f
                 });
 
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+        await Assert.That(() =>
             TemperatureStatusAvailabilityDecision
                 .TryCalculateReplacementFetchable(
                     unknownAvailability,
                     remaining: 3.0f,
-                    out _));
+                    out _)).ThrowsExactly<ArgumentOutOfRangeException>();
     }
 
-    private static void AssertPreservesOriginalFetchable(
+    private static async Task AssertPreservesOriginalFetchable(
         TemperatureConstrainedAmountAvailability availability)
     {
         const float originalFetchable = 41.0f;
@@ -164,6 +153,6 @@ public sealed class TemperatureStatusAvailabilityDecisionTests
             fetchable = replacementFetchable;
         }
 
-        Assert.AreEqual(originalFetchable, fetchable);
+        await Assert.That(fetchable).IsEqualTo(originalFetchable);
     }
 }

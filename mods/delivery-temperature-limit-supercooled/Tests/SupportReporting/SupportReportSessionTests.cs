@@ -1,57 +1,61 @@
 using DeliveryTemperatureLimit;
 
 namespace DeliveryTemperatureLimit.Tests.SupportReporting;
-
-[TestClass]
 public sealed class SupportReportSessionTests
 {
-    [TestMethod]
-    public void NewDialog_DoesNotIncludeTheGameLog()
+    [Test]
+    public async Task NewDialog_DoesNotIncludeTheGameLog()
     {
-        Assert.IsFalse(new SupportReportSession().IncludeGameLog);
+        await Assert.That(new SupportReportSession().IncludeGameLog).IsFalse();
     }
 
-    [TestMethod]
-    public void CreateAndOpen_PreservesTheLogChoiceAndPrefillsOnlyTheFreshSummary()
+    [Test]
+    public async Task CreateAndOpen_PreservesTheLogChoiceAndPrefillsOnlyTheFreshSummary()
     {
         var session = new SupportReportSession { IncludeGameLog = true };
         var events = new List<string>();
-        Assert.IsTrue(session.Create(true, kind =>
+        SupportReportKind? observedKind = null;
+        string? observedUrl = null;
+        await Assert.That(session.Create(true, kind =>
         {
-            Assert.AreEqual(SupportReportKind.ExtendedPlayerLog, kind);
+            observedKind = kind;
             events.Add("created");
             return "fresh diagnostic summary";
         }, url =>
         {
-            Assert.AreEqual(SupportIssueUrlBuilder.Create("fresh diagnostic summary").Value, url);
+            observedUrl = url;
             events.Add("opened");
-        }));
-        CollectionAssert.AreEqual(new[] { "created", "opened" }, events);
-        Assert.IsTrue(session.IncludeGameLog);
+        })).IsTrue();
+        await Assert.That(observedKind).IsEqualTo(SupportReportKind.ExtendedPlayerLog);
+        await Assert.That(observedUrl).IsEqualTo(SupportIssueUrlBuilder.Create("fresh diagnostic summary").Value);
+        await Assert.That(events).IsEquivalentTo(new[] { "created", "opened" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(session.IncludeGameLog).IsTrue();
 
-        Assert.IsFalse(session.Create(true, _ => null,
-            _ => Assert.Fail("A failed attempt must not open a form with a previous report.")));
-        Assert.IsTrue(session.IncludeGameLog);
+        await Assert.That(session.Create(true, _ => null,
+            _ => Assert.Fail("A failed attempt must not open a form with a previous report."))).IsFalse();
+        await Assert.That(session.IncludeGameLog).IsTrue();
     }
 
-    [TestMethod]
-    public void LocalReport_DoesNotOpenTheBrowser()
+    [Test]
+    public async Task LocalReport_DoesNotOpenTheBrowser()
     {
         var session = new SupportReportSession();
-        Assert.IsTrue(session.Create(false, kind =>
+        SupportReportKind? observedKind = null;
+        await Assert.That(session.Create(false, kind =>
         {
-            Assert.AreEqual(SupportReportKind.Standard, kind);
+            observedKind = kind;
             return "local summary";
-        }, _ => Assert.Fail("Local report creation must not open GitHub.")));
-        Assert.IsFalse(session.IncludeGameLog);
+        }, _ => Assert.Fail("Local report creation must not open GitHub."))).IsTrue();
+        await Assert.That(observedKind).IsEqualTo(SupportReportKind.Standard);
+        await Assert.That(session.IncludeGameLog).IsFalse();
     }
 
-    [TestMethod]
-    public void BrowserFailure_DoesNotClearTheLogChoice()
+    [Test]
+    public async Task BrowserFailure_DoesNotClearTheLogChoice()
     {
         var session = new SupportReportSession { IncludeGameLog = true };
-        Assert.Throws<IOException>(() => session.Create(true, _ => "summary",
-            _ => throw new IOException("Browser unavailable")));
-        Assert.IsTrue(session.IncludeGameLog);
+        await Assert.That(() => session.Create(true, _ => "summary",
+            _ => throw new IOException("Browser unavailable"))).Throws<IOException>();
+        await Assert.That(session.IncludeGameLog).IsTrue();
     }
 }

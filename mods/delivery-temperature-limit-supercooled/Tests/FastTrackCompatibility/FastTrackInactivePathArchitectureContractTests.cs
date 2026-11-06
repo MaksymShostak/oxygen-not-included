@@ -4,14 +4,6 @@ using System.Reflection;
 using DeliveryTemperatureLimit.Tests.RuntimePatchInstallation;
 
 namespace DeliveryTemperatureLimit.Tests.FastTrackCompatibility;
-
-/// <summary>
-/// Proves that a loaded game which does not have an active verified FastTrack
-/// replacement receives direct Klei patch groups. The hot Klei methods are then
-/// checked independently so the cold compatibility result cannot leak into an
-/// update-time branch or adapter dispatch.
-/// </summary>
-[TestClass]
 public sealed class FastTrackInactivePathArchitectureContractTests
 {
     private const string SupportedDigest =
@@ -37,8 +29,8 @@ public sealed class FastTrackInactivePathArchitectureContractTests
             "fast-track-direct-delivery-eligibility"
         ];
 
-    [TestMethod]
-    public void RuntimePlan_WhenFastTrackIsNotLoaded_SelectsKleiImplementationPathsDirectly()
+    [Test]
+    public async Task RuntimePlan_WhenFastTrackIsNotLoaded_SelectsKleiImplementationPathsDirectly()
     {
         var identityReader = new RecordingAssemblyIdentityReader();
         var inspector = new FastTrackCompatibilityInspector(
@@ -50,12 +42,12 @@ public sealed class FastTrackInactivePathArchitectureContractTests
                 fastTrackAssembly: null,
                 activeHarmonyPrefixes: []));
 
-        Assert.AreEqual(0, identityReader.ReadCallCount);
-        AssertKleiImplementationPathsAreSelected(report);
+        await Assert.That(identityReader.ReadCallCount).IsEqualTo(0);
+        await AssertKleiImplementationPathsAreSelected(report);
     }
 
-    [TestMethod]
-    public void RuntimePlan_WhenFastTrackIsDisabledForLoadedGame_SelectsKleiWithoutInspectingAssembly()
+    [Test]
+    public async Task RuntimePlan_WhenFastTrackIsDisabledForLoadedGame_SelectsKleiWithoutInspectingAssembly()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract();
@@ -69,16 +61,13 @@ public sealed class FastTrackInactivePathArchitectureContractTests
                 fixture.Assembly,
                 fixture.AllReplacements.ToArray()));
 
-        Assert.AreEqual(
-            0,
-            identityReader.ReadCallCount,
-            "A disabled mod for the loaded game must not pay even the cold " +
+        await Assert.That(identityReader.ReadCallCount).IsEqualTo(0).Because("A disabled mod for the loaded game must not pay even the cold " +
             "physical-identity read cost.");
-        AssertKleiImplementationPathsAreSelected(report);
+        await AssertKleiImplementationPathsAreSelected(report);
     }
 
-    [TestMethod]
-    public void RuntimePlan_WhenFastTrackReplacementsAreInactive_SelectsKleiImplementationPathsDirectly()
+    [Test]
+    public async Task RuntimePlan_WhenFastTrackReplacementsAreInactive_SelectsKleiImplementationPathsDirectly()
     {
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract();
@@ -97,19 +86,17 @@ public sealed class FastTrackInactivePathArchitectureContractTests
                 fixture.Assembly,
                 activeHarmonyPrefixes: []));
 
-        Assert.AreEqual(1, identityReader.ReadCallCount);
+        await Assert.That(identityReader.ReadCallCount).IsEqualTo(1);
         foreach (FastTrackFeature feature in EnumerateFeatures())
         {
-            Assert.AreEqual(
-                FastTrackFeatureCompatibilityState.ReplacementInactive,
-                report.GetFeature(feature).State);
+            await Assert.That(report.GetFeature(feature).State).IsEqualTo(FastTrackFeatureCompatibilityState.ReplacementInactive);
         }
 
-        AssertKleiImplementationPathsAreSelected(report);
+        await AssertKleiImplementationPathsAreSelected(report);
     }
 
-    [TestMethod]
-    public void KleiImplementationPaths_WhenFastTrackIsAbsent_ReferenceNoFastTrackHotPathMethod()
+    [Test]
+    public async Task KleiImplementationPaths_WhenFastTrackIsAbsent_ReferenceNoFastTrackHotPathMethod()
     {
         var subjects = new[]
         {
@@ -144,34 +131,30 @@ public sealed class FastTrackInactivePathArchitectureContractTests
             string sourcePath = Path.Combine(
                 ResolveSourceRoot(),
                 subject.RelativePath.Replace('/', Path.DirectorySeparatorChar));
-            string methodBody = ExtractMethodBody(
+            string methodBody = await ExtractMethodBody(
                 File.ReadAllText(sourcePath),
                 subject.DeclarationMarker);
             foreach (string prohibitedReference in prohibitedHotPathReferences)
             {
-                Assert.IsFalse(
-                    methodBody.Contains(
+                await Assert.That(methodBody.Contains(
                         prohibitedReference,
-                        StringComparison.Ordinal),
-                    $"Klei hot method {subject.DeclarationMarker} in " +
+                        StringComparison.Ordinal)).IsFalse().Because($"Klei hot method {subject.DeclarationMarker} in " +
                     $"{sourcePath} references cold/compatibility member " +
                     $"{prohibitedReference}.");
             }
         }
     }
 
-    private static void AssertKleiImplementationPathsAreSelected(
+    private static async Task AssertKleiImplementationPathsAreSelected(
         FastTrackCompatibilityReport report)
     {
         foreach (FastTrackFeature feature in EnumerateFeatures())
         {
             FastTrackFeatureCompatibilityState state =
                 report.GetFeature(feature).State;
-            Assert.IsTrue(
-                state == FastTrackFeatureCompatibilityState.ModNotLoaded ||
+            await Assert.That(state == FastTrackFeatureCompatibilityState.ModNotLoaded ||
                 state ==
-                    FastTrackFeatureCompatibilityState.ReplacementInactive,
-                $"Inactive-path fixture unexpectedly observed {feature} as " +
+                    FastTrackFeatureCompatibilityState.ReplacementInactive).IsTrue().Because($"Inactive-path fixture unexpectedly observed {feature} as " +
                 $"{state}.");
         }
 
@@ -184,24 +167,20 @@ public sealed class FastTrackInactivePathArchitectureContractTests
         foreach (string requiredGroup in
                  RequiredKleiGroupsWhenStatusIsEnabled)
         {
-            Assert.IsTrue(
-                plan.OrderedPatchGroupIds.Any(group => string.Equals(
+            await Assert.That(plan.OrderedPatchGroupIds.Any(group => string.Equals(
                     group.Value,
                     requiredGroup,
-                    StringComparison.Ordinal)),
-                $"The inactive FastTrack plan omitted required Klei group " +
+                    StringComparison.Ordinal))).IsTrue().Because($"The inactive FastTrack plan omitted required Klei group " +
                 $"{requiredGroup}.");
         }
 
         foreach (string prohibitedGroup in
                  ProhibitedFastTrackGroups)
         {
-            Assert.IsFalse(
-                plan.OrderedPatchGroupIds.Any(group => string.Equals(
+            await Assert.That(plan.OrderedPatchGroupIds.Any(group => string.Equals(
                     group.Value,
                     prohibitedGroup,
-                    StringComparison.Ordinal)),
-                $"The inactive FastTrack plan selected prohibited group " +
+                    StringComparison.Ordinal))).IsFalse().Because($"The inactive FastTrack plan selected prohibited group " +
                 $"{prohibitedGroup}.");
         }
     }
@@ -222,28 +201,19 @@ public sealed class FastTrackInactivePathArchitectureContractTests
                 SupportedDigest)
         });
 
-    private static string ExtractMethodBody(
+    private static async Task<string> ExtractMethodBody(
         string source,
         string declarationMarker)
     {
         int declarationIndex = source.IndexOf(
             declarationMarker,
             StringComparison.Ordinal);
-        Assert.IsGreaterThanOrEqualTo(
-            0,
-            declarationIndex,
-            $"Missing exact hot-method declaration {declarationMarker}.");
-        Assert.AreEqual(
-            declarationIndex,
-            source.LastIndexOf(declarationMarker, StringComparison.Ordinal),
-            $"Hot-method declaration is not unique: {declarationMarker}.");
+        await Assert.That(declarationIndex).IsGreaterThanOrEqualTo(0).Because($"Missing exact hot-method declaration {declarationMarker}.");
+        await Assert.That(source.LastIndexOf(declarationMarker, StringComparison.Ordinal)).IsEqualTo(declarationIndex).Because($"Hot-method declaration is not unique: {declarationMarker}.");
         int openingBraceIndex = source.IndexOf(
             '{',
             declarationIndex + declarationMarker.Length);
-        Assert.IsGreaterThanOrEqualTo(
-            0,
-            openingBraceIndex,
-            $"Hot-method declaration has no body: {declarationMarker}.");
+        await Assert.That(openingBraceIndex).IsGreaterThanOrEqualTo(0).Because($"Hot-method declaration has no body: {declarationMarker}.");
 
         int nestingDepth = 0;
         for (int characterIndex = openingBraceIndex;

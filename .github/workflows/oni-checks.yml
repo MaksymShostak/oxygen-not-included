@@ -67,7 +67,7 @@ jobs:
       - id: pipeline
         name: Test the pipeline without game installation
         if: fromJSON(env.ONI_PLAN).checks.pipeline
-        run: dotnet test --project tools/oni-mod-pipeline/tests/OniModPipeline.Tests/OniModPipeline.Tests.csproj --no-restore
+        run: dotnet test --project tools/oni-mod-pipeline/tests/OniModPipeline.Tests/OniModPipeline.Tests.csproj --no-restore -- --report-trx --coverage --coverage-output-format cobertura --results-directory artifacts/tests/pipeline
       - id: python
         name: Test repository Python scripts
         if: fromJSON(env.ONI_PLAN).checks.python

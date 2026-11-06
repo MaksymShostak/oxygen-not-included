@@ -3,45 +3,45 @@ using MaksymShostak.OniModPipeline.SourceControl;
 using MaksymShostak.OniModPipeline.Tests.Fixtures;
 
 namespace MaksymShostak.OniModPipeline.Tests.SourceControl;
-
-[TestClass]
 public sealed class RelevantSourceSetTests
 {
-    [TestMethod]
-    [DataRow("Directory.Packages.props")]
-    [DataRow("global.json")]
-    public void Create_WithDotnetProjects_IncludesCentralControlsAndRetainsTrackedDeletions(string control)
+    [Test]
+    [Arguments("Directory.Packages.props")]
+    [Arguments("global.json")]
+    [Arguments("tests/TUnitProjectDefaults.cs")]
+    [Arguments("tests/TUnitProject.props")]
+    public async Task Create_WithDotnetProjects_IncludesCentralControlsAndRetainsTrackedDeletions(string control)
     {
         using var directory = new TemporaryDirectory();
         var profile = CreateProfileFixture(directory);
         var path = directory.GetPath(control);
         WriteFile(path);
         var present = RelevantSourceSet.Create(profile, directory.Path, [], null);
-        Assert.IsTrue(present.IsSuccess);
-        CollectionAssert.Contains(present.Value!.WorktreeRelativePaths.ToArray(), control);
+        await Assert.That(present.IsSuccess).IsTrue();
+        await Assert.That(present.Value!.WorktreeRelativePaths.ToArray()).Contains(control);
         File.Delete(path);
         var deleted = RelevantSourceSet.Create(profile, directory.Path, [control], null);
-        Assert.IsTrue(deleted.IsSuccess);
-        CollectionAssert.Contains(deleted.Value!.WorktreeRelativePaths.ToArray(), control);
+        await Assert.That(deleted.IsSuccess).IsTrue();
+        await Assert.That(deleted.Value!.WorktreeRelativePaths.ToArray()).Contains(control);
         var absent = RelevantSourceSet.Create(profile, directory.Path, [], null);
-        Assert.IsTrue(absent.IsSuccess);
-        Assert.IsFalse(absent.Value!.WorktreeRelativePaths.Contains(control));
+        await Assert.That(absent.IsSuccess).IsTrue();
+        await Assert.That(absent.Value!.WorktreeRelativePaths.Contains(control)).IsFalse();
     }
 
-    [TestMethod]
-    public void Create_WithReadme_IncludesDocumentationAndNpmDeclarations()
+    [Test]
+    public async Task Create_WithReadme_IncludesDocumentationAndNpmDeclarations()
     {
         using var directory = new TemporaryDirectory();
         var profile = CreateProfileFixture(directory) with { Readme = new ReadmeProfile("README.md") };
         var inputs = new[] { "README.md", "package.json", "package-lock.json", ".markdown-quality.json", ".markdown-quality-execution.json", ".node-version", ".python-version", "tools/readme/canonicalize.mjs", "tools/readme/render-description.mjs", "tools/readme/compatibility-badges.mjs" };
         foreach (var path in inputs) WriteFile(directory.GetPath(path));
         var result = RelevantSourceSet.Create(profile, directory.Path, ["README.md", "package.json", "package-lock.json"], null);
-        Assert.IsTrue(result.IsSuccess);
+        await Assert.That(result.IsSuccess).IsTrue();
         foreach (var path in inputs)
-            CollectionAssert.Contains(result.Value!.WorktreeRelativePaths.ToArray(), path);
+            await Assert.That(result.Value!.WorktreeRelativePaths.ToArray()).Contains(path);
     }
-    [TestMethod]
-    public void Create_WhenProfileDeclaresBuildTestsAndAssets_IncludesInputsButExcludesBuildDirectories()
+    [Test]
+    public async Task Create_WhenProfileDeclaresBuildTestsAndAssets_IncludesInputsButExcludesBuildDirectories()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var profile = CreateProfileFixture(temporaryDirectory);
@@ -56,30 +56,22 @@ public sealed class RelevantSourceSetTests
             trackedPaths,
             pipelineExecutablePath: null);
 
-        Assert.IsTrue(result.IsSuccess);
-        Assert.IsNotNull(result.Value);
-        CollectionAssert.Contains(
-            result.Value.WorktreeRelativePaths.ToArray(),
-            "mods/example/Source/Code.cs");
-        CollectionAssert.Contains(
-            result.Value.WorktreeRelativePaths.ToArray(),
-            "mods/example/Tests/TestCode.cs");
-        CollectionAssert.Contains(
-            result.Value.WorktreeRelativePaths.ToArray(),
-            "mods/example/asset.txt");
-        Assert.IsFalse(result.Value.WorktreeRelativePaths.Any(
+        await Assert.That(result.IsSuccess).IsTrue();
+        Assert.NotNull(result.Value);
+        await Assert.That(result.Value.WorktreeRelativePaths.ToArray()).Contains("mods/example/Source/Code.cs");
+        await Assert.That(result.Value.WorktreeRelativePaths.ToArray()).Contains("mods/example/Tests/TestCode.cs");
+        await Assert.That(result.Value.WorktreeRelativePaths.ToArray()).Contains("mods/example/asset.txt");
+        await Assert.That(result.Value.WorktreeRelativePaths.Any(
             path => path.Contains("/bin/", StringComparison.OrdinalIgnoreCase) ||
-                path.Contains("/obj/", StringComparison.OrdinalIgnoreCase)));
-        CollectionAssert.AreEqual(
-            result.Value.WorktreeRelativePaths
+                path.Contains("/obj/", StringComparison.OrdinalIgnoreCase))).IsFalse();
+        await Assert.That(result.Value.WorktreeRelativePaths.ToArray()).IsEquivalentTo(result.Value.WorktreeRelativePaths
                 .OrderBy(path => path, StringComparer.Ordinal)
-                .ToArray(),
-            result.Value.WorktreeRelativePaths.ToArray());
-        Assert.IsFalse(result.Value.WorktreeRelativePaths.Any(path => path.Contains('\\')));
+                .ToArray(), TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(result.Value.WorktreeRelativePaths.Any(path => path.Contains('\\'))).IsFalse();
     }
 
-    [TestMethod]
-    public void Create_WhenPipelineExecutableIsInsideWorktree_IncludesToolSourcesAndLocks()
+    [Test]
+    public async Task Create_WhenPipelineExecutableIsInsideWorktree_IncludesToolSourcesAndLocks()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var profile = CreateProfileFixture(temporaryDirectory);
@@ -109,22 +101,18 @@ public sealed class RelevantSourceSetTests
             [],
             executablePath);
 
-        Assert.IsTrue(result.IsSuccess);
-        CollectionAssert.Contains(result.Value!.WorktreeRelativePaths.ToArray(), "global.json");
-        CollectionAssert.Contains(result.Value.WorktreeRelativePaths.ToArray(), "tools/oni-mod-pipeline/src/OniModPipeline/Catalogs/Python/catalogs.py");
-        CollectionAssert.Contains(
-            result.Value.WorktreeRelativePaths.ToArray(),
-            "tools/oni-mod-pipeline/src/OniModPipeline/Program.cs");
-        CollectionAssert.Contains(
-            result.Value.WorktreeRelativePaths.ToArray(),
-            "tools/oni-mod-pipeline/tests/OniModPipeline.Tests/SmokeTests.cs");
-        Assert.IsFalse(result.Value.WorktreeRelativePaths.Contains(
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value!.WorktreeRelativePaths.ToArray()).Contains("global.json");
+        await Assert.That(result.Value.WorktreeRelativePaths.ToArray()).Contains("tools/oni-mod-pipeline/src/OniModPipeline/Catalogs/Python/catalogs.py");
+        await Assert.That(result.Value.WorktreeRelativePaths.ToArray()).Contains("tools/oni-mod-pipeline/src/OniModPipeline/Program.cs");
+        await Assert.That(result.Value.WorktreeRelativePaths.ToArray()).Contains("tools/oni-mod-pipeline/tests/OniModPipeline.Tests/SmokeTests.cs");
+        await Assert.That(result.Value.WorktreeRelativePaths.Contains(
             "tools/oni-mod-pipeline/src/OniModPipeline/bin/Debug/net10.0/oni-mod-pipeline.dll",
-            StringComparer.Ordinal));
+            StringComparer.Ordinal)).IsFalse();
     }
 
-    [TestMethod]
-    public void Create_WhenPipelineExecutableIsOutsideWorktree_DoesNotTreatItAsContributingInput()
+    [Test]
+    public async Task Create_WhenPipelineExecutableIsOutsideWorktree_DoesNotTreatItAsContributingInput()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         using var externalDirectory = new TemporaryDirectory();
@@ -138,27 +126,27 @@ public sealed class RelevantSourceSetTests
             [],
             executablePath);
 
-        Assert.IsTrue(result.IsSuccess);
-        Assert.IsFalse(result.Value!.AbsolutePaths.Contains(
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value!.AbsolutePaths.Contains(
             executablePath,
-            StringComparer.OrdinalIgnoreCase));
+            StringComparer.OrdinalIgnoreCase)).IsFalse();
     }
 
-    [TestMethod]
-    [DataRow(".markdown-quality.json")]
-    [DataRow(".markdown-quality-execution.json")]
-    public void Create_WithReadme_AllowsAbsentDefaultsButRetainsTrackedControlDeletions(string control)
+    [Test]
+    [Arguments(".markdown-quality.json")]
+    [Arguments(".markdown-quality-execution.json")]
+    public async Task Create_WithReadme_AllowsAbsentDefaultsButRetainsTrackedControlDeletions(string control)
     {
         using var directory = new TemporaryDirectory();
         var profile = CreateProfileFixture(directory) with { Readme = new ReadmeProfile("README.md") };
         foreach (var input in new[] { "README.md", "package.json", "package-lock.json", ".node-version", ".python-version", "tools/readme/canonicalize.mjs", "tools/readme/render-description.mjs", "tools/readme/compatibility-badges.mjs" })
             WriteFile(directory.GetPath(input));
         var absent = RelevantSourceSet.Create(profile, directory.Path, [], null);
-        Assert.IsTrue(absent.IsSuccess);
-        Assert.IsFalse(absent.Value!.WorktreeRelativePaths.Contains(control));
+        await Assert.That(absent.IsSuccess).IsTrue();
+        await Assert.That(absent.Value!.WorktreeRelativePaths.Contains(control)).IsFalse();
         var deleted = RelevantSourceSet.Create(profile, directory.Path, [control], null);
-        Assert.IsTrue(deleted.IsSuccess);
-        CollectionAssert.Contains(deleted.Value!.WorktreeRelativePaths.ToArray(), control);
+        await Assert.That(deleted.IsSuccess).IsTrue();
+        await Assert.That(deleted.Value!.WorktreeRelativePaths.ToArray()).Contains(control);
     }
 
     private static ModProfile CreateProfileFixture(TemporaryDirectory temporaryDirectory)

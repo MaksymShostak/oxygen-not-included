@@ -1,10 +1,8 @@
 namespace DeliveryTemperatureLimit.Tests.SupportReporting;
-
-[TestClass]
 public sealed class SupportJsonReportSizeLimiterTests
 {
-    [TestMethod]
-    public void SerializeWithinLimit_WhenGenericIntegrationEvidenceFits_PreservesTheCompleteDocument()
+    [Test]
+    public async Task SerializeWithinLimit_WhenGenericIntegrationEvidenceFits_PreservesTheCompleteDocument()
     {
         SupportReportDocument document = CreateStandardDocument();
 
@@ -16,26 +14,24 @@ public sealed class SupportJsonReportSizeLimiterTests
                     ? "fixed"
                     : string.Empty);
 
-        Assert.AreSame(document, serialization.Document);
-        Assert.AreEqual("fixed", serialization.Json);
-        Assert.AreEqual(5, serialization.Utf8ByteCount);
-        Assert.HasCount(
-            1,
-            serialization.Document.Runtime.ExternalModIntegrations);
+        await Assert.That(serialization.Document).IsSameReferenceAs(document);
+        await Assert.That(serialization.Json).IsEqualTo("fixed");
+        await Assert.That(serialization.Utf8ByteCount).IsEqualTo(5);
+        await Assert.That(serialization.Document.Runtime.ExternalModIntegrations).Count().IsEqualTo(1);
     }
 
-    [TestMethod]
-    public void SerializeWithinLimit_WhenGenericIntegrationEvidenceReachesLimit_RejectsInsteadOfDroppingEvidence()
+    [Test]
+    public async Task SerializeWithinLimit_WhenGenericIntegrationEvidenceReachesLimit_RejectsInsteadOfDroppingEvidence()
     {
         SupportReportDocument document = CreateStandardDocument();
 
-        Assert.ThrowsExactly<InvalidOperationException>(() =>
+        await Assert.That(() =>
             SupportJsonReportSizeLimiter.SerializeWithinLimit(
                 document,
                 maximumByteCount: 5,
                 candidate => candidate.Runtime.ExternalModIntegrations.Count == 1
                     ? "fixed"
-                    : string.Empty));
+                    : string.Empty)).ThrowsExactly<InvalidOperationException>();
     }
 
     private static SupportReportDocument CreateStandardDocument()

@@ -4,11 +4,9 @@ using System.Text;
 using System.Text.Json;
 
 namespace MaksymShostak.OniModPipeline.Tests.Serialization;
-
-[TestClass]
 public sealed class Utf8ArtifactWriterTests
 {
-    [TestMethod]
+    [Test]
     public async Task WriteJsonAtomicallyAsync_WritesCamelCaseUtf8WithoutBomAndOneFinalLf()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -21,18 +19,16 @@ public sealed class Utf8ArtifactWriterTests
             CancellationToken.None);
 
         var bytes = await File.ReadAllBytesAsync(destination);
-        Assert.IsFalse(bytes.AsSpan().StartsWith(new byte[] { 0xEF, 0xBB, 0xBF }));
-        Assert.AreEqual((byte)'\n', bytes[^1]);
-        Assert.AreNotEqual((byte)'\n', bytes[^2]);
-        Assert.IsFalse(bytes.Contains((byte)'\r'));
+        await Assert.That(bytes.AsSpan().StartsWith(new byte[] { 0xEF, 0xBB, 0xBF })).IsFalse();
+        await Assert.That(bytes[^1]).IsEqualTo((byte)'\n');
+        await Assert.That(bytes[^2]).IsNotEqualTo((byte)'\n');
+        await Assert.That(bytes.Contains((byte)'\r')).IsFalse();
         using var document = JsonDocument.Parse(bytes);
-        Assert.AreEqual(
-            "first\r\nsecond",
-            document.RootElement.GetProperty("displayName").GetString());
-        Assert.AreEqual(3, document.RootElement.GetProperty("itemCount").GetInt32());
+        await Assert.That(document.RootElement.GetProperty("displayName").GetString()).IsEqualTo("first\r\nsecond");
+        await Assert.That(document.RootElement.GetProperty("itemCount").GetInt32()).IsEqualTo(3);
     }
 
-    [TestMethod]
+    [Test]
     public async Task WriteLfTextAtomicallyAsync_NormalizesLineEndingsAndOneFinalLf()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -45,12 +41,10 @@ public sealed class Utf8ArtifactWriterTests
             CancellationToken.None);
 
         var bytes = await File.ReadAllBytesAsync(destination);
-        CollectionAssert.AreEqual(
-            Encoding.UTF8.GetBytes("alpha\nbeta\ngamma\n"),
-            bytes);
+        await Assert.That(bytes).IsEquivalentTo(Encoding.UTF8.GetBytes("alpha\nbeta\ngamma\n"), TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
+    [Test]
     public async Task WriteLfTextAtomicallyAsync_ReplacesOnlyNamedDestination()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -65,16 +59,14 @@ public sealed class Utf8ArtifactWriterTests
             "new",
             CancellationToken.None);
 
-        Assert.AreEqual("new\n", await File.ReadAllTextAsync(destination));
-        Assert.AreEqual("keep\n", await File.ReadAllTextAsync(sibling));
-        CollectionAssert.AreEquivalent(
-            new[] { "derived.txt", "immutable.txt" },
-            Directory.EnumerateFiles(temporaryDirectory.Path)
+        await Assert.That(await File.ReadAllTextAsync(destination)).IsEqualTo("new\n");
+        await Assert.That(await File.ReadAllTextAsync(sibling)).IsEqualTo("keep\n");
+        await Assert.That(Directory.EnumerateFiles(temporaryDirectory.Path)
                 .Select(Path.GetFileName)
-                .ToArray());
+                .ToArray()).IsEquivalentTo((new[] { "derived.txt", "immutable.txt" }).Cast<string?>(), TUnit.Assertions.Enums.CollectionOrdering.Any);
     }
 
-    [TestMethod]
+    [Test]
     public async Task WriteJsonAtomicallyAsync_WhenSerializationFails_LeavesDestinationUnchanged()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -83,16 +75,14 @@ public sealed class Utf8ArtifactWriterTests
         await File.WriteAllBytesAsync(destination, original);
         var writer = new Utf8ArtifactWriter();
 
-        await Assert.ThrowsExactlyAsync<NotSupportedException>(() =>
-            writer.WriteJsonAtomicallyAsync(
+        await Assert.That(async () =>
+{await writer.WriteJsonAtomicallyAsync(
                 destination,
                 new UnsupportedArtifact(() => { }),
-                CancellationToken.None));
+                CancellationToken.None);}).ThrowsExactly<NotSupportedException>();
 
-        CollectionAssert.AreEqual(original, await File.ReadAllBytesAsync(destination));
-        CollectionAssert.AreEqual(
-            new[] { destination },
-            Directory.EnumerateFiles(temporaryDirectory.Path).ToArray());
+        await Assert.That(await File.ReadAllBytesAsync(destination)).IsEquivalentTo(original, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(Directory.EnumerateFiles(temporaryDirectory.Path).ToArray()).IsEquivalentTo(new[] { destination }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     private sealed record SampleArtifact(string DisplayName, int ItemCount);

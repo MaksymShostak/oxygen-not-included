@@ -1,10 +1,8 @@
 namespace DeliveryTemperatureLimit.Tests.SupportReporting;
-
-[TestClass]
 public sealed class SupportActiveDlcCaptureTests
 {
-    [TestMethod]
-    public void Capture_WhenReaderReturnsNull_ReportsUnavailableInsteadOfNoDlcs()
+    [Test]
+    public async Task Capture_WhenReaderReturnsNull_ReportsUnavailableInsteadOfNoDlcs()
     {
         var warnings = new List<string>();
 
@@ -12,21 +10,17 @@ public sealed class SupportActiveDlcCaptureTests
             () => null,
             warnings);
 
-        Assert.AreEqual("unavailable", snapshot.State);
-        Assert.AreEqual(
-            "Active DLC identifiers were unavailable during report generation.",
-            snapshot.UnavailableReason);
-        Assert.HasCount(0, snapshot.Ids);
-        CollectionAssert.AreEqual(
-            new[]
+        await Assert.That(snapshot.State).IsEqualTo("unavailable");
+        await Assert.That(snapshot.UnavailableReason).IsEqualTo("Active DLC identifiers were unavailable during report generation.");
+        await Assert.That(snapshot.Ids).Count().IsEqualTo(0);
+        await Assert.That(warnings).IsEquivalentTo(new[]
             {
                 "Active DLC identifiers were unavailable during report generation."
-            },
-            warnings);
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void Capture_WhenReaderThrows_ReportsUnavailableInsteadOfNoDlcs()
+    [Test]
+    public async Task Capture_WhenReaderThrows_ReportsUnavailableInsteadOfNoDlcs()
     {
         var warnings = new List<string>();
 
@@ -34,16 +28,14 @@ public sealed class SupportActiveDlcCaptureTests
             () => throw new InvalidOperationException("DLC manager unavailable"),
             warnings);
 
-        Assert.AreEqual("unavailable", snapshot.State);
-        Assert.AreEqual(
-            "Active DLC identifiers were unavailable during report generation.",
-            snapshot.UnavailableReason);
-        Assert.HasCount(0, snapshot.Ids);
-        Assert.HasCount(1, warnings);
+        await Assert.That(snapshot.State).IsEqualTo("unavailable");
+        await Assert.That(snapshot.UnavailableReason).IsEqualTo("Active DLC identifiers were unavailable during report generation.");
+        await Assert.That(snapshot.Ids).Count().IsEqualTo(0);
+        await Assert.That(warnings).Count().IsEqualTo(1);
     }
 
-    [TestMethod]
-    public void Capture_WhenReaderReturnsEmptyList_ReportsAvailableNoDlcs()
+    [Test]
+    public async Task Capture_WhenReaderReturnsEmptyList_ReportsAvailableNoDlcs()
     {
         var warnings = new List<string>();
 
@@ -51,14 +43,14 @@ public sealed class SupportActiveDlcCaptureTests
             () => Array.Empty<string>(),
             warnings);
 
-        Assert.AreEqual("available", snapshot.State);
-        Assert.IsNull(snapshot.UnavailableReason);
-        Assert.HasCount(0, snapshot.Ids);
-        Assert.HasCount(0, warnings);
+        await Assert.That(snapshot.State).IsEqualTo("available");
+        await Assert.That(snapshot.UnavailableReason).IsNull();
+        await Assert.That(snapshot.Ids).Count().IsEqualTo(0);
+        await Assert.That(warnings).Count().IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void Capture_WhenReaderReturnsIds_NormalizesAndDefensivelyCopiesThem()
+    [Test]
+    public async Task Capture_WhenReaderReturnsIds_NormalizesAndDefensivelyCopiesThem()
     {
         var observedIds = new List<string>
         {
@@ -72,8 +64,6 @@ public sealed class SupportActiveDlcCaptureTests
             new List<string>());
         observedIds[0] = "MUTATED";
 
-        CollectionAssert.AreEqual(
-            new[] { "BASE_GAME", "EXPANSION1_ID" },
-            snapshot.Ids.ToArray());
+        await Assert.That(snapshot.Ids.ToArray()).IsEquivalentTo(new[] { "BASE_GAME", "EXPANSION1_ID" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 }

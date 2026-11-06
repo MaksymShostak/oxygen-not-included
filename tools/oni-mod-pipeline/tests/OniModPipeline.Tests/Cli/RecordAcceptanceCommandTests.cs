@@ -3,11 +3,9 @@ using MaksymShostak.OniModPipeline.Diagnostics;
 using MaksymShostak.OniModPipeline.ReleaseCandidates;
 
 namespace MaksymShostak.OniModPipeline.Tests.Cli;
-
-[TestClass]
 public sealed class RecordAcceptanceCommandTests
 {
-    [TestMethod]
+    [Test]
     public async Task RecordAcceptance_WhenHelpIsRequested_DocumentsOnlyInteractiveCandidateInputs()
     {
         using var fixture = new PipelineCommandFixture(includeTests: false);
@@ -19,18 +17,18 @@ public sealed class RecordAcceptanceCommandTests
             command,
             ["record-acceptance", "--help"]);
 
-        Assert.AreEqual(0, invocation.ExitCode);
-        Assert.Contains("--candidate", invocation.StandardOutput, StringComparison.Ordinal);
-        Assert.Contains("--tester", invocation.StandardOutput, StringComparison.Ordinal);
-        Assert.DoesNotContain("--mod", invocation.StandardOutput, StringComparison.Ordinal);
-        Assert.DoesNotContain("--format", invocation.StandardOutput, StringComparison.Ordinal);
-        Assert.DoesNotContain("--input", invocation.StandardOutput, StringComparison.Ordinal);
-        Assert.DoesNotContain("--json", invocation.StandardOutput, StringComparison.Ordinal);
-        Assert.AreEqual(0, recorder.CallCount);
-        Assert.AreEqual(0, fixture.ProcessRunner.Requests.Count);
+        await Assert.That(invocation.ExitCode).IsEqualTo(0);
+        await Assert.That(invocation.StandardOutput).Contains("--candidate", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardOutput).Contains("--tester", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardOutput).DoesNotContain("--mod", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardOutput).DoesNotContain("--format", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardOutput).DoesNotContain("--input", StringComparison.Ordinal);
+        await Assert.That(invocation.StandardOutput).DoesNotContain("--json", StringComparison.Ordinal);
+        await Assert.That(recorder.CallCount).IsEqualTo(0);
+        await Assert.That(fixture.ProcessRunner.Requests.Count).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public async Task RecordAcceptance_WhenCandidateAndTesterAreExplicit_RecordsExactCandidate()
     {
         using var fixture = new PipelineCommandFixture(includeTests: false);
@@ -54,19 +52,16 @@ public sealed class RecordAcceptanceCommandTests
                 "Maksym Shostak"
             ]);
 
-        Assert.AreEqual(0, invocation.ExitCode);
-        Assert.AreEqual(string.Empty, invocation.StandardError);
-        Assert.AreEqual(Path.GetFullPath(candidateDirectory), recorder.CandidateDirectory);
-        Assert.AreEqual("Maksym Shostak", recorder.Tester);
-        Assert.Contains(
-            "All checks passed: true",
-            invocation.StandardOutput,
-            StringComparison.Ordinal);
-        Assert.AreEqual(1, recorder.CallCount);
-        Assert.AreEqual(0, fixture.ProcessRunner.Requests.Count);
+        await Assert.That(invocation.ExitCode).IsEqualTo(0);
+        await Assert.That(invocation.StandardError).IsEqualTo(string.Empty);
+        await Assert.That(recorder.CandidateDirectory).IsEqualTo(Path.GetFullPath(candidateDirectory));
+        await Assert.That(recorder.Tester).IsEqualTo("Maksym Shostak");
+        await Assert.That(invocation.StandardOutput).Contains("All checks passed: true", StringComparison.Ordinal);
+        await Assert.That(recorder.CallCount).IsEqualTo(1);
+        await Assert.That(fixture.ProcessRunner.Requests.Count).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public async Task RecordAcceptance_WhenTesterIsOmitted_DelegatesInteractiveTesterPrompt()
     {
         using var fixture = new PipelineCommandFixture(includeTests: false);
@@ -79,12 +74,12 @@ public sealed class RecordAcceptanceCommandTests
             command,
             ["record-acceptance", "--candidate", candidateDirectory]);
 
-        Assert.AreEqual(0, invocation.ExitCode);
-        Assert.IsNull(recorder.Tester);
-        Assert.AreEqual(1, recorder.CallCount);
+        await Assert.That(invocation.ExitCode).IsEqualTo(0);
+        await Assert.That(recorder.Tester).IsNull();
+        await Assert.That(recorder.CallCount).IsEqualTo(1);
     }
 
-    [TestMethod]
+    [Test]
     public async Task RecordAcceptance_WhenRecordedCheckFailed_PreservesReleaseNotReadyExit()
     {
         using var fixture = new PipelineCommandFixture(includeTests: false);
@@ -110,15 +105,12 @@ public sealed class RecordAcceptanceCommandTests
             command,
             ["record-acceptance", "--candidate", candidateDirectory]);
 
-        Assert.AreEqual((int)PipelineExitCode.ReleaseNotReady, invocation.ExitCode);
-        Assert.Contains(
-            DiagnosticIds.RequiredAcceptanceMissing,
-            invocation.StandardError,
-            StringComparison.Ordinal);
-        Assert.AreEqual(1, recorder.CallCount);
+        await Assert.That(invocation.ExitCode).IsEqualTo((int)PipelineExitCode.ReleaseNotReady);
+        await Assert.That(invocation.StandardError).Contains(DiagnosticIds.RequiredAcceptanceMissing, StringComparison.Ordinal);
+        await Assert.That(recorder.CallCount).IsEqualTo(1);
     }
 
-    [TestMethod]
+    [Test]
     public async Task RecordAcceptance_WhenCandidateIsMissingOrEmpty_RejectsAtParseTime()
     {
         using var fixture = new PipelineCommandFixture(includeTests: false);
@@ -133,14 +125,14 @@ public sealed class RecordAcceptanceCommandTests
             command,
             ["record-acceptance", "--candidate", string.Empty]);
 
-        Assert.AreEqual((int)PipelineExitCode.InvalidInput, missing.ExitCode);
-        Assert.Contains("--candidate", missing.StandardError, StringComparison.Ordinal);
-        Assert.AreEqual((int)PipelineExitCode.InvalidInput, empty.ExitCode);
-        Assert.Contains("nonempty path", empty.StandardError, StringComparison.Ordinal);
-        Assert.AreEqual(0, recorder.CallCount);
+        await Assert.That(missing.ExitCode).IsEqualTo((int)PipelineExitCode.InvalidInput);
+        await Assert.That(missing.StandardError).Contains("--candidate", StringComparison.Ordinal);
+        await Assert.That(empty.ExitCode).IsEqualTo((int)PipelineExitCode.InvalidInput);
+        await Assert.That(empty.StandardError).Contains("nonempty path", StringComparison.Ordinal);
+        await Assert.That(recorder.CallCount).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public async Task RecordAcceptance_WhenExplicitTesterIsEmpty_RejectsAtParseTime()
     {
         using var fixture = new PipelineCommandFixture(includeTests: false);
@@ -158,17 +150,17 @@ public sealed class RecordAcceptanceCommandTests
                 "   "
             ]);
 
-        Assert.AreEqual((int)PipelineExitCode.InvalidInput, invocation.ExitCode);
-        Assert.Contains("nonempty", invocation.StandardError, StringComparison.Ordinal);
-        Assert.AreEqual(0, recorder.CallCount);
+        await Assert.That(invocation.ExitCode).IsEqualTo((int)PipelineExitCode.InvalidInput);
+        await Assert.That(invocation.StandardError).Contains("nonempty", StringComparison.Ordinal);
+        await Assert.That(recorder.CallCount).IsEqualTo(0);
     }
 
-    [TestMethod]
-    [DataRow("--input")]
-    [DataRow("--json")]
-    [DataRow("--format")]
-    [DataRow("--mod")]
-    [DataRow("--target")]
+    [Test]
+    [Arguments("--input")]
+    [Arguments("--json")]
+    [Arguments("--format")]
+    [Arguments("--mod")]
+    [Arguments("--target")]
     public async Task RecordAcceptance_WhenUnsupportedImportOrPipelineOptionIsSupplied_RejectsCommand(
         string option)
     {
@@ -187,8 +179,8 @@ public sealed class RecordAcceptanceCommandTests
                 "value"
             ]);
 
-        Assert.AreEqual((int)PipelineExitCode.InvalidInput, invocation.ExitCode);
-        Assert.AreEqual(0, recorder.CallCount);
+        await Assert.That(invocation.ExitCode).IsEqualTo((int)PipelineExitCode.InvalidInput);
+        await Assert.That(recorder.CallCount).IsEqualTo(0);
     }
 }
 

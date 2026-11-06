@@ -2,12 +2,10 @@ using System.Collections;
 using System.Reflection;
 
 namespace DeliveryTemperatureLimit.Tests.FetchTemperatureEligibility;
-
-[TestClass]
 public sealed class PickupTemperatureGroupingSessionTests
 {
-    [TestMethod]
-    public void Classify_WhenNoEnabledConstraints_ReturnsNoTemperatureDistinctionWithoutCacheGrowth()
+    [Test]
+    public async Task Classify_WhenNoEnabledConstraints_ReturnsNoTemperatureDistinctionWithoutCacheGrowth()
     {
         var session = CreateSessionWithoutEnabledConstraints();
         var constraints = session.TemperatureConstraints.CaptureSnapshot();
@@ -27,14 +25,12 @@ public sealed class PickupTemperatureGroupingSessionTests
             hasPrimaryElement: false,
             temperatureKelvin: 15.0f);
 
-        Assert.AreEqual(
-            TemperatureEligibilityClassKey.NoTemperatureDistinction(),
-            classification);
-        Assert.IsEmpty(GetPickupClassificationDictionary(groupingSession));
+        await Assert.That(classification).IsEqualTo(TemperatureEligibilityClassKey.NoTemperatureDistinction());
+        await Assert.That(((System.Collections.IEnumerable)(await GetPickupClassificationDictionary(groupingSession))).Cast<object?>()).IsEmpty();
     }
 
-    [TestMethod]
-    public void Classify_WhenSnapshotIsCurrent_UsesScopedPartition()
+    [Test]
+    public async Task Classify_WhenSnapshotIsCurrent_UsesScopedPartition()
     {
         var session = CreateSessionWithEnabledConstraint();
         var iron = new Tag("Iron");
@@ -56,16 +52,14 @@ public sealed class PickupTemperatureGroupingSessionTests
             hasPrimaryElement: true,
             temperatureKelvin: 15.0f);
 
-        Assert.AreEqual(
-            TemperatureEligibilityClassificationKind
-                .OptimizedPartitionInterval,
-            classification.ClassificationKind);
-        Assert.AreEqual(1, classification.PartitionDefinitionId);
-        Assert.AreEqual(1, classification.IntervalOrdinal);
+        await Assert.That(classification.ClassificationKind).IsEqualTo(TemperatureEligibilityClassificationKind
+                .OptimizedPartitionInterval);
+        await Assert.That(classification.PartitionDefinitionId).IsEqualTo(1);
+        await Assert.That(classification.IntervalOrdinal).IsEqualTo(1);
     }
 
-    [TestMethod]
-    public void Classify_WhenSnapshotIsNull_UsesExactDecisionBucket()
+    [Test]
+    public async Task Classify_WhenSnapshotIsNull_UsesExactDecisionBucket()
     {
         var session = CreateSessionWithEnabledConstraint();
         var groupingSession = BeginGroupingSession(
@@ -80,11 +74,11 @@ public sealed class PickupTemperatureGroupingSessionTests
             hasPrimaryElement: true,
             temperatureKelvin: 15.75f);
 
-        AssertExactDecisionBucket(classification, 15.75f);
+        await AssertExactDecisionBucket(classification, 15.75f);
     }
 
-    [TestMethod]
-    public void Classify_WhenSnapshotConstraintGenerationIsStale_UsesExactDecisionBucket()
+    [Test]
+    public async Task Classify_WhenSnapshotConstraintGenerationIsStale_UsesExactDecisionBucket()
     {
         var session = CreateSessionWithEnabledConstraint();
         var snapshot = BuildCurrentEligibilitySnapshot(session, _ => { });
@@ -92,7 +86,7 @@ public sealed class PickupTemperatureGroupingSessionTests
             componentInstanceId: 10401,
             Constraint(30, 40),
             out var stateChanged);
-        Assert.IsTrue(stateChanged);
+        await Assert.That(stateChanged).IsTrue();
         var groupingSession = BeginGroupingSession(
             session,
             resolvedParentWorldId: 1,
@@ -105,11 +99,11 @@ public sealed class PickupTemperatureGroupingSessionTests
             hasPrimaryElement: true,
             temperatureKelvin: 15.0f);
 
-        AssertExactDecisionBucket(classification, 15.0f);
+        await AssertExactDecisionBucket(classification, 15.0f);
     }
 
-    [TestMethod]
-    public void Classify_WhenSnapshotFetchVersionIsStale_UsesExactDecisionBucket()
+    [Test]
+    public async Task Classify_WhenSnapshotFetchVersionIsStale_UsesExactDecisionBucket()
     {
         var session = CreateSessionWithEnabledConstraint();
         var snapshot = BuildCurrentEligibilitySnapshot(session, _ => { });
@@ -126,11 +120,11 @@ public sealed class PickupTemperatureGroupingSessionTests
             hasPrimaryElement: true,
             temperatureKelvin: 15.0f);
 
-        AssertExactDecisionBucket(classification, 15.0f);
+        await AssertExactDecisionBucket(classification, 15.0f);
     }
 
-    [TestMethod]
-    public void Classify_WhenSnapshotWorldVersionIsStale_UsesExactDecisionBucket()
+    [Test]
+    public async Task Classify_WhenSnapshotWorldVersionIsStale_UsesExactDecisionBucket()
     {
         var session = CreateSessionWithEnabledConstraint();
         var snapshot = BuildCurrentEligibilitySnapshot(session, _ => { });
@@ -147,11 +141,11 @@ public sealed class PickupTemperatureGroupingSessionTests
             hasPrimaryElement: true,
             temperatureKelvin: 15.0f);
 
-        AssertExactDecisionBucket(classification, 15.0f);
+        await AssertExactDecisionBucket(classification, 15.0f);
     }
 
-    [TestMethod]
-    public void Classify_WhenParentWorldIsUnresolved_UsesExactDecisionBucket()
+    [Test]
+    public async Task Classify_WhenParentWorldIsUnresolved_UsesExactDecisionBucket()
     {
         var session = CreateSessionWithEnabledConstraint();
         var snapshot = BuildCurrentEligibilitySnapshot(session, _ => { });
@@ -167,11 +161,11 @@ public sealed class PickupTemperatureGroupingSessionTests
             hasPrimaryElement: true,
             temperatureKelvin: 15.0f);
 
-        AssertExactDecisionBucket(classification, 15.0f);
+        await AssertExactDecisionBucket(classification, 15.0f);
     }
 
-    [TestMethod]
-    public void Classify_WhenPrimaryElementIsMissing_UsesDedicatedMissingClass()
+    [Test]
+    public async Task Classify_WhenPrimaryElementIsMissing_UsesDedicatedMissingClass()
     {
         var session = CreateSessionWithEnabledConstraint();
         var snapshot = BuildCurrentEligibilitySnapshot(session, _ => { });
@@ -187,13 +181,11 @@ public sealed class PickupTemperatureGroupingSessionTests
             hasPrimaryElement: false,
             temperatureKelvin: 15.0f);
 
-        Assert.AreEqual(
-            TemperatureEligibilityClassKey.MissingPrimaryElement(),
-            classification);
+        await Assert.That(classification).IsEqualTo(TemperatureEligibilityClassKey.MissingPrimaryElement());
     }
 
-    [TestMethod]
-    public void Classify_WhenSamePickupRepeats_ReturnsCachedFullKey()
+    [Test]
+    public async Task Classify_WhenSamePickupRepeats_ReturnsCachedFullKey()
     {
         var session = CreateSessionWithEnabledConstraint();
         var iron = new Tag("Iron");
@@ -219,13 +211,13 @@ public sealed class PickupTemperatureGroupingSessionTests
             hasPrimaryElement: true,
             temperatureKelvin: 25.0f);
 
-        Assert.AreEqual(firstClassification, repeatedClassification);
-        Assert.AreEqual(1, firstClassification.IntervalOrdinal);
-        Assert.AreEqual(1, GetPickupClassificationDictionary(groupingSession).Count);
+        await Assert.That(repeatedClassification).IsEqualTo(firstClassification);
+        await Assert.That(firstClassification.IntervalOrdinal).IsEqualTo(1);
+        await Assert.That((await GetPickupClassificationDictionary(groupingSession)).Count).IsEqualTo(1);
     }
 
-    [TestMethod]
-    public void Classify_WhenSameTagIdentityRepeatsAcrossPickups_ReusesPartitionDefinition()
+    [Test]
+    public async Task Classify_WhenSameTagIdentityRepeatsAcrossPickups_ReusesPartitionDefinition()
     {
         var session = CreateSessionWithEnabledConstraint();
         var iron = new Tag("Iron");
@@ -251,13 +243,13 @@ public sealed class PickupTemperatureGroupingSessionTests
             hasPrimaryElement: true,
             temperatureKelvin: 25.0f);
 
-        Assert.AreEqual(inside.PartitionDefinitionId, above.PartitionDefinitionId);
-        Assert.AreEqual(1, inside.IntervalOrdinal);
-        Assert.AreEqual(2, above.IntervalOrdinal);
+        await Assert.That(above.PartitionDefinitionId).IsEqualTo(inside.PartitionDefinitionId);
+        await Assert.That(inside.IntervalOrdinal).IsEqualTo(1);
+        await Assert.That(above.IntervalOrdinal).IsEqualTo(2);
     }
 
-    [TestMethod]
-    public void ClassifyUsingApplicableRequestedTagResolver_WhenNoConstraintsAreEnabled_BypassesResolverAndEveryTemperatureCache()
+    [Test]
+    public async Task ClassifyUsingApplicableRequestedTagResolver_WhenNoConstraintsAreEnabled_BypassesResolverAndEveryTemperatureCache()
     {
         var session = CreateSessionWithoutEnabledConstraints();
         var groupingSession = BeginGroupingSession(
@@ -282,18 +274,16 @@ public sealed class PickupTemperatureGroupingSessionTests
                 hasPrimaryElement: true,
                 temperatureKelvin: 15.0f);
 
-        Assert.AreEqual(
-            TemperatureEligibilityClassKey.NoTemperatureDistinction(),
-            classification);
-        Assert.IsFalse(resolverWasInvoked);
-        Assert.IsEmpty(GetPickupClassificationDictionary(groupingSession));
-        Assert.IsEmpty(GetPrivateDictionary(
+        await Assert.That(classification).IsEqualTo(TemperatureEligibilityClassKey.NoTemperatureDistinction());
+        await Assert.That(resolverWasInvoked).IsFalse();
+        await Assert.That(((System.Collections.IEnumerable)(await GetPickupClassificationDictionary(groupingSession))).Cast<object?>()).IsEmpty();
+        await Assert.That(((System.Collections.IEnumerable)(await GetPrivateDictionary(
             groupingSession,
-            "applicableRequestedTagsByPickupTagIdentity"));
+            "applicableRequestedTagsByPickupTagIdentity"))).Cast<object?>()).IsEmpty();
     }
 
-    [TestMethod]
-    public void ClassifyUsingApplicableRequestedTagResolver_WhenTenThousandPickupsShareCompleteTagIdentity_ResolvesApplicableTagsOnce()
+    [Test]
+    public async Task ClassifyUsingApplicableRequestedTagResolver_WhenTenThousandPickupsShareCompleteTagIdentity_ResolvesApplicableTagsOnce()
     {
         var session = CreateSessionWithEnabledConstraint();
         var iron = new Tag("Iron");
@@ -329,17 +319,15 @@ public sealed class PickupTemperatureGroupingSessionTests
                     hasPrimaryElement: true,
                     temperatureKelvin: 15.0f);
 
-            Assert.AreEqual(
-                TemperatureEligibilityClassificationKind
-                    .OptimizedPartitionInterval,
-                classification.ClassificationKind);
+            await Assert.That(classification.ClassificationKind).IsEqualTo(TemperatureEligibilityClassificationKind
+                    .OptimizedPartitionInterval);
         }
 
-        Assert.AreEqual(1, applicableTagResolverInvocationCount);
+        await Assert.That(applicableTagResolverInvocationCount).IsEqualTo(1);
     }
 
-    [TestMethod]
-    public void ClassifyUsingApplicableRequestedTagResolver_WhenOriginalHashesMatchButPrefabTagsDiffer_ResolvesEachCompleteIdentitySeparately()
+    [Test]
+    public async Task ClassifyUsingApplicableRequestedTagResolver_WhenOriginalHashesMatchButPrefabTagsDiffer_ResolvesEachCompleteIdentitySeparately()
     {
         var session = CreateSessionWithEnabledConstraint();
         var iron = new Tag("Iron");
@@ -386,14 +374,12 @@ public sealed class PickupTemperatureGroupingSessionTests
                 hasPrimaryElement: true,
                 temperatureKelvin: 35.0f);
 
-        Assert.AreEqual(2, applicableTagResolverInvocationCount);
-        Assert.AreNotEqual(
-            ironClassification.PartitionDefinitionId,
-            copperClassification.PartitionDefinitionId);
+        await Assert.That(applicableTagResolverInvocationCount).IsEqualTo(2);
+        await Assert.That(copperClassification.PartitionDefinitionId).IsNotEqualTo(ironClassification.PartitionDefinitionId);
     }
 
-    [TestMethod]
-    public void Classify_WhenApplicableTagsDiffer_DoesNotReuseWrongUnion()
+    [Test]
+    public async Task Classify_WhenApplicableTagsDiffer_DoesNotReuseWrongUnion()
     {
         var session = CreateSessionWithEnabledConstraint();
         var iron = new Tag("Iron");
@@ -427,15 +413,13 @@ public sealed class PickupTemperatureGroupingSessionTests
             hasPrimaryElement: true,
             temperatureKelvin: 15.0f);
 
-        Assert.AreNotEqual(
-            ironClassification.PartitionDefinitionId,
-            copperClassification.PartitionDefinitionId);
-        Assert.AreEqual(1, ironClassification.IntervalOrdinal);
-        Assert.AreEqual(0, copperClassification.IntervalOrdinal);
+        await Assert.That(copperClassification.PartitionDefinitionId).IsNotEqualTo(ironClassification.PartitionDefinitionId);
+        await Assert.That(ironClassification.IntervalOrdinal).IsEqualTo(1);
+        await Assert.That(copperClassification.IntervalOrdinal).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void Classify_WhenDifferentTagIdentitiesHaveEqualEndpointUnions_InternsOnePartitionDefinition()
+    [Test]
+    public async Task Classify_WhenDifferentTagIdentitiesHaveEqualEndpointUnions_InternsOnePartitionDefinition()
     {
         var session = CreateSessionWithEnabledConstraint();
         var iron = new Tag("Iron");
@@ -468,13 +452,11 @@ public sealed class PickupTemperatureGroupingSessionTests
             hasPrimaryElement: true,
             temperatureKelvin: 15.0f);
 
-        Assert.AreEqual(
-            ironClassification.PartitionDefinitionId,
-            copperClassification.PartitionDefinitionId);
+        await Assert.That(copperClassification.PartitionDefinitionId).IsEqualTo(ironClassification.PartitionDefinitionId);
     }
 
-    [TestMethod]
-    public void Classify_WhenCurrentApplicableUnionIsEmpty_ReturnsNoTemperatureDistinction()
+    [Test]
+    public async Task Classify_WhenCurrentApplicableUnionIsEmpty_ReturnsNoTemperatureDistinction()
     {
         var session = CreateSessionWithEnabledConstraint();
         var snapshot = BuildCurrentEligibilitySnapshot(session, _ => { });
@@ -487,13 +469,11 @@ public sealed class PickupTemperatureGroupingSessionTests
             hasPrimaryElement: true,
             temperatureKelvin: 15.0f);
 
-        Assert.AreEqual(
-            TemperatureEligibilityClassKey.NoTemperatureDistinction(),
-            classification);
+        await Assert.That(classification).IsEqualTo(TemperatureEligibilityClassKey.NoTemperatureDistinction());
     }
 
-    [TestMethod]
-    public void Begin_WhenAlreadyActive_ThrowsInvalidOperationException()
+    [Test]
+    public async Task Begin_WhenAlreadyActive_ThrowsInvalidOperationException()
     {
         var session = CreateSessionWithEnabledConstraint();
         var groupingSession = BeginGroupingSession(
@@ -501,16 +481,16 @@ public sealed class PickupTemperatureGroupingSessionTests
             resolvedParentWorldId: 1,
             eligibilitySnapshot: null);
 
-        Assert.ThrowsExactly<InvalidOperationException>(() =>
+        await Assert.That(() =>
             groupingSession.Begin(
                 session,
                 resolvedParentWorldId: 1,
                 session.TemperatureConstraints.CaptureSnapshot(),
                 eligibilitySnapshot: null,
-                session.WorldParentTopology.CaptureSnapshot()));
+                session.WorldParentTopology.CaptureSnapshot())).ThrowsExactly<InvalidOperationException>();
     }
 
-    [TestMethod]
+    [Test]
     public void Complete_WhenInactive_IsIdempotent()
     {
         var groupingSession = new PickupTemperatureGroupingSession();
@@ -519,8 +499,8 @@ public sealed class PickupTemperatureGroupingSessionTests
         groupingSession.Complete();
     }
 
-    [TestMethod]
-    public void Discard_WhenExceptionOccurs_ReleasesPerCallReferences()
+    [Test]
+    public async Task Discard_WhenExceptionOccurs_ReleasesPerCallReferences()
     {
         var session = CreateSessionWithEnabledConstraint();
         var iron = new Tag("Iron");
@@ -540,31 +520,31 @@ public sealed class PickupTemperatureGroupingSessionTests
 
         groupingSession.Discard();
 
-        Assert.IsNull(GetPrivateFieldValue(
+        await Assert.That((await GetPrivateFieldValue(
             groupingSession,
-            "capturedGameSession"));
-        Assert.IsNull(GetPrivateFieldValue(
+            "capturedGameSession"))).IsNull();
+        await Assert.That((await GetPrivateFieldValue(
             groupingSession,
-            "capturedActiveTemperatureConstraints"));
-        Assert.IsNull(GetPrivateFieldValue(
+            "capturedActiveTemperatureConstraints"))).IsNull();
+        await Assert.That((await GetPrivateFieldValue(
             groupingSession,
-            "capturedEligibilitySnapshot"));
-        Assert.IsNull(GetPrivateFieldValue(
+            "capturedEligibilitySnapshot"))).IsNull();
+        await Assert.That((await GetPrivateFieldValue(
             groupingSession,
-            "capturedWorldTopology"));
-        Assert.IsNull(GetPrivateFieldValue(
+            "capturedWorldTopology"))).IsNull();
+        await Assert.That((await GetPrivateFieldValue(
             groupingSession,
-            "capturedRequestedTagsForResolvedParentWorld"));
-        Assert.IsEmpty(GetPickupClassificationDictionary(groupingSession));
-        Assert.IsEmpty(GetPrivateDictionary(
+            "capturedRequestedTagsForResolvedParentWorld"))).IsNull();
+        await Assert.That(((System.Collections.IEnumerable)(await GetPickupClassificationDictionary(groupingSession))).Cast<object?>()).IsEmpty();
+        await Assert.That(((System.Collections.IEnumerable)(await GetPrivateDictionary(
             groupingSession,
-            "applicableRequestedTagsByPickupTagIdentity"));
-        Assert.IsEmpty(GetPrivateDictionary(
+            "applicableRequestedTagsByPickupTagIdentity"))).Cast<object?>()).IsEmpty();
+        await Assert.That(((System.Collections.IEnumerable)(await GetPrivateDictionary(
             groupingSession,
-            "firstApplicableRequestedTagPartitionResolutionByPickupTagIdentity"));
-        Assert.IsEmpty(GetPrivateDictionary(
+            "firstApplicableRequestedTagPartitionResolutionByPickupTagIdentity"))).Cast<object?>()).IsEmpty();
+        await Assert.That(((System.Collections.IEnumerable)(await GetPrivateDictionary(
             groupingSession,
-            "temperaturePartitionDefinitionByDecisionEndpoints"));
+            "temperaturePartitionDefinitionByDecisionEndpoints"))).Cast<object?>()).IsEmpty();
 
         BeginGroupingSession(
             groupingSession,
@@ -574,8 +554,8 @@ public sealed class PickupTemperatureGroupingSessionTests
         groupingSession.Complete();
     }
 
-    [TestMethod]
-    public void Complete_WhenPickupCacheExceededHighWater_ReplacesDictionary()
+    [Test]
+    public async Task Complete_WhenPickupCacheExceededHighWater_ReplacesDictionary()
     {
         var session = CreateSessionWithEnabledConstraint();
         var groupingSession = new PickupTemperatureGroupingSession();
@@ -589,15 +569,13 @@ public sealed class PickupTemperatureGroupingSessionTests
             resolvedParentWorldId: 1,
             eligibilitySnapshot: null);
         var dictionaryAtLimit =
-            GetPickupClassificationDictionary(groupingSession);
-        ClassifyExactFallbackPickups(
+            await GetPickupClassificationDictionary(groupingSession);
+        await ClassifyExactFallbackPickups(
             groupingSession,
             pickupCount: retentionLimit,
             pickupInstanceIdOffset: 0);
         groupingSession.Complete();
-        Assert.AreSame(
-            dictionaryAtLimit,
-            GetPickupClassificationDictionary(groupingSession));
+        await Assert.That((await GetPickupClassificationDictionary(groupingSession))).IsSameReferenceAs(dictionaryAtLimit);
 
         BeginGroupingSession(
             groupingSession,
@@ -605,15 +583,13 @@ public sealed class PickupTemperatureGroupingSessionTests
             resolvedParentWorldId: 1,
             eligibilitySnapshot: null);
         var dictionaryBeforeLimitExceeded =
-            GetPickupClassificationDictionary(groupingSession);
-        ClassifyExactFallbackPickups(
+            await GetPickupClassificationDictionary(groupingSession);
+        await ClassifyExactFallbackPickups(
             groupingSession,
             pickupCount: retentionLimit + 1,
             pickupInstanceIdOffset: retentionLimit);
         groupingSession.Complete();
-        Assert.AreNotSame(
-            dictionaryBeforeLimitExceeded,
-            GetPickupClassificationDictionary(groupingSession));
+        await Assert.That((await GetPickupClassificationDictionary(groupingSession))).IsNotSameReferenceAs(dictionaryBeforeLimitExceeded);
 
         BeginGroupingSession(
             groupingSession,
@@ -621,47 +597,45 @@ public sealed class PickupTemperatureGroupingSessionTests
             resolvedParentWorldId: 1,
             eligibilitySnapshot: null);
         var dictionaryBeforeLargerWorkload =
-            GetPickupClassificationDictionary(groupingSession);
-        ClassifyExactFallbackPickups(
+            await GetPickupClassificationDictionary(groupingSession);
+        await ClassifyExactFallbackPickups(
             groupingSession,
             pickupCount: (retentionLimit * 2) + 17,
             pickupInstanceIdOffset: retentionLimit * 3);
         groupingSession.Complete();
-        Assert.AreNotSame(
-            dictionaryBeforeLargerWorkload,
-            GetPickupClassificationDictionary(groupingSession));
+        await Assert.That((await GetPickupClassificationDictionary(groupingSession))).IsNotSameReferenceAs(dictionaryBeforeLargerWorkload);
     }
 
-    [TestMethod]
-    public void Classify_WhenGroupingSessionIsInactive_ThrowsInvalidOperationException()
+    [Test]
+    public async Task Classify_WhenGroupingSessionIsInactive_ThrowsInvalidOperationException()
     {
         var groupingSession = new PickupTemperatureGroupingSession();
 
-        Assert.ThrowsExactly<InvalidOperationException>(() =>
+        await Assert.That(() =>
             groupingSession.Classify(
                 pickupInstanceId: 118,
                 new PickupTagIdentity(17, new Tag("Iron")),
                 applicableRequestedTags: Array.Empty<Tag>(),
                 hasPrimaryElement: true,
-                temperatureKelvin: 15.0f));
+                temperatureKelvin: 15.0f)).ThrowsExactly<InvalidOperationException>();
     }
 
-    [TestMethod]
-    public void Classify_WhenApplicableRequestedTagsIsNull_ThrowsArgumentNullException()
+    [Test]
+    public async Task Classify_WhenApplicableRequestedTagsIsNull_ThrowsArgumentNullException()
     {
         var session = CreateSessionWithEnabledConstraint();
         var groupingSession = BeginGroupingSession(session, 1, null);
 
-        Assert.ThrowsExactly<ArgumentNullException>(() =>
+        await Assert.That(() =>
             groupingSession.Classify(
                 pickupInstanceId: 119,
                 new PickupTagIdentity(17, new Tag("Iron")),
                 applicableRequestedTags: null!,
                 hasPrimaryElement: true,
-                temperatureKelvin: 15.0f));
+                temperatureKelvin: 15.0f)).ThrowsExactly<ArgumentNullException>();
     }
 
-    private static void ClassifyExactFallbackPickups(
+    private static async Task ClassifyExactFallbackPickups(
         PickupTemperatureGroupingSession groupingSession,
         int pickupCount,
         int pickupInstanceIdOffset)
@@ -677,25 +651,19 @@ public sealed class PickupTemperatureGroupingSessionTests
                 applicableRequestedTags: Array.Empty<Tag>(),
                 hasPrimaryElement: true,
                 temperatureKelvin: 15.0f);
-            AssertExactDecisionBucket(classification, 15.0f);
+            await AssertExactDecisionBucket(classification, 15.0f);
         }
 
-        Assert.AreEqual(
-            pickupCount,
-            GetPickupClassificationDictionary(groupingSession).Count);
+        await Assert.That((await GetPickupClassificationDictionary(groupingSession)).Count).IsEqualTo(pickupCount);
     }
 
-    private static void AssertExactDecisionBucket(
+    private static async Task AssertExactDecisionBucket(
         TemperatureEligibilityClassKey classification,
         float temperatureKelvin)
     {
-        Assert.AreEqual(
-            TemperatureEligibilityClassificationKind
-                .ExactTemperatureDecisionBucket,
-            classification.ClassificationKind);
-        Assert.AreEqual(
-            TemperatureDecisionBucket.FromTemperature(temperatureKelvin),
-            classification.ExactTemperatureDecisionBucket);
+        await Assert.That(classification.ClassificationKind).IsEqualTo(TemperatureEligibilityClassificationKind
+                .ExactTemperatureDecisionBucket);
+        await Assert.That(classification.ExactTemperatureDecisionBucket).IsEqualTo(TemperatureDecisionBucket.FromTemperature(temperatureKelvin));
     }
 
     private static DeliveryTemperatureGameSession
@@ -759,29 +727,27 @@ public sealed class PickupTemperatureGroupingSessionTests
             session.WorldParentTopology.CaptureSnapshot());
     }
 
-    private static IDictionary GetPickupClassificationDictionary(
+    private static async Task<IDictionary> GetPickupClassificationDictionary(
         PickupTemperatureGroupingSession groupingSession) =>
-        GetPrivateDictionary(
+        await GetPrivateDictionary(
             groupingSession,
             "temperatureClassesByPickupInstanceId");
 
-    private static IDictionary GetPrivateDictionary(
+    private static async Task<IDictionary> GetPrivateDictionary(
         PickupTemperatureGroupingSession groupingSession,
         string fieldName) =>
-        Assert.IsInstanceOfType<IDictionary>(GetPrivateFieldValue(
+        (await Assert.That((await GetPrivateFieldValue(
             groupingSession,
-            fieldName));
+            fieldName))).IsAssignableTo<IDictionary>())!;
 
-    private static object? GetPrivateFieldValue(
+    private static async Task<object?> GetPrivateFieldValue(
         PickupTemperatureGroupingSession groupingSession,
         string fieldName)
     {
         var field = typeof(PickupTemperatureGroupingSession).GetField(
             fieldName,
             BindingFlags.Instance | BindingFlags.NonPublic);
-        Assert.IsNotNull(
-            field,
-            $"Expected one predeclared private field named '{fieldName}'.");
+        if (field is null) throw new TUnit.Assertions.Exceptions.AssertionException($"Expected one predeclared private field named '{fieldName}'.");
         return field.GetValue(groupingSession);
     }
 

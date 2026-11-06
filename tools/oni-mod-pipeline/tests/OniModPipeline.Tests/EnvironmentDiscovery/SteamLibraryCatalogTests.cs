@@ -2,12 +2,10 @@ using MaksymShostak.OniModPipeline.EnvironmentDiscovery;
 using MaksymShostak.OniModPipeline.Tests.Fixtures;
 
 namespace MaksymShostak.OniModPipeline.Tests.EnvironmentDiscovery;
-
-[TestClass]
 public sealed class SteamLibraryCatalogTests
 {
-    [TestMethod]
-    public void DiscoverLibraries_WhenModernVdfContainsQuotedPaths_ReturnsEveryLibraryOnce()
+    [Test]
+    public async Task DiscoverLibraries_WhenModernVdfContainsQuotedPaths_ReturnsEveryLibraryOnce()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var steamRoot = temporaryDirectory.GetPath("Steam");
@@ -26,15 +24,13 @@ public sealed class SteamLibraryCatalogTests
 
         var libraries = catalog.DiscoverLibraries([steamRoot]);
 
-        CollectionAssert.Contains(libraries.ToArray(), Path.GetFullPath(steamRoot));
-        CollectionAssert.Contains(
-            libraries.ToArray(),
-            Path.GetFullPath(additionalLibrary));
-        Assert.AreEqual(2, libraries.Count);
+        await Assert.That(libraries.ToArray()).Contains(Path.GetFullPath(steamRoot));
+        await Assert.That(libraries.ToArray()).Contains(Path.GetFullPath(additionalLibrary));
+        await Assert.That(libraries.Count).IsEqualTo(2);
     }
 
-    [TestMethod]
-    public void DiscoverLibraries_WhenLegacyVdfContainsNumericPath_ReadsThatLibrary()
+    [Test]
+    public async Task DiscoverLibraries_WhenLegacyVdfContainsNumericPath_ReadsThatLibrary()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var steamRoot = temporaryDirectory.GetPath("Steam");
@@ -48,13 +44,11 @@ public sealed class SteamLibraryCatalogTests
 
         var libraries = catalog.DiscoverLibraries([steamRoot]);
 
-        CollectionAssert.Contains(
-            libraries.ToArray(),
-            Path.GetFullPath(additionalLibrary));
+        await Assert.That(libraries.ToArray()).Contains(Path.GetFullPath(additionalLibrary));
     }
 
-    [TestMethod]
-    public void DiscoverLibraries_WhenVdfIsMalformed_KeepsTheConventionalSteamRoot()
+    [Test]
+    public async Task DiscoverLibraries_WhenVdfIsMalformed_KeepsTheConventionalSteamRoot()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var steamRoot = temporaryDirectory.GetPath("Steam");
@@ -66,13 +60,11 @@ public sealed class SteamLibraryCatalogTests
 
         var libraries = catalog.DiscoverLibraries([steamRoot]);
 
-        CollectionAssert.AreEqual(
-            new[] { Path.GetFullPath(steamRoot) },
-            libraries.ToArray());
+        await Assert.That(libraries.ToArray()).IsEquivalentTo(new[] { Path.GetFullPath(steamRoot) }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void DiscoverLibraries_WhenConventionalRootsAliasOneDirectory_DeduplicatesPhysicalIdentity()
+    [Test]
+    public async Task DiscoverLibraries_WhenConventionalRootsAliasOneDirectory_DeduplicatesPhysicalIdentity()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var firstAlias = temporaryDirectory.GetPath("alias-a");
@@ -86,9 +78,7 @@ public sealed class SteamLibraryCatalogTests
 
         var libraries = catalog.DiscoverLibraries([firstAlias, secondAlias]);
 
-        CollectionAssert.AreEqual(
-            new[] { Path.GetFullPath(physicalRoot) },
-            libraries.ToArray());
+        await Assert.That(libraries.ToArray()).IsEquivalentTo(new[] { Path.GetFullPath(physicalRoot) }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     private static string EscapeVdf(string value) =>

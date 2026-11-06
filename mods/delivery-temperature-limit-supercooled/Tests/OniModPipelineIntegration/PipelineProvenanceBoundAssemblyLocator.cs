@@ -303,8 +303,7 @@ internal sealed class PipelineProvenanceBoundAssemblyLocator
             ProbeExactPipelineBuildDataRows();
         if (builds.Count == 0)
         {
-            Assert.Inconclusive(
-                $"Supply {BuildResultPathVariable}, or run through a pipeline " +
+            Skip.Test($"Supply {BuildResultPathVariable}, or run through a pipeline " +
                 $"operation that binds its build, to inspect compiled output.");
         }
 
@@ -1968,8 +1967,6 @@ internal sealed class PipelineProvenanceBoundAssemblyLocator
         string Sha256,
         string Role);
 }
-
-[TestClass]
 public sealed class PipelineProvenanceBoundAssemblyLocatorTests
 {
     private const string ExpectedStaticId =
@@ -1981,24 +1978,21 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
     private const string FixtureTargetFrameworkName =
         ".NETStandard,Version=v2.1";
 
-    [TestMethod]
-    public void BuildDataRowProbe_WhenVariableIsMissing_YieldsNoRowWhileRequiredResolverRejectsAbsence()
+    [Test]
+    public async Task BuildDataRowProbe_WhenVariableIsMissing_YieldsNoRowWhileRequiredResolverRejectsAbsence()
     {
         using var fixture = new ProvenanceBindingFixture();
         PipelineProvenanceBoundAssemblyLocator locator =
             fixture.CreateLocator(buildResultPath: null, candidateDirectory: null);
 
-        Assert.IsEmpty(locator.ProbeExactPipelineBuildDataRows().ToArray());
+        await Assert.That(locator.ProbeExactPipelineBuildDataRows().ToArray()).IsEmpty();
         PipelineProvenanceBindingException exception =
-            Assert.ThrowsExactly<PipelineProvenanceBindingException>(
-                locator.ResolveRequiredPipelineBuild);
-        StringAssert.Contains(
-            exception.Message,
-            PipelineProvenanceBoundAssemblyLocator.BuildResultPathVariable);
+            (await Assert.That(locator.ResolveRequiredPipelineBuild).ThrowsExactly<PipelineProvenanceBindingException>())!;
+        await Assert.That(exception.Message).Contains(PipelineProvenanceBoundAssemblyLocator.BuildResultPathVariable);
     }
 
-    [TestMethod]
-    public void BuildDataRowProbe_WhenSuppliedValueIsInvalid_ThrowsInsteadOfSuppressingRow()
+    [Test]
+    public async Task BuildDataRowProbe_WhenSuppliedValueIsInvalid_ThrowsInsteadOfSuppressingRow()
     {
         using var fixture = new ProvenanceBindingFixture();
         string invalidSuppliedPath = Path.Combine(
@@ -2009,14 +2003,13 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
             fixture.CreateLocator(invalidSuppliedPath, candidateDirectory: null);
 
         PipelineProvenanceBindingException exception =
-            Assert.ThrowsExactly<PipelineProvenanceBindingException>(
-                () => locator.ProbeExactPipelineBuildDataRows().ToArray());
-        StringAssert.Contains(exception.Message, invalidSuppliedPath);
-        StringAssert.Contains(exception.Message, "build-result.json");
+            (await Assert.That(() => locator.ProbeExactPipelineBuildDataRows().ToArray()).ThrowsExactly<PipelineProvenanceBindingException>())!;
+        await Assert.That(exception.Message).Contains(invalidSuppliedPath);
+        await Assert.That(exception.Message).Contains("build-result.json");
     }
 
-    [TestMethod]
-    public void RequiredBuildResolver_WhenExactBuildResultIsValid_ReturnsProvenanceBoundAssembly()
+    [Test]
+    public async Task RequiredBuildResolver_WhenExactBuildResultIsValid_ReturnsProvenanceBoundAssembly()
     {
         using var fixture = new ProvenanceBindingFixture();
         string buildResultPath = fixture.CreateValidBuildResult();
@@ -2026,30 +2019,22 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
         PipelineProvenanceBoundAssembly assembly =
             locator.ResolveRequiredPipelineBuild();
 
-        Assert.AreEqual(
-            PipelineProvenanceBoundAssemblyKind.ExactPipelineBuild,
-            assembly.Kind);
-        Assert.AreEqual(fixture.BuildAssemblyPath, assembly.AssemblyPath);
-        Assert.AreEqual(ExpectedRepositoryCommit, assembly.SourceCommit);
-        Assert.AreEqual(
-            FixtureAssemblyFileVersion,
-            assembly.RecordedFileVersion);
-        Assert.AreEqual(
-            FixtureTargetFrameworkName,
-            assembly.RecordedTargetFrameworkName);
-        CollectionAssert.AreEqual(
-            new[]
+        await Assert.That(assembly.Kind).IsEqualTo(PipelineProvenanceBoundAssemblyKind.ExactPipelineBuild);
+        await Assert.That(assembly.AssemblyPath).IsEqualTo(fixture.BuildAssemblyPath);
+        await Assert.That(assembly.SourceCommit).IsEqualTo(ExpectedRepositoryCommit);
+        await Assert.That(assembly.RecordedFileVersion).IsEqualTo(FixtureAssemblyFileVersion);
+        await Assert.That(assembly.RecordedTargetFrameworkName).IsEqualTo(FixtureTargetFrameworkName);
+        await Assert.That(assembly.PackageRelativePaths.ToArray()).IsEquivalentTo(new[]
             {
                 "mod.yaml",
                 "mod_info.yaml",
                 "DeliveryTemperatureLimit.dll"
-            },
-            assembly.PackageRelativePaths.ToArray());
-        Assert.HasCount(1, locator.ProbeExactPipelineBuildDataRows().ToArray());
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(locator.ProbeExactPipelineBuildDataRows().ToArray()).Count().IsEqualTo(1);
     }
 
-    [TestMethod]
-    public void PipelineBoundBuild_WhenReleasePreparationBindsItsWorkBuild_ResolvesThatBuild()
+    [Test]
+    public async Task PipelineBoundBuild_WhenReleasePreparationBindsItsWorkBuild_ResolvesThatBuild()
     {
         using var fixture = new ProvenanceBindingFixture();
         string buildResultPath = fixture.CreateValidReleaseWorkBuildResult();
@@ -2062,15 +2047,13 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
         PipelineProvenanceBoundAssembly assembly =
             locator.ResolveRequiredPipelineBuild();
 
-        Assert.AreEqual(
-            PipelineProvenanceBoundAssemblyKind.ExactPipelineBuild,
-            assembly.Kind);
-        Assert.AreEqual(fixture.BuildAssemblyPath, assembly.AssemblyPath);
-        Assert.HasCount(1, locator.ProbeExactPipelineBuildDataRows().ToArray());
+        await Assert.That(assembly.Kind).IsEqualTo(PipelineProvenanceBoundAssemblyKind.ExactPipelineBuild);
+        await Assert.That(assembly.AssemblyPath).IsEqualTo(fixture.BuildAssemblyPath);
+        await Assert.That(locator.ProbeExactPipelineBuildDataRows().ToArray()).Count().IsEqualTo(1);
     }
 
-    [TestMethod]
-    public void PipelineBoundBuild_WhenManualVariableNamesAnotherBuild_RejectsAmbiguousBinding()
+    [Test]
+    public async Task PipelineBoundBuild_WhenManualVariableNamesAnotherBuild_RejectsAmbiguousBinding()
     {
         using var fixture = new ProvenanceBindingFixture();
         string releaseWorkBuildResultPath =
@@ -2082,19 +2065,14 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
             pipelineBoundBuildResultPath: releaseWorkBuildResultPath);
 
         PipelineProvenanceBindingException exception =
-            Assert.ThrowsExactly<PipelineProvenanceBindingException>(
-                locator.ResolveRequiredPipelineBuild);
-        StringAssert.Contains(
-            exception.Message,
-            PipelineProvenanceBoundAssemblyLocator.BuildResultPathVariable);
-        StringAssert.Contains(
-            exception.Message,
-            PipelineProvenanceBoundAssemblyLocator
+            (await Assert.That(locator.ResolveRequiredPipelineBuild).ThrowsExactly<PipelineProvenanceBindingException>())!;
+        await Assert.That(exception.Message).Contains(PipelineProvenanceBoundAssemblyLocator.BuildResultPathVariable);
+        await Assert.That(exception.Message).Contains(PipelineProvenanceBoundAssemblyLocator
                 .PipelineBoundBuildResultPathVariable);
     }
 
-    [TestMethod]
-    public void PipelineBoundBuild_WhenManualVariableIsNotAPath_ReportsBindingFailureNamingIt()
+    [Test]
+    public async Task PipelineBoundBuild_WhenManualVariableIsNotAPath_ReportsBindingFailureNamingIt()
     {
         using var fixture = new ProvenanceBindingFixture();
         string releaseWorkBuildResultPath =
@@ -2106,15 +2084,12 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
             pipelineBoundBuildResultPath: releaseWorkBuildResultPath);
 
         PipelineProvenanceBindingException exception =
-            Assert.ThrowsExactly<PipelineProvenanceBindingException>(
-                () => locator.ProbeExactPipelineBuildDataRows().ToArray());
-        StringAssert.Contains(
-            exception.Message,
-            PipelineProvenanceBoundAssemblyLocator.BuildResultPathVariable);
+            (await Assert.That(() => locator.ProbeExactPipelineBuildDataRows().ToArray()).ThrowsExactly<PipelineProvenanceBindingException>())!;
+        await Assert.That(exception.Message).Contains(PipelineProvenanceBoundAssemblyLocator.BuildResultPathVariable);
     }
 
-    [TestMethod]
-    public void BuildDataRowProbe_WhenPipelineRequiresABuildButNoneIsBound_ThrowsInsteadOfSkipping()
+    [Test]
+    public async Task BuildDataRowProbe_WhenPipelineRequiresABuildButNoneIsBound_ThrowsInsteadOfSkipping()
     {
         using var fixture = new ProvenanceBindingFixture();
         PipelineProvenanceBoundAssemblyLocator locator = fixture.CreateLocator(
@@ -2123,19 +2098,16 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
             pipelineRequiresBuildResult: "true");
 
         PipelineProvenanceBindingException exception =
-            Assert.ThrowsExactly<PipelineProvenanceBindingException>(
-                () => locator.ProbeExactPipelineBuildDataRows().ToArray());
-        StringAssert.Contains(
-            exception.Message,
-            PipelineProvenanceBoundAssemblyLocator
+            (await Assert.That(() => locator.ProbeExactPipelineBuildDataRows().ToArray()).ThrowsExactly<PipelineProvenanceBindingException>())!;
+        await Assert.That(exception.Message).Contains(PipelineProvenanceBoundAssemblyLocator
                 .PipelineRequiresBuildResultVariable);
     }
 
-    [TestMethod]
-    [DataRow("2026.8.29", ".20260830T120000.0000000Z-0123456789abcdef.work-0123456789abcdef0123456789abcdef")]
-    [DataRow("2026.8.30", ".20260830T120000.0000000Z-0123456789abcdef.staging-0123456789abcdef0123456789abcdef")]
-    [DataRow("2026.8.30", "20260830T120000.0000000Z-0123456789abcdef")]
-    public void PipelineBoundBuild_WhenReleaseWorkLocationIsNotExact_RejectsBinding(
+    [Test]
+    [Arguments("2026.8.29", ".20260830T120000.0000000Z-0123456789abcdef.work-0123456789abcdef0123456789abcdef")]
+    [Arguments("2026.8.30", ".20260830T120000.0000000Z-0123456789abcdef.staging-0123456789abcdef0123456789abcdef")]
+    [Arguments("2026.8.30", "20260830T120000.0000000Z-0123456789abcdef")]
+    public async Task PipelineBoundBuild_WhenReleaseWorkLocationIsNotExact_RejectsBinding(
         string versionSegment,
         string workDirectoryName)
     {
@@ -2149,40 +2121,38 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
             pipelineBoundBuildResultPath: buildResultPath);
 
         PipelineProvenanceBindingException exception =
-            Assert.ThrowsExactly<PipelineProvenanceBindingException>(
-                locator.ResolveRequiredPipelineBuild);
-        StringAssert.Contains(exception.Message, buildResultPath);
+            (await Assert.That(locator.ResolveRequiredPipelineBuild).ThrowsExactly<PipelineProvenanceBindingException>())!;
+        await Assert.That(exception.Message).Contains(buildResultPath);
     }
 
-    [TestMethod]
-    [DataRow(BuildResultMutation.WrongSourceCommit)]
-    [DataRow(BuildResultMutation.ChangedSourceInput)]
-    [DataRow(BuildResultMutation.ChangedPrimaryOutput)]
-    [DataRow(BuildResultMutation.PrimaryOutputOutsideBuildOutput)]
-    [DataRow(BuildResultMutation.MismatchedStaticIdRunRoot)]
-    [DataRow(BuildResultMutation.AdditionalBuildOutput)]
-    [DataRow(BuildResultMutation.EmptyInputFingerprint)]
-    [DataRow(BuildResultMutation.MissingPrimaryAssemblyFileVersion)]
-    [DataRow(BuildResultMutation.NonCanonicalPrimaryAssemblyFileVersion)]
-    [DataRow(BuildResultMutation.MissingPrimaryAssemblyTargetFrameworkName)]
-    [DataRow(BuildResultMutation.WrongPrimaryAssemblyTargetFrameworkMoniker)]
-    public void RequiredBuildResolver_WhenBuildEvidenceIsMutated_RejectsBinding(
+    [Test]
+    [Arguments(BuildResultMutation.WrongSourceCommit)]
+    [Arguments(BuildResultMutation.ChangedSourceInput)]
+    [Arguments(BuildResultMutation.ChangedPrimaryOutput)]
+    [Arguments(BuildResultMutation.PrimaryOutputOutsideBuildOutput)]
+    [Arguments(BuildResultMutation.MismatchedStaticIdRunRoot)]
+    [Arguments(BuildResultMutation.AdditionalBuildOutput)]
+    [Arguments(BuildResultMutation.EmptyInputFingerprint)]
+    [Arguments(BuildResultMutation.MissingPrimaryAssemblyFileVersion)]
+    [Arguments(BuildResultMutation.NonCanonicalPrimaryAssemblyFileVersion)]
+    [Arguments(BuildResultMutation.MissingPrimaryAssemblyTargetFrameworkName)]
+    [Arguments(BuildResultMutation.WrongPrimaryAssemblyTargetFrameworkMoniker)]
+    public async Task RequiredBuildResolver_WhenBuildEvidenceIsMutated_RejectsBinding(
         BuildResultMutation mutation)
     {
         using var fixture = new ProvenanceBindingFixture();
         string buildResultPath = fixture.CreateValidBuildResult();
-        fixture.ApplyBuildResultMutation(mutation);
+        await fixture.ApplyBuildResultMutation(mutation);
         PipelineProvenanceBoundAssemblyLocator locator =
             fixture.CreateLocator(buildResultPath, candidateDirectory: null);
 
         PipelineProvenanceBindingException exception =
-            Assert.ThrowsExactly<PipelineProvenanceBindingException>(
-                locator.ResolveRequiredPipelineBuild);
-        StringAssert.Contains(exception.Message, buildResultPath);
+            (await Assert.That(locator.ResolveRequiredPipelineBuild).ThrowsExactly<PipelineProvenanceBindingException>())!;
+        await Assert.That(exception.Message).Contains(buildResultPath);
     }
 
-    [TestMethod]
-    public void ReleaseCandidateDataRowProbe_WhenVariableIsWhitespace_YieldsNoRowWhileRequiredResolverRejectsAbsence()
+    [Test]
+    public async Task ReleaseCandidateDataRowProbe_WhenVariableIsWhitespace_YieldsNoRowWhileRequiredResolverRejectsAbsence()
     {
         using var fixture = new ProvenanceBindingFixture();
         PipelineProvenanceBoundAssemblyLocator locator =
@@ -2190,19 +2160,15 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
                 buildResultPath: null,
                 candidateDirectory: "   ");
 
-        Assert.IsEmpty(
-            locator.ProbeExactReleaseCandidateDataRows().ToArray());
+        await Assert.That(locator.ProbeExactReleaseCandidateDataRows().ToArray()).IsEmpty();
         PipelineProvenanceBindingException exception =
-            Assert.ThrowsExactly<PipelineProvenanceBindingException>(
-                locator.ResolveRequiredReleaseCandidate);
-        StringAssert.Contains(
-            exception.Message,
-            PipelineProvenanceBoundAssemblyLocator
+            (await Assert.That(locator.ResolveRequiredReleaseCandidate).ThrowsExactly<PipelineProvenanceBindingException>())!;
+        await Assert.That(exception.Message).Contains(PipelineProvenanceBoundAssemblyLocator
                 .ReleaseCandidateDirectoryVariable);
     }
 
-    [TestMethod]
-    public void RequiredReleaseCandidateResolver_WhenManifestAndProvenanceAreValid_ReturnsExactPackagedAssembly()
+    [Test]
+    public async Task RequiredReleaseCandidateResolver_WhenManifestAndProvenanceAreValid_ReturnsExactPackagedAssembly()
     {
         using var fixture = new ProvenanceBindingFixture();
         string candidateDirectory = fixture.CreateValidReleaseCandidate();
@@ -2214,58 +2180,47 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
         PipelineProvenanceBoundAssembly assembly =
             locator.ResolveRequiredReleaseCandidate();
 
-        Assert.AreEqual(
-            PipelineProvenanceBoundAssemblyKind.ExactReleaseCandidate,
-            assembly.Kind);
-        Assert.AreEqual(fixture.CandidateAssemblyPath, assembly.AssemblyPath);
-        Assert.AreEqual(ExpectedRepositoryCommit, assembly.SourceCommit);
-        Assert.AreEqual(
-            FixtureAssemblyFileVersion,
-            assembly.RecordedFileVersion);
-        Assert.AreEqual(
-            FixtureTargetFrameworkName,
-            assembly.RecordedTargetFrameworkName);
-        CollectionAssert.AreEqual(
-            new[]
+        await Assert.That(assembly.Kind).IsEqualTo(PipelineProvenanceBoundAssemblyKind.ExactReleaseCandidate);
+        await Assert.That(assembly.AssemblyPath).IsEqualTo(fixture.CandidateAssemblyPath);
+        await Assert.That(assembly.SourceCommit).IsEqualTo(ExpectedRepositoryCommit);
+        await Assert.That(assembly.RecordedFileVersion).IsEqualTo(FixtureAssemblyFileVersion);
+        await Assert.That(assembly.RecordedTargetFrameworkName).IsEqualTo(FixtureTargetFrameworkName);
+        await Assert.That(assembly.PackageRelativePaths.ToArray()).IsEquivalentTo(new[]
             {
                 "mod.yaml",
                 "mod_info.yaml",
                 "DeliveryTemperatureLimit.dll"
-            },
-            assembly.PackageRelativePaths.ToArray());
-        Assert.HasCount(
-            1,
-            locator.ProbeExactReleaseCandidateDataRows().ToArray());
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(locator.ProbeExactReleaseCandidateDataRows().ToArray()).Count().IsEqualTo(1);
     }
 
-    [TestMethod]
-    [DataRow(ReleaseCandidateMutation.ManifestPathEscape)]
-    [DataRow(ReleaseCandidateMutation.WrongStaticId)]
-    [DataRow(ReleaseCandidateMutation.ChangedCandidateAssembly)]
-    [DataRow(ReleaseCandidateMutation.ChangedPrimaryOutputDigest)]
-    [DataRow(ReleaseCandidateMutation.MismatchedReleaseContentDigest)]
-    [DataRow(ReleaseCandidateMutation.UndeclaredPackageFile)]
-    [DataRow(ReleaseCandidateMutation.PrimaryOutputPathMismatch)]
-    [DataRow(ReleaseCandidateMutation.CandidateVersionMismatch)]
-    [DataRow(ReleaseCandidateMutation.MissingPrimaryAssemblyFileVersion)]
-    [DataRow(ReleaseCandidateMutation.NonCanonicalPrimaryAssemblyFileVersion)]
-    [DataRow(ReleaseCandidateMutation.MissingPrimaryAssemblyTargetFrameworkName)]
-    [DataRow(ReleaseCandidateMutation.WrongTargetFrameworkMoniker)]
-    public void RequiredReleaseCandidateResolver_WhenCandidateBindingIsMutated_RejectsEvidence(
+    [Test]
+    [Arguments(ReleaseCandidateMutation.ManifestPathEscape)]
+    [Arguments(ReleaseCandidateMutation.WrongStaticId)]
+    [Arguments(ReleaseCandidateMutation.ChangedCandidateAssembly)]
+    [Arguments(ReleaseCandidateMutation.ChangedPrimaryOutputDigest)]
+    [Arguments(ReleaseCandidateMutation.MismatchedReleaseContentDigest)]
+    [Arguments(ReleaseCandidateMutation.UndeclaredPackageFile)]
+    [Arguments(ReleaseCandidateMutation.PrimaryOutputPathMismatch)]
+    [Arguments(ReleaseCandidateMutation.CandidateVersionMismatch)]
+    [Arguments(ReleaseCandidateMutation.MissingPrimaryAssemblyFileVersion)]
+    [Arguments(ReleaseCandidateMutation.NonCanonicalPrimaryAssemblyFileVersion)]
+    [Arguments(ReleaseCandidateMutation.MissingPrimaryAssemblyTargetFrameworkName)]
+    [Arguments(ReleaseCandidateMutation.WrongTargetFrameworkMoniker)]
+    public async Task RequiredReleaseCandidateResolver_WhenCandidateBindingIsMutated_RejectsEvidence(
         ReleaseCandidateMutation mutation)
     {
         using var fixture = new ProvenanceBindingFixture();
         string candidateDirectory = fixture.CreateValidReleaseCandidate();
-        fixture.ApplyReleaseCandidateMutation(mutation);
+        await fixture.ApplyReleaseCandidateMutation(mutation);
         PipelineProvenanceBoundAssemblyLocator locator =
             fixture.CreateLocator(
                 buildResultPath: null,
                 candidateDirectory);
 
         PipelineProvenanceBindingException exception =
-            Assert.ThrowsExactly<PipelineProvenanceBindingException>(
-                locator.ResolveRequiredReleaseCandidate);
-        StringAssert.Contains(exception.Message, candidateDirectory);
+            (await Assert.That(locator.ResolveRequiredReleaseCandidate).ThrowsExactly<PipelineProvenanceBindingException>())!;
+        await Assert.That(exception.Message).Contains(candidateDirectory);
     }
 
     public enum BuildResultMutation
@@ -2443,10 +2398,10 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
             return buildResultPath;
         }
 
-        internal void ApplyBuildResultMutation(BuildResultMutation mutation)
+        internal async Task ApplyBuildResultMutation(BuildResultMutation mutation)
         {
-            Assert.IsNotNull(buildResultPath);
-            Assert.IsNotNull(buildSourceInputPath);
+            Assert.NotNull(buildResultPath);
+            Assert.NotNull(buildSourceInputPath);
             JsonObject document = ReadJsonObject(buildResultPath);
             switch (mutation)
             {
@@ -2637,11 +2592,11 @@ public sealed class PipelineProvenanceBoundAssemblyLocatorTests
             return candidateDirectory;
         }
 
-        internal void ApplyReleaseCandidateMutation(
+        internal async Task ApplyReleaseCandidateMutation(
             ReleaseCandidateMutation mutation)
         {
-            Assert.IsNotNull(releaseContentManifestPath);
-            Assert.IsNotNull(buildProvenancePath);
+            Assert.NotNull(releaseContentManifestPath);
+            Assert.NotNull(buildProvenancePath);
             switch (mutation)
             {
                 case ReleaseCandidateMutation.ManifestPathEscape:

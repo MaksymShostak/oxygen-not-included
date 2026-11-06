@@ -5,90 +5,88 @@ using MaksymShostak.OniModPipeline.Readme;
 using MaksymShostak.OniModPipeline.Tests.Fixtures;
 
 namespace MaksymShostak.OniModPipeline.Tests.Readme;
-
-[TestClass]
 public sealed class InstalledMarkdownCanonicalizerTests
 {
-    [TestMethod]
-    [DataRow("not JSON", 0)]
-    [DataRow("{}", 0)]
-    [DataRow("[]", 0)]
-    [DataRow("{}", 2)]
+    [Test]
+    [Arguments("not JSON", 0)]
+    [Arguments("{}", 0)]
+    [Arguments("[]", 0)]
+    [Arguments("{}", 2)]
     public async Task Canonicalize_RejectsMalformedOrRefusedOutputWithoutWritingMarkdown(string output, int exitCode)
     {
         using var fixture = new Fixture();
         fixture.Runner.Output = output;
         fixture.Runner.ExitCode = exitCode;
-        await Assert.ThrowsAsync<InvalidDataException>(fixture.Run);
-        fixture.AssertOriginalAndNoTemporaryFiles();
+        await Assert.That(async () => { await fixture.Run(); }).Throws<InvalidDataException>();
+        await fixture.AssertOriginalAndNoTemporaryFiles();
     }
 
-    [TestMethod]
-    [DataRow("path")]
-    [DataRow("requestId")]
+    [Test]
+    [Arguments("path")]
+    [Arguments("requestId")]
     public async Task Canonicalize_RejectsResponseForAnotherDocumentOrRequest(string mismatch)
     {
         using var fixture = new Fixture();
         fixture.Runner.ResultVersion = "3.0.0";
         fixture.Runner.Mismatch = mismatch;
-        await Assert.ThrowsAsync<InvalidDataException>(fixture.Run);
-        Assert.AreEqual(1, fixture.Runner.CheckerCalls);
-        fixture.AssertOriginalAndNoTemporaryFiles();
+        await Assert.That(async () => { await fixture.Run(); }).Throws<InvalidDataException>();
+        await Assert.That(fixture.Runner.CheckerCalls).IsEqualTo(1);
+        await fixture.AssertOriginalAndNoTemporaryFiles();
     }
 
-    [TestMethod]
+    [Test]
     public async Task Canonicalize_PropagatesCancellationAndCleansTemporaryFile()
     {
         using var fixture = new Fixture();
         using var cancellation = new CancellationTokenSource();
         fixture.Runner.DuringChecker = cancellation.Cancel;
-        await Assert.ThrowsAsync<OperationCanceledException>(() => fixture.Run(cancellation.Token));
-        Assert.AreEqual(1, fixture.Runner.CheckerCalls);
-        fixture.AssertOriginalAndNoTemporaryFiles();
+        await Assert.That(async () => { await fixture.Run(cancellation.Token); }).Throws<OperationCanceledException>();
+        await Assert.That(fixture.Runner.CheckerCalls).IsEqualTo(1);
+        await fixture.AssertOriginalAndNoTemporaryFiles();
     }
 
-    [TestMethod]
+    [Test]
     public async Task Canonicalize_AcceptsMatchingPublicDocumentResult()
     {
         using var fixture = new Fixture();
         fixture.Runner.ResultVersion = "3.0.1";
-        CollectionAssert.AreEqual(Encoding.UTF8.GetBytes(Fixture.Original), await fixture.Run());
-        Assert.AreEqual(1, fixture.Runner.CheckerCalls);
-        fixture.AssertOriginalAndNoTemporaryFiles();
+        await Assert.That(await fixture.Run()).IsEquivalentTo(Encoding.UTF8.GetBytes(Fixture.Original), TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(fixture.Runner.CheckerCalls).IsEqualTo(1);
+        await fixture.AssertOriginalAndNoTemporaryFiles();
     }
 
-    [TestMethod]
+    [Test]
     public async Task Canonicalize_RejectsMissingBridgeBeforeLaunchingChecker()
     {
         using var fixture = new Fixture();
         fixture.RemoveBridge();
-        await Assert.ThrowsAsync<InvalidDataException>(fixture.Run);
-        Assert.AreEqual(0, fixture.Runner.CheckerCalls);
-        fixture.AssertOriginalAndNoTemporaryFiles();
+        await Assert.That(async () => { await fixture.Run(); }).Throws<InvalidDataException>();
+        await Assert.That(fixture.Runner.CheckerCalls).IsEqualTo(0);
+        await fixture.AssertOriginalAndNoTemporaryFiles();
     }
 
-    [TestMethod]
+    [Test]
     public async Task Canonicalize_RejectsPublicResultFromDifferentPackage()
     {
         using var fixture = new Fixture();
         fixture.Runner.ResultVersion = "3.0.0";
         fixture.Runner.ResultPackage = "other-package";
-        await Assert.ThrowsAsync<InvalidDataException>(fixture.Run);
-        fixture.AssertOriginalAndNoTemporaryFiles();
+        await Assert.That(async () => { await fixture.Run(); }).Throws<InvalidDataException>();
+        await fixture.AssertOriginalAndNoTemporaryFiles();
     }
 
-    [TestMethod]
-    [DataRow("previewed", false)]
-    [DataRow("refused", false)]
-    [DataRow("completed", true)]
+    [Test]
+    [Arguments("previewed", false)]
+    [Arguments("refused", false)]
+    [Arguments("completed", true)]
     public async Task Canonicalize_RejectsPreviewRefusalOrCheckoutWriteClaims(string status, bool wroteFile)
     {
         using var fixture = new Fixture();
         fixture.Runner.ResultVersion = "3.0.0";
         fixture.Runner.OperationStatus = status;
         fixture.Runner.WroteFile = wroteFile;
-        await Assert.ThrowsAsync<InvalidDataException>(fixture.Run);
-        fixture.AssertOriginalAndNoTemporaryFiles();
+        await Assert.That(async () => { await fixture.Run(); }).Throws<InvalidDataException>();
+        await fixture.AssertOriginalAndNoTemporaryFiles();
     }
 
     private sealed class Fixture : IDisposable
@@ -111,10 +109,10 @@ public sealed class InstalledMarkdownCanonicalizerTests
         internal Task<byte[]> Run(CancellationToken token) => new InstalledMarkdownCanonicalizer(Runner)
             .CanonicalizeAsync(directory.Path, ReadmePath, Encoding.UTF8.GetBytes(Original), token);
 
-        internal void AssertOriginalAndNoTemporaryFiles()
+        internal async Task AssertOriginalAndNoTemporaryFiles()
         {
-            Assert.AreEqual(Original, File.ReadAllText(ReadmePath));
-            CollectionAssert.AreEqual(new[] { ReadmePath }, Directory.GetFiles(directory.Path, "*.md"));
+            await Assert.That(File.ReadAllText(ReadmePath)).IsEqualTo(Original);
+            await Assert.That(Directory.GetFiles(directory.Path, "*.md")).IsEquivalentTo(new[] { ReadmePath }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         }
 
         public void Dispose() => directory.Dispose();

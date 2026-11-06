@@ -34,7 +34,7 @@ internal sealed class CandidateFixture : IAsyncDisposable
         var prepared = await preparation.Preparer.PrepareAsync(
             preparation.Request,
             CancellationToken.None);
-        Assert.IsTrue(prepared.IsSuccess, Render(prepared.Diagnostics));
+        await Assert.That(prepared.IsSuccess).IsTrue().Because(Render(prepared.Diagnostics));
         return new CandidateFixture(preparation);
     }
 
@@ -44,7 +44,7 @@ internal sealed class CandidateFixture : IAsyncDisposable
         await fixture.InstallAsync();
         var recorded = await fixture.RecordAcceptanceAsync(
             failedCheckId: null);
-        Assert.IsTrue(recorded.IsSuccess, Render(recorded.Diagnostics));
+        await Assert.That(recorded.IsSuccess).IsTrue().Because(Render(recorded.Diagnostics));
         return fixture;
     }
 
@@ -55,8 +55,8 @@ internal sealed class CandidateFixture : IAsyncDisposable
         var plan = await fixture.ReadJsonAsync<AcceptanceTestPlan>(
             fixture.Layout.AcceptanceTestPlanPath);
         var recorded = await fixture.RecordAcceptanceAsync(plan.Checks[0].Id);
-        Assert.AreEqual(PipelineExitCode.ReleaseNotReady, recorded.ExitCode);
-        Assert.IsTrue(File.Exists(fixture.Layout.AcceptanceTestResultsPath));
+        await Assert.That(recorded.ExitCode).IsEqualTo(PipelineExitCode.ReleaseNotReady);
+        await Assert.That(File.Exists(fixture.Layout.AcceptanceTestResultsPath)).IsTrue();
         return fixture;
     }
 
@@ -99,7 +99,7 @@ internal sealed class CandidateFixture : IAsyncDisposable
             InstallTarget.Dev,
             preparation.Environment,
             CancellationToken.None);
-        Assert.IsTrue(installed.IsSuccess, Render(installed.Diagnostics));
+        await Assert.That(installed.IsSuccess).IsTrue().Because(Render(installed.Diagnostics));
         InstalledDirectory = installed.Value!.AbsoluteTargetPath;
     }
 

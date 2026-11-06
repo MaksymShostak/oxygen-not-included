@@ -4,69 +4,63 @@ using System.Security.Cryptography;
 using System.Text;
 
 namespace MaksymShostak.OniModPipeline.Tests.WorkshopListing;
-
-[TestClass]
 public sealed class ListingTextRendererTests
 {
-    [TestMethod]
-    [DataRow("lf")]
-    [DataRow("crlf")]
-    [DataRow("cr")]
-    [DataRow("mixed")]
-    public void Render_WhenInputUsesAnyLineBreakStyle_PreservesOneLogicalDocument(
+    [Test]
+    [Arguments("lf")]
+    [Arguments("crlf")]
+    [Arguments("cr")]
+    [Arguments("mixed")]
+    public async Task Render_WhenInputUsesAnyLineBreakStyle_PreservesOneLogicalDocument(
         string variant)
     {
-        var expected = ReadStructuralFixture();
+        var expected = await ReadStructuralFixture();
         var input = CreateLineEndingVariant(expected, variant);
         var renderer = new ListingTextRenderer();
 
         var rendered = renderer.Render(input);
 
-        CollectionAssert.AreEqual(
-            Encoding.UTF8.GetBytes(expected.Replace("\n", "\r\n", StringComparison.Ordinal)),
-            rendered.Bytes);
-        Assert.AreEqual("utf-8", rendered.Report.Encoding);
-        Assert.IsFalse(rendered.Report.HasBom);
-        Assert.AreEqual("crlf", rendered.Report.LineEndings);
-        Assert.AreEqual(2, rendered.Report.BlankLineCount);
+        await Assert.That(rendered.Bytes).IsEquivalentTo(Encoding.UTF8.GetBytes(expected.Replace("\n", "\r\n", StringComparison.Ordinal)), TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(rendered.Report.Encoding).IsEqualTo("utf-8");
+        await Assert.That(rendered.Report.HasBom).IsFalse();
+        await Assert.That(rendered.Report.LineEndings).IsEqualTo("crlf");
+        await Assert.That(rendered.Report.BlankLineCount).IsEqualTo(2);
     }
 
-    [TestMethod]
-    public void Render_WhenCalledTwice_IsLogicallyIdempotent()
+    [Test]
+    public async Task Render_WhenCalledTwice_IsLogicallyIdempotent()
     {
         var renderer = new ListingTextRenderer();
-        var first = renderer.Render(ReadStructuralFixture());
+        var first = renderer.Render((await ReadStructuralFixture()));
 
         var second = renderer.Render(Encoding.UTF8.GetString(first.Bytes));
 
-        CollectionAssert.AreEqual(first.Bytes, second.Bytes);
-        Assert.AreEqual(
-            first.Report.LogicalContentSha256,
-            second.Report.LogicalContentSha256);
-        Assert.AreEqual(first.Report.ArtifactSha256, second.Report.ArtifactSha256);
+        await Assert.That(second.Bytes).IsEquivalentTo(first.Bytes, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(second.Report.LogicalContentSha256).IsEqualTo(first.Report.LogicalContentSha256);
+        await Assert.That(second.Report.ArtifactSha256).IsEqualTo(first.Report.ArtifactSha256);
     }
 
-    [TestMethod]
-    public void Render_WhenArtifactIsWritten_UsesNoBomAndOnlyCrLfWithOneFinalCrLf()
+    [Test]
+    public async Task Render_WhenArtifactIsWritten_UsesNoBomAndOnlyCrLfWithOneFinalCrLf()
     {
         var renderer = new ListingTextRenderer();
 
         var rendered = renderer.Render("alpha\r\n\r\nbeta\r\r\n");
 
-        Assert.IsFalse(rendered.Bytes.AsSpan().StartsWith(
-            new byte[] { 0xEF, 0xBB, 0xBF }));
-        Assert.IsTrue(rendered.Bytes.AsSpan().EndsWith("\r\n"u8));
-        Assert.IsFalse(rendered.Bytes.AsSpan().EndsWith("\r\n\r\n"u8));
-        Assert.AreEqual(3, CountCrLfPairs(rendered.Bytes));
-        AssertNoLoneLineEndings(rendered.Bytes);
-        Assert.AreEqual(4, rendered.Report.LogicalLineCount);
-        Assert.AreEqual(3, rendered.Report.LineBreakCount);
-        Assert.AreEqual(1, rendered.Report.BlankLineCount);
+        await Assert.That(rendered.Bytes.AsSpan().StartsWith(
+            new byte[] { 0xEF, 0xBB, 0xBF })).IsFalse();
+        await Assert.That(rendered.Bytes.AsSpan().EndsWith("\r\n"u8)).IsTrue();
+        await Assert.That(rendered.Bytes.AsSpan().EndsWith("\r\n\r\n"u8)).IsFalse();
+        await Assert.That(CountCrLfPairs(rendered.Bytes)).IsEqualTo(3);
+        await AssertNoLoneLineEndings(rendered.Bytes);
+        await Assert.That(rendered.Report.LogicalLineCount).IsEqualTo(4);
+        await Assert.That(rendered.Report.LineBreakCount).IsEqualTo(3);
+        await Assert.That(rendered.Report.BlankLineCount).IsEqualTo(1);
     }
 
 
-    [TestMethod]
-    public void FindRepositoryRoot_WhenDocumentationIsAbsent_UsesToolingOwnership()
+    [Test]
+    public async Task FindRepositoryRoot_WhenDocumentationIsAbsent_UsesToolingOwnership()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var tooling = Directory.CreateDirectory(Path.Combine(
@@ -74,11 +68,11 @@ public sealed class ListingTextRendererTests
         File.WriteAllText(Path.Combine(tooling.FullName, "OniModPipeline.slnx"), "<Solution />");
         var start = Directory.CreateDirectory(Path.Combine(tooling.FullName, "tests", "bin"));
 
-        Assert.IsFalse(Directory.Exists(Path.Combine(temporaryDirectory.Path, "docs")));
-        Assert.AreEqual(temporaryDirectory.Path, FindRepositoryRoot(start));
+        await Assert.That(Directory.Exists(Path.Combine(temporaryDirectory.Path, "docs"))).IsFalse();
+        await Assert.That(FindRepositoryRoot(start)).IsEqualTo(temporaryDirectory.Path);
     }
 
-    private static string ReadStructuralFixture()
+    private static async Task<string> ReadStructuralFixture()
     {
         var path = Path.Combine(
             FindRepositoryRoot(),
@@ -89,9 +83,9 @@ public sealed class ListingTextRendererTests
             "Fixtures",
             "workshop-description-structure.bbcode");
         var text = File.ReadAllText(path, Encoding.UTF8);
-        Assert.IsTrue(text.EndsWith('\n'));
-        Assert.IsFalse(text.Contains('\r'));
-        Assert.IsFalse(text.EndsWith("\n\n", StringComparison.Ordinal));
+        await Assert.That(text.EndsWith('\n')).IsTrue();
+        await Assert.That(text.Contains('\r')).IsFalse();
+        await Assert.That(text.EndsWith("\n\n", StringComparison.Ordinal)).IsFalse();
         return text;
     }
 
@@ -146,18 +140,18 @@ public sealed class ListingTextRendererTests
         return count;
     }
 
-    private static void AssertNoLoneLineEndings(ReadOnlySpan<byte> bytes)
+    private static async Task AssertNoLoneLineEndings(byte[] bytes)
     {
         for (var index = 0; index < bytes.Length; index++)
         {
             if (bytes[index] == (byte)'\r')
             {
-                Assert.IsTrue(index + 1 < bytes.Length && bytes[index + 1] == (byte)'\n');
+                await Assert.That(index + 1 < bytes.Length && bytes[index + 1] == (byte)'\n').IsTrue();
             }
 
             if (bytes[index] == (byte)'\n')
             {
-                Assert.IsTrue(index > 0 && bytes[index - 1] == (byte)'\r');
+                await Assert.That(index > 0 && bytes[index - 1] == (byte)'\r').IsTrue();
             }
         }
     }

@@ -1,10 +1,8 @@
 namespace DeliveryTemperatureLimit.Tests.GameplayActivation.ExternalModIntegration;
-
-[TestClass]
 public sealed class DeclaredModIntegrationCatalogTests
 {
-    [TestMethod]
-    public void Constructor_WhenDeclarationsAreValid_PreservesInsertionOrderAndCopiesInput()
+    [Test]
+    public async Task Constructor_WhenDeclarationsAreValid_PreservesInsertionOrderAndCopiesInput()
     {
         DeclaredModIntegrationDescriptor fastTrack = Descriptor(
             "fast-track",
@@ -27,21 +25,17 @@ public sealed class DeclaredModIntegrationCatalogTests
         var catalog = new DeclaredModIntegrationCatalog(source);
         source.Clear();
 
-        CollectionAssert.AreEqual(
-            new[] { fastTrack, synthetic },
-            catalog.Descriptors.ToArray());
-        Assert.AreSame(
-            fastTrack,
-            catalog.GetRequired(new DeclaredModIntegrationId("fast-track")));
-        Assert.IsFalse(catalog.TryGet(
+        await Assert.That(catalog.Descriptors.ToArray()).IsEquivalentTo(new[] { fastTrack, synthetic }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(catalog.GetRequired(new DeclaredModIntegrationId("fast-track"))).IsSameReferenceAs(fastTrack);
+        await Assert.That(catalog.TryGet(
             new DeclaredModIntegrationId("unknown-integration"),
-            out _));
+            out _)).IsFalse();
     }
 
-    [TestMethod]
-    public void Constructor_WhenIntegrationIdentityRepeats_RejectsCatalog()
+    [Test]
+    public async Task Constructor_WhenIntegrationIdentityRepeats_RejectsCatalog()
     {
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             new DeclaredModIntegrationCatalog(new[]
             {
                 Descriptor(
@@ -56,13 +50,13 @@ public sealed class DeclaredModIntegrationCatalogTests
                     "Example.AnotherFastTrack",
                     "AnotherFastTrack",
                     RuntimeCapabilityId.PickupTemperatureGrouping)
-            }));
+            })).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void Constructor_WhenExactStaticIdRepeats_RejectsAmbiguousCatalog()
+    [Test]
+    public async Task Constructor_WhenExactStaticIdRepeats_RejectsAmbiguousCatalog()
     {
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             new DeclaredModIntegrationCatalog(new[]
             {
                 Descriptor(
@@ -77,13 +71,13 @@ public sealed class DeclaredModIntegrationCatalogTests
                     "PeterHan.FastTrack",
                     "OtherRuntimeAuthority",
                     RuntimeCapabilityId.PickupTemperatureGrouping)
-            }));
+            })).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void Descriptor_WhenCapabilityDeclarationRepeats_RejectsBeforeCatalogUse()
+    [Test]
+    public async Task Descriptor_WhenCapabilityDeclarationRepeats_RejectsBeforeCatalogUse()
     {
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             new DeclaredModIntegrationDescriptor(
                 new DeclaredModIntegrationId("fast-track"),
                 "Fast Track",
@@ -98,11 +92,11 @@ public sealed class DeclaredModIntegrationCatalogTests
                     new DeclaredModIntegrationCapability(
                         RuntimeCapabilityId.DirectDeliveryEligibility,
                         ExternalModIntegrationCategory.ExclusiveRuntimeAuthority)
-                }));
+                })).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void FastTrackOnlyCatalog_WhenConstructed_HasOneExplicitDeclaration()
+    [Test]
+    public async Task FastTrackOnlyCatalog_WhenConstructed_HasOneExplicitDeclaration()
     {
         DeclaredModIntegrationDescriptor fastTrack = Descriptor(
             "fast-track",
@@ -115,18 +109,14 @@ public sealed class DeclaredModIntegrationCatalogTests
 
         var catalog = new DeclaredModIntegrationCatalog(new[] { fastTrack });
 
-        Assert.HasCount(1, catalog.Descriptors);
-        Assert.AreEqual(
-            "fast-track",
-            catalog.Descriptors[0].IntegrationId.Value);
-        CollectionAssert.AreEqual(
-            new[]
+        await Assert.That(catalog.Descriptors).Count().IsEqualTo(1);
+        await Assert.That(catalog.Descriptors[0].IntegrationId.Value).IsEqualTo("fast-track");
+        await Assert.That(catalog.Descriptors[0].DeclaredCapabilityIds.ToArray()).IsEquivalentTo(new[]
             {
                 RuntimeCapabilityId.WorldInventoryTemperaturePublication,
                 RuntimeCapabilityId.PickupTemperatureGrouping,
                 RuntimeCapabilityId.DirectDeliveryEligibility
-            },
-            catalog.Descriptors[0].DeclaredCapabilityIds.ToArray());
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     private static DeclaredModIntegrationDescriptor Descriptor(

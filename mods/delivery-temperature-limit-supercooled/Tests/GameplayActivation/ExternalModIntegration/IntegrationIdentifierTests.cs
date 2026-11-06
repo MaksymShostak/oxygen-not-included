@@ -1,47 +1,42 @@
 namespace DeliveryTemperatureLimit.Tests.GameplayActivation.ExternalModIntegration;
-
-[TestClass]
 public sealed class IntegrationIdentifierTests
 {
-    [TestMethod]
-    [DataRow("")]
-    [DataRow(" ")]
-    [DataRow("fast Track")]
-    [DataRow("Fast-track")]
-    [DataRow("fast_track")]
-    [DataRow("fast.track")]
-    [DataRow("-fast-track")]
-    [DataRow("fast-track-")]
-    [DataRow("fast--track")]
-    [DataRow("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklm")]
-    public void Constructors_WhenIdentifierIsNotLowercaseAsciiKebabCase_RejectValue(
+    [Test]
+    [Arguments("")]
+    [Arguments(" ")]
+    [Arguments("fast Track")]
+    [Arguments("Fast-track")]
+    [Arguments("fast_track")]
+    [Arguments("fast.track")]
+    [Arguments("-fast-track")]
+    [Arguments("fast-track-")]
+    [Arguments("fast--track")]
+    [Arguments("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklm")]
+    public async Task Constructors_WhenIdentifierIsNotLowercaseAsciiKebabCase_RejectValue(
         string value)
     {
-        Assert.ThrowsExactly<ArgumentException>(() =>
-            new DeclaredModIntegrationId(value));
-        Assert.ThrowsExactly<ArgumentException>(() =>
-            new RuntimeCapabilityId(value));
-        Assert.ThrowsExactly<ArgumentException>(() =>
-            new RuntimePatchGroupId(value));
+        await Assert.That(() =>
+            new DeclaredModIntegrationId(value)).ThrowsExactly<ArgumentException>();
+        await Assert.That(() =>
+            new RuntimeCapabilityId(value)).ThrowsExactly<ArgumentException>();
+        await Assert.That(() =>
+            new RuntimePatchGroupId(value)).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void Constructors_WhenIdentifierIsNull_RejectValueWithExactParameterName()
+    [Test]
+    public async Task Constructors_WhenIdentifierIsNull_RejectValueWithExactParameterName()
     {
-        var integrationException = Assert.ThrowsExactly<ArgumentNullException>(
-            () => new DeclaredModIntegrationId(null!));
-        var capabilityException = Assert.ThrowsExactly<ArgumentNullException>(
-            () => new RuntimeCapabilityId(null!));
-        var patchGroupException = Assert.ThrowsExactly<ArgumentNullException>(
-            () => new RuntimePatchGroupId(null!));
+        var integrationException = (await Assert.That(() => new DeclaredModIntegrationId(null!)).ThrowsExactly<ArgumentNullException>())!;
+        var capabilityException = (await Assert.That(() => new RuntimeCapabilityId(null!)).ThrowsExactly<ArgumentNullException>())!;
+        var patchGroupException = (await Assert.That(() => new RuntimePatchGroupId(null!)).ThrowsExactly<ArgumentNullException>())!;
 
-        Assert.AreEqual("value", integrationException.ParamName);
-        Assert.AreEqual("value", capabilityException.ParamName);
-        Assert.AreEqual("value", patchGroupException.ParamName);
+        await Assert.That(integrationException.ParamName).IsEqualTo("value");
+        await Assert.That(capabilityException.ParamName).IsEqualTo("value");
+        await Assert.That(patchGroupException.ParamName).IsEqualTo("value");
     }
 
-    [TestMethod]
-    public void Constructors_WhenIdentifierIsValid_PreserveExactValue()
+    [Test]
+    public async Task Constructors_WhenIdentifierIsValid_PreserveExactValue()
     {
         var singleSegment = new DeclaredModIntegrationId("fasttrack");
         var multipleSegments =
@@ -49,16 +44,14 @@ public sealed class IntegrationIdentifierTests
         var patchGroup =
             new RuntimePatchGroupId("fast-track-pickup-temperature-grouping");
 
-        Assert.AreEqual("fasttrack", singleSegment.Value);
-        Assert.AreEqual("fasttrack", singleSegment.ToString());
-        Assert.AreEqual("pickup-temperature-grouping-2", multipleSegments.Value);
-        Assert.AreEqual(
-            "fast-track-pickup-temperature-grouping",
-            patchGroup.Value);
+        await Assert.That(singleSegment.Value).IsEqualTo("fasttrack");
+        await Assert.That(singleSegment.ToString()).IsEqualTo("fasttrack");
+        await Assert.That(multipleSegments.Value).IsEqualTo("pickup-temperature-grouping-2");
+        await Assert.That(patchGroup.Value).IsEqualTo("fast-track-pickup-temperature-grouping");
     }
 
-    [TestMethod]
-    public void IdentityValues_WhenCompared_UseExactOrdinalValueAndType()
+    [Test]
+    public async Task IdentityValues_WhenCompared_UseExactOrdinalValueAndType()
     {
         var integration = new DeclaredModIntegrationId("fast-track");
         var equalIntegration = new DeclaredModIntegrationId("fast-track");
@@ -69,83 +62,65 @@ public sealed class IntegrationIdentifierTests
         var patchGroup = new RuntimePatchGroupId("fast-track");
         var equalPatchGroup = new RuntimePatchGroupId("fast-track");
 
-        Assert.AreEqual(integration, equalIntegration);
-        Assert.AreEqual(integration.GetHashCode(), equalIntegration.GetHashCode());
-        Assert.AreNotEqual(integration, differentIntegration);
-        Assert.IsFalse(integration.Equals((object)capability));
+        await Assert.That(equalIntegration).IsEqualTo(integration);
+        await Assert.That(equalIntegration.GetHashCode()).IsEqualTo(integration.GetHashCode());
+        await Assert.That(differentIntegration).IsNotEqualTo(integration);
+        await Assert.That(integration.Equals((object)capability)).IsFalse();
 
-        Assert.AreEqual(capability, equalCapability);
-        Assert.AreEqual(capability.GetHashCode(), equalCapability.GetHashCode());
-        Assert.IsFalse(capability.Equals((object)patchGroup));
+        await Assert.That(equalCapability).IsEqualTo(capability);
+        await Assert.That(equalCapability.GetHashCode()).IsEqualTo(capability.GetHashCode());
+        await Assert.That(capability.Equals((object)patchGroup)).IsFalse();
 
-        Assert.AreEqual(patchGroup, equalPatchGroup);
-        Assert.AreEqual(patchGroup.GetHashCode(), equalPatchGroup.GetHashCode());
-        Assert.IsFalse(patchGroup.Equals((object)integration));
+        await Assert.That(equalPatchGroup).IsEqualTo(patchGroup);
+        await Assert.That(equalPatchGroup.GetHashCode()).IsEqualTo(patchGroup.GetHashCode());
+        await Assert.That(patchGroup.Equals((object)integration)).IsFalse();
     }
 
-    [TestMethod]
-    public void RuntimeCapabilityIdentifiers_WhenInspected_UseStableSemanticKeys()
+    [Test]
+    public async Task RuntimeCapabilityIdentifiers_WhenInspected_UseStableSemanticKeys()
     {
-        Assert.AreEqual(
-            "world-inventory-temperature-publication",
-            RuntimeCapabilityId.WorldInventoryTemperaturePublication.Value);
-        Assert.AreEqual(
-            "pickup-temperature-grouping",
-            RuntimeCapabilityId.PickupTemperatureGrouping.Value);
-        Assert.AreEqual(
-            "direct-delivery-eligibility",
-            RuntimeCapabilityId.DirectDeliveryEligibility.Value);
-        Assert.AreEqual(
-            "temperature-status-availability",
-            RuntimeCapabilityId.TemperatureStatusAvailability.Value);
+        await Assert.That(RuntimeCapabilityId.WorldInventoryTemperaturePublication.Value).IsEqualTo("world-inventory-temperature-publication");
+        await Assert.That(RuntimeCapabilityId.PickupTemperatureGrouping.Value).IsEqualTo("pickup-temperature-grouping");
+        await Assert.That(RuntimeCapabilityId.DirectDeliveryEligibility.Value).IsEqualTo("direct-delivery-eligibility");
+        await Assert.That(RuntimeCapabilityId.TemperatureStatusAvailability.Value).IsEqualTo("temperature-status-availability");
     }
 
-    [TestMethod]
-    public void IntegrationStateEnums_WhenInspected_ExposeOnlyApprovedDimensions()
+    [Test]
+    public async Task IntegrationStateEnums_WhenInspected_ExposeOnlyApprovedDimensions()
     {
-        CollectionAssert.AreEqual(
-            new[]
+        await Assert.That(Enum.GetNames<DeclaredModMatchState>()).IsEquivalentTo(new[]
             {
                 "NotMatched",
                 "Matched",
                 "Ambiguous",
                 "InspectionUnavailable"
-            },
-            Enum.GetNames<DeclaredModMatchState>());
-        CollectionAssert.AreEqual(
-            new[]
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(Enum.GetNames<RuntimeAuthorityObservation>()).IsEquivalentTo(new[]
             {
                 "DoesNotOwn",
                 "OwnsCompatible",
                 "OwnsIncompatible",
                 "OwnershipUnavailable"
-            },
-            Enum.GetNames<RuntimeAuthorityObservation>());
-        CollectionAssert.AreEqual(
-            new[]
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(Enum.GetNames<IntegrationContractState>()).IsEquivalentTo(new[]
             {
                 "NotEvaluated",
                 "Compatible",
                 "Incompatible",
                 "VerificationUnavailable"
-            },
-            Enum.GetNames<IntegrationContractState>());
-        CollectionAssert.AreEqual(
-            new[]
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(Enum.GetNames<IntegrationCapabilityDisposition>()).IsEquivalentTo(new[]
             {
                 "NotApplicable",
                 "Selected",
                 "Ready",
                 "Unavailable",
                 "ActivationBlocking"
-            },
-            Enum.GetNames<IntegrationCapabilityDisposition>());
-        CollectionAssert.AreEqual(
-            new[]
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(Enum.GetNames<ExternalModIntegrationCategory>()).IsEquivalentTo(new[]
             {
                 "ExclusiveRuntimeAuthority",
                 "AdditiveInteroperability"
-            },
-            Enum.GetNames<ExternalModIntegrationCategory>());
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 }

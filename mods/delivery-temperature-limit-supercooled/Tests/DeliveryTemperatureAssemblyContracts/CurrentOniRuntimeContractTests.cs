@@ -2,8 +2,6 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
-
-[TestClass]
 public sealed class CurrentOniRuntimeContractTests
 {
     private const uint ExpectedChangeList = 744825;
@@ -14,10 +12,10 @@ public sealed class CurrentOniRuntimeContractTests
     private const string ExpectedHarmonyAssemblySha256 =
         "AEC7446028FE31D00DFECC684E40011C4208BB036E82617B8DE32002A8E55B53";
 
-    [TestMethod]
+    [Test]
     public async Task InstalledAssembly_WhenInspected_MatchesCurrentPublicRuntimeContract()
     {
-        var assemblyPath = ResolveInstalledAssemblyPath();
+        var assemblyPath = await ResolveInstalledAssemblyPath();
         var digest = Convert.ToHexString(
             SHA256.HashData(await File.ReadAllBytesAsync(assemblyPath)));
         var assemblyVersion = DeliveryTemperatureAssemblyMetadataReader
@@ -35,34 +33,34 @@ public sealed class CurrentOniRuntimeContractTests
             $"KleiVersion.BuildBranch={buildBranch}; " +
             $"Sim.MaxTemperature={maximumTemperature}.";
 
-        Assert.AreEqual(ExpectedAssemblySha256, digest, evidence);
-        Assert.AreEqual(ExpectedChangeList, changeList, evidence);
-        Assert.AreEqual(ExpectedBuildBranch, buildBranch, evidence);
-        Assert.AreEqual(ExpectedMaximumTemperatureKelvin, maximumTemperature, evidence);
+        await Assert.That(digest).IsEqualTo(ExpectedAssemblySha256).Because(evidence);
+        await Assert.That(changeList).IsEqualTo(ExpectedChangeList).Because(evidence);
+        await Assert.That(buildBranch).IsEqualTo(ExpectedBuildBranch).Because(evidence);
+        await Assert.That(maximumTemperature).IsEqualTo(ExpectedMaximumTemperatureKelvin).Because(evidence);
     }
 
-    [TestMethod]
-    public void InstalledAssembly_WhenTemperatureValidationMethodsAreInspected_UsesInclusiveMaximumBound()
+    [Test]
+    public async Task InstalledAssembly_WhenTemperatureValidationMethodsAreInspected_UsesInclusiveMaximumBound()
     {
-        var assemblyPath = ResolveInstalledAssemblyPath();
+        var assemblyPath = await ResolveInstalledAssemblyPath();
         var primaryElementMethods = DeliveryTemperatureAssemblyMetadataReader
             .ReadMethodBodies(assemblyPath, "PrimaryElement", "OnDeserialized");
         var modifyCellMethods = DeliveryTemperatureAssemblyMetadataReader
             .ReadMethodBodies(assemblyPath, "SimMessages", "ModifyCell");
 
-        AssertInclusiveMaximumEvidence(
+        await AssertInclusiveMaximumEvidence(
             "PrimaryElement.OnDeserialized",
             primaryElementMethods);
-        AssertInclusiveMaximumEvidence(
+        await AssertInclusiveMaximumEvidence(
             "SimMessages.ModifyCell",
             modifyCellMethods);
     }
 
-    [TestMethod]
-    public void ModMetadata_MatchesSupportedOniRuntimeContract()
+    [Test]
+    public async Task ModMetadata_MatchesSupportedOniRuntimeContract()
     {
         var metadataPath = Path.Combine(
-            RequiredEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT"),
+            (await RequiredEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT")),
             "mods",
             "delivery-temperature-limit-supercooled",
             "mod_info.yaml");
@@ -74,18 +72,18 @@ public sealed class CurrentOniRuntimeContractTests
                 parts => parts[1].Trim(),
                 StringComparer.Ordinal);
 
-        Assert.AreEqual("ALL", values["supportedContent"]);
-        Assert.AreEqual(ExpectedChangeList.ToString(), values["minimumSupportedBuild"]);
-        Assert.AreEqual("2", values["APIVersion"]);
+        await Assert.That(values["supportedContent"]).IsEqualTo("ALL");
+        await Assert.That(values["minimumSupportedBuild"]).IsEqualTo(ExpectedChangeList.ToString());
+        await Assert.That(values["APIVersion"]).IsEqualTo("2");
         // The pipeline owns metadata schema and mod release-version validation.
     }
 
-    [TestMethod]
+    [Test]
     public async Task InstalledHarmonyAssembly_WhenInspected_MatchesLockedPlibReferenceContract()
     {
         var assemblyPath = DeliveryTemperatureAssemblyMetadataReader
             .ResolveManagedAssemblyPath(
-                RequiredEnvironmentVariable("ONI_MANAGED_ASSEMBLY_DIRECTORY"),
+                (await RequiredEnvironmentVariable("ONI_MANAGED_ASSEMBLY_DIRECTORY")),
                 "0Harmony.dll");
         var digest = Convert.ToHexString(
             SHA256.HashData(await File.ReadAllBytesAsync(assemblyPath)));
@@ -102,49 +100,47 @@ public sealed class CurrentOniRuntimeContractTests
             $"Observed path={assemblyPath}; SHA-256={digest}; " +
             $"assembly version={assemblyVersion}; file version={fileVersion}.";
 
-        Assert.AreEqual(ExpectedHarmonyAssemblySha256, digest, evidence);
-        Assert.AreEqual(expectedVersion, assemblyVersion, evidence);
-        Assert.AreEqual(expectedVersion, fileVersion, evidence);
+        await Assert.That(digest).IsEqualTo(ExpectedHarmonyAssemblySha256).Because(evidence);
+        await Assert.That(assemblyVersion).IsEqualTo(expectedVersion).Because(evidence);
+        await Assert.That(fileVersion).IsEqualTo(expectedVersion).Because(evidence);
     }
 
-    [TestMethod]
-    public void ManagedAssemblyResolver_WhenDirectoryIsRelative_RejectsAmbiguousDiscovery()
+    [Test]
+    public async Task ManagedAssemblyResolver_WhenDirectoryIsRelative_RejectsAmbiguousDiscovery()
     {
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             DeliveryTemperatureAssemblyMetadataReader.ResolveManagedAssemblyPath(
                 ".",
-                "Assembly-CSharp.dll"));
+                "Assembly-CSharp.dll")).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void ManagedAssemblyResolver_WhenAssemblyNameEscapesDirectory_RejectsPathTraversal()
+    [Test]
+    public async Task ManagedAssemblyResolver_WhenAssemblyNameEscapesDirectory_RejectsPathTraversal()
     {
-        var managedDirectory = RequiredEnvironmentVariable(
+        var managedDirectory = await RequiredEnvironmentVariable(
             "ONI_MANAGED_ASSEMBLY_DIRECTORY");
 
-        Assert.ThrowsExactly<ArgumentException>(() =>
+        await Assert.That(() =>
             DeliveryTemperatureAssemblyMetadataReader.ResolveManagedAssemblyPath(
                 managedDirectory,
-                $"..{Path.DirectorySeparatorChar}Assembly-CSharp.dll"));
+                $"..{Path.DirectorySeparatorChar}Assembly-CSharp.dll")).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void ManagedAssemblyResolver_WhenAssemblyIsMissing_ReportsExactCandidate()
+    [Test]
+    public async Task ManagedAssemblyResolver_WhenAssemblyIsMissing_ReportsExactCandidate()
     {
-        var managedDirectory = RequiredEnvironmentVariable(
+        var managedDirectory = await RequiredEnvironmentVariable(
             "ONI_MANAGED_ASSEMBLY_DIRECTORY");
 
-        var exception = Assert.ThrowsExactly<FileNotFoundException>(() =>
+        var exception = (await Assert.That(() =>
             DeliveryTemperatureAssemblyMetadataReader.ResolveManagedAssemblyPath(
                 managedDirectory,
-                "Assembly-Definitely-Missing.dll"));
+                "Assembly-Definitely-Missing.dll")).ThrowsExactly<FileNotFoundException>())!;
 
-        StringAssert.Contains(
-            exception.Message,
-            Path.Combine(managedDirectory, "Assembly-Definitely-Missing.dll"));
+        await Assert.That(exception.Message).Contains(Path.Combine(managedDirectory, "Assembly-Definitely-Missing.dll"));
     }
 
-    private static void AssertInclusiveMaximumEvidence(
+    private static async Task AssertInclusiveMaximumEvidence(
         string methodIdentity,
         IReadOnlyList<AssemblyMethodBodyContract> methodBodies)
     {
@@ -158,12 +154,8 @@ public sealed class CurrentOniRuntimeContractTests
                 Environment.NewLine +
                 body.FormatInstructions()));
 
-        Assert.IsNotEmpty(
-            methodBodies,
-            $"No metadata body was found for {methodIdentity}.");
-        Assert.IsNotEmpty(
-            methodsWithMaximum,
-            $"{methodIdentity} does not contain the reviewed 10000 K bound. " +
+        await Assert.That(methodBodies).IsNotEmpty().Because($"No metadata body was found for {methodIdentity}.");
+        await Assert.That(methodsWithMaximum).IsNotEmpty().Because($"{methodIdentity} does not contain the reviewed 10000 K bound. " +
             $"Observed IL:{Environment.NewLine}{observedBodies}");
 
         var inclusiveComparisonOperations = new HashSet<string>(
@@ -180,10 +172,8 @@ public sealed class CurrentOniRuntimeContractTests
             "clt",
             "clt.un"
         };
-        Assert.IsTrue(
-            methodsWithMaximum.Any(body => body.Instructions.Any(instruction =>
-                inclusiveComparisonOperations.Contains(instruction.Operation))),
-            $"{methodIdentity} no longer has the reviewed inclusive-bound comparison shape. " +
+        await Assert.That(methodsWithMaximum.Any(body => body.Instructions.Any(instruction =>
+                inclusiveComparisonOperations.Contains(instruction.Operation)))).IsTrue().Because($"{methodIdentity} no longer has the reviewed inclusive-bound comparison shape. " +
             $"Observed IL:{Environment.NewLine}{observedBodies}");
     }
 
@@ -197,17 +187,15 @@ public sealed class CurrentOniRuntimeContractTests
             _ => false
         };
 
-    private static string ResolveInstalledAssemblyPath() =>
+    private static async Task<string> ResolveInstalledAssemblyPath() =>
         DeliveryTemperatureAssemblyMetadataReader.ResolveManagedAssemblyPath(
-            RequiredEnvironmentVariable("ONI_MANAGED_ASSEMBLY_DIRECTORY"),
+            (await RequiredEnvironmentVariable("ONI_MANAGED_ASSEMBLY_DIRECTORY")),
             "Assembly-CSharp.dll");
 
-    private static string RequiredEnvironmentVariable(string name)
+    private static async Task<string> RequiredEnvironmentVariable(string name)
     {
         var value = Environment.GetEnvironmentVariable(name);
-        Assert.IsFalse(
-            string.IsNullOrWhiteSpace(value),
-            $"Required environment variable {name} was not provided by oni-mod-pipeline.");
-        return value;
+        await Assert.That(string.IsNullOrWhiteSpace(value)).IsFalse().Because($"Required environment variable {name} was not provided by oni-mod-pipeline.");
+        return value!;
     }
 }

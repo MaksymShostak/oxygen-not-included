@@ -1,8 +1,6 @@
 using System.Reflection;
 
 namespace DeliveryTemperatureLimit.Tests.TemperatureConstraints;
-
-[TestClass]
 public sealed class TemperatureConstraintRegistryTests
 {
     private const int RandomizedOperationSeed = 0x51A7E;
@@ -10,8 +8,8 @@ public sealed class TemperatureConstraintRegistryTests
     private const int RandomizedComponentIdentityCount = 2048;
     private const int RandomizedSnapshotAssertionInterval = 97;
 
-    [TestMethod]
-    public void Register_WhenIdentityIsNew_AddsConstraintAndIncrementsGenerationOnce()
+    [Test]
+    public async Task Register_WhenIdentityIsNew_AddsConstraintAndIncrementsGenerationOnce()
     {
         var registry = new TemperatureConstraintRegistry();
 
@@ -21,17 +19,17 @@ public sealed class TemperatureConstraintRegistryTests
             out var effectiveStateChanged);
         var snapshot = registry.CaptureSnapshot();
 
-        Assert.AreEqual(41, registration.ComponentInstanceId);
-        Assert.AreEqual(1L, registration.RegistrationSequence);
-        Assert.IsTrue(effectiveStateChanged);
-        Assert.AreEqual(new TemperatureConstraintGeneration(1), snapshot.Generation);
-        Assert.AreEqual(1, snapshot.EnabledConstraintCount);
-        Assert.AreEqual(1, snapshot.EnabledNonEmptyConstraintCount);
-        AssertEndpoints(snapshot, 10, 20);
+        await Assert.That(registration.ComponentInstanceId).IsEqualTo(41);
+        await Assert.That(registration.RegistrationSequence).IsEqualTo(1L);
+        await Assert.That(effectiveStateChanged).IsTrue();
+        await Assert.That(snapshot.Generation).IsEqualTo(new TemperatureConstraintGeneration(1));
+        await Assert.That(snapshot.EnabledConstraintCount).IsEqualTo(1);
+        await Assert.That(snapshot.EnabledNonEmptyConstraintCount).IsEqualTo(1);
+        await AssertEndpoints(snapshot, 10, 20);
     }
 
-    [TestMethod]
-    public void Register_WhenConstraintIsIdentical_ReturnsExistingRegistrationWithoutGenerationChange()
+    [Test]
+    public async Task Register_WhenConstraintIsIdentical_ReturnsExistingRegistrationWithoutGenerationChange()
     {
         var registry = new TemperatureConstraintRegistry();
         var firstRegistration = registry.Register(41, Constraint(10, 20), out _);
@@ -42,13 +40,13 @@ public sealed class TemperatureConstraintRegistryTests
             Constraint(10, 20),
             out var effectiveStateChanged);
 
-        Assert.AreEqual(firstRegistration, repeatedRegistration);
-        Assert.IsFalse(effectiveStateChanged);
-        Assert.AreSame(snapshotBeforeRepeat, registry.CaptureSnapshot());
+        await Assert.That(repeatedRegistration).IsEqualTo(firstRegistration);
+        await Assert.That(effectiveStateChanged).IsFalse();
+        await Assert.That(registry.CaptureSnapshot()).IsSameReferenceAs(snapshotBeforeRepeat);
     }
 
-    [TestMethod]
-    public void Register_WhenConstraintDiffers_ReplacesEntryAndUpdatesEndpointCounts()
+    [Test]
+    public async Task Register_WhenConstraintDiffers_ReplacesEntryAndUpdatesEndpointCounts()
     {
         var registry = new TemperatureConstraintRegistry();
         var replacedRegistration = registry.Register(41, Constraint(10, 20), out _);
@@ -63,50 +61,50 @@ public sealed class TemperatureConstraintRegistryTests
             out var effectiveStateChanged);
         var replacementSnapshot = registry.CaptureSnapshot();
 
-        Assert.AreNotEqual(replacedRegistration, replacementRegistration);
-        Assert.IsTrue(effectiveStateChanged);
-        Assert.AreEqual(new TemperatureConstraintGeneration(3), replacementSnapshot.Generation);
-        Assert.AreEqual(2, replacementSnapshot.EnabledConstraintCount);
-        Assert.AreEqual(2, replacementSnapshot.EnabledNonEmptyConstraintCount);
-        AssertEndpoints(replacementSnapshot, 10, 30, 40);
+        await Assert.That(replacementRegistration).IsNotEqualTo(replacedRegistration);
+        await Assert.That(effectiveStateChanged).IsTrue();
+        await Assert.That(replacementSnapshot.Generation).IsEqualTo(new TemperatureConstraintGeneration(3));
+        await Assert.That(replacementSnapshot.EnabledConstraintCount).IsEqualTo(2);
+        await Assert.That(replacementSnapshot.EnabledNonEmptyConstraintCount).IsEqualTo(2);
+        await AssertEndpoints(replacementSnapshot, 10, 30, 40);
 
-        Assert.IsFalse(registry.TryRemove(replacedRegistration, out effectiveStateChanged));
-        Assert.IsFalse(effectiveStateChanged);
-        Assert.IsTrue(registry.TryRemove(sharedEndpointRegistration, out effectiveStateChanged));
-        Assert.IsTrue(effectiveStateChanged);
-        AssertEndpoints(registry.CaptureSnapshot(), 30, 40);
+        await Assert.That(registry.TryRemove(replacedRegistration, out effectiveStateChanged)).IsFalse();
+        await Assert.That(effectiveStateChanged).IsFalse();
+        await Assert.That(registry.TryRemove(sharedEndpointRegistration, out effectiveStateChanged)).IsTrue();
+        await Assert.That(effectiveStateChanged).IsTrue();
+        await AssertEndpoints(registry.CaptureSnapshot(), 30, 40);
     }
 
-    [TestMethod]
-    public void Register_WhenConstraintIsDisabled_DoesNotAddEndpoints()
+    [Test]
+    public async Task Register_WhenConstraintIsDisabled_DoesNotAddEndpoints()
     {
         var registry = new TemperatureConstraintRegistry();
 
         registry.Register(41, Constraint(400, 0), out var effectiveStateChanged);
         var snapshot = registry.CaptureSnapshot();
 
-        Assert.IsTrue(effectiveStateChanged);
-        Assert.AreEqual(0, snapshot.EnabledConstraintCount);
-        Assert.AreEqual(0, snapshot.EnabledNonEmptyConstraintCount);
-        Assert.IsEmpty(snapshot.SortedDecisionEndpointsKelvin);
+        await Assert.That(effectiveStateChanged).IsTrue();
+        await Assert.That(snapshot.EnabledConstraintCount).IsEqualTo(0);
+        await Assert.That(snapshot.EnabledNonEmptyConstraintCount).IsEqualTo(0);
+        await Assert.That(snapshot.SortedDecisionEndpointsKelvin).IsEmpty();
     }
 
-    [TestMethod]
-    public void Register_WhenConstraintIsEnabledButEmpty_CountsActiveWithoutAddingEndpoints()
+    [Test]
+    public async Task Register_WhenConstraintIsEnabledButEmpty_CountsActiveWithoutAddingEndpoints()
     {
         var registry = new TemperatureConstraintRegistry();
 
         registry.Register(41, Constraint(100, 100), out var effectiveStateChanged);
         var snapshot = registry.CaptureSnapshot();
 
-        Assert.IsTrue(effectiveStateChanged);
-        Assert.AreEqual(1, snapshot.EnabledConstraintCount);
-        Assert.AreEqual(0, snapshot.EnabledNonEmptyConstraintCount);
-        Assert.IsEmpty(snapshot.SortedDecisionEndpointsKelvin);
+        await Assert.That(effectiveStateChanged).IsTrue();
+        await Assert.That(snapshot.EnabledConstraintCount).IsEqualTo(1);
+        await Assert.That(snapshot.EnabledNonEmptyConstraintCount).IsEqualTo(0);
+        await Assert.That(snapshot.SortedDecisionEndpointsKelvin).IsEmpty();
     }
 
-    [TestMethod]
-    public void TryReplace_WhenConstraintIsIdentical_IsNoOp()
+    [Test]
+    public async Task TryReplace_WhenConstraintIsIdentical_IsNoOp()
     {
         var registry = new TemperatureConstraintRegistry();
         var registration = registry.Register(41, Constraint(10, 20), out _);
@@ -117,13 +115,13 @@ public sealed class TemperatureConstraintRegistryTests
             Constraint(10, 20),
             out var effectiveStateChanged);
 
-        Assert.IsTrue(registrationFound);
-        Assert.IsFalse(effectiveStateChanged);
-        Assert.AreSame(snapshotBeforeReplacement, registry.CaptureSnapshot());
+        await Assert.That(registrationFound).IsTrue();
+        await Assert.That(effectiveStateChanged).IsFalse();
+        await Assert.That(registry.CaptureSnapshot()).IsSameReferenceAs(snapshotBeforeReplacement);
     }
 
-    [TestMethod]
-    public void TryReplace_WhenRegistrationIsUnknown_ReturnsFalse()
+    [Test]
+    public async Task TryReplace_WhenRegistrationIsUnknown_ReturnsFalse()
     {
         var registry = new TemperatureConstraintRegistry();
         var snapshotBeforeReplacement = registry.CaptureSnapshot();
@@ -134,58 +132,58 @@ public sealed class TemperatureConstraintRegistryTests
             Constraint(10, 20),
             out var effectiveStateChanged);
 
-        Assert.IsFalse(registrationFound);
-        Assert.IsFalse(effectiveStateChanged);
-        Assert.AreSame(snapshotBeforeReplacement, registry.CaptureSnapshot());
+        await Assert.That(registrationFound).IsFalse();
+        await Assert.That(effectiveStateChanged).IsFalse();
+        await Assert.That(registry.CaptureSnapshot()).IsSameReferenceAs(snapshotBeforeReplacement);
     }
 
-    [TestMethod]
-    public void TryRemove_WhenRegistrationIsUnknown_IsIdempotent()
+    [Test]
+    public async Task TryRemove_WhenRegistrationIsUnknown_IsIdempotent()
     {
         var registry = new TemperatureConstraintRegistry();
         var snapshotBeforeRemoval = registry.CaptureSnapshot();
         var unknownRegistration = new TemperatureConstraintRegistrationToken(41, 1);
 
-        Assert.IsFalse(registry.TryRemove(
+        await Assert.That(registry.TryRemove(
             unknownRegistration,
-            out var effectiveStateChanged));
-        Assert.IsFalse(effectiveStateChanged);
-        Assert.AreSame(snapshotBeforeRemoval, registry.CaptureSnapshot());
+            out var effectiveStateChanged)).IsFalse();
+        await Assert.That(effectiveStateChanged).IsFalse();
+        await Assert.That(registry.CaptureSnapshot()).IsSameReferenceAs(snapshotBeforeRemoval);
 
-        Assert.IsFalse(registry.TryRemove(
+        await Assert.That(registry.TryRemove(
             unknownRegistration,
-            out effectiveStateChanged));
-        Assert.IsFalse(effectiveStateChanged);
-        Assert.AreSame(snapshotBeforeRemoval, registry.CaptureSnapshot());
+            out effectiveStateChanged)).IsFalse();
+        await Assert.That(effectiveStateChanged).IsFalse();
+        await Assert.That(registry.CaptureSnapshot()).IsSameReferenceAs(snapshotBeforeRemoval);
     }
 
-    [TestMethod]
-    public void TryRemove_WhenRegistrationTokenIsStale_DoesNotRemoveReplacement()
+    [Test]
+    public async Task TryRemove_WhenRegistrationTokenIsStale_DoesNotRemoveReplacement()
     {
         var registry = new TemperatureConstraintRegistry();
         var first = registry.Register(41, Constraint(10, 20), out _);
         var replacement = registry.Register(41, Constraint(30, 40), out _);
 
-        Assert.IsFalse(registry.TryRemove(first, out var effectiveStateChanged));
-        Assert.IsFalse(effectiveStateChanged);
-        Assert.AreEqual(1, registry.CaptureSnapshot().EnabledConstraintCount);
-        Assert.IsTrue(registry.TryRemove(replacement, out effectiveStateChanged));
-        Assert.IsTrue(effectiveStateChanged);
+        await Assert.That(registry.TryRemove(first, out var effectiveStateChanged)).IsFalse();
+        await Assert.That(effectiveStateChanged).IsFalse();
+        await Assert.That(registry.CaptureSnapshot().EnabledConstraintCount).IsEqualTo(1);
+        await Assert.That(registry.TryRemove(replacement, out effectiveStateChanged)).IsTrue();
+        await Assert.That(effectiveStateChanged).IsTrue();
     }
 
-    [TestMethod]
-    public void CaptureSnapshot_WhenEndpointsHaveDuplicates_ContainsEachEndpointOnceSorted()
+    [Test]
+    public async Task CaptureSnapshot_WhenEndpointsHaveDuplicates_ContainsEachEndpointOnceSorted()
     {
         var registry = new TemperatureConstraintRegistry();
         registry.Register(41, Constraint(10, 20), out _);
         registry.Register(42, Constraint(10, 20), out _);
         registry.Register(43, Constraint(10, 30), out _);
 
-        AssertEndpoints(registry.CaptureSnapshot(), 10, 20, 30);
+        await AssertEndpoints(registry.CaptureSnapshot(), 10, 20, 30);
     }
 
-    [TestMethod]
-    public void CaptureSnapshot_WhenEndpointsSpanMembershipWords_EmitsAscendingBoundaryValues()
+    [Test]
+    public async Task CaptureSnapshot_WhenEndpointsSpanMembershipWords_EmitsAscendingBoundaryValues()
     {
         var registry = new TemperatureConstraintRegistry();
         registry.Register(41, Constraint(0, 63), out _);
@@ -197,7 +195,7 @@ public sealed class TemperatureConstraintRegistryTests
                 OniStorableTemperatureBounds.MaximumTemperatureKelvin),
             out _);
 
-        AssertEndpoints(
+        await AssertEndpoints(
             registry.CaptureSnapshot(),
             0,
             63,
@@ -207,8 +205,8 @@ public sealed class TemperatureConstraintRegistryTests
             OniStorableTemperatureBounds.MaximumTemperatureKelvin);
     }
 
-    [TestMethod]
-    public void CaptureSnapshot_AfterLastReferenceRemoved_RemovesEndpoint()
+    [Test]
+    public async Task CaptureSnapshot_AfterLastReferenceRemoved_RemovesEndpoint()
     {
         var registry = new TemperatureConstraintRegistry();
         var first = registry.Register(41, Constraint(10, 20), out _);
@@ -216,17 +214,15 @@ public sealed class TemperatureConstraintRegistryTests
         var endpointsWithTwoOwners =
             registry.CaptureSnapshot().SortedDecisionEndpointsKelvin;
 
-        Assert.IsTrue(registry.TryRemove(first, out _));
-        Assert.AreSame(
-            endpointsWithTwoOwners,
-            registry.CaptureSnapshot().SortedDecisionEndpointsKelvin);
+        await Assert.That(registry.TryRemove(first, out _)).IsTrue();
+        await Assert.That(registry.CaptureSnapshot().SortedDecisionEndpointsKelvin).IsSameReferenceAs(endpointsWithTwoOwners);
 
-        Assert.IsTrue(registry.TryRemove(second, out _));
-        Assert.IsEmpty(registry.CaptureSnapshot().SortedDecisionEndpointsKelvin);
+        await Assert.That(registry.TryRemove(second, out _)).IsTrue();
+        await Assert.That(registry.CaptureSnapshot().SortedDecisionEndpointsKelvin).IsEmpty();
     }
 
-    [TestMethod]
-    public void CaptureSnapshot_WhenEndpointMembershipIsUnchanged_ReusesSortedEndpointReference()
+    [Test]
+    public async Task CaptureSnapshot_WhenEndpointMembershipIsUnchanged_ReusesSortedEndpointReference()
     {
         var registry = new TemperatureConstraintRegistry();
         var first = registry.Register(41, Constraint(10, 20), out _);
@@ -235,114 +231,108 @@ public sealed class TemperatureConstraintRegistryTests
         registry.Register(42, Constraint(10, 20), out _);
         var secondSnapshot = registry.CaptureSnapshot();
 
-        Assert.AreNotSame(firstSnapshot, secondSnapshot);
-        Assert.AreSame(
-            firstSnapshot.SortedDecisionEndpointsKelvin,
-            secondSnapshot.SortedDecisionEndpointsKelvin);
+        await Assert.That(secondSnapshot).IsNotSameReferenceAs(firstSnapshot);
+        await Assert.That(secondSnapshot.SortedDecisionEndpointsKelvin).IsSameReferenceAs(firstSnapshot.SortedDecisionEndpointsKelvin);
 
-        Assert.IsTrue(registry.TryRemove(first, out _));
+        await Assert.That(registry.TryRemove(first, out _)).IsTrue();
         var thirdSnapshot = registry.CaptureSnapshot();
-        Assert.AreNotSame(secondSnapshot, thirdSnapshot);
-        Assert.AreSame(
-            secondSnapshot.SortedDecisionEndpointsKelvin,
-            thirdSnapshot.SortedDecisionEndpointsKelvin);
+        await Assert.That(thirdSnapshot).IsNotSameReferenceAs(secondSnapshot);
+        await Assert.That(thirdSnapshot.SortedDecisionEndpointsKelvin).IsSameReferenceAs(secondSnapshot.SortedDecisionEndpointsKelvin);
     }
 
-    [TestMethod]
-    public void CaptureSnapshot_WhenCallerMutatesReturnedView_CannotMutateRegistryState()
+    [Test]
+    public async Task CaptureSnapshot_WhenCallerMutatesReturnedView_CannotMutateRegistryState()
     {
         var registry = new TemperatureConstraintRegistry();
         registry.Register(41, Constraint(10, 20), out _);
         var snapshot = registry.CaptureSnapshot();
         var returnedView = snapshot.SortedDecisionEndpointsKelvin;
 
-        Assert.IsFalse(returnedView is int[]);
+        await Assert.That(returnedView is int[]).IsFalse();
         if (returnedView is IList<int> listView)
         {
-            Assert.ThrowsExactly<NotSupportedException>(() => listView[0] = 999);
+            await Assert.That(() => listView[0] = 999).ThrowsExactly<NotSupportedException>();
         }
 
-        AssertEndpoints(snapshot, 10, 20);
-        Assert.AreSame(snapshot, registry.CaptureSnapshot());
-        AssertEndpoints(registry.CaptureSnapshot(), 10, 20);
+        await AssertEndpoints(snapshot, 10, 20);
+        await Assert.That(registry.CaptureSnapshot()).IsSameReferenceAs(snapshot);
+        await AssertEndpoints(registry.CaptureSnapshot(), 10, 20);
     }
 
-    [TestMethod]
-    public void Register_WhenRegistrationSequenceIsExhausted_ThrowsBeforeMutation()
+    [Test]
+    public async Task Register_WhenRegistrationSequenceIsExhausted_ThrowsBeforeMutation()
     {
         var registry = new TemperatureConstraintRegistry();
         var survivingRegistration = registry.Register(41, Constraint(10, 20), out _);
         var snapshotBeforeFailure = registry.CaptureSnapshot();
-        SetPrivateInt64Field(registry, "nextRegistrationSequence", long.MaxValue);
+        await SetPrivateInt64Field(registry, "nextRegistrationSequence", long.MaxValue);
 
-        var exception = Assert.ThrowsExactly<InvalidOperationException>(() =>
-            registry.Register(41, Constraint(30, 40), out _));
+        var exception = (await Assert.That(() =>
+            registry.Register(41, Constraint(30, 40), out _)).ThrowsExactly<InvalidOperationException>())!;
 
-        StringAssert.Contains(exception.Message, "registration sequence");
-        Assert.AreEqual(
-            long.MaxValue,
-            ReadPrivateInt64Field(registry, "nextRegistrationSequence"));
-        Assert.AreSame(snapshotBeforeFailure, registry.CaptureSnapshot());
-        AssertEndpoints(registry.CaptureSnapshot(), 10, 20);
+        await Assert.That(exception.Message).Contains("registration sequence");
+        await Assert.That((await ReadPrivateInt64Field(registry, "nextRegistrationSequence"))).IsEqualTo(long.MaxValue);
+        await Assert.That(registry.CaptureSnapshot()).IsSameReferenceAs(snapshotBeforeFailure);
+        await AssertEndpoints(registry.CaptureSnapshot(), 10, 20);
 
-        SetPrivateInt64Field(
+        await SetPrivateInt64Field(
             registry,
             "nextRegistrationSequence",
             survivingRegistration.RegistrationSequence);
-        Assert.IsTrue(registry.TryRemove(survivingRegistration, out var changed));
-        Assert.IsTrue(changed);
+        await Assert.That(registry.TryRemove(survivingRegistration, out var changed)).IsTrue();
+        await Assert.That(changed).IsTrue();
     }
 
-    [TestMethod]
-    public void TryReplace_WhenGenerationIsExhausted_ThrowsBeforeMutation()
+    [Test]
+    public async Task TryReplace_WhenGenerationIsExhausted_ThrowsBeforeMutation()
     {
         var registry = new TemperatureConstraintRegistry();
         var originalConstraint = Constraint(10, 20);
         var replacementConstraint = Constraint(30, 40);
         var registration = registry.Register(41, originalConstraint, out _);
         var snapshotBeforeFailure = registry.CaptureSnapshot();
-        SetPrivateInt64Field(registry, "generation", long.MaxValue);
+        await SetPrivateInt64Field(registry, "generation", long.MaxValue);
 
-        var exception = Assert.ThrowsExactly<InvalidOperationException>(() =>
-            registry.TryReplace(registration, replacementConstraint, out _));
+        var exception = (await Assert.That(() =>
+            registry.TryReplace(registration, replacementConstraint, out _)).ThrowsExactly<InvalidOperationException>())!;
 
-        StringAssert.Contains(exception.Message, "constraint generation");
-        Assert.AreEqual(long.MaxValue, ReadPrivateInt64Field(registry, "generation"));
-        Assert.AreSame(snapshotBeforeFailure, registry.CaptureSnapshot());
-        AssertEndpoints(registry.CaptureSnapshot(), 10, 20);
+        await Assert.That(exception.Message).Contains("constraint generation");
+        await Assert.That((await ReadPrivateInt64Field(registry, "generation"))).IsEqualTo(long.MaxValue);
+        await Assert.That(registry.CaptureSnapshot()).IsSameReferenceAs(snapshotBeforeFailure);
+        await AssertEndpoints(registry.CaptureSnapshot(), 10, 20);
 
-        SetPrivateInt64Field(
+        await SetPrivateInt64Field(
             registry,
             "generation",
             snapshotBeforeFailure.Generation.Value);
-        Assert.IsTrue(registry.TryReplace(
+        await Assert.That(registry.TryReplace(
             registration,
             originalConstraint,
-            out var effectiveStateChanged));
-        Assert.IsFalse(effectiveStateChanged);
-        Assert.AreSame(snapshotBeforeFailure, registry.CaptureSnapshot());
+            out var effectiveStateChanged)).IsTrue();
+        await Assert.That(effectiveStateChanged).IsFalse();
+        await Assert.That(registry.CaptureSnapshot()).IsSameReferenceAs(snapshotBeforeFailure);
 
-        Assert.IsTrue(registry.TryReplace(
+        await Assert.That(registry.TryReplace(
             registration,
             replacementConstraint,
-            out effectiveStateChanged));
-        Assert.IsTrue(effectiveStateChanged);
-        AssertEndpoints(registry.CaptureSnapshot(), 30, 40);
+            out effectiveStateChanged)).IsTrue();
+        await Assert.That(effectiveStateChanged).IsTrue();
+        await AssertEndpoints(registry.CaptureSnapshot(), 30, 40);
     }
 
-    [TestMethod]
-    public void EndpointReferenceCountStorage_WhenSizedForCurrentOniBound_UsesReviewedFixedMemory()
+    [Test]
+    public async Task EndpointReferenceCountStorage_WhenSizedForCurrentOniBound_UsesReviewedFixedMemory()
     {
         var endpointCount =
             OniStorableTemperatureBounds.MaximumTemperatureKelvin + 1;
         var endpointReferenceCountElementStorageBytes = endpointCount * sizeof(int);
 
-        Assert.AreEqual(10001, endpointCount);
-        Assert.AreEqual(40004, endpointReferenceCountElementStorageBytes);
+        await Assert.That(endpointCount).IsEqualTo(10001);
+        await Assert.That(endpointReferenceCountElementStorageBytes).IsEqualTo(40004);
     }
 
-    [TestMethod]
-    public void RegistryOperations_WhenRandomized_MatchDeterministicReferenceModel()
+    [Test]
+    public async Task RegistryOperations_WhenRandomized_MatchDeterministicReferenceModel()
     {
         var registry = new TemperatureConstraintRegistry();
         var referenceEntriesByComponentInstanceId =
@@ -358,39 +348,24 @@ public sealed class TemperatureConstraintRegistryTests
             switch (random.Next(3))
             {
                 case 0:
-                    ApplyRandomizedRegistration(
-                        registry,
-                        referenceEntriesByComponentInstanceId,
-                        random,
-                        componentInstanceId,
-                        operationIndex,
-                        ref expectedGeneration);
+                    expectedGeneration = await ApplyRandomizedRegistration(
+                        registry,                        referenceEntriesByComponentInstanceId,                        random,                        componentInstanceId,                        operationIndex,expectedGeneration);
                     break;
 
                 case 1:
-                    ApplyRandomizedReplacement(
-                        registry,
-                        referenceEntriesByComponentInstanceId,
-                        random,
-                        componentInstanceId,
-                        operationIndex,
-                        ref expectedGeneration);
+                    expectedGeneration = await ApplyRandomizedReplacement(
+                        registry,                        referenceEntriesByComponentInstanceId,                        random,                        componentInstanceId,                        operationIndex,expectedGeneration);
                     break;
 
                 default:
-                    ApplyRandomizedRemoval(
-                        registry,
-                        referenceEntriesByComponentInstanceId,
-                        random,
-                        componentInstanceId,
-                        operationIndex,
-                        ref expectedGeneration);
+                    expectedGeneration = await ApplyRandomizedRemoval(
+                        registry,                        referenceEntriesByComponentInstanceId,                        random,                        componentInstanceId,                        operationIndex,expectedGeneration);
                     break;
             }
 
             if (operationIndex % RandomizedSnapshotAssertionInterval == 0)
             {
-                AssertSnapshotMatchesReferenceModel(
+                await AssertSnapshotMatchesReferenceModel(
                     registry,
                     referenceEntriesByComponentInstanceId,
                     expectedGeneration,
@@ -398,7 +373,7 @@ public sealed class TemperatureConstraintRegistryTests
             }
         }
 
-        AssertSnapshotMatchesReferenceModel(
+        await AssertSnapshotMatchesReferenceModel(
             registry,
             referenceEntriesByComponentInstanceId,
             expectedGeneration,
@@ -412,13 +387,13 @@ public sealed class TemperatureConstraintRegistryTests
             minimumInclusiveKelvin,
             maximumExclusiveKelvin);
 
-    private static void AssertEndpoints(
+    private static async Task AssertEndpoints(
         ActiveTemperatureConstraintSnapshot snapshot,
         params int[] expectedEndpointsKelvin)
     {
         var observedEndpointsKelvin = CopyEndpoints(
             snapshot.SortedDecisionEndpointsKelvin);
-        Assert.AreSequenceEqual(expectedEndpointsKelvin, observedEndpointsKelvin);
+        await Assert.That(observedEndpointsKelvin).IsEquivalentTo(expectedEndpointsKelvin, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     private static int[] CopyEndpoints(IReadOnlyList<int> endpointsKelvin)
@@ -432,13 +407,8 @@ public sealed class TemperatureConstraintRegistryTests
         return copiedEndpointsKelvin;
     }
 
-    private static void ApplyRandomizedRegistration(
-        TemperatureConstraintRegistry registry,
-        IDictionary<int, ReferenceRegistryEntry> referenceEntriesByComponentInstanceId,
-        Random random,
-        int componentInstanceId,
-        int operationIndex,
-        ref long expectedGeneration)
+    private static async Task<long> ApplyRandomizedRegistration(
+        TemperatureConstraintRegistry registry,        IDictionary<int, ReferenceRegistryEntry> referenceEntriesByComponentInstanceId,        Random random,        int componentInstanceId,        int operationIndex,long expectedGeneration)
     {
         var constraint = CreateRandomConstraint(random);
         var hadExistingEntry = referenceEntriesByComponentInstanceId.TryGetValue(
@@ -459,19 +429,13 @@ public sealed class TemperatureConstraintRegistryTests
             out var observedEffectiveStateChanged);
         var assertionContext = RandomizedAssertionContext(operationIndex);
 
-        Assert.AreEqual(
-            expectedEffectiveStateChanged,
-            observedEffectiveStateChanged,
-            assertionContext);
+        await Assert.That(observedEffectiveStateChanged).IsEqualTo(expectedEffectiveStateChanged).Because(assertionContext);
         if (expectedEffectiveStateChanged)
         {
             expectedGeneration++;
             if (existingEntry is not null)
             {
-                Assert.AreNotEqual(
-                    existingEntry.RegistrationToken,
-                    observedRegistration,
-                    assertionContext);
+                await Assert.That(observedRegistration).IsNotEqualTo(existingEntry.RegistrationToken).Because(assertionContext);
             }
 
             referenceEntriesByComponentInstanceId[componentInstanceId] =
@@ -485,20 +449,13 @@ public sealed class TemperatureConstraintRegistryTests
                     "An unchanged registration requires its existing reference entry.");
             }
 
-            Assert.AreEqual(
-                existingEntry.RegistrationToken,
-                observedRegistration,
-                assertionContext);
+            await Assert.That(observedRegistration).IsEqualTo(existingEntry.RegistrationToken).Because(assertionContext);
         }
+        return expectedGeneration;
     }
 
-    private static void ApplyRandomizedReplacement(
-        TemperatureConstraintRegistry registry,
-        IDictionary<int, ReferenceRegistryEntry> referenceEntriesByComponentInstanceId,
-        Random random,
-        int componentInstanceId,
-        int operationIndex,
-        ref long expectedGeneration)
+    private static async Task<long> ApplyRandomizedReplacement(
+        TemperatureConstraintRegistry registry,        IDictionary<int, ReferenceRegistryEntry> referenceEntriesByComponentInstanceId,        Random random,        int componentInstanceId,        int operationIndex,long expectedGeneration)
     {
         var constraint = CreateRandomConstraint(random);
         var assertionContext = RandomizedAssertionContext(operationIndex);
@@ -514,11 +471,8 @@ public sealed class TemperatureConstraintRegistryTests
                 constraint,
                 out var observedEffectiveStateChanged);
 
-            Assert.IsTrue(registrationFound, assertionContext);
-            Assert.AreEqual(
-                expectedEffectiveStateChanged,
-                observedEffectiveStateChanged,
-                assertionContext);
+            await Assert.That(registrationFound).IsTrue().Because(assertionContext);
+            await Assert.That(observedEffectiveStateChanged).IsEqualTo(expectedEffectiveStateChanged).Because(assertionContext);
             if (expectedEffectiveStateChanged)
             {
                 expectedGeneration++;
@@ -526,28 +480,22 @@ public sealed class TemperatureConstraintRegistryTests
                     new ReferenceRegistryEntry(existingEntry.RegistrationToken, constraint);
             }
 
-            return;
+            return expectedGeneration;
         }
 
         var staleOrUnknownRegistration = new TemperatureConstraintRegistrationToken(
             componentInstanceId,
             long.MaxValue - operationIndex);
-        Assert.IsFalse(
-            registry.TryReplace(
+        await Assert.That(registry.TryReplace(
                 staleOrUnknownRegistration,
                 constraint,
-                out var effectiveStateChanged),
-            assertionContext);
-        Assert.IsFalse(effectiveStateChanged, assertionContext);
+                out var effectiveStateChanged)).IsFalse().Because(assertionContext);
+        await Assert.That(effectiveStateChanged).IsFalse().Because(assertionContext);
+        return expectedGeneration;
     }
 
-    private static void ApplyRandomizedRemoval(
-        TemperatureConstraintRegistry registry,
-        IDictionary<int, ReferenceRegistryEntry> referenceEntriesByComponentInstanceId,
-        Random random,
-        int componentInstanceId,
-        int operationIndex,
-        ref long expectedGeneration)
+    private static async Task<long> ApplyRandomizedRemoval(
+        TemperatureConstraintRegistry registry,        IDictionary<int, ReferenceRegistryEntry> referenceEntriesByComponentInstanceId,        Random random,        int componentInstanceId,        int operationIndex,long expectedGeneration)
     {
         var assertionContext = RandomizedAssertionContext(operationIndex);
         if (referenceEntriesByComponentInstanceId.TryGetValue(
@@ -555,26 +503,23 @@ public sealed class TemperatureConstraintRegistryTests
                 out var existingEntry) &&
             random.Next(4) != 0)
         {
-            Assert.IsTrue(
-                registry.TryRemove(
+            await Assert.That(registry.TryRemove(
                     existingEntry.RegistrationToken,
-                    out var knownOwnerEffectiveStateChanged),
-                assertionContext);
-            Assert.IsTrue(knownOwnerEffectiveStateChanged, assertionContext);
+                    out var knownOwnerEffectiveStateChanged)).IsTrue().Because(assertionContext);
+            await Assert.That(knownOwnerEffectiveStateChanged).IsTrue().Because(assertionContext);
             referenceEntriesByComponentInstanceId.Remove(componentInstanceId);
             expectedGeneration++;
-            return;
+            return expectedGeneration;
         }
 
         var staleOrUnknownRegistration = new TemperatureConstraintRegistrationToken(
             componentInstanceId,
             long.MaxValue - operationIndex);
-        Assert.IsFalse(
-            registry.TryRemove(
+        await Assert.That(registry.TryRemove(
                 staleOrUnknownRegistration,
-                out var staleOwnerEffectiveStateChanged),
-            assertionContext);
-        Assert.IsFalse(staleOwnerEffectiveStateChanged, assertionContext);
+                out var staleOwnerEffectiveStateChanged)).IsFalse().Because(assertionContext);
+        await Assert.That(staleOwnerEffectiveStateChanged).IsFalse().Because(assertionContext);
+        return expectedGeneration;
     }
 
     private static DeliveryTemperatureConstraint CreateRandomConstraint(Random random)
@@ -590,7 +535,7 @@ public sealed class TemperatureConstraintRegistryTests
             serializedHighLimit);
     }
 
-    private static void AssertSnapshotMatchesReferenceModel(
+    private static async Task AssertSnapshotMatchesReferenceModel(
         TemperatureConstraintRegistry registry,
         IReadOnlyDictionary<int, ReferenceRegistryEntry>
             referenceEntriesByComponentInstanceId,
@@ -637,54 +582,40 @@ public sealed class TemperatureConstraintRegistryTests
             snapshot.SortedDecisionEndpointsKelvin);
         var assertionContext = RandomizedAssertionContext(operationIndex);
 
-        Assert.AreEqual(
-            new TemperatureConstraintGeneration(expectedGeneration),
-            snapshot.Generation,
-            assertionContext);
-        Assert.AreEqual(
-            expectedEnabledConstraintCount,
-            snapshot.EnabledConstraintCount,
-            assertionContext);
-        Assert.AreEqual(
-            expectedEnabledNonEmptyConstraintCount,
-            snapshot.EnabledNonEmptyConstraintCount,
-            assertionContext);
-        Assert.AreSequenceEqual(
-            expectedEndpointsKelvin.ToArray(),
-            observedEndpointsKelvin,
-            assertionContext);
+        await Assert.That(snapshot.Generation).IsEqualTo(new TemperatureConstraintGeneration(expectedGeneration)).Because(assertionContext);
+        await Assert.That(snapshot.EnabledConstraintCount).IsEqualTo(expectedEnabledConstraintCount).Because(assertionContext);
+        await Assert.That(snapshot.EnabledNonEmptyConstraintCount).IsEqualTo(expectedEnabledNonEmptyConstraintCount).Because(assertionContext);
+        await Assert.That(observedEndpointsKelvin).IsEquivalentTo(expectedEndpointsKelvin.ToArray(), TUnit.Assertions.Enums.CollectionOrdering.Matching).Because(assertionContext);
     }
 
     private static string RandomizedAssertionContext(int operationIndex) =>
         $"Seed=0x{RandomizedOperationSeed:X}; operation index={operationIndex}.";
 
-    private static long ReadPrivateInt64Field(
+    private static async Task<long> ReadPrivateInt64Field(
         TemperatureConstraintRegistry registry,
         string exactFieldName)
     {
-        var field = RequirePrivateInt64Field(exactFieldName);
-        return Assert.IsInstanceOfType<long>(field.GetValue(registry));
+        var field = await RequirePrivateInt64Field(exactFieldName);
+        return ((await Assert.That(field.GetValue(registry)).IsAssignableTo<long>())!);
     }
 
-    private static void SetPrivateInt64Field(
+    private static async Task SetPrivateInt64Field(
         TemperatureConstraintRegistry registry,
         string exactFieldName,
         long value)
     {
-        var field = RequirePrivateInt64Field(exactFieldName);
+        var field = await RequirePrivateInt64Field(exactFieldName);
         field.SetValue(registry, value);
     }
 
-    private static FieldInfo RequirePrivateInt64Field(string exactFieldName)
+    private static async Task<FieldInfo> RequirePrivateInt64Field(string exactFieldName)
     {
         var field = typeof(TemperatureConstraintRegistry).GetField(
             exactFieldName,
             BindingFlags.Instance | BindingFlags.NonPublic);
-        Assert.IsNotNull(
-            field,
-            $"The representation contract requires the exact private field " +
+        if (field is null) throw new TUnit.Assertions.Exceptions.AssertionException($"The representation contract requires the exact private field " +
             $"TemperatureConstraintRegistry.{exactFieldName}.");
-        Assert.AreEqual(typeof(long), field.FieldType);
+        await Assert.That(field.FieldType).IsEqualTo(typeof(long));
         return field;
     }
 

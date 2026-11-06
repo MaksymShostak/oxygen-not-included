@@ -4,11 +4,9 @@ using MaksymShostak.OniModPipeline.SourceControl;
 using MaksymShostak.OniModPipeline.Tests.Fixtures;
 
 namespace MaksymShostak.OniModPipeline.Tests.SourceControl;
-
-[TestClass]
 public sealed class GitRepositoryInspectorTests
 {
-    [TestMethod]
+    [Test]
     public async Task InspectAsync_WhenContributingFileIsModified_ReportsThatFileDirty()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -22,14 +20,12 @@ public sealed class GitRepositoryInspectorTests
             [contributingPath],
             CancellationToken.None);
 
-        Assert.IsTrue(result.IsSuccess);
-        CollectionAssert.AreEqual(
-            new[] { "contributing.txt" },
-            result.Value?.DirtyPaths.ToArray());
-        Assert.IsFalse(result.Value?.IsClean);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value?.DirtyPaths.ToArray()).IsEquivalentTo(new[] { "contributing.txt" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(result.Value?.IsClean).IsFalse();
     }
 
-    [TestMethod]
+    [Test]
     public async Task InspectAsync_WhenUnrelatedFileIsModified_RemainsCleanForReleaseScope()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -43,12 +39,12 @@ public sealed class GitRepositoryInspectorTests
             [contributingPath],
             CancellationToken.None);
 
-        Assert.IsTrue(result.IsSuccess);
-        Assert.IsTrue(result.Value?.IsClean);
-        Assert.AreEqual(0, result.Value?.DirtyPaths.Count);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value?.IsClean).IsTrue();
+        await Assert.That(result.Value?.DirtyPaths.Count).IsEqualTo(0);
     }
 
-    [TestMethod]
+    [Test]
     public async Task InspectAsync_WhenContributingFileIsUntracked_ReportsThatFileDirty()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -62,13 +58,11 @@ public sealed class GitRepositoryInspectorTests
             [contributingPath],
             CancellationToken.None);
 
-        Assert.IsTrue(result.IsSuccess);
-        CollectionAssert.AreEqual(
-            new[] { "new-input.txt" },
-            result.Value?.DirtyPaths.ToArray());
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value?.DirtyPaths.ToArray()).IsEquivalentTo(new[] { "new-input.txt" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
+    [Test]
     public async Task InspectAsync_WhenPathIsOutsideWorktree_ReturnsOnip5001()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -82,11 +76,11 @@ public sealed class GitRepositoryInspectorTests
             [outsidePath],
             CancellationToken.None);
 
-        Assert.AreEqual(PipelineExitCode.ReleaseNotReady, result.ExitCode);
-        Assert.AreEqual("ONIP5001", result.Diagnostics.Single().Id);
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.ReleaseNotReady);
+        await Assert.That(result.Diagnostics.Single().Id).IsEqualTo("ONIP5001");
     }
 
-    [TestMethod]
+    [Test]
     public async Task InspectAsync_WhenPorcelainContainsRenameAndCopy_ReportsBothPathsForEachRecord()
     {
         using var temporaryDirectory = new TemporaryDirectory();
@@ -119,23 +113,13 @@ public sealed class GitRepositoryInspectorTests
             contributingPaths,
             CancellationToken.None);
 
-        Assert.IsTrue(result.IsSuccess);
-        CollectionAssert.AreEqual(
-            new[] { "copied.txt", "original.txt", "renamed.txt", "source.txt" },
-            result.Value!.DirtyPaths.ToArray());
-        Assert.HasCount(4, runner.Requests);
-        CollectionAssert.AreEqual(
-            new[] { "rev-parse", "--show-toplevel" },
-            runner.Requests[0].Arguments.ToArray());
-        CollectionAssert.AreEqual(
-            new[] { "rev-parse", "HEAD" },
-            runner.Requests[1].Arguments.ToArray());
-        CollectionAssert.AreEqual(
-            new[] { "status", "--porcelain=v1", "-z", "--untracked-files=all" },
-            runner.Requests[2].Arguments.ToArray());
-        CollectionAssert.AreEqual(
-            new[] { "ls-files", "-z" },
-            runner.Requests[3].Arguments.ToArray());
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value!.DirtyPaths.ToArray()).IsEquivalentTo(new[] { "copied.txt", "original.txt", "renamed.txt", "source.txt" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(runner.Requests).Count().IsEqualTo(4);
+        await Assert.That(runner.Requests[0].Arguments.ToArray()).IsEquivalentTo(new[] { "rev-parse", "--show-toplevel" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(runner.Requests[1].Arguments.ToArray()).IsEquivalentTo(new[] { "rev-parse", "HEAD" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(runner.Requests[2].Arguments.ToArray()).IsEquivalentTo(new[] { "status", "--porcelain=v1", "-z", "--untracked-files=all" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(runner.Requests[3].Arguments.ToArray()).IsEquivalentTo(new[] { "ls-files", "-z" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     private static async Task<string> CreateRepositoryAsync(
@@ -180,10 +164,7 @@ public sealed class GitRepositoryInspectorTests
                 }),
             CancellationToken.None);
 
-        Assert.AreEqual(
-            0,
-            result.ExitCode,
-            $"git {string.Join(' ', arguments)} failed: {result.StandardError}");
+        await Assert.That(result.ExitCode).IsEqualTo(0).Because($"git {string.Join(' ', arguments)} failed: {result.StandardError}");
     }
 
     private sealed class SequenceProcessRunner(IEnumerable<ProcessResult> results)

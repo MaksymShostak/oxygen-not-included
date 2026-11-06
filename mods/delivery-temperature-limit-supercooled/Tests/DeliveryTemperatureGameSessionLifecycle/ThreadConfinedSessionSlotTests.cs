@@ -1,22 +1,20 @@
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureGameSessionLifecycle;
-
-[TestClass]
 public sealed class ThreadConfinedSessionSlotTests
 {
-    [TestInitialize]
+    [Before(HookType.Test)]
     public void ClearCurrentTestThreadState()
     {
         ThreadConfinedSessionSlot<SlotTestContext>.DiscardAll();
     }
 
-    [TestCleanup]
+    [After(HookType.Test)]
     public void ReleaseCurrentTestThreadState()
     {
         ThreadConfinedSessionSlot<SlotTestContext>.DiscardAll();
     }
 
-    [TestMethod]
-    public void Enter_WhenEmpty_SetsCurrent()
+    [Test]
+    public async Task Enter_WhenEmpty_SetsCurrent()
     {
         var context = new SlotTestContext("outer");
 
@@ -24,15 +22,14 @@ public sealed class ThreadConfinedSessionSlotTests
             new GameSessionGeneration(1),
             context);
 
-        Assert.IsTrue(
-            ThreadConfinedSessionSlot<SlotTestContext>.TryGetCurrent(
-                out var current));
-        Assert.AreSame(context, current);
+        await Assert.That(ThreadConfinedSessionSlot<SlotTestContext>.TryGetCurrent(
+                out var current)).IsTrue();
+        await Assert.That(current).IsSameReferenceAs(context);
         ThreadConfinedSessionSlot<SlotTestContext>.Exit(token);
     }
 
-    [TestMethod]
-    public void Enter_WhenNested_SavesPreviousAndSetsNested()
+    [Test]
+    public async Task Enter_WhenNested_SavesPreviousAndSetsNested()
     {
         var outer = new SlotTestContext("outer");
         var nested = new SlotTestContext("nested");
@@ -45,16 +42,15 @@ public sealed class ThreadConfinedSessionSlotTests
             generation,
             nested);
 
-        Assert.IsTrue(
-            ThreadConfinedSessionSlot<SlotTestContext>.TryGetCurrent(
-                out var current));
-        Assert.AreSame(nested, current);
+        await Assert.That(ThreadConfinedSessionSlot<SlotTestContext>.TryGetCurrent(
+                out var current)).IsTrue();
+        await Assert.That(current).IsSameReferenceAs(nested);
         ThreadConfinedSessionSlot<SlotTestContext>.Exit(nestedToken);
         ThreadConfinedSessionSlot<SlotTestContext>.Exit(outerToken);
     }
 
-    [TestMethod]
-    public void Exit_WhenNested_RestoresPrevious()
+    [Test]
+    public async Task Exit_WhenNested_RestoresPrevious()
     {
         var outer = new SlotTestContext("outer");
         var nested = new SlotTestContext("nested");
@@ -68,17 +64,15 @@ public sealed class ThreadConfinedSessionSlotTests
 
         ThreadConfinedSessionSlot<SlotTestContext>.Exit(nestedToken);
 
-        Assert.IsTrue(
-            ThreadConfinedSessionSlot<SlotTestContext>.TryGetCurrent(
-                out var current));
-        Assert.AreSame(outer, current);
+        await Assert.That(ThreadConfinedSessionSlot<SlotTestContext>.TryGetCurrent(
+                out var current)).IsTrue();
+        await Assert.That(current).IsSameReferenceAs(outer);
         ThreadConfinedSessionSlot<SlotTestContext>.Exit(outerToken);
-        Assert.IsFalse(
-            ThreadConfinedSessionSlot<SlotTestContext>.TryGetCurrent(out _));
+        await Assert.That(ThreadConfinedSessionSlot<SlotTestContext>.TryGetCurrent(out _)).IsFalse();
     }
 
-    [TestMethod]
-    public void Exit_WhenTokenIsStale_ThrowsLifecycleViolation()
+    [Test]
+    public async Task Exit_WhenTokenIsStale_ThrowsLifecycleViolation()
     {
         var generation = new GameSessionGeneration(1);
         var outerToken = ThreadConfinedSessionSlot<SlotTestContext>.Enter(
@@ -89,20 +83,19 @@ public sealed class ThreadConfinedSessionSlotTests
             generation,
             nested);
 
-        var exception = Assert.ThrowsExactly<InvalidOperationException>(() =>
-            ThreadConfinedSessionSlot<SlotTestContext>.Exit(outerToken));
+        var exception = (await Assert.That(() =>
+            ThreadConfinedSessionSlot<SlotTestContext>.Exit(outerToken)).ThrowsExactly<InvalidOperationException>())!;
 
-        StringAssert.Contains(exception.Message, "stale or out of order");
-        Assert.IsTrue(
-            ThreadConfinedSessionSlot<SlotTestContext>.TryGetCurrent(
-                out var current));
-        Assert.AreSame(nested, current);
+        await Assert.That(exception.Message).Contains("stale or out of order");
+        await Assert.That(ThreadConfinedSessionSlot<SlotTestContext>.TryGetCurrent(
+                out var current)).IsTrue();
+        await Assert.That(current).IsSameReferenceAs(nested);
         ThreadConfinedSessionSlot<SlotTestContext>.Exit(nestedToken);
         ThreadConfinedSessionSlot<SlotTestContext>.Exit(outerToken);
     }
 
-    [TestMethod]
-    public void DiscardAll_AfterException_ClearsReferences()
+    [Test]
+    public async Task DiscardAll_AfterException_ClearsReferences()
     {
         var generation = new GameSessionGeneration(1);
         var outerToken = ThreadConfinedSessionSlot<SlotTestContext>.Enter(
@@ -114,14 +107,13 @@ public sealed class ThreadConfinedSessionSlotTests
 
         ThreadConfinedSessionSlot<SlotTestContext>.DiscardAll();
 
-        Assert.IsFalse(
-            ThreadConfinedSessionSlot<SlotTestContext>.TryGetCurrent(out _));
-        Assert.ThrowsExactly<InvalidOperationException>(() =>
-            ThreadConfinedSessionSlot<SlotTestContext>.Exit(outerToken));
+        await Assert.That(ThreadConfinedSessionSlot<SlotTestContext>.TryGetCurrent(out _)).IsFalse();
+        await Assert.That(() =>
+            ThreadConfinedSessionSlot<SlotTestContext>.Exit(outerToken)).ThrowsExactly<InvalidOperationException>();
     }
 
-    [TestMethod]
-    public void Enter_WhenGameSessionGenerationChanges_DiscardsOldThreadStateBeforeUse()
+    [Test]
+    public async Task Enter_WhenGameSessionGenerationChanges_DiscardsOldThreadStateBeforeUse()
     {
         var oldToken = ThreadConfinedSessionSlot<SlotTestContext>.Enter(
             new GameSessionGeneration(1),
@@ -132,27 +124,24 @@ public sealed class ThreadConfinedSessionSlotTests
             new GameSessionGeneration(2),
             currentGameContext);
 
-        Assert.IsTrue(
-            ThreadConfinedSessionSlot<SlotTestContext>.TryGetCurrent(
-                out var current));
-        Assert.AreSame(currentGameContext, current);
+        await Assert.That(ThreadConfinedSessionSlot<SlotTestContext>.TryGetCurrent(
+                out var current)).IsTrue();
+        await Assert.That(current).IsSameReferenceAs(currentGameContext);
         ThreadConfinedSessionSlot<SlotTestContext>.Exit(currentToken);
-        Assert.IsFalse(
-            ThreadConfinedSessionSlot<SlotTestContext>.TryGetCurrent(out _));
-        Assert.ThrowsExactly<InvalidOperationException>(() =>
-            ThreadConfinedSessionSlot<SlotTestContext>.Exit(oldToken));
+        await Assert.That(ThreadConfinedSessionSlot<SlotTestContext>.TryGetCurrent(out _)).IsFalse();
+        await Assert.That(() =>
+            ThreadConfinedSessionSlot<SlotTestContext>.Exit(oldToken)).ThrowsExactly<InvalidOperationException>();
     }
 
-    [TestMethod]
-    public void Enter_WhenGameSessionGenerationIsDefault_ThrowsWithoutPublishingContext()
+    [Test]
+    public async Task Enter_WhenGameSessionGenerationIsDefault_ThrowsWithoutPublishingContext()
     {
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+        await Assert.That(() =>
             ThreadConfinedSessionSlot<SlotTestContext>.Enter(
                 default(GameSessionGeneration),
-                new SlotTestContext("invalid")));
+                new SlotTestContext("invalid"))).ThrowsExactly<ArgumentOutOfRangeException>();
 
-        Assert.IsFalse(
-            ThreadConfinedSessionSlot<SlotTestContext>.TryGetCurrent(out _));
+        await Assert.That(ThreadConfinedSessionSlot<SlotTestContext>.TryGetCurrent(out _)).IsFalse();
     }
 
     private sealed class SlotTestContext

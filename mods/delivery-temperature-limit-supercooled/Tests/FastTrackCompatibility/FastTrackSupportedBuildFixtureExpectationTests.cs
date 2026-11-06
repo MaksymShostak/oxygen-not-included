@@ -1,10 +1,8 @@
 namespace DeliveryTemperatureLimit.Tests.FastTrackCompatibility;
-
-[TestClass]
 public sealed class FastTrackSupportedBuildFixtureExpectationTests
 {
-    [TestMethod]
-    public void DeclaredFixtures_WhenComparedWithSupportedBuildCatalog_HaveExactIdentityClosure()
+    [Test]
+    public async Task DeclaredFixtures_WhenComparedWithSupportedBuildCatalog_HaveExactIdentityClosure()
     {
         FastTrackAssemblyBuildIdentity[] supportedBuilds =
             FastTrackSupportedAssemblyBuildCatalog.Declared.Builds.ToArray();
@@ -13,13 +11,13 @@ public sealed class FastTrackSupportedBuildFixtureExpectationTests
                 .Select(fixture => fixture.AssemblyBuildIdentity)
                 .ToArray();
 
-        CollectionAssert.AreEqual(supportedBuilds, preservedBuilds);
+        await Assert.That(preservedBuilds).IsEquivalentTo(supportedBuilds, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void CopiedFixtureTree_WhenEnumerated_ContainsOnlyDeclaredSupportedBuildArtifacts()
+    [Test]
+    public async Task CopiedFixtureTree_WhenEnumerated_ContainsOnlyDeclaredSupportedBuildArtifacts()
     {
-        string fixtureRoot = RequireCopiedFixtureRoot();
+        string fixtureRoot = await RequireCopiedFixtureRoot();
         string[] expectedRelativePaths =
             FastTrackSupportedBuildFixtureExpectation.DeclaredFixtures
                 .SelectMany(fixture => new[]
@@ -47,23 +45,18 @@ public sealed class FastTrackSupportedBuildFixtureExpectationTests
             .OrderBy(path => path, StringComparer.Ordinal)
             .ToArray();
 
-        CollectionAssert.AreEqual(
-            expectedRelativePaths,
-            actualRelativePaths,
-            "The preserved fixture tree must remain a closed set of exact " +
+        await Assert.That(actualRelativePaths).IsEquivalentTo(expectedRelativePaths, TUnit.Assertions.Enums.CollectionOrdering.Matching).Because("The preserved fixture tree must remain a closed set of exact " +
             "supported DLL evidence and its human provenance/license notes.");
     }
 
-    private static string RequireCopiedFixtureRoot()
+    private static async Task<string> RequireCopiedFixtureRoot()
     {
         string fixtureRoot = Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory,
             "Fixtures",
             "ThirdParty",
             "FastTrack"));
-        Assert.IsTrue(
-            Directory.Exists(fixtureRoot),
-            "The preserved FastTrack fixtures must be copied as " +
+        await Assert.That(Directory.Exists(fixtureRoot)).IsTrue().Because("The preserved FastTrack fixtures must be copied as " +
             "non-reference test data by DeliveryTemperatureLimit.Tests.csproj.");
         return fixtureRoot;
     }

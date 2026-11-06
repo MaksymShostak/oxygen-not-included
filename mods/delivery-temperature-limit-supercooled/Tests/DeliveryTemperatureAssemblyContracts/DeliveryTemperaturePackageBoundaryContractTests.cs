@@ -2,8 +2,6 @@ using System.Reflection;
 using DeliveryTemperatureLimit.Tests.OniModPipelineIntegration;
 
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
-
-[TestClass]
 public sealed class DeliveryTemperaturePackageBoundaryContractTests
 {
     private static readonly string[] ExactRuntimePackageRelativePaths =
@@ -13,9 +11,9 @@ public sealed class DeliveryTemperaturePackageBoundaryContractTests
         "DeliveryTemperatureLimit.dll"
     ];
 
-    public TestContext TestContext { get; set; } = null!;
-
-    public static IEnumerable<object[]> ProvenanceBoundPackageCases
+    public static IEnumerable<(string ContractRow, string ArtifactKind,
+        string AssemblyPath, string EvidencePath, string PackageDirectoryPath,
+        string[] PackageRelativePaths)> ProvenanceBoundPackageCases
     {
         get
         {
@@ -24,28 +22,22 @@ public sealed class DeliveryTemperaturePackageBoundaryContractTests
                          .ResolveForCurrentEnvironment())
             {
                 yield return
-                [
+                (
                     contractCase.ContractRowName,
                     contractCase.Kind.ToString(),
                     contractCase.AssemblyPath,
                     contractCase.EvidencePath,
                     contractCase.PackageDirectoryPath ?? string.Empty,
                     contractCase.PackageRelativePaths.ToArray()
-                ];
+                );
             }
         }
     }
 
-    public static string FormatProvenanceBoundPackageCaseName(
-        MethodInfo methodInfo,
-        object[] data) =>
-        $"{methodInfo.Name} ({data[0]})";
-
-    [TestMethod]
-    [DynamicData(
-        nameof(ProvenanceBoundPackageCases),
-        DynamicDataDisplayName = nameof(FormatProvenanceBoundPackageCaseName))]
-    public void ProvenanceBoundArtifact_WhenPackageBoundaryIsInspected_ContainsOnlyDeclaredRuntimeFiles(
+    [Test]
+    [MethodDataSource(nameof(ProvenanceBoundPackageCases))]
+    [DisplayName($"{nameof(ProvenanceBoundArtifact_WhenPackageBoundaryIsInspected_ContainsOnlyDeclaredRuntimeFiles)} ($contractRow)")]
+    public async Task ProvenanceBoundArtifact_WhenPackageBoundaryIsInspected_ContainsOnlyDeclaredRuntimeFiles(
         string contractRow,
         string artifactKind,
         string assemblyPath,
@@ -53,38 +45,21 @@ public sealed class DeliveryTemperaturePackageBoundaryContractTests
         string packageDirectoryPath,
         string[] packageRelativePaths)
     {
-        TestContext.WriteLine($"Package contract row: {contractRow}");
-        Assert.AreEqual(
-            artifactKind,
-            contractRow,
-            "The display name and semantic artifact kind must remain identical.");
-        CollectionAssert.AreEqual(
-            ExactRuntimePackageRelativePaths,
-            packageRelativePaths,
-            $"{contractRow} is bound to an unexpected package inventory.");
-        Assert.AreEqual(
-            "DeliveryTemperatureLimit.dll",
-            Path.GetFileName(assemblyPath),
-            $"{contractRow} is not bound to the declared merged assembly.");
-        Assert.IsTrue(
-            File.Exists(assemblyPath),
-            $"{contractRow} assembly does not exist at {assemblyPath}.");
-        AssertPackageMappingsAreExact(
-            OniModPipelineProfileContractReader.Read(ProfilePath()));
+        Console.WriteLine($"Package contract row: {contractRow}");
+        await Assert.That(contractRow).IsEqualTo(artifactKind).Because("The display name and semantic artifact kind must remain identical.");
+        await Assert.That(packageRelativePaths).IsEquivalentTo(ExactRuntimePackageRelativePaths, TUnit.Assertions.Enums.CollectionOrdering.Matching).Because($"{contractRow} is bound to an unexpected package inventory.");
+        await Assert.That(Path.GetFileName(assemblyPath)).IsEqualTo("DeliveryTemperatureLimit.dll").Because($"{contractRow} is not bound to the declared merged assembly.");
+        await Assert.That(File.Exists(assemblyPath)).IsTrue().Because($"{contractRow} assembly does not exist at {assemblyPath}.");
+        await AssertPackageMappingsAreExact(
+            OniModPipelineProfileContractReader.Read((await ProfilePath())));
 
         if (string.Equals(
                 artifactKind,
                 nameof(DeliveryTemperatureArtifactContractKind.ExactPipelineBuild),
                 StringComparison.Ordinal))
         {
-            Assert.AreEqual(
-                "build-result.json",
-                Path.GetFileName(evidencePath),
-                "ExactPipelineBuild must be bound through build-result.json.");
-            Assert.AreEqual(
-                string.Empty,
-                packageDirectoryPath,
-                "A build result describes declared packaging inputs; it must " +
+            await Assert.That(Path.GetFileName(evidencePath)).IsEqualTo("build-result.json").Because("ExactPipelineBuild must be bound through build-result.json.");
+            await Assert.That(packageDirectoryPath).IsEqualTo(string.Empty).Because("A build result describes declared packaging inputs; it must " +
                 "not masquerade as a prepared package directory.");
         }
         else if (string.Equals(
@@ -92,7 +67,7 @@ public sealed class DeliveryTemperaturePackageBoundaryContractTests
                      nameof(DeliveryTemperatureArtifactContractKind.ExactReleaseCandidate),
                      StringComparison.Ordinal))
         {
-            Assert.IsFalse(string.IsNullOrWhiteSpace(packageDirectoryPath));
+            await Assert.That(string.IsNullOrWhiteSpace(packageDirectoryPath)).IsFalse();
             string[] actualPackagePaths = Directory
                 .EnumerateFiles(
                     packageDirectoryPath,
@@ -106,35 +81,30 @@ public sealed class DeliveryTemperaturePackageBoundaryContractTests
                     ExactRuntimePackageRelativePaths,
                     path))
                 .ToArray();
-            CollectionAssert.AreEqual(
-                ExactRuntimePackageRelativePaths,
-                actualPackagePaths,
-                "The immutable release-candidate package contains a missing " +
+            await Assert.That(actualPackagePaths).IsEquivalentTo(ExactRuntimePackageRelativePaths, TUnit.Assertions.Enums.CollectionOrdering.Matching).Because("The immutable release-candidate package contains a missing " +
                 "or undeclared runtime file.");
         }
         else
         {
-            Assert.AreEqual(
-                nameof(DeliveryTemperatureArtifactContractKind.PublishedBaseline),
-                artifactKind);
-            Assert.AreEqual("tracked-published-baseline", evidencePath);
-            Assert.AreEqual(string.Empty, packageDirectoryPath);
+            await Assert.That(artifactKind).IsEqualTo(nameof(DeliveryTemperatureArtifactContractKind.PublishedBaseline));
+            await Assert.That(evidencePath).IsEqualTo("tracked-published-baseline");
+            await Assert.That(packageDirectoryPath).IsEqualTo(string.Empty);
         }
 
-        AssertRuntimePackageFileNamesAreSafe(packageRelativePaths);
+        await AssertRuntimePackageFileNamesAreSafe(packageRelativePaths);
     }
 
-    [TestMethod]
-    public void PipelineProfile_WhenPackageMappingsAreInspected_ContainsOnlyReleaseContractFiles()
+    [Test]
+    public async Task PipelineProfile_WhenPackageMappingsAreInspected_ContainsOnlyReleaseContractFiles()
     {
-        var profile = OniModPipelineProfileContractReader.Read(ProfilePath());
-        AssertPackageMappingsAreExact(profile);
+        var profile = OniModPipelineProfileContractReader.Read((await ProfilePath()));
+        await AssertPackageMappingsAreExact(profile);
     }
 
-    [TestMethod]
-    public void PipelineProfile_WhenPackageMappingsAreInspected_CannotShipFrameworkOrConfigurationFiles()
+    [Test]
+    public async Task PipelineProfile_WhenPackageMappingsAreInspected_CannotShipFrameworkOrConfigurationFiles()
     {
-        var profile = OniModPipelineProfileContractReader.Read(ProfilePath());
+        var profile = OniModPipelineProfileContractReader.Read((await ProfilePath()));
         var prohibitedFrameworkFiles = new HashSet<string>(
             StringComparer.OrdinalIgnoreCase)
         {
@@ -146,27 +116,15 @@ public sealed class DeliveryTemperaturePackageBoundaryContractTests
         {
             var sourceName = Path.GetFileName(mapping.Source);
             var destinationName = Path.GetFileName(mapping.Destination);
-            Assert.IsFalse(
-                prohibitedFrameworkFiles.Contains(sourceName)
-                || prohibitedFrameworkFiles.Contains(destinationName),
-                $"Framework assembly mapping is prohibited: {mapping}");
-            Assert.AreNotEqual(
-                ".config",
-                Path.GetExtension(mapping.Source),
-                ignoreCase: true,
-                $"Application configuration mapping is prohibited: {mapping}");
-            Assert.AreNotEqual(
-                ".config",
-                Path.GetExtension(mapping.Destination),
-                ignoreCase: true,
-                $"Application configuration mapping is prohibited: {mapping}");
-            Assert.IsFalse(
-                mapping.Source.Contains('*') || mapping.Source.Contains('?'),
-                $"Package sources must be exact files, not patterns: {mapping.Source}");
+            await Assert.That(prohibitedFrameworkFiles.Contains(sourceName)
+                || prohibitedFrameworkFiles.Contains(destinationName)).IsFalse().Because($"Framework assembly mapping is prohibited: {mapping}");
+            await Assert.That(string.Equals(Path.GetExtension(mapping.Source), ".config", true ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)).IsFalse().Because($"Application configuration mapping is prohibited: {mapping}");
+            await Assert.That(string.Equals(Path.GetExtension(mapping.Destination), ".config", true ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)).IsFalse().Because($"Application configuration mapping is prohibited: {mapping}");
+            await Assert.That(mapping.Source.Contains('*') || mapping.Source.Contains('?')).IsFalse().Because($"Package sources must be exact files, not patterns: {mapping.Source}");
         }
     }
 
-    private static void AssertPackageMappingsAreExact(
+    private static async Task AssertPackageMappingsAreExact(
         OniModPipelineProfileContract profile)
     {
         var expectedMappings = new[]
@@ -179,12 +137,10 @@ public sealed class DeliveryTemperaturePackageBoundaryContractTests
             new OniModPipelinePackageFileContract("translations", "translations")
         };
 
-        CollectionAssert.AreEqual(
-            expectedMappings,
-            profile.PackageFiles.ToArray());
+        await Assert.That(profile.PackageFiles.ToArray()).IsEquivalentTo(expectedMappings, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    private static void AssertRuntimePackageFileNamesAreSafe(
+    private static async Task AssertRuntimePackageFileNamesAreSafe(
         IEnumerable<string> packageRelativePaths)
     {
         string[] prohibitedExactFileNames =
@@ -204,35 +160,25 @@ public sealed class DeliveryTemperaturePackageBoundaryContractTests
         foreach (string relativePath in packageRelativePaths)
         {
             string fileName = Path.GetFileName(relativePath);
-            CollectionAssert.DoesNotContain(
-                prohibitedExactFileNames,
-                fileName,
-                $"Prohibited runtime package file {relativePath} was declared.");
-            CollectionAssert.DoesNotContain(
-                prohibitedExtensions,
-                Path.GetExtension(relativePath),
-                $"Prohibited package sidecar {relativePath} was declared.");
-            Assert.IsFalse(
-                relativePath.Contains(
+            await Assert.That(prohibitedExactFileNames).DoesNotContain(fileName).Because($"Prohibited runtime package file {relativePath} was declared.");
+            await Assert.That(prohibitedExtensions).DoesNotContain(Path.GetExtension(relativePath)).Because($"Prohibited package sidecar {relativePath} was declared.");
+            await Assert.That(relativePath.Contains(
                     "Fixture",
-                    StringComparison.OrdinalIgnoreCase),
-                $"Test fixture path {relativePath} entered the runtime package.");
+                    StringComparison.OrdinalIgnoreCase)).IsFalse().Because($"Test fixture path {relativePath} entered the runtime package.");
         }
     }
 
-    private static string ProfilePath() =>
+    private static async Task<string> ProfilePath() =>
         Path.Combine(
-            RequiredEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT"),
+            (await RequiredEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT")),
             "mods",
             "delivery-temperature-limit-supercooled",
             "oni-mod-pipeline.toml");
 
-    private static string RequiredEnvironmentVariable(string name)
+    private static async Task<string> RequiredEnvironmentVariable(string name)
     {
         var value = Environment.GetEnvironmentVariable(name);
-        Assert.IsFalse(
-            string.IsNullOrWhiteSpace(value),
-            $"Required environment variable {name} was not provided by oni-mod-pipeline.");
-        return value;
+        await Assert.That(string.IsNullOrWhiteSpace(value)).IsFalse().Because($"Required environment variable {name} was not provided by oni-mod-pipeline.");
+        return value!;
     }
 }

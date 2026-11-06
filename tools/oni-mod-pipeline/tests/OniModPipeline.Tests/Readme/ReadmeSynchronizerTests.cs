@@ -6,59 +6,57 @@ using MaksymShostak.OniModPipeline.Tests.Fixtures;
 using MaksymShostak.OniModPipeline.WorkshopListing;
 
 namespace MaksymShostak.OniModPipeline.Tests.Readme;
-
-[TestClass]
 public sealed class ReadmeSynchronizerTests
 {
     private const string Original = "# Intro\n<!-- oni-mod-pipeline:workshop-description:start -->\nold\n<!-- oni-mod-pipeline:workshop-description:end -->\nSupport  \n";
 
-    [TestMethod]
+    [Test]
     public async Task Synchronize_UsesGeneratedBytesChecksWithoutWritingAndRepeatsWithoutChange()
     {
         using var fixture = new Fixture();
         var before = File.ReadAllBytes(fixture.ReadmePath);
         var check = await fixture.Run(true);
-        Assert.IsTrue(check.HasDrift);
-        Assert.IsFalse(check.Changed);
-        CollectionAssert.AreEqual(before, File.ReadAllBytes(fixture.ReadmePath));
+        await Assert.That(check.HasDrift).IsTrue();
+        await Assert.That(check.Changed).IsFalse();
+        await Assert.That(File.ReadAllBytes(fixture.ReadmePath)).IsEquivalentTo(before, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         var write = await fixture.Run(false);
-        Assert.IsTrue(write.Changed);
-        Assert.AreEqual(Original.Replace("\nold\n", "\n# Mod\n", StringComparison.Ordinal), File.ReadAllText(fixture.ReadmePath));
-        Assert.IsFalse((await fixture.Run(false)).Changed);
-        Assert.IsFalse((await fixture.Run(true)).HasDrift);
-        CollectionAssert.AreEqual(fixture.Description.Bytes, fixture.Runner.GeneratedBytes);
+        await Assert.That(write.Changed).IsTrue();
+        await Assert.That(File.ReadAllText(fixture.ReadmePath)).IsEqualTo(Original.Replace("\nold\n", "\n# Mod\n", StringComparison.Ordinal));
+        await Assert.That((await fixture.Run(false)).Changed).IsFalse();
+        await Assert.That((await fixture.Run(true)).HasDrift).IsFalse();
+        await Assert.That(fixture.Runner.GeneratedBytes).IsEquivalentTo(fixture.Description.Bytes, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
+    [Test]
     public async Task Synchronize_RejectsConcurrentChangeWithoutOverwritingIt()
     {
         using var fixture = new Fixture();
         fixture.Runner.DuringConversion = () => File.WriteAllText(fixture.ReadmePath, "owner edit");
-        await Assert.ThrowsAsync<IOException>(() => fixture.Run(false));
-        Assert.AreEqual("owner edit", File.ReadAllText(fixture.ReadmePath));
+        await Assert.That(async () => { await fixture.Run(false); }).Throws<IOException>();
+        await Assert.That(File.ReadAllText(fixture.ReadmePath)).IsEqualTo("owner edit");
     }
 
-    [TestMethod]
+    [Test]
     public async Task Synchronize_RejectsFailureAndCancellationWithoutWriting()
     {
         using var fixture = new Fixture();
         fixture.Runner.ExitCode = 1;
-        await Assert.ThrowsAsync<InvalidDataException>(() => fixture.Run(false));
-        Assert.AreEqual(Original, File.ReadAllText(fixture.ReadmePath));
-        await Assert.ThrowsAsync<OperationCanceledException>(() => fixture.Run(false, new CancellationToken(true)));
-        Assert.AreEqual(Original, File.ReadAllText(fixture.ReadmePath));
+        await Assert.That(async () => { await fixture.Run(false); }).Throws<InvalidDataException>();
+        await Assert.That(File.ReadAllText(fixture.ReadmePath)).IsEqualTo(Original);
+        await Assert.That(async () => { await fixture.Run(false, new CancellationToken(true)); }).Throws<OperationCanceledException>();
+        await Assert.That(File.ReadAllText(fixture.ReadmePath)).IsEqualTo(Original);
     }
 
-    [TestMethod]
+    [Test]
     public async Task Synchronize_RejectsFormatterChangesOutsideOwnershipOrRefusal()
     {
         using var fixture = new Fixture();
         fixture.Canonicalizer.Transform = candidate => Encoding.UTF8.GetBytes("owner changed\n" + Encoding.UTF8.GetString(candidate));
-        await Assert.ThrowsAsync<InvalidDataException>(() => fixture.Run(false));
-        Assert.AreEqual(Original, File.ReadAllText(fixture.ReadmePath));
+        await Assert.That(async () => { await fixture.Run(false); }).Throws<InvalidDataException>();
+        await Assert.That(File.ReadAllText(fixture.ReadmePath)).IsEqualTo(Original);
         fixture.Canonicalizer.Transform = _ => throw new InvalidDataException("preservation refused");
-        await Assert.ThrowsAsync<InvalidDataException>(() => fixture.Run(false));
-        Assert.AreEqual(Original, File.ReadAllText(fixture.ReadmePath));
+        await Assert.That(async () => { await fixture.Run(false); }).Throws<InvalidDataException>();
+        await Assert.That(File.ReadAllText(fixture.ReadmePath)).IsEqualTo(Original);
     }
 
     private sealed class Fixture : IDisposable

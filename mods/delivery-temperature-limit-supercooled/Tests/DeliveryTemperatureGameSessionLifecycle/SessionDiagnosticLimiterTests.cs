@@ -1,46 +1,44 @@
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureGameSessionLifecycle;
-
-[TestClass]
 public sealed class SessionDiagnosticLimiterTests
 {
-    [TestMethod]
-    public void ShouldEmit_WhenDiagnosticKeyOccursForFirstTime_ReturnsTrue()
+    [Test]
+    public async Task ShouldEmit_WhenDiagnosticKeyOccursForFirstTime_ReturnsTrue()
     {
         var limiter = new SessionDiagnosticLimiter();
 
-        Assert.IsTrue(limiter.ShouldEmit("DTL_FASTTRACK_ANCHOR"));
+        await Assert.That(limiter.ShouldEmit("DTL_FASTTRACK_ANCHOR")).IsTrue();
     }
 
-    [TestMethod]
-    public void ShouldEmit_WhenDiagnosticKeyRepeats_ReturnsFalse()
+    [Test]
+    public async Task ShouldEmit_WhenDiagnosticKeyRepeats_ReturnsFalse()
     {
         var limiter = new SessionDiagnosticLimiter();
 
-        Assert.IsTrue(limiter.ShouldEmit("DTL_FASTTRACK_ANCHOR"));
-        Assert.IsFalse(limiter.ShouldEmit("DTL_FASTTRACK_ANCHOR"));
+        await Assert.That(limiter.ShouldEmit("DTL_FASTTRACK_ANCHOR")).IsTrue();
+        await Assert.That(limiter.ShouldEmit("DTL_FASTTRACK_ANCHOR")).IsFalse();
     }
 
-    [TestMethod]
-    public void ShouldEmit_WhenDifferentDiagnosticKeyOccurs_ReturnsTrue()
+    [Test]
+    public async Task ShouldEmit_WhenDifferentDiagnosticKeyOccurs_ReturnsTrue()
     {
         var limiter = new SessionDiagnosticLimiter();
-        Assert.IsTrue(limiter.ShouldEmit("DTL_FASTTRACK_ANCHOR"));
+        await Assert.That(limiter.ShouldEmit("DTL_FASTTRACK_ANCHOR")).IsTrue();
 
-        Assert.IsTrue(limiter.ShouldEmit("DTL_WORLD_UNRESOLVED"));
+        await Assert.That(limiter.ShouldEmit("DTL_WORLD_UNRESOLVED")).IsTrue();
     }
 
-    [TestMethod]
-    public void NewSessionLimiter_WhenDiagnosticKeyOccurredInPriorSession_ReturnsTrue()
+    [Test]
+    public async Task NewSessionLimiter_WhenDiagnosticKeyOccurredInPriorSession_ReturnsTrue()
     {
         var priorSessionLimiter = new SessionDiagnosticLimiter();
         var newSessionLimiter = new SessionDiagnosticLimiter();
-        Assert.IsTrue(priorSessionLimiter.ShouldEmit("DTL_FASTTRACK_ANCHOR"));
-        Assert.IsFalse(priorSessionLimiter.ShouldEmit("DTL_FASTTRACK_ANCHOR"));
+        await Assert.That(priorSessionLimiter.ShouldEmit("DTL_FASTTRACK_ANCHOR")).IsTrue();
+        await Assert.That(priorSessionLimiter.ShouldEmit("DTL_FASTTRACK_ANCHOR")).IsFalse();
 
-        Assert.IsTrue(newSessionLimiter.ShouldEmit("DTL_FASTTRACK_ANCHOR"));
+        await Assert.That(newSessionLimiter.ShouldEmit("DTL_FASTTRACK_ANCHOR")).IsTrue();
     }
 
-    [TestMethod]
+    [Test]
     public async Task ShouldEmit_WhenSameDiagnosticKeyArrivesConcurrently_PermitsExactlyOneEmission()
     {
         const int concurrentCallerCount = 64;
@@ -66,25 +64,25 @@ public sealed class SessionDiagnosticLimiterTests
         startSignal.Set();
         await Task.WhenAll(callers);
 
-        Assert.AreEqual(1, permittedEmissionCount);
+        await Assert.That(permittedEmissionCount).IsEqualTo(1);
     }
 
-    [TestMethod]
-    public void ShouldEmit_WhenDiagnosticKeyIsNull_ThrowsArgumentNullException()
+    [Test]
+    public async Task ShouldEmit_WhenDiagnosticKeyIsNull_ThrowsArgumentNullException()
     {
         var limiter = new SessionDiagnosticLimiter();
 
-        Assert.ThrowsExactly<ArgumentNullException>(() => limiter.ShouldEmit(null!));
+        await Assert.That(() => limiter.ShouldEmit(null!)).ThrowsExactly<ArgumentNullException>();
     }
 
-    [TestMethod]
-    [DataRow("")]
-    [DataRow("   ")]
-    public void ShouldEmit_WhenDiagnosticKeyIsNotMeaningful_ThrowsArgumentException(
+    [Test]
+    [Arguments("")]
+    [Arguments("   ")]
+    public async Task ShouldEmit_WhenDiagnosticKeyIsNotMeaningful_ThrowsArgumentException(
         string diagnosticKey)
     {
         var limiter = new SessionDiagnosticLimiter();
 
-        Assert.ThrowsExactly<ArgumentException>(() => limiter.ShouldEmit(diagnosticKey));
+        await Assert.That(() => limiter.ShouldEmit(diagnosticKey)).ThrowsExactly<ArgumentException>();
     }
 }

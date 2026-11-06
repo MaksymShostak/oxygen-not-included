@@ -3,12 +3,10 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 
 namespace DeliveryTemperatureLimit.Tests.HarmonyTranspilerInfrastructure;
-
-[TestClass]
 public sealed class HarmonyPatchContractVerifierTests
 {
-    [TestMethod]
-    public void RequireInstanceMethod_WhenOneSignatureMatches_ReturnsThatMethod()
+    [Test]
+    public async Task RequireInstanceMethod_WhenOneSignatureMatches_ReturnsThatMethod()
     {
         var method = HarmonyPatchContractVerifier.RequireInstanceMethod(
             typeof(MethodFixture),
@@ -17,84 +15,84 @@ public sealed class HarmonyPatchContractVerifierTests
             typeof(bool),
             [typeof(int), typeof(string)]);
 
-        Assert.AreEqual("ExactInstanceTarget", method.Name);
-        Assert.AreSame(typeof(MethodFixture), method.DeclaringType);
-        Assert.IsFalse(method.IsStatic);
+        await Assert.That(method.Name).IsEqualTo("ExactInstanceTarget");
+        await Assert.That(method.DeclaringType).IsSameReferenceAs(typeof(MethodFixture));
+        await Assert.That(method.IsStatic).IsFalse();
     }
 
-    [TestMethod]
-    public void RequireInstanceMethod_WhenMethodIsMissing_ThrowsContractViolation()
+    [Test]
+    public async Task RequireInstanceMethod_WhenMethodIsMissing_ThrowsContractViolation()
     {
-        var exception = Assert.ThrowsExactly<
-            HarmonyPatchContractViolationException>(() =>
+        var exception = (await Assert.That(() =>
                 HarmonyPatchContractVerifier.RequireInstanceMethod(
                     typeof(MethodFixture),
                     "MissingInstanceTarget",
                     DeclaredMemberVisibility.NonPublic,
                     typeof(bool),
-                    [typeof(int), typeof(string)]));
+                    [typeof(int), typeof(string)])).ThrowsExactly<
+            HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "MissingInstanceTarget");
-        StringAssert.Contains(exception.Message, "0");
+        await Assert.That(exception.Message).Contains("MissingInstanceTarget");
+        await Assert.That(exception.Message).Contains("0");
     }
 
-    [TestMethod]
-    public void RequireInstanceMethod_WhenOnlyWrongParametersExist_ThrowsContractViolation()
+    [Test]
+    public async Task RequireInstanceMethod_WhenOnlyWrongParametersExist_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireInstanceMethod(
                 typeof(MethodFixture),
                 "WrongParameterInstanceTarget",
                 DeclaredMemberVisibility.NonPublic,
                 typeof(bool),
-                [typeof(int), typeof(string)]));
+                [typeof(int), typeof(string)])).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void RequireInstanceMethod_WhenOnlyWrongReturnTypeExists_ThrowsContractViolation()
+    [Test]
+    public async Task RequireInstanceMethod_WhenOnlyWrongReturnTypeExists_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireInstanceMethod(
                 typeof(MethodFixture),
                 "WrongReturnInstanceTarget",
                 DeclaredMemberVisibility.NonPublic,
                 typeof(bool),
-                [typeof(int), typeof(string)]));
+                [typeof(int), typeof(string)])).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void RequireInstanceMethod_WhenStaticnessDiffers_ThrowsContractViolation()
+    [Test]
+    public async Task RequireInstanceMethod_WhenStaticnessDiffers_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireInstanceMethod(
                 typeof(MethodFixture),
                 "StaticInsteadOfInstanceTarget",
                 DeclaredMemberVisibility.NonPublic,
                 typeof(bool),
-                [typeof(int), typeof(string)]));
+                [typeof(int), typeof(string)])).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void RequireInstanceMethod_WhenSeveralExactCandidatesExist_ThrowsContractViolation()
+    [Test]
+    public async Task RequireInstanceMethod_WhenSeveralExactCandidatesExist_ThrowsContractViolation()
     {
         var ambiguousType = new DuplicateMemberReportingType(
             typeof(MethodFixture),
             DuplicatedMemberCollection.Methods);
 
-        var exception = Assert.ThrowsExactly<
-            HarmonyPatchContractViolationException>(() =>
+        var exception = (await Assert.That(() =>
                 HarmonyPatchContractVerifier.RequireInstanceMethod(
                     ambiguousType,
                     "ExactInstanceTarget",
                     DeclaredMemberVisibility.NonPublic,
                     typeof(bool),
-                    [typeof(int), typeof(string)]));
+                    [typeof(int), typeof(string)])).ThrowsExactly<
+            HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "2");
+        await Assert.That(exception.Message).Contains("2");
     }
 
-    [TestMethod]
-    public void RequireInstanceMethod_WhenPublicVisibilityIsRequired_ReturnsPublicMethod()
+    [Test]
+    public async Task RequireInstanceMethod_WhenPublicVisibilityIsRequired_ReturnsPublicMethod()
     {
         var method = HarmonyPatchContractVerifier.RequireInstanceMethod(
             typeof(MethodFixture),
@@ -103,47 +101,47 @@ public sealed class HarmonyPatchContractVerifierTests
             typeof(bool),
             [typeof(int), typeof(string)]);
 
-        Assert.IsTrue(method.IsPublic);
+        await Assert.That(method.IsPublic).IsTrue();
     }
 
-    [TestMethod]
-    public void RequireInstanceMethod_WhenVisibilityDiffers_ThrowsContractViolation()
+    [Test]
+    public async Task RequireInstanceMethod_WhenVisibilityDiffers_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireInstanceMethod(
                 typeof(MethodFixture),
                 "PublicInstanceTarget",
                 DeclaredMemberVisibility.NonPublic,
                 typeof(bool),
-                [typeof(int), typeof(string)]));
+                [typeof(int), typeof(string)])).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void RequireInstanceMethod_WhenOnlyInheritedMethodMatches_ThrowsContractViolation()
+    [Test]
+    public async Task RequireInstanceMethod_WhenOnlyInheritedMethodMatches_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireInstanceMethod(
                 typeof(MethodFixture),
                 "InheritedInstanceTarget",
                 DeclaredMemberVisibility.NonPublic,
                 typeof(bool),
-                [typeof(int), typeof(string)]));
+                [typeof(int), typeof(string)])).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void RequireInstanceMethod_WhenOnlyGenericMethodMatches_ThrowsContractViolation()
+    [Test]
+    public async Task RequireInstanceMethod_WhenOnlyGenericMethodMatches_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireInstanceMethod(
                 typeof(MethodFixture),
                 "GenericInstanceTarget",
                 DeclaredMemberVisibility.NonPublic,
                 typeof(bool),
-                [typeof(int), typeof(string)]));
+                [typeof(int), typeof(string)])).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void RequireStaticMethod_WhenOneSignatureMatches_ReturnsThatMethod()
+    [Test]
+    public async Task RequireStaticMethod_WhenOneSignatureMatches_ReturnsThatMethod()
     {
         var method = HarmonyPatchContractVerifier.RequireStaticMethod(
             typeof(MethodFixture),
@@ -152,80 +150,80 @@ public sealed class HarmonyPatchContractVerifierTests
             typeof(string),
             [typeof(long)]);
 
-        Assert.AreEqual("ExactStaticTarget", method.Name);
-        Assert.AreSame(typeof(MethodFixture), method.DeclaringType);
-        Assert.IsTrue(method.IsStatic);
+        await Assert.That(method.Name).IsEqualTo("ExactStaticTarget");
+        await Assert.That(method.DeclaringType).IsSameReferenceAs(typeof(MethodFixture));
+        await Assert.That(method.IsStatic).IsTrue();
     }
 
-    [TestMethod]
-    public void RequireStaticMethod_WhenMethodIsMissing_ThrowsContractViolation()
+    [Test]
+    public async Task RequireStaticMethod_WhenMethodIsMissing_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireStaticMethod(
                 typeof(MethodFixture),
                 "MissingStaticTarget",
                 DeclaredMemberVisibility.NonPublic,
                 typeof(string),
-                [typeof(long)]));
+                [typeof(long)])).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void RequireStaticMethod_WhenOnlyWrongParametersExist_ThrowsContractViolation()
+    [Test]
+    public async Task RequireStaticMethod_WhenOnlyWrongParametersExist_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireStaticMethod(
                 typeof(MethodFixture),
                 "WrongParameterStaticTarget",
                 DeclaredMemberVisibility.NonPublic,
                 typeof(string),
-                [typeof(long)]));
+                [typeof(long)])).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void RequireStaticMethod_WhenOnlyWrongReturnTypeExists_ThrowsContractViolation()
+    [Test]
+    public async Task RequireStaticMethod_WhenOnlyWrongReturnTypeExists_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireStaticMethod(
                 typeof(MethodFixture),
                 "WrongReturnStaticTarget",
                 DeclaredMemberVisibility.NonPublic,
                 typeof(string),
-                [typeof(long)]));
+                [typeof(long)])).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void RequireStaticMethod_WhenStaticnessDiffers_ThrowsContractViolation()
+    [Test]
+    public async Task RequireStaticMethod_WhenStaticnessDiffers_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireStaticMethod(
                 typeof(MethodFixture),
                 "InstanceInsteadOfStaticTarget",
                 DeclaredMemberVisibility.NonPublic,
                 typeof(string),
-                [typeof(long)]));
+                [typeof(long)])).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void RequireStaticMethod_WhenSeveralExactCandidatesExist_ThrowsContractViolation()
+    [Test]
+    public async Task RequireStaticMethod_WhenSeveralExactCandidatesExist_ThrowsContractViolation()
     {
         var ambiguousType = new DuplicateMemberReportingType(
             typeof(MethodFixture),
             DuplicatedMemberCollection.Methods);
 
-        var exception = Assert.ThrowsExactly<
-            HarmonyPatchContractViolationException>(() =>
+        var exception = (await Assert.That(() =>
                 HarmonyPatchContractVerifier.RequireStaticMethod(
                     ambiguousType,
                     "ExactStaticTarget",
                     DeclaredMemberVisibility.NonPublic,
                     typeof(string),
-                    [typeof(long)]));
+                    [typeof(long)])).ThrowsExactly<
+            HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "2");
+        await Assert.That(exception.Message).Contains("2");
     }
 
-    [TestMethod]
-    public void RequireStaticMethod_WhenPublicVisibilityIsRequired_ReturnsPublicMethod()
+    [Test]
+    public async Task RequireStaticMethod_WhenPublicVisibilityIsRequired_ReturnsPublicMethod()
     {
         var method = HarmonyPatchContractVerifier.RequireStaticMethod(
             typeof(MethodFixture),
@@ -234,127 +232,127 @@ public sealed class HarmonyPatchContractVerifierTests
             typeof(string),
             [typeof(long)]);
 
-        Assert.IsTrue(method.IsPublic);
+        await Assert.That(method.IsPublic).IsTrue();
     }
 
-    [TestMethod]
-    public void RequireStaticMethod_WhenVisibilityDiffers_ThrowsContractViolation()
+    [Test]
+    public async Task RequireStaticMethod_WhenVisibilityDiffers_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireStaticMethod(
                 typeof(MethodFixture),
                 "PublicStaticTarget",
                 DeclaredMemberVisibility.NonPublic,
                 typeof(string),
-                [typeof(long)]));
+                [typeof(long)])).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void RequireStaticMethod_WhenOnlyInheritedMethodMatches_ThrowsContractViolation()
+    [Test]
+    public async Task RequireStaticMethod_WhenOnlyInheritedMethodMatches_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireStaticMethod(
                 typeof(MethodFixture),
                 "InheritedStaticTarget",
                 DeclaredMemberVisibility.NonPublic,
                 typeof(string),
-                [typeof(long)]));
+                [typeof(long)])).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void RequireStaticMethod_WhenOnlyGenericMethodMatches_ThrowsContractViolation()
+    [Test]
+    public async Task RequireStaticMethod_WhenOnlyGenericMethodMatches_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireStaticMethod(
                 typeof(MethodFixture),
                 "GenericStaticTarget",
                 DeclaredMemberVisibility.NonPublic,
                 typeof(string),
-                [typeof(long)]));
+                [typeof(long)])).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void RequireConstructor_WhenOneSignatureMatches_ReturnsThatConstructor()
+    [Test]
+    public async Task RequireConstructor_WhenOneSignatureMatches_ReturnsThatConstructor()
     {
         var constructor = HarmonyPatchContractVerifier.RequireConstructor(
             typeof(ConstructorFixture),
             DeclaredMemberVisibility.NonPublic,
             [typeof(int), typeof(string)]);
 
-        Assert.AreSame(typeof(ConstructorFixture), constructor.DeclaringType);
-        Assert.IsFalse(constructor.IsPublic);
+        await Assert.That(constructor.DeclaringType).IsSameReferenceAs(typeof(ConstructorFixture));
+        await Assert.That(constructor.IsPublic).IsFalse();
     }
 
-    [TestMethod]
-    public void RequireConstructor_WhenConstructorIsMissing_ThrowsContractViolation()
+    [Test]
+    public async Task RequireConstructor_WhenConstructorIsMissing_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireConstructor(
                 typeof(ConstructorFixture),
                 DeclaredMemberVisibility.NonPublic,
-                [typeof(decimal)]));
+                [typeof(decimal)])).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void RequireConstructor_WhenParameterOrderDiffers_ThrowsContractViolation()
+    [Test]
+    public async Task RequireConstructor_WhenParameterOrderDiffers_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireConstructor(
                 typeof(ReversedConstructorFixture),
                 DeclaredMemberVisibility.NonPublic,
-                [typeof(int), typeof(string)]));
+                [typeof(int), typeof(string)])).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void RequireConstructor_WhenPublicVisibilityIsRequired_ReturnsPublicConstructor()
+    [Test]
+    public async Task RequireConstructor_WhenPublicVisibilityIsRequired_ReturnsPublicConstructor()
     {
         var constructor = HarmonyPatchContractVerifier.RequireConstructor(
             typeof(ConstructorFixture),
             DeclaredMemberVisibility.Public,
             [typeof(string), typeof(int)]);
 
-        Assert.IsTrue(constructor.IsPublic);
+        await Assert.That(constructor.IsPublic).IsTrue();
     }
 
-    [TestMethod]
-    public void RequireConstructor_WhenVisibilityDiffers_ThrowsContractViolation()
+    [Test]
+    public async Task RequireConstructor_WhenVisibilityDiffers_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireConstructor(
                 typeof(ConstructorFixture),
                 DeclaredMemberVisibility.NonPublic,
-                [typeof(string), typeof(int)]));
+                [typeof(string), typeof(int)])).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void RequireConstructor_WhenOnlyBaseConstructorMatches_ThrowsContractViolation()
+    [Test]
+    public async Task RequireConstructor_WhenOnlyBaseConstructorMatches_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireConstructor(
                 typeof(DerivedConstructorFixture),
                 DeclaredMemberVisibility.NonPublic,
-                [typeof(long)]));
+                [typeof(long)])).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void RequireConstructor_WhenSeveralExactCandidatesExist_ThrowsContractViolation()
+    [Test]
+    public async Task RequireConstructor_WhenSeveralExactCandidatesExist_ThrowsContractViolation()
     {
         var ambiguousType = new DuplicateMemberReportingType(
             typeof(ConstructorFixture),
             DuplicatedMemberCollection.Constructors);
 
-        var exception = Assert.ThrowsExactly<
-            HarmonyPatchContractViolationException>(() =>
+        var exception = (await Assert.That(() =>
                 HarmonyPatchContractVerifier.RequireConstructor(
                     ambiguousType,
                     DeclaredMemberVisibility.NonPublic,
-                    [typeof(int), typeof(string)]));
+                    [typeof(int), typeof(string)])).ThrowsExactly<
+            HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "2");
+        await Assert.That(exception.Message).Contains("2");
     }
 
-    [TestMethod]
-    public void RequireField_WhenOneInstanceFieldMatches_ReturnsThatField()
+    [Test]
+    public async Task RequireField_WhenOneInstanceFieldMatches_ReturnsThatField()
     {
         var field = HarmonyPatchContractVerifier.RequireField(
             typeof(FieldFixture),
@@ -363,12 +361,12 @@ public sealed class HarmonyPatchContractVerifierTests
             FieldStorageKind.Instance,
             typeof(int));
 
-        Assert.AreSame(typeof(FieldFixture), field.DeclaringType);
-        Assert.IsFalse(field.IsStatic);
+        await Assert.That(field.DeclaringType).IsSameReferenceAs(typeof(FieldFixture));
+        await Assert.That(field.IsStatic).IsFalse();
     }
 
-    [TestMethod]
-    public void RequireField_WhenOneStaticFieldMatches_ReturnsThatField()
+    [Test]
+    public async Task RequireField_WhenOneStaticFieldMatches_ReturnsThatField()
     {
         var field = HarmonyPatchContractVerifier.RequireField(
             typeof(FieldFixture),
@@ -377,224 +375,224 @@ public sealed class HarmonyPatchContractVerifierTests
             FieldStorageKind.Static,
             typeof(string));
 
-        Assert.AreSame(typeof(FieldFixture), field.DeclaringType);
-        Assert.IsTrue(field.IsStatic);
+        await Assert.That(field.DeclaringType).IsSameReferenceAs(typeof(FieldFixture));
+        await Assert.That(field.IsStatic).IsTrue();
     }
 
-    [TestMethod]
-    public void RequireField_WhenFieldIsMissing_ThrowsContractViolation()
+    [Test]
+    public async Task RequireField_WhenFieldIsMissing_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireField(
                 typeof(FieldFixture),
                 "missingField",
                 DeclaredMemberVisibility.NonPublic,
                 FieldStorageKind.Instance,
-                typeof(int)));
+                typeof(int))).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void RequireField_WhenVisibilityDiffers_ThrowsContractViolation()
+    [Test]
+    public async Task RequireField_WhenVisibilityDiffers_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireField(
                 typeof(FieldFixture),
                 nameof(FieldFixture.PublicInstanceField),
                 DeclaredMemberVisibility.NonPublic,
                 FieldStorageKind.Instance,
-                typeof(int)));
+                typeof(int))).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void RequireField_WhenStaticnessDiffers_ThrowsContractViolation()
+    [Test]
+    public async Task RequireField_WhenStaticnessDiffers_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireField(
                 typeof(FieldFixture),
                 "staticInsteadOfInstanceField",
                 DeclaredMemberVisibility.NonPublic,
                 FieldStorageKind.Instance,
-                typeof(int)));
+                typeof(int))).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void RequireField_WhenFieldTypeDiffers_ThrowsContractViolation()
+    [Test]
+    public async Task RequireField_WhenFieldTypeDiffers_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireField(
                 typeof(FieldFixture),
                 "wrongTypeField",
                 DeclaredMemberVisibility.NonPublic,
                 FieldStorageKind.Instance,
-                typeof(int)));
+                typeof(int))).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void RequireField_WhenOnlyInheritedFieldMatches_ThrowsContractViolation()
+    [Test]
+    public async Task RequireField_WhenOnlyInheritedFieldMatches_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireField(
                 typeof(FieldFixture),
                 "InheritedInstanceField",
                 DeclaredMemberVisibility.NonPublic,
                 FieldStorageKind.Instance,
-                typeof(int)));
+                typeof(int))).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void RequireField_WhenSeveralExactCandidatesExist_ThrowsContractViolation()
+    [Test]
+    public async Task RequireField_WhenSeveralExactCandidatesExist_ThrowsContractViolation()
     {
         var ambiguousType = new DuplicateMemberReportingType(
             typeof(FieldFixture),
             DuplicatedMemberCollection.Fields);
 
-        var exception = Assert.ThrowsExactly<
-            HarmonyPatchContractViolationException>(() =>
+        var exception = (await Assert.That(() =>
                 HarmonyPatchContractVerifier.RequireField(
                     ambiguousType,
                     "exactInstanceField",
                     DeclaredMemberVisibility.NonPublic,
                     FieldStorageKind.Instance,
-                    typeof(int)));
+                    typeof(int))).ThrowsExactly<
+            HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "2");
+        await Assert.That(exception.Message).Contains("2");
     }
 
-    [TestMethod]
-    public void RequireNestedType_WhenOneNonPublicTypeMatches_ReturnsThatType()
+    [Test]
+    public async Task RequireNestedType_WhenOneNonPublicTypeMatches_ReturnsThatType()
     {
         var nestedType = HarmonyPatchContractVerifier.RequireNestedType(
             typeof(NestedTypeFixture),
             "NonPublicNestedTarget",
             DeclaredMemberVisibility.NonPublic);
 
-        Assert.AreEqual("NonPublicNestedTarget", nestedType.Name);
-        Assert.IsTrue(nestedType.IsNestedPrivate);
+        await Assert.That(nestedType.Name).IsEqualTo("NonPublicNestedTarget");
+        await Assert.That(nestedType.IsNestedPrivate).IsTrue();
     }
 
-    [TestMethod]
-    public void RequireNestedType_WhenOnePublicTypeMatches_ReturnsThatType()
+    [Test]
+    public async Task RequireNestedType_WhenOnePublicTypeMatches_ReturnsThatType()
     {
         var nestedType = HarmonyPatchContractVerifier.RequireNestedType(
             typeof(NestedTypeFixture),
             "PublicNestedTarget",
             DeclaredMemberVisibility.Public);
 
-        Assert.AreEqual("PublicNestedTarget", nestedType.Name);
-        Assert.IsTrue(nestedType.IsNestedPublic);
+        await Assert.That(nestedType.Name).IsEqualTo("PublicNestedTarget");
+        await Assert.That(nestedType.IsNestedPublic).IsTrue();
     }
 
-    [TestMethod]
-    public void RequireNestedType_WhenNestedTypeIsMissing_ThrowsContractViolation()
+    [Test]
+    public async Task RequireNestedType_WhenNestedTypeIsMissing_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireNestedType(
                 typeof(NestedTypeFixture),
                 "MissingNestedTarget",
-                DeclaredMemberVisibility.NonPublic));
+                DeclaredMemberVisibility.NonPublic)).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void RequireNestedType_WhenVisibilityDiffers_ThrowsContractViolation()
+    [Test]
+    public async Task RequireNestedType_WhenVisibilityDiffers_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireNestedType(
                 typeof(NestedTypeFixture),
                 "PublicNestedTarget",
-                DeclaredMemberVisibility.NonPublic));
+                DeclaredMemberVisibility.NonPublic)).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void RequireNestedType_WhenOnlyInheritedNestedTypeMatches_ThrowsContractViolation()
+    [Test]
+    public async Task RequireNestedType_WhenOnlyInheritedNestedTypeMatches_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireNestedType(
                 typeof(NestedTypeFixture),
                 "InheritedNestedTarget",
-                DeclaredMemberVisibility.NonPublic));
+                DeclaredMemberVisibility.NonPublic)).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void RequireNestedType_WhenSeveralExactCandidatesExist_ThrowsContractViolation()
+    [Test]
+    public async Task RequireNestedType_WhenSeveralExactCandidatesExist_ThrowsContractViolation()
     {
         var ambiguousType = new DuplicateMemberReportingType(
             typeof(NestedTypeFixture),
             DuplicatedMemberCollection.NestedTypes);
 
-        var exception = Assert.ThrowsExactly<
-            HarmonyPatchContractViolationException>(() =>
+        var exception = (await Assert.That(() =>
                 HarmonyPatchContractVerifier.RequireNestedType(
                     ambiguousType,
                     "NonPublicNestedTarget",
-                    DeclaredMemberVisibility.NonPublic));
+                    DeclaredMemberVisibility.NonPublic)).ThrowsExactly<
+            HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "2");
+        await Assert.That(exception.Message).Contains("2");
     }
 
-    [TestMethod]
-    public void RequireSingleMatch_WhenNoInstructionMatches_ThrowsWithMatchCount()
+    [Test]
+    public async Task RequireSingleMatch_WhenNoInstructionMatches_ThrowsWithMatchCount()
     {
-        var exception = Assert.ThrowsExactly<
-            HarmonyPatchContractViolationException>(() =>
+        var exception = (await Assert.That(() =>
                 HarmonyPatchContractVerifier.RequireSingleMatch(
                     new[] { "load", "return" },
                     instruction => instruction == "anchor",
-                    "Fixture.Target anchor"));
+                    "Fixture.Target anchor")).ThrowsExactly<
+            HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "0");
-        StringAssert.Contains(exception.Message, "Fixture.Target anchor");
+        await Assert.That(exception.Message).Contains("0");
+        await Assert.That(exception.Message).Contains("Fixture.Target anchor");
     }
 
-    [TestMethod]
-    public void RequireSingleMatch_WhenOneInstructionMatches_ReturnsThatInstruction()
+    [Test]
+    public async Task RequireSingleMatch_WhenOneInstructionMatches_ReturnsThatInstruction()
     {
         var instruction = HarmonyPatchContractVerifier.RequireSingleMatch(
             new[] { "load", "anchor", "return" },
             candidate => candidate == "anchor",
             "Fixture.Target anchor");
 
-        Assert.AreEqual("anchor", instruction);
+        await Assert.That(instruction).IsEqualTo("anchor");
     }
 
-    [TestMethod]
-    public void RequireSingleMatch_WhenTwoInstructionsMatch_ThrowsWithMatchCount()
+    [Test]
+    public async Task RequireSingleMatch_WhenTwoInstructionsMatch_ThrowsWithMatchCount()
     {
-        var exception = Assert.ThrowsExactly<
-            HarmonyPatchContractViolationException>(() =>
+        var exception = (await Assert.That(() =>
                 HarmonyPatchContractVerifier.RequireSingleMatch(
                     new[] { "load", "anchor", "anchor", "return" },
                     instruction => instruction == "anchor",
-                    "Fixture.Target anchor"));
+                    "Fixture.Target anchor")).ThrowsExactly<
+            HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "2");
-        StringAssert.Contains(exception.Message, "Fixture.Target anchor");
+        await Assert.That(exception.Message).Contains("2");
+        await Assert.That(exception.Message).Contains("Fixture.Target anchor");
     }
 
-    [TestMethod]
-    public void RequireSingleMatch_WhenPredicateThrows_WrapsContractAndOriginalException()
+    [Test]
+    public async Task RequireSingleMatch_WhenPredicateThrows_WrapsContractAndOriginalException()
     {
         var predicateFailure = new InvalidOperationException(
             "fixture predicate failure");
 
-        var exception = Assert.ThrowsExactly<
-            HarmonyPatchContractViolationException>(() =>
+        var exception = (await Assert.That(() =>
                 HarmonyPatchContractVerifier.RequireSingleMatch(
                     new[] { "load", "anchor", "return" },
                     instruction => instruction == "anchor"
                         ? throw predicateFailure
                         : false,
-                    "Fixture.Target anchor"));
+                    "Fixture.Target anchor")).ThrowsExactly<
+            HarmonyPatchContractViolationException>())!;
 
-        StringAssert.Contains(exception.Message, "Fixture.Target anchor");
-        Assert.AreSame(predicateFailure, exception.InnerException);
+        await Assert.That(exception.Message).Contains("Fixture.Target anchor");
+        await Assert.That(exception.InnerException).IsSameReferenceAs(predicateFailure);
     }
 
-    [TestMethod]
-    public void RequireSingleMatch_WhenSeveralCandidatesExist_EvaluatesEachCandidateOnce()
+    [Test]
+    public async Task RequireSingleMatch_WhenSeveralCandidatesExist_EvaluatesEachCandidateOnce()
     {
         var evaluationCountByCandidate = new Dictionary<string, int>();
 
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireSingleMatch(
                 new[] { "first", "anchor-one", "anchor-two", "last" },
                 candidate =>
@@ -605,18 +603,18 @@ public sealed class HarmonyPatchContractVerifierTests
                         "anchor",
                         StringComparison.Ordinal);
                 },
-                "Fixture.Target anchor"));
+                "Fixture.Target anchor")).ThrowsExactly<HarmonyPatchContractViolationException>();
 
-        Assert.HasCount(4, evaluationCountByCandidate);
-        Assert.IsTrue(evaluationCountByCandidate.Values.All(count => count == 1));
+        await Assert.That(evaluationCountByCandidate).Count().IsEqualTo(4);
+        await Assert.That(evaluationCountByCandidate.Values.All(count => count == 1)).IsTrue();
     }
 
-    [TestMethod]
-    public void ActiveHarmonyPrefixDescriptor_WhenConstructed_PreservesExactMetadata()
+    [Test]
+    public async Task ActiveHarmonyPrefixDescriptor_WhenConstructed_PreservesExactMetadata()
     {
-        var targetMethod = RequireFixtureMethod(
+        var targetMethod = await RequireFixtureMethod(
             nameof(HarmonyAuthorityFixture.KleiTarget));
-        var patchMethod = RequireFixtureMethod(
+        var patchMethod = await RequireFixtureMethod(
             nameof(HarmonyAuthorityFixture.PermittedSkippingPrefix));
 
         var descriptor = new ActiveHarmonyPrefixDescriptor(
@@ -625,72 +623,72 @@ public sealed class HarmonyPatchContractVerifierTests
             "permitted.owner",
             priority: -123);
 
-        Assert.AreSame(targetMethod, descriptor.TargetMethod);
-        Assert.AreSame(patchMethod, descriptor.PrefixMethod);
-        Assert.AreEqual("permitted.owner", descriptor.HarmonyOwner);
-        Assert.AreEqual(-123, descriptor.Priority);
+        await Assert.That(descriptor.TargetMethod).IsSameReferenceAs(targetMethod);
+        await Assert.That(descriptor.PrefixMethod).IsSameReferenceAs(patchMethod);
+        await Assert.That(descriptor.HarmonyOwner).IsEqualTo("permitted.owner");
+        await Assert.That(descriptor.Priority).IsEqualTo(-123);
     }
 
-    [TestMethod]
-    public void ActiveHarmonyPrefixDescriptor_WhenTargetMethodIsNull_ThrowsArgumentNullException()
+    [Test]
+    public async Task ActiveHarmonyPrefixDescriptor_WhenTargetMethodIsNull_ThrowsArgumentNullException()
     {
-        Assert.ThrowsExactly<ArgumentNullException>(() =>
-            new ActiveHarmonyPrefixDescriptor(
+        await Assert.That(async () =>
+{new ActiveHarmonyPrefixDescriptor(
                 null!,
-                RequireFixtureMethod(
-                    nameof(HarmonyAuthorityFixture.PermittedSkippingPrefix)),
+                (await RequireFixtureMethod(
+                    nameof(HarmonyAuthorityFixture.PermittedSkippingPrefix))),
                 "permitted.owner",
-                priority: 0));
+                priority: 0);}).ThrowsExactly<ArgumentNullException>();
     }
 
-    [TestMethod]
-    public void ActiveHarmonyPrefixDescriptor_WhenPatchMethodIsNull_ThrowsArgumentNullException()
+    [Test]
+    public async Task ActiveHarmonyPrefixDescriptor_WhenPatchMethodIsNull_ThrowsArgumentNullException()
     {
-        Assert.ThrowsExactly<ArgumentNullException>(() =>
-            new ActiveHarmonyPrefixDescriptor(
-                RequireFixtureMethod(
-                    nameof(HarmonyAuthorityFixture.KleiTarget)),
+        await Assert.That(async () =>
+{new ActiveHarmonyPrefixDescriptor(
+                (await RequireFixtureMethod(
+                    nameof(HarmonyAuthorityFixture.KleiTarget))),
                 null!,
                 "permitted.owner",
-                priority: 0));
+                priority: 0);}).ThrowsExactly<ArgumentNullException>();
     }
 
-    [TestMethod]
-    public void ActiveHarmonyPrefixDescriptor_WhenHarmonyOwnerIsBlank_ThrowsArgumentException()
+    [Test]
+    public async Task ActiveHarmonyPrefixDescriptor_WhenHarmonyOwnerIsBlank_ThrowsArgumentException()
     {
-        Assert.ThrowsExactly<ArgumentException>(() =>
-            new ActiveHarmonyPrefixDescriptor(
-                RequireFixtureMethod(
-                    nameof(HarmonyAuthorityFixture.KleiTarget)),
-                RequireFixtureMethod(
-                    nameof(HarmonyAuthorityFixture.PermittedSkippingPrefix)),
+        await Assert.That(async () =>
+{new ActiveHarmonyPrefixDescriptor(
+                (await RequireFixtureMethod(
+                    nameof(HarmonyAuthorityFixture.KleiTarget))),
+                (await RequireFixtureMethod(
+                    nameof(HarmonyAuthorityFixture.PermittedSkippingPrefix))),
                 " ",
-                priority: 0));
+                priority: 0);}).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void VerifyKleiAuthority_WhenNoSkippingPrefixExists_ReturnsTrue()
+    [Test]
+    public async Task VerifyKleiAuthority_WhenNoSkippingPrefixExists_ReturnsTrue()
     {
         var result = HarmonyPatchContractVerifier.VerifyKleiAuthority(
-            RequireFixtureMethod(nameof(HarmonyAuthorityFixture.KleiTarget)),
+            (await RequireFixtureMethod(nameof(HarmonyAuthorityFixture.KleiTarget))),
             Array.Empty<ActiveHarmonyPrefixDescriptor>(),
             Array.Empty<string>());
 
-        Assert.IsTrue(result);
+        await Assert.That(result).IsTrue();
     }
 
-    [TestMethod]
-    public void VerifyKleiAuthority_WhenOnlyPermittedSkippingOwnerExists_ReturnsTrue()
+    [Test]
+    public async Task VerifyKleiAuthority_WhenOnlyPermittedSkippingOwnerExists_ReturnsTrue()
     {
-        var targetMethod = RequireFixtureMethod(
+        var targetMethod = await RequireFixtureMethod(
             nameof(HarmonyAuthorityFixture.KleiTarget));
         var activePatches = new[]
         {
-            CreateDescriptor(
+            (await CreateDescriptor(
                 targetMethod,
                 nameof(HarmonyAuthorityFixture.PermittedSkippingPrefix),
                 "permitted.owner",
-                priority: 400),
+                priority: 400)),
         };
 
         var result = HarmonyPatchContractVerifier.VerifyKleiAuthority(
@@ -698,21 +696,21 @@ public sealed class HarmonyPatchContractVerifierTests
             activePatches,
             new[] { "permitted.owner" });
 
-        Assert.IsTrue(result);
+        await Assert.That(result).IsTrue();
     }
 
-    [TestMethod]
-    public void VerifyKleiAuthority_WhenForeignSkippingPrefixExists_ReturnsFalse()
+    [Test]
+    public async Task VerifyKleiAuthority_WhenForeignSkippingPrefixExists_ReturnsFalse()
     {
-        var targetMethod = RequireFixtureMethod(
+        var targetMethod = await RequireFixtureMethod(
             nameof(HarmonyAuthorityFixture.KleiTarget));
         var activePatches = new[]
         {
-            CreateDescriptor(
+            (await CreateDescriptor(
                 targetMethod,
                 nameof(HarmonyAuthorityFixture.ForeignSkippingPrefix),
                 "foreign.owner",
-                priority: 0),
+                priority: 0)),
         };
 
         var result = HarmonyPatchContractVerifier.VerifyKleiAuthority(
@@ -720,21 +718,21 @@ public sealed class HarmonyPatchContractVerifierTests
             activePatches,
             new[] { "permitted.owner" });
 
-        Assert.IsFalse(result);
+        await Assert.That(result).IsFalse();
     }
 
-    [TestMethod]
-    public void VerifyKleiAuthority_WhenForeignNonSkippingPrefixExists_ReturnsTrue()
+    [Test]
+    public async Task VerifyKleiAuthority_WhenForeignNonSkippingPrefixExists_ReturnsTrue()
     {
-        var targetMethod = RequireFixtureMethod(
+        var targetMethod = await RequireFixtureMethod(
             nameof(HarmonyAuthorityFixture.KleiTarget));
         var activePatches = new[]
         {
-            CreateDescriptor(
+            (await CreateDescriptor(
                 targetMethod,
                 nameof(HarmonyAuthorityFixture.ForeignObservingPrefix),
                 "foreign.owner",
-                priority: 0),
+                priority: 0)),
         };
 
         var result = HarmonyPatchContractVerifier.VerifyKleiAuthority(
@@ -742,52 +740,52 @@ public sealed class HarmonyPatchContractVerifierTests
             activePatches,
             Array.Empty<string>());
 
-        Assert.IsTrue(result);
+        await Assert.That(result).IsTrue();
     }
 
-    [TestMethod]
-    public void VerifyKleiAuthority_WhenSkippingPrefixTargetsAnotherMethod_ReturnsTrue()
+    [Test]
+    public async Task VerifyKleiAuthority_WhenSkippingPrefixTargetsAnotherMethod_ReturnsTrue()
     {
         var activePatches = new[]
         {
-            CreateDescriptor(
-                RequireFixtureMethod(
-                    nameof(HarmonyAuthorityFixture.OtherKleiTarget)),
+            (await CreateDescriptor(
+                (await RequireFixtureMethod(
+                    nameof(HarmonyAuthorityFixture.OtherKleiTarget))),
                 nameof(HarmonyAuthorityFixture.ForeignSkippingPrefix),
                 "foreign.owner",
-                priority: 0),
+                priority: 0)),
         };
 
         var result = HarmonyPatchContractVerifier.VerifyKleiAuthority(
-            RequireFixtureMethod(nameof(HarmonyAuthorityFixture.KleiTarget)),
+            (await RequireFixtureMethod(nameof(HarmonyAuthorityFixture.KleiTarget))),
             activePatches,
             Array.Empty<string>());
 
-        Assert.IsTrue(result);
+        await Assert.That(result).IsTrue();
     }
 
-    [TestMethod]
-    public void VerifyKleiAuthority_WhenSeveralPrioritiesExist_DoesNotInferAuthorityFromOrder()
+    [Test]
+    public async Task VerifyKleiAuthority_WhenSeveralPrioritiesExist_DoesNotInferAuthorityFromOrder()
     {
-        var targetMethod = RequireFixtureMethod(
+        var targetMethod = await RequireFixtureMethod(
             nameof(HarmonyAuthorityFixture.KleiTarget));
         var activePatches = new[]
         {
-            CreateDescriptor(
+            (await CreateDescriptor(
                 targetMethod,
                 nameof(HarmonyAuthorityFixture.PermittedSkippingPrefix),
                 "permitted.owner",
-                priority: int.MaxValue),
-            CreateDescriptor(
+                priority: int.MaxValue)),
+            (await CreateDescriptor(
                 targetMethod,
                 nameof(HarmonyAuthorityFixture.ForeignObservingPrefix),
                 "observer.owner",
-                priority: 0),
-            CreateDescriptor(
+                priority: 0)),
+            (await CreateDescriptor(
                 targetMethod,
                 nameof(HarmonyAuthorityFixture.ForeignSkippingPrefix),
                 "foreign.owner",
-                priority: int.MinValue),
+                priority: int.MinValue)),
         };
 
         var result = HarmonyPatchContractVerifier.VerifyKleiAuthority(
@@ -795,21 +793,21 @@ public sealed class HarmonyPatchContractVerifierTests
             activePatches,
             new[] { "permitted.owner" });
 
-        Assert.IsFalse(result);
+        await Assert.That(result).IsFalse();
     }
 
-    [TestMethod]
-    public void VerifyKleiAuthority_WhenOwnerDiffersOnlyByCase_ReturnsFalse()
+    [Test]
+    public async Task VerifyKleiAuthority_WhenOwnerDiffersOnlyByCase_ReturnsFalse()
     {
-        var targetMethod = RequireFixtureMethod(
+        var targetMethod = await RequireFixtureMethod(
             nameof(HarmonyAuthorityFixture.KleiTarget));
         var activePatches = new[]
         {
-            CreateDescriptor(
+            (await CreateDescriptor(
                 targetMethod,
                 nameof(HarmonyAuthorityFixture.PermittedSkippingPrefix),
                 "PERMITTED.OWNER",
-                priority: 0),
+                priority: 0)),
         };
 
         var result = HarmonyPatchContractVerifier.VerifyKleiAuthority(
@@ -817,11 +815,11 @@ public sealed class HarmonyPatchContractVerifierTests
             activePatches,
             new[] { "permitted.owner" });
 
-        Assert.IsFalse(result);
+        await Assert.That(result).IsFalse();
     }
 
-    [TestMethod]
-    public void WorldInventoryUpdateContract_WhenInstalledShapeMatches_ReturnsExactPrivateInstanceMethod()
+    [Test]
+    public async Task WorldInventoryUpdateContract_WhenInstalledShapeMatches_ReturnsExactPrivateInstanceMethod()
     {
         var method = HarmonyPatchContractVerifier.RequireInstanceMethod(
             typeof(WorldInventoryUpdateTargetContractFixture),
@@ -830,15 +828,15 @@ public sealed class HarmonyPatchContractVerifierTests
             typeof(void),
             Array.Empty<Type>());
 
-        AssertExactInstanceMethod(
+        await AssertExactInstanceMethod(
             method,
             typeof(WorldInventoryUpdateTargetContractFixture),
             isPublic: false,
             Array.Empty<Type>());
     }
 
-    [TestMethod]
-    public void FetchListStatusRenderContract_WhenInstalledShapeMatches_ReturnsExactPublicInstanceMethod()
+    [Test]
+    public async Task FetchListStatusRenderContract_WhenInstalledShapeMatches_ReturnsExactPublicInstanceMethod()
     {
         var method = HarmonyPatchContractVerifier.RequireInstanceMethod(
             typeof(FetchListStatusRenderTargetContractFixture),
@@ -847,21 +845,21 @@ public sealed class HarmonyPatchContractVerifierTests
             typeof(void),
             [typeof(float)]);
 
-        AssertExactInstanceMethod(
+        await AssertExactInstanceMethod(
             method,
             typeof(FetchListStatusRenderTargetContractFixture),
             isPublic: true,
             [typeof(float)]);
     }
 
-    [TestMethod]
+    [Test]
     public void FetchListStatusRenderContract_WhenInstalledOniAssemblyIsInspected_MatchesSingleFloatParameter()
     {
         string? managedAssemblyDirectory = Environment.GetEnvironmentVariable(
             "ONI_MANAGED_ASSEMBLY_DIRECTORY");
         if (string.IsNullOrWhiteSpace(managedAssemblyDirectory))
         {
-            throw new AssertFailedException(
+            throw new TUnit.Assertions.Exceptions.AssertionException(
                 "The ONI mod pipeline must provide " +
                 "ONI_MANAGED_ASSEMBLY_DIRECTORY.");
         }
@@ -877,8 +875,8 @@ public sealed class HarmonyPatchContractVerifierTests
                 "Render200ms");
     }
 
-    [TestMethod]
-    public void FetchListStatusRenderTargetContract_WhenSourceIsInspected_UsesSingleFloatParameter()
+    [Test]
+    public async Task FetchListStatusRenderTargetContract_WhenSourceIsInspected_UsesSingleFloatParameter()
     {
         string adapterPath = ResolveProductionSourcePath(
             "KleiImplementationAdapters",
@@ -891,17 +889,15 @@ public sealed class HarmonyPatchContractVerifierTests
             @"typeof\(void\),\s*" +
             @"new\[\]\s*\{\s*typeof\(float\)\s*\}\s*\)";
 
-        Assert.IsTrue(
-            Regex.IsMatch(
+        await Assert.That(Regex.IsMatch(
                 source,
                 expectedContractPattern,
-                RegexOptions.CultureInvariant),
-            "The Render200ms resolver must model the installed public instance " +
+                RegexOptions.CultureInvariant)).IsTrue().Because("The Render200ms resolver must model the installed public instance " +
             "void method's single System.Single parameter.");
     }
 
-    [TestMethod]
-    public void AuthoritativeFetchTargetContracts_WhenInstalledShapesMatch_ReturnExactMethods()
+    [Test]
+    public async Task AuthoritativeFetchTargetContracts_WhenInstalledShapesMatch_ReturnExactMethods()
     {
         var addChore = HarmonyPatchContractVerifier.RequireInstanceMethod(
             typeof(GlobalChoreProviderFetchContractFixture),
@@ -936,154 +932,146 @@ public sealed class HarmonyPatchContractVerifierTests
             typeof(void),
             [typeof(object)]);
 
-        AssertExactInstanceMethod(
+        await AssertExactInstanceMethod(
             addChore,
             typeof(GlobalChoreProviderFetchContractFixture),
             isPublic: true,
             [typeof(ChoreContractFixture)]);
-        AssertExactInstanceMethod(
+        await AssertExactInstanceMethod(
             removeChore,
             typeof(GlobalChoreProviderFetchContractFixture),
             isPublic: true,
             [typeof(ChoreContractFixture)]);
-        AssertExactInstanceMethod(
+        await AssertExactInstanceMethod(
             updateStorageFetchableBits,
             typeof(GlobalChoreProviderFetchContractFixture),
             isPublic: false,
             Array.Empty<Type>());
-        AssertExactInstanceMethod(
+        await AssertExactInstanceMethod(
             clearableHasDestination,
             typeof(GlobalChoreProviderFetchContractFixture),
             isPublic: true,
             typeof(bool),
             [typeof(PickupableContractFixture)]);
-        AssertExactInstanceMethod(
+        await AssertExactInstanceMethod(
             onTagsChanged,
             typeof(FetchChoreTagChangeContractFixture),
             isPublic: false,
             [typeof(object)]);
     }
 
-    [TestMethod]
-    public void AuthoritativeFetchTargetContracts_WhenOnlyOverloadsArePresent_ThrowContractViolations()
+    [Test]
+    public async Task AuthoritativeFetchTargetContracts_WhenOnlyOverloadsArePresent_ThrowContractViolations()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireInstanceMethod(
                 typeof(GlobalChoreProviderFetchOverloadOnlyFixture),
                 "AddChore",
                 DeclaredMemberVisibility.Public,
                 typeof(void),
-                [typeof(ChoreContractFixture)]));
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+                [typeof(ChoreContractFixture)])).ThrowsExactly<HarmonyPatchContractViolationException>();
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireInstanceMethod(
                 typeof(GlobalChoreProviderFetchOverloadOnlyFixture),
                 "RemoveChore",
                 DeclaredMemberVisibility.Public,
                 typeof(void),
-                [typeof(ChoreContractFixture)]));
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+                [typeof(ChoreContractFixture)])).ThrowsExactly<HarmonyPatchContractViolationException>();
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireInstanceMethod(
                 typeof(GlobalChoreProviderFetchOverloadOnlyFixture),
                 "UpdateStorageFetchableBits",
                 DeclaredMemberVisibility.NonPublic,
                 typeof(void),
-                Array.Empty<Type>()));
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+                Array.Empty<Type>())).ThrowsExactly<HarmonyPatchContractViolationException>();
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireInstanceMethod(
                 typeof(GlobalChoreProviderFetchOverloadOnlyFixture),
                 "ClearableHasDestination",
                 DeclaredMemberVisibility.Public,
                 typeof(bool),
-                [typeof(PickupableContractFixture)]));
+                [typeof(PickupableContractFixture)])).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void FetchChoreOnTagsChangedContract_WhenParameterTypeChanges_ThrowsContractViolation()
+    [Test]
+    public async Task FetchChoreOnTagsChangedContract_WhenParameterTypeChanges_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireInstanceMethod(
                 typeof(FetchChoreChangedTagEventContractFixture),
                 "OnTagsChanged",
                 DeclaredMemberVisibility.NonPublic,
                 typeof(void),
-                [typeof(object)]));
+                [typeof(object)])).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void AuthoritativeFetchTraversalInstructionContract_WhenCapturedInstalledShapeMatches_ResolvesParentAndSelectedChoreAnchorsOnce()
+    [Test]
+    public async Task AuthoritativeFetchTraversalInstructionContract_WhenCapturedInstalledShapeMatches_ResolvesParentAndSelectedChoreAnchorsOnce()
     {
         var anchors = RequireAuthoritativeFetchTraversalInstructionAnchors(
             CapturedAuthoritativeFetchTraversalInstructions());
 
-        Assert.AreEqual(0, anchors.ParentWorldSectionStartIndex);
-        Assert.AreEqual(13, anchors.SelectedFetchChoreIndex);
-        Assert.AreEqual(2, anchors.SortedWorldIdsLocalIndex);
-        Assert.AreEqual(3, anchors.SortedWorldIdIndexLocalIndex);
-        Assert.AreEqual(6, anchors.SelectedFetchChoreLocalIndex);
+        await Assert.That(anchors.ParentWorldSectionStartIndex).IsEqualTo(0);
+        await Assert.That(anchors.SelectedFetchChoreIndex).IsEqualTo(13);
+        await Assert.That(anchors.SortedWorldIdsLocalIndex).IsEqualTo(2);
+        await Assert.That(anchors.SortedWorldIdIndexLocalIndex).IsEqualTo(3);
+        await Assert.That(anchors.SelectedFetchChoreLocalIndex).IsEqualTo(6);
     }
 
-    [TestMethod]
-    public void AuthoritativeFetchTraversalInstructionContract_WhenSecondFetchMapTraversalExists_ThrowsContractViolation()
+    [Test]
+    public async Task AuthoritativeFetchTraversalInstructionContract_WhenSecondFetchMapTraversalExists_ThrowsContractViolation()
     {
         var instructions = CapturedAuthoritativeFetchTraversalInstructions();
         instructions.AddRange(instructions.GetRange(0, 6));
 
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
-            RequireAuthoritativeFetchTraversalInstructionAnchors(instructions));
+        await Assert.That(() =>
+            RequireAuthoritativeFetchTraversalInstructionAnchors(instructions)).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void AuthoritativeFetchTraversalInstructionContract_WhenSelectedFetchChoreAnchorIsMissing_ThrowsContractViolation()
+    [Test]
+    public async Task AuthoritativeFetchTraversalInstructionContract_WhenSelectedFetchChoreAnchorIsMissing_ThrowsContractViolation()
     {
         var instructions = CapturedAuthoritativeFetchTraversalInstructions();
         instructions[15] = FieldInstruction("FetchChore.unrelatedTags");
 
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
-            RequireAuthoritativeFetchTraversalInstructionAnchors(instructions));
+        await Assert.That(() =>
+            RequireAuthoritativeFetchTraversalInstructionAnchors(instructions)).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void AuthoritativeFetchAdapterSource_WhenInspected_ExposesManualFailClosedContractsOnly()
+    [Test]
+    public async Task AuthoritativeFetchAdapterSource_WhenInspected_ExposesManualFailClosedContractsOnly()
     {
         var adapterPath = ResolveProductionSourcePath(
             "KleiImplementationAdapters",
             "KleiAuthoritativeFetchTemperatureEligibilityPatches.cs");
-        Assert.IsTrue(
-            File.Exists(adapterPath),
-            $"Missing authoritative fetch adapter source {adapterPath}.");
+        await Assert.That(File.Exists(adapterPath)).IsTrue().Because($"Missing authoritative fetch adapter source {adapterPath}.");
         var source = File.ReadAllText(adapterPath);
 
-        StringAssert.Contains(source, "ResolveGlobalChoreProviderAddChoreTarget");
-        StringAssert.Contains(source, "ResolveGlobalChoreProviderRemoveChoreTarget");
-        StringAssert.Contains(source, "ResolveFetchChoreOnTagsChangedTarget");
-        StringAssert.Contains(
-            source,
-            "ResolveGlobalChoreProviderUpdateStorageFetchableBitsTarget");
-        StringAssert.Contains(
-            source,
-            "ResolveGlobalChoreProviderClearableHasDestinationTarget");
-        StringAssert.Contains(source, "UpdateStorageFetchableBitsTranspiler");
-        StringAssert.Contains(source, "BeginParentWorldFetchMapSection");
-        StringAssert.Contains(source, "RecordSelectedFetchChore");
-        StringAssert.Contains(source, "TryPublishFetchTemperatureEligibility");
-        StringAssert.Contains(
-            source,
-            "ClearableDestinationSweepEligibility.AllowsClearing");
-        Assert.IsFalse(source.Contains("[HarmonyPatch", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("AccessTools", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("operand.ToString", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("HashSet<Tag>[]", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("storageFetchableTagsPerTemperatureIndex", StringComparison.Ordinal));
+        await Assert.That(source).Contains("ResolveGlobalChoreProviderAddChoreTarget");
+        await Assert.That(source).Contains("ResolveGlobalChoreProviderRemoveChoreTarget");
+        await Assert.That(source).Contains("ResolveFetchChoreOnTagsChangedTarget");
+        await Assert.That(source).Contains("ResolveGlobalChoreProviderUpdateStorageFetchableBitsTarget");
+        await Assert.That(source).Contains("ResolveGlobalChoreProviderClearableHasDestinationTarget");
+        await Assert.That(source).Contains("UpdateStorageFetchableBitsTranspiler");
+        await Assert.That(source).Contains("BeginParentWorldFetchMapSection");
+        await Assert.That(source).Contains("RecordSelectedFetchChore");
+        await Assert.That(source).Contains("TryPublishFetchTemperatureEligibility");
+        await Assert.That(source).Contains("ClearableDestinationSweepEligibility.AllowsClearing");
+        await Assert.That(source.Contains("[HarmonyPatch", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("AccessTools", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("operand.ToString", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("HashSet<Tag>[]", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("storageFetchableTagsPerTemperatureIndex", StringComparison.Ordinal)).IsFalse();
     }
 
-    [TestMethod]
-    public void AuthoritativeFetchMapFieldContract_WhenComparedWithInstalledOni_UsesCurrentPublicInstanceField()
+    [Test]
+    public async Task AuthoritativeFetchMapFieldContract_WhenComparedWithInstalledOni_UsesCurrentPublicInstanceField()
     {
         string? managedAssemblyDirectory = Environment.GetEnvironmentVariable(
             "ONI_MANAGED_ASSEMBLY_DIRECTORY");
         if (string.IsNullOrWhiteSpace(managedAssemblyDirectory))
         {
-            throw new AssertFailedException(
+            throw new TUnit.Assertions.Exceptions.AssertionException(
                 "The ONI mod pipeline must provide " +
                 "ONI_MANAGED_ASSEMBLY_DIRECTORY.");
         }
@@ -1109,17 +1097,15 @@ public sealed class HarmonyPatchContractVerifierTests
             @"FieldStorageKind\.Instance,\s*" +
             @"typeof\(Dictionary<int,\s*List<FetchChore>>\)\s*\)";
 
-        Assert.IsTrue(
-            Regex.IsMatch(
+        await Assert.That(Regex.IsMatch(
                 source,
                 expectedContractPattern,
-                RegexOptions.CultureInvariant),
-            "The authoritative fetch-map reflection contract must use the " +
+                RegexOptions.CultureInvariant)).IsTrue().Because("The authoritative fetch-map reflection contract must use the " +
             "public instance visibility verified in the installed ONI assembly.");
     }
 
-    [TestMethod]
-    public void KleiPickupGroupingTargetContracts_WhenInstalledShapesMatch_ReturnExactMethods()
+    [Test]
+    public async Task KleiPickupGroupingTargetContracts_WhenInstalledShapesMatch_ReturnExactMethods()
     {
         var updatePickups = HarmonyPatchContractVerifier.RequireInstanceMethod(
             typeof(FetchablesByPrefabIdPickupGroupingContractFixture),
@@ -1141,35 +1127,33 @@ public sealed class HarmonyPatchContractVerifierTests
                 typeof(PickupGroupingCandidateContractFixture)
             ]);
 
-        AssertExactInstanceMethod(
+        await AssertExactInstanceMethod(
             updatePickups,
             typeof(FetchablesByPrefabIdPickupGroupingContractFixture),
             isPublic: true,
             [typeof(NavigatorPickupGroupingContractFixture), typeof(int)]);
-        Assert.AreSame(comparerType, compare.DeclaringType);
-        Assert.IsTrue(compare.IsPrivate);
-        Assert.IsTrue(compare.IsStatic);
-        Assert.AreSame(typeof(int), compare.ReturnType);
-        Assert.AreSequenceEqual(
-            new[]
+        await Assert.That(compare.DeclaringType).IsSameReferenceAs(comparerType);
+        await Assert.That(compare.IsPrivate).IsTrue();
+        await Assert.That(compare.IsStatic).IsTrue();
+        await Assert.That(compare.ReturnType).IsSameReferenceAs(typeof(int));
+        await Assert.That(compare.GetParameters()
+                .Select(parameter => parameter.ParameterType)
+                .ToArray()).IsEquivalentTo(new[]
             {
                 typeof(PickupGroupingCandidateContractFixture),
                 typeof(PickupGroupingCandidateContractFixture)
-            },
-            compare.GetParameters()
-                .Select(parameter => parameter.ParameterType)
-                .ToArray());
+            }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
-    [TestMethod]
-    public void KleiPickupGroupingCompareContract_WhenCandidateTypeChanges_ThrowsContractViolation()
+    [Test]
+    public async Task KleiPickupGroupingCompareContract_WhenCandidateTypeChanges_ThrowsContractViolation()
     {
         var comparerType = HarmonyPatchContractVerifier.RequireNestedType(
             typeof(FetchManagerChangedPickupGroupingContractFixture),
             "PickupComparerIncludingPriority",
             DeclaredMemberVisibility.NonPublic);
 
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireStaticMethod(
                 comparerType,
                 "Compare",
@@ -1178,170 +1162,150 @@ public sealed class HarmonyPatchContractVerifierTests
                 [
                     typeof(PickupGroupingCandidateContractFixture),
                     typeof(PickupGroupingCandidateContractFixture)
-                ]));
+                ])).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void KleiPickupGroupingInstructionContract_WhenCapturedInstalledShapesMatch_ResolvesComparatorAndSuppressionAnchorsOnce()
+    [Test]
+    public async Task KleiPickupGroupingInstructionContract_WhenCapturedInstalledShapesMatch_ResolvesComparatorAndSuppressionAnchorsOnce()
     {
         var anchors = RequireKleiPickupGroupingInstructionAnchors(
             CapturedPickupGroupingComparatorInstructions(),
             CapturedPickupDuplicateSuppressionInstructions());
 
-        Assert.AreEqual(0, anchors.ComparatorExtensionIndex);
-        Assert.AreEqual(6, anchors.DuplicateSuppressionExtensionIndex);
-        Assert.AreEqual(0, anchors.PreviousPickupLocalIndex);
-        Assert.AreEqual(6, anchors.CurrentPickupLocalIndex);
-        Assert.AreEqual(
-            "TemperatureEligibilityClassKey",
-            anchors.SharedSemanticKeyIdentity);
+        await Assert.That(anchors.ComparatorExtensionIndex).IsEqualTo(0);
+        await Assert.That(anchors.DuplicateSuppressionExtensionIndex).IsEqualTo(6);
+        await Assert.That(anchors.PreviousPickupLocalIndex).IsEqualTo(0);
+        await Assert.That(anchors.CurrentPickupLocalIndex).IsEqualTo(6);
+        await Assert.That(anchors.SharedSemanticKeyIdentity).IsEqualTo("TemperatureEligibilityClassKey");
     }
 
-    [TestMethod]
-    public void KleiPickupGroupingInstructionContract_WhenComparatorAnchorIsDuplicated_ThrowsContractViolation()
+    [Test]
+    public async Task KleiPickupGroupingInstructionContract_WhenComparatorAnchorIsDuplicated_ThrowsContractViolation()
     {
         var comparatorInstructions =
             CapturedPickupGroupingComparatorInstructions();
         comparatorInstructions.AddRange(
             CapturedPickupGroupingComparatorInstructions());
 
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             RequireKleiPickupGroupingInstructionAnchors(
                 comparatorInstructions,
-                CapturedPickupDuplicateSuppressionInstructions()));
+                CapturedPickupDuplicateSuppressionInstructions())).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void KleiPickupGroupingInstructionContract_WhenSuppressionAnchorIsMissing_ThrowsContractViolation()
+    [Test]
+    public async Task KleiPickupGroupingInstructionContract_WhenSuppressionAnchorIsMissing_ThrowsContractViolation()
     {
         var suppressionInstructions =
             CapturedPickupDuplicateSuppressionInstructions();
         suppressionInstructions[13] = OperationInstruction("ldc.i4.0");
 
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             RequireKleiPickupGroupingInstructionAnchors(
                 CapturedPickupGroupingComparatorInstructions(),
-                suppressionInstructions));
+                suppressionInstructions)).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void KleiPickupGroupingInstructionContract_WhenCandidateFieldTypeChanges_ThrowsContractViolation()
+    [Test]
+    public async Task KleiPickupGroupingInstructionContract_WhenCandidateFieldTypeChanges_ThrowsContractViolation()
     {
         var comparatorInstructions =
             CapturedPickupGroupingComparatorInstructions();
         comparatorInstructions[1] = FieldAddressInstruction(
             "ChangedPickupCandidate.masterPriority");
 
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             RequireKleiPickupGroupingInstructionAnchors(
                 comparatorInstructions,
-                CapturedPickupDuplicateSuppressionInstructions()));
+                CapturedPickupDuplicateSuppressionInstructions())).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
+    [Test]
     public void KleiPickupWorkerReadContract_WhenEveryReadIsVerifiedManagedState_AcceptsContract()
     {
         RequireVerifiedKleiPickupWorkerReadContract(
             CapturedVerifiedKleiPickupWorkerReads());
     }
 
-    [TestMethod]
-    public void KleiPickupWorkerReadContract_WhenPickupIdentityRequiresUnityNativeCall_ThrowsContractViolation()
+    [Test]
+    public async Task KleiPickupWorkerReadContract_WhenPickupIdentityRequiresUnityNativeCall_ThrowsContractViolation()
     {
         var workerReads = CapturedVerifiedKleiPickupWorkerReads();
         workerReads[4] = "UnityEngine.Object.GetInstanceID";
 
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
-            RequireVerifiedKleiPickupWorkerReadContract(workerReads));
+        await Assert.That(() =>
+            RequireVerifiedKleiPickupWorkerReadContract(workerReads)).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void KleiPickupGroupingAdapterSource_WhenInspected_UsesOneFullKeyAndOnlyVerifiedManagedWorkerReads()
+    [Test]
+    public async Task KleiPickupGroupingAdapterSource_WhenInspected_UsesOneFullKeyAndOnlyVerifiedManagedWorkerReads()
     {
         var adapterPath = ResolveProductionSourcePath(
             "KleiImplementationAdapters",
             "KleiPickupTemperatureGroupingPatches.cs");
-        Assert.IsTrue(
-            File.Exists(adapterPath),
-            $"Missing Klei pickup grouping adapter source {adapterPath}.");
+        await Assert.That(File.Exists(adapterPath)).IsTrue().Because($"Missing Klei pickup grouping adapter source {adapterPath}.");
         var source = File.ReadAllText(adapterPath);
         var sharedReadContractSource = File.ReadAllText(
             ResolveProductionSourcePath(
                 "PickupTemperatureGroupingAdapters",
                 "PickupTemperatureGroupingWorkerReadContractVerifier.cs"));
 
-        StringAssert.Contains(
-            source,
-            "ResolveFetchablesByPrefabIdUpdatePickupsTarget");
-        StringAssert.Contains(
-            source,
-            "ResolvePickupComparerIncludingPriorityCompareTarget");
-        StringAssert.Contains(
-            source,
-            "VerifyKleiPickupGroupingPatchContracts");
-        StringAssert.Contains(source, "PatchProcessor.GetOriginalInstructions");
-        StringAssert.Contains(source, "UpdatePickupsPrefix");
-        StringAssert.Contains(source, "UpdatePickupsTranspiler");
-        StringAssert.Contains(source, "UpdatePickupsPostfix");
-        StringAssert.Contains(source, "UpdatePickupsFinalizer");
-        StringAssert.Contains(source, "PickupComparerTranspiler");
-        StringAssert.Contains(source, "GetTemperatureEligibilityClassKey");
-        StringAssert.Contains(source, "TemperatureEligibilityClassKey.CompareTo");
-        StringAssert.Contains(source, "TemperatureEligibilityClassKey.Equals");
-        StringAssert.Contains(
-            source,
-            "PickupTemperatureGroupingWorkerReadContractVerifier");
-        StringAssert.Contains(sharedReadContractSource, "KPrefabID.HasTag");
-        StringAssert.Contains(
-            sharedReadContractSource,
-            "PrimaryElement.InternalTemperature");
-        StringAssert.Contains(source, "kPrefabId.InstanceID");
-        StringAssert.Contains(source, "kPrefabId.PrefabTag");
-        StringAssert.Contains(source, "ThreadConfinedSessionSlot");
-        Assert.AreEqual(
-            5,
-            CountOrdinalOccurrences(
+        await Assert.That(source).Contains("ResolveFetchablesByPrefabIdUpdatePickupsTarget");
+        await Assert.That(source).Contains("ResolvePickupComparerIncludingPriorityCompareTarget");
+        await Assert.That(source).Contains("VerifyKleiPickupGroupingPatchContracts");
+        await Assert.That(source).Contains("PatchProcessor.GetOriginalInstructions");
+        await Assert.That(source).Contains("UpdatePickupsPrefix");
+        await Assert.That(source).Contains("UpdatePickupsTranspiler");
+        await Assert.That(source).Contains("UpdatePickupsPostfix");
+        await Assert.That(source).Contains("UpdatePickupsFinalizer");
+        await Assert.That(source).Contains("PickupComparerTranspiler");
+        await Assert.That(source).Contains("GetTemperatureEligibilityClassKey");
+        await Assert.That(source).Contains("TemperatureEligibilityClassKey.CompareTo");
+        await Assert.That(source).Contains("TemperatureEligibilityClassKey.Equals");
+        await Assert.That(source).Contains("PickupTemperatureGroupingWorkerReadContractVerifier");
+        await Assert.That(sharedReadContractSource).Contains("KPrefabID.HasTag");
+        await Assert.That(sharedReadContractSource).Contains("PrimaryElement.InternalTemperature");
+        await Assert.That(source).Contains("kPrefabId.InstanceID");
+        await Assert.That(source).Contains("kPrefabId.PrefabTag");
+        await Assert.That(source).Contains("ThreadConfinedSessionSlot");
+        await Assert.That(CountOrdinalOccurrences(
                 source,
-                "GetTemperatureEligibilityClassKey("));
-        Assert.IsFalse(source.Contains("[HarmonyPatch", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("AccessTools", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("operand.ToString", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains(".LocalIndex()", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("GetComponent", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("GetInstanceID", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("ClusterManager", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("PrimaryElement.Temperature", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("AsyncLocal", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains(".PartitionDefinitionId", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains(".IntervalOrdinal", StringComparison.Ordinal));
+                "GetTemperatureEligibilityClassKey(")).IsEqualTo(5);
+        await Assert.That(source.Contains("[HarmonyPatch", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("AccessTools", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("operand.ToString", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains(".LocalIndex()", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("GetComponent", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("GetInstanceID", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("ClusterManager", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("PrimaryElement.Temperature", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("AsyncLocal", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains(".PartitionDefinitionId", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains(".IntervalOrdinal", StringComparison.Ordinal)).IsFalse();
     }
 
-    [TestMethod]
-    public void KleiPickupGroupingPrefix_WhenSourceIsInspected_BindsNavigatorByVerifiedPosition()
+    [Test]
+    public async Task KleiPickupGroupingPrefix_WhenSourceIsInspected_BindsNavigatorByVerifiedPosition()
     {
         string adapterPath = ResolveProductionSourcePath(
             "KleiImplementationAdapters",
             "KleiPickupTemperatureGroupingPatches.cs");
         string source = File.ReadAllText(adapterPath);
 
-        Assert.IsTrue(
-            Regex.IsMatch(
+        await Assert.That(Regex.IsMatch(
                 source,
                 @"UpdatePickupsPrefix\s*\(\s*Navigator\s+__0\s*,",
-                RegexOptions.CultureInvariant),
-            "The prefix must bind Harmony's verified first target argument by " +
+                RegexOptions.CultureInvariant)).IsTrue().Because("The prefix must bind Harmony's verified first target argument by " +
             "position so metadata-only parameter renames cannot break patching.");
-        Assert.IsTrue(
-            Regex.IsMatch(
+        await Assert.That(Regex.IsMatch(
                 source,
                 @"ResolveNavigatorParentWorldId\s*\(\s*__0\s*,",
-                RegexOptions.CultureInvariant),
-            "The positionally injected Navigator must remain the parent-world " +
+                RegexOptions.CultureInvariant)).IsTrue().Because("The positionally injected Navigator must remain the parent-world " +
             "resolution input.");
     }
 
-    [TestMethod]
-    public void KleiDirectEligibilityTargetContracts_WhenInstalledShapesMatch_ReturnExactMethods()
+    [Test]
+    public async Task KleiDirectEligibilityTargetContracts_WhenInstalledShapesMatch_ReturnExactMethods()
     {
         var isFetchablePickup =
             HarmonyPatchContractVerifier.RequireStaticMethod(
@@ -1386,10 +1350,10 @@ public sealed class HarmonyPatchContractVerifierTests
             FieldStorageKind.Instance,
             typeof(FetchAreaStatesInstanceDirectEligibilityContractFixture));
 
-        Assert.IsTrue(isFetchablePickup.IsStatic);
-        Assert.IsTrue(isFetchablePickup.IsPublic);
-        Assert.AreSame(typeof(bool), isFetchablePickup.ReturnType);
-        AssertExactInstanceMethod(
+        await Assert.That(isFetchablePickup.IsStatic).IsTrue();
+        await Assert.That(isFetchablePickup.IsPublic).IsTrue();
+        await Assert.That(isFetchablePickup.ReturnType).IsSameReferenceAs(typeof(bool));
+        await AssertExactInstanceMethod(
             collectChores,
             typeof(ClearableManagerDirectEligibilityContractFixture),
             isPublic: true,
@@ -1399,26 +1363,24 @@ public sealed class HarmonyPatchContractVerifierTests
                 typeof(List<DirectChoreContextContractFixture>),
                 typeof(List<DirectChoreContextContractFixture>)
             ]);
-        AssertExactInstanceMethod(
+        await AssertExactInstanceMethod(
             begin,
             typeof(FetchAreaStatesInstanceDirectEligibilityContractFixture),
             isPublic: true,
             [typeof(DirectChoreContextContractFixture)]);
-        AssertExactInstanceMethod(
+        await AssertExactInstanceMethod(
             candidateDelegate,
             typeof(FetchAreaCandidateClosureDirectEligibilityContractFixture),
             isPublic: false,
             typeof(DirectIterationInstructionContractFixture),
             [typeof(object), typeof(object)]);
-        Assert.AreSame(
-            typeof(FetchAreaStatesInstanceDirectEligibilityContractFixture),
-            closureOwnerField.FieldType);
+        await Assert.That(closureOwnerField.FieldType).IsSameReferenceAs(typeof(FetchAreaStatesInstanceDirectEligibilityContractFixture));
     }
 
-    [TestMethod]
-    public void KleiDirectEligibilityIsFetchablePickupContract_WhenReturnTypeChanges_ThrowsContractViolation()
+    [Test]
+    public async Task KleiDirectEligibilityIsFetchablePickupContract_WhenReturnTypeChanges_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireStaticMethod(
                 typeof(FetchManagerChangedDirectEligibilityContractFixture),
                 "IsFetchablePickup",
@@ -1428,158 +1390,136 @@ public sealed class HarmonyPatchContractVerifierTests
                     typeof(DirectPickupableContractFixture),
                     typeof(DirectFetchChoreContractFixture),
                     typeof(DirectStorageContractFixture)
-                ]));
+                ])).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void KleiDirectEligibilityDelegateContract_WhenClosureOwnerFieldChanges_ThrowsContractViolation()
+    [Test]
+    public async Task KleiDirectEligibilityDelegateContract_WhenClosureOwnerFieldChanges_ThrowsContractViolation()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireField(
                 typeof(FetchAreaChangedCandidateClosureDirectEligibilityContractFixture),
                 "StatesInstance",
                 DeclaredMemberVisibility.Public,
                 FieldStorageKind.Instance,
-                typeof(FetchAreaStatesInstanceDirectEligibilityContractFixture)));
+                typeof(FetchAreaStatesInstanceDirectEligibilityContractFixture))).ThrowsExactly<HarmonyPatchContractViolationException>();
 
         var instructions = CapturedFetchAreaCandidateDelegateInstructions();
         instructions[1] = FieldInstruction(
             "FetchAreaCandidateClosure.changedStatesInstance");
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             RequireKleiDirectEligibilityInstructionAnchors(
                 CapturedClearableCollectChoresInstructions(),
                 CapturedFetchAreaBeginInstructions(),
-                instructions));
+                instructions)).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void KleiDirectEligibilityInstructionContract_WhenCapturedInstalledShapesMatch_ResolvesEveryTypedAnchorOnce()
+    [Test]
+    public async Task KleiDirectEligibilityInstructionContract_WhenCapturedInstalledShapesMatch_ResolvesEveryTypedAnchorOnce()
     {
         var anchors = RequireKleiDirectEligibilityInstructionAnchors(
             CapturedClearableCollectChoresInstructions(),
             CapturedFetchAreaBeginInstructions(),
             CapturedFetchAreaCandidateDelegateInstructions());
 
-        Assert.AreEqual(5, anchors.ClearablePickupableLocalIndex);
-        Assert.AreEqual(10, anchors.ClearableFetchLocalIndex);
-        Assert.AreEqual(14, anchors.CandidateFetchChoreLocalIndex);
-        Assert.AreEqual(0, anchors.DelegatePickupableLocalIndex);
-        Assert.AreEqual(20, anchors.ClearableEligibilityExtensionIndex);
-        Assert.AreEqual(6, anchors.FetchChoreContainmentExtensionIndex);
-        Assert.AreEqual(6, anchors.DelegateCanReachCallIndex);
+        await Assert.That(anchors.ClearablePickupableLocalIndex).IsEqualTo(5);
+        await Assert.That(anchors.ClearableFetchLocalIndex).IsEqualTo(10);
+        await Assert.That(anchors.CandidateFetchChoreLocalIndex).IsEqualTo(14);
+        await Assert.That(anchors.DelegatePickupableLocalIndex).IsEqualTo(0);
+        await Assert.That(anchors.ClearableEligibilityExtensionIndex).IsEqualTo(20);
+        await Assert.That(anchors.FetchChoreContainmentExtensionIndex).IsEqualTo(6);
+        await Assert.That(anchors.DelegateCanReachCallIndex).IsEqualTo(6);
     }
 
-    [TestMethod]
-    public void KleiDirectEligibilityInstructionContract_WhenTwoCanReachCallsMatch_ThrowsContractViolation()
+    [Test]
+    public async Task KleiDirectEligibilityInstructionContract_WhenTwoCanReachCallsMatch_ThrowsContractViolation()
     {
         var delegateInstructions =
             CapturedFetchAreaCandidateDelegateInstructions();
         delegateInstructions.AddRange(
             CapturedFetchAreaCandidateDelegateInstructions());
 
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             RequireKleiDirectEligibilityInstructionAnchors(
                 CapturedClearableCollectChoresInstructions(),
                 CapturedFetchAreaBeginInstructions(),
-                delegateInstructions));
+                delegateInstructions)).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void KleiDirectEligibilityInstructionContract_WhenDirectResultBranchIsMissing_ThrowsContractViolation()
+    [Test]
+    public async Task KleiDirectEligibilityInstructionContract_WhenDirectResultBranchIsMissing_ThrowsContractViolation()
     {
         var delegateInstructions =
             CapturedFetchAreaCandidateDelegateInstructions();
         delegateInstructions[7] = BranchInstruction("brfalse.s");
 
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             RequireKleiDirectEligibilityInstructionAnchors(
                 CapturedClearableCollectChoresInstructions(),
                 CapturedFetchAreaBeginInstructions(),
-                delegateInstructions));
+                delegateInstructions)).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void KleiDirectEligibilityAdapterSource_WhenInspected_UsesCentralAllocationFreeChecksAndManualFailClosedContracts()
+    [Test]
+    public async Task KleiDirectEligibilityAdapterSource_WhenInspected_UsesCentralAllocationFreeChecksAndManualFailClosedContracts()
     {
         var adapterPath = ResolveProductionSourcePath(
             "KleiImplementationAdapters",
             "KleiDirectDeliveryEligibilityPatches.cs");
-        Assert.IsTrue(
-            File.Exists(adapterPath),
-            $"Missing Klei direct delivery eligibility adapter source {adapterPath}.");
+        await Assert.That(File.Exists(adapterPath)).IsTrue().Because($"Missing Klei direct delivery eligibility adapter source {adapterPath}.");
         var source = File.ReadAllText(adapterPath);
 
-        StringAssert.Contains(
-            source,
-            "ResolveFetchManagerIsFetchablePickupTarget");
-        StringAssert.Contains(
-            source,
-            "ResolveClearableManagerCollectChoresTarget");
-        StringAssert.Contains(
-            source,
-            "ResolveFetchAreaChoreStatesInstanceBeginTarget");
-        StringAssert.Contains(
-            source,
-            "ResolveFetchAreaChoreCandidateDelegateTarget");
-        StringAssert.Contains(
-            source,
-            "VerifyKleiDirectDeliveryEligibilityPatchContracts");
-        StringAssert.Contains(source, "IsFetchablePickupPostfix");
-        StringAssert.Contains(source, "ClearableManagerCollectChoresTranspiler");
-        StringAssert.Contains(source, "FetchAreaChoreBeginTranspiler");
-        StringAssert.Contains(source, "FetchAreaCandidateDelegateTranspiler");
-        StringAssert.Contains(source, "IsPickupAllowedForDestination");
-        StringAssert.Contains(
-            source,
-            "FetchChoreTemperatureConstraintContainment.CanCombine");
-        StringAssert.Contains(
-            source,
-            "TemperatureLimitComponents.TryGetConstraint");
-        StringAssert.Contains(source, "constraint.Allows");
-        Assert.AreEqual(
-            1,
-            CountOrdinalOccurrences(source, "constraint.Allows("),
-            "The direct adapter must delegate one canonical temperature decision rather than duplicating its bounds.");
-        Assert.AreEqual(
-            1,
-            CountOrdinalOccurrences(source, "primaryElement.Temperature"),
-            "The direct adapter must read a candidate's live temperature exactly once in its shared check.");
-        StringAssert.Contains(source, "if (!__result)");
-        StringAssert.Contains(source, "if (!consumer.CanReach(approachable))");
-        StringAssert.Contains(source, "PatchProcessor.GetOriginalInstructions");
-        Assert.IsFalse(source.Contains("[HarmonyPatch", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("AccessTools", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("operand.ToString", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("<>c__DisplayClass", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("GetComponent", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("CaptureSnapshot", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("CurrentFetchTemperatureEligibility", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("HashSet<Tag>[]", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("System.Linq", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("TemperatureLimit.Get", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("ValueTuple", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("Tuple<", StringComparison.Ordinal));
+        await Assert.That(source).Contains("ResolveFetchManagerIsFetchablePickupTarget");
+        await Assert.That(source).Contains("ResolveClearableManagerCollectChoresTarget");
+        await Assert.That(source).Contains("ResolveFetchAreaChoreStatesInstanceBeginTarget");
+        await Assert.That(source).Contains("ResolveFetchAreaChoreCandidateDelegateTarget");
+        await Assert.That(source).Contains("VerifyKleiDirectDeliveryEligibilityPatchContracts");
+        await Assert.That(source).Contains("IsFetchablePickupPostfix");
+        await Assert.That(source).Contains("ClearableManagerCollectChoresTranspiler");
+        await Assert.That(source).Contains("FetchAreaChoreBeginTranspiler");
+        await Assert.That(source).Contains("FetchAreaCandidateDelegateTranspiler");
+        await Assert.That(source).Contains("IsPickupAllowedForDestination");
+        await Assert.That(source).Contains("FetchChoreTemperatureConstraintContainment.CanCombine");
+        await Assert.That(source).Contains("TemperatureLimitComponents.TryGetConstraint");
+        await Assert.That(source).Contains("constraint.Allows");
+        await Assert.That(CountOrdinalOccurrences(source, "constraint.Allows(")).IsEqualTo(1).Because("The direct adapter must delegate one canonical temperature decision rather than duplicating its bounds.");
+        await Assert.That(CountOrdinalOccurrences(source, "primaryElement.Temperature")).IsEqualTo(1).Because("The direct adapter must read a candidate's live temperature exactly once in its shared check.");
+        await Assert.That(source).Contains("if (!__result)");
+        await Assert.That(source).Contains("if (!consumer.CanReach(approachable))");
+        await Assert.That(source).Contains("PatchProcessor.GetOriginalInstructions");
+        await Assert.That(source.Contains("[HarmonyPatch", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("AccessTools", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("operand.ToString", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("<>c__DisplayClass", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("GetComponent", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("CaptureSnapshot", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("CurrentFetchTemperatureEligibility", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("HashSet<Tag>[]", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("System.Linq", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("TemperatureLimit.Get", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("ValueTuple", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("Tuple<", StringComparison.Ordinal)).IsFalse();
     }
 
-    [TestMethod]
-    public void WorldInventoryInstructionContract_WhenCapturedInstalledShapeMatches_ResolvesEverySemanticAnchorOnce()
+    [Test]
+    public async Task WorldInventoryInstructionContract_WhenCapturedInstalledShapeMatches_ResolvesEverySemanticAnchorOnce()
     {
         var anchors = RequireWorldInventoryInstructionAnchors(
             CapturedWorldInventoryUpdateInstructions());
 
-        Assert.IsTrue(anchors.InventoryEntryCaptureIndex <
-            anchors.ResourceTagStartIndex);
-        Assert.IsTrue(anchors.ResourceTagStartIndex <
-            anchors.FilteredPickupContributionIndex);
-        Assert.IsTrue(anchors.FilteredPickupContributionIndex <
-            anchors.ResourceTagCompletionIndex);
-        Assert.AreEqual(4, anchors.ResourceTagLocalIndex);
-        Assert.AreEqual(5, anchors.AccumulatedAmountLocalIndex);
-        Assert.AreEqual(7, anchors.PickupableLocalIndex);
+        await Assert.That(anchors.InventoryEntryCaptureIndex <
+            anchors.ResourceTagStartIndex).IsTrue();
+        await Assert.That(anchors.ResourceTagStartIndex <
+            anchors.FilteredPickupContributionIndex).IsTrue();
+        await Assert.That(anchors.FilteredPickupContributionIndex <
+            anchors.ResourceTagCompletionIndex).IsTrue();
+        await Assert.That(anchors.ResourceTagLocalIndex).IsEqualTo(4);
+        await Assert.That(anchors.AccumulatedAmountLocalIndex).IsEqualTo(5);
+        await Assert.That(anchors.PickupableLocalIndex).IsEqualTo(7);
     }
 
-    [TestMethod]
-    public void WorldInventoryEnumeratorContract_WhenSourceIsInspected_UsesInstalledInterfaceDispatch()
+    [Test]
+    public async Task WorldInventoryEnumeratorContract_WhenSourceIsInspected_UsesInstalledInterfaceDispatch()
     {
         string adapterPath = ResolveProductionSourcePath(
             "KleiImplementationAdapters",
@@ -1593,83 +1533,81 @@ public sealed class HarmonyPatchContractVerifierTests
             @"typeof\(IEnumerator<Pickupable>\),\s*" +
             @"Array\.Empty<Type>\(\)\s*\)";
 
-        Assert.IsTrue(
-            Regex.IsMatch(
+        await Assert.That(Regex.IsMatch(
                 source,
                 expectedContractPattern,
-                RegexOptions.CultureInvariant),
-            "WorldInventory.Update dispatches pickup enumeration through " +
+                RegexOptions.CultureInvariant)).IsTrue().Because("WorldInventory.Update dispatches pickup enumeration through " +
             "IEnumerable<Pickupable>.GetEnumerator in the installed ONI runtime.");
     }
 
-    [TestMethod]
-    public void WorldInventoryInstructionContract_WhenResourceTagStartIsMissing_ThrowsContractViolation()
+    [Test]
+    public async Task WorldInventoryInstructionContract_WhenResourceTagStartIsMissing_ThrowsContractViolation()
     {
         var instructions = CapturedWorldInventoryUpdateInstructions();
         instructions[2] = CallInstruction("Wrong.get_Key");
 
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
-            RequireWorldInventoryInstructionAnchors(instructions));
+        await Assert.That(() =>
+            RequireWorldInventoryInstructionAnchors(instructions)).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void WorldInventoryInstructionContract_WhenFilteredPickupContributionIsDuplicated_ThrowsContractViolation()
+    [Test]
+    public async Task WorldInventoryInstructionContract_WhenFilteredPickupContributionIsDuplicated_ThrowsContractViolation()
     {
         var instructions = CapturedWorldInventoryUpdateInstructions();
         instructions.AddRange(instructions.GetRange(6, 10));
 
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
-            RequireWorldInventoryInstructionAnchors(instructions));
+        await Assert.That(() =>
+            RequireWorldInventoryInstructionAnchors(instructions)).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void WorldInventoryInstructionContract_WhenPickupGetterIsNotTotalAmount_ThrowsContractViolation()
+    [Test]
+    public async Task WorldInventoryInstructionContract_WhenPickupGetterIsNotTotalAmount_ThrowsContractViolation()
     {
         var instructions = CapturedWorldInventoryUpdateInstructions();
         instructions[13] = CallInstruction(
             "Pickupable.get_FetchTotalAmount");
 
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
-            RequireWorldInventoryInstructionAnchors(instructions));
+        await Assert.That(() =>
+            RequireWorldInventoryInstructionAnchors(instructions)).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void FetchListStatusInstructionContract_WhenCapturedInstalledShapeMatches_ResolvesEarlyBranchAndAssignmentOnce()
+    [Test]
+    public async Task FetchListStatusInstructionContract_WhenCapturedInstalledShapeMatches_ResolvesEarlyBranchAndAssignmentOnce()
     {
         var anchor = RequireFetchListStatusInstructionAnchor(
             CapturedFetchListStatusRenderInstructions());
 
-        Assert.AreEqual(1, anchor.WorldIdLocalIndex);
-        Assert.AreEqual(28, anchor.FetchListLocalIndex);
-        Assert.AreEqual(33, anchor.ResourceTagLocalIndex);
-        Assert.AreEqual(34, anchor.RemainingAmountLocalIndex);
-        Assert.AreEqual(37, anchor.FetchableAmountLocalIndex);
-        Assert.AreEqual(38, anchor.MinimumRequiredAmountLocalIndex);
+        await Assert.That(anchor.WorldIdLocalIndex).IsEqualTo(1);
+        await Assert.That(anchor.FetchListLocalIndex).IsEqualTo(28);
+        await Assert.That(anchor.ResourceTagLocalIndex).IsEqualTo(33);
+        await Assert.That(anchor.RemainingAmountLocalIndex).IsEqualTo(34);
+        await Assert.That(anchor.FetchableAmountLocalIndex).IsEqualTo(37);
+        await Assert.That(anchor.MinimumRequiredAmountLocalIndex).IsEqualTo(38);
     }
 
-    [TestMethod]
-    public void FetchListStatusInstructionContract_WhenFetchableAssignmentIsMissing_ThrowsContractViolation()
+    [Test]
+    public async Task FetchListStatusInstructionContract_WhenFetchableAssignmentIsMissing_ThrowsContractViolation()
     {
         var instructions = CapturedFetchListStatusRenderInstructions();
         instructions[15] = StoreLocalInstruction(99);
 
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
-            RequireFetchListStatusInstructionAnchor(instructions));
+        await Assert.That(() =>
+            RequireFetchListStatusInstructionAnchor(instructions)).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void FetchListStatusInstructionContract_WhenEarlyInsufficientBranchIsReordered_ThrowsContractViolation()
+    [Test]
+    public async Task FetchListStatusInstructionContract_WhenEarlyInsufficientBranchIsReordered_ThrowsContractViolation()
     {
         var instructions = CapturedFetchListStatusRenderInstructions();
         (instructions[20], instructions[21]) =
             (instructions[21], instructions[20]);
 
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
-            RequireFetchListStatusInstructionAnchor(instructions));
+        await Assert.That(() =>
+            RequireFetchListStatusInstructionAnchor(instructions)).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void InventoryAndStatusAdapterSources_WhenInspected_ExposeManualFailClosedContractsOnly()
+    [Test]
+    public async Task InventoryAndStatusAdapterSources_WhenInspected_ExposeManualFailClosedContractsOnly()
     {
         var inventoryAdapterPath = ResolveProductionSourcePath(
             "KleiImplementationAdapters",
@@ -1677,83 +1615,50 @@ public sealed class HarmonyPatchContractVerifierTests
         var statusAdapterPath = ResolveProductionSourcePath(
             "KleiImplementationAdapters",
             "TemperatureStatusAvailabilityPatches.cs");
-        Assert.IsTrue(
-            File.Exists(inventoryAdapterPath),
-            $"Missing Klei inventory adapter source {inventoryAdapterPath}.");
-        Assert.IsTrue(
-            File.Exists(statusAdapterPath),
-            $"Missing status adapter source {statusAdapterPath}.");
+        await Assert.That(File.Exists(inventoryAdapterPath)).IsTrue().Because($"Missing Klei inventory adapter source {inventoryAdapterPath}.");
+        await Assert.That(File.Exists(statusAdapterPath)).IsTrue().Because($"Missing status adapter source {statusAdapterPath}.");
         var inventorySource = File.ReadAllText(inventoryAdapterPath);
         var statusSource = File.ReadAllText(statusAdapterPath);
         var combinedSource =
             inventorySource + Environment.NewLine + statusSource;
 
-        StringAssert.Contains(
-            inventorySource,
-            "ResolveWorldInventoryUpdateTarget");
-        StringAssert.Contains(
-            inventorySource,
-            "WorldInventoryUpdateTranspiler");
-        StringAssert.Contains(inventorySource, "WorldInventoryUpdatePrefix");
-        StringAssert.Contains(inventorySource, "WorldInventoryUpdatePostfix");
-        StringAssert.Contains(inventorySource, "WorldInventoryUpdateFinalizer");
-        StringAssert.Contains(inventorySource, "BeginResourceTagEnumeration");
-        StringAssert.Contains(
-            inventorySource,
-            "IsTemperatureCollectionActive");
-        StringAssert.Contains(inventorySource, "ObserveResourceTagForCoverage");
-        StringAssert.Contains(
-            inventorySource,
-            "RecordFilteredPickupTemperatureAmount");
-        StringAssert.Contains(inventorySource, "CompleteResourceTagEnumeration");
-        StringAssert.Contains(
-            inventorySource,
-            "PublishWorldResourceTagCoverage");
-        StringAssert.Contains(
-            inventorySource,
-            "PublishWorldResourceTemperatureSeries");
-        StringAssert.Contains(inventorySource, "___firstUpdate");
-        StringAssert.Contains(
-            statusSource,
-            "ResolveFetchListStatusItemUpdaterRender200msTarget");
-        StringAssert.Contains(statusSource, "Render200msTranspiler");
-        StringAssert.Contains(
-            statusSource,
-            "ReplaceFetchableAmountWhenInventoryIsComplete");
-        StringAssert.Contains(
-            statusSource,
-            "TemperatureStatusAvailabilityDecision.ShouldTryReplacement");
-        StringAssert.Contains(
-            statusSource,
-            "GetTemperatureConstrainedAmountAvailability");
-        Assert.IsTrue(
-            CountOrdinalOccurrences(
+        await Assert.That(inventorySource).Contains("ResolveWorldInventoryUpdateTarget");
+        await Assert.That(inventorySource).Contains("WorldInventoryUpdateTranspiler");
+        await Assert.That(inventorySource).Contains("WorldInventoryUpdatePrefix");
+        await Assert.That(inventorySource).Contains("WorldInventoryUpdatePostfix");
+        await Assert.That(inventorySource).Contains("WorldInventoryUpdateFinalizer");
+        await Assert.That(inventorySource).Contains("BeginResourceTagEnumeration");
+        await Assert.That(inventorySource).Contains("IsTemperatureCollectionActive");
+        await Assert.That(inventorySource).Contains("ObserveResourceTagForCoverage");
+        await Assert.That(inventorySource).Contains("RecordFilteredPickupTemperatureAmount");
+        await Assert.That(inventorySource).Contains("CompleteResourceTagEnumeration");
+        await Assert.That(inventorySource).Contains("PublishWorldResourceTagCoverage");
+        await Assert.That(inventorySource).Contains("PublishWorldResourceTemperatureSeries");
+        await Assert.That(inventorySource).Contains("___firstUpdate");
+        await Assert.That(statusSource).Contains("ResolveFetchListStatusItemUpdaterRender200msTarget");
+        await Assert.That(statusSource).Contains("Render200msTranspiler");
+        await Assert.That(statusSource).Contains("ReplaceFetchableAmountWhenInventoryIsComplete");
+        await Assert.That(statusSource).Contains("TemperatureStatusAvailabilityDecision.ShouldTryReplacement");
+        await Assert.That(statusSource).Contains("GetTemperatureConstrainedAmountAvailability");
+        await Assert.That(CountOrdinalOccurrences(
                 combinedSource,
-                "HarmonyPatchContractVerifier.RequireSingleMatch") >= 5);
-        Assert.IsTrue(
-            CountOrdinalOccurrences(
+                "HarmonyPatchContractVerifier.RequireSingleMatch") >= 5).IsTrue();
+        await Assert.That(CountOrdinalOccurrences(
                 inventorySource,
-                "HarmonyPatchContractVerifier.RequireInstanceMethod") >= 1);
-        Assert.IsTrue(
-            CountOrdinalOccurrences(
+                "HarmonyPatchContractVerifier.RequireInstanceMethod") >= 1).IsTrue();
+        await Assert.That(CountOrdinalOccurrences(
                 statusSource,
-                "HarmonyPatchContractVerifier.RequireInstanceMethod") >= 1);
-        Assert.IsFalse(
-            combinedSource.Contains("[HarmonyPatch", StringComparison.Ordinal));
-        Assert.IsFalse(
-            combinedSource.Contains("AccessTools", StringComparison.Ordinal));
-        Assert.IsFalse(
-            combinedSource.Contains("CheckTemperatureForStatusItems", StringComparison.Ordinal));
-        Assert.IsFalse(
-            combinedSource.Contains("WorldContainers", StringComparison.Ordinal));
-        Assert.IsFalse(
-            combinedSource.Contains("worldAmounts", StringComparison.Ordinal));
-        Assert.IsFalse(
-            combinedSource.Contains("FastTrack", StringComparison.Ordinal));
+                "HarmonyPatchContractVerifier.RequireInstanceMethod") >= 1).IsTrue();
+        await Assert.That(combinedSource.Contains("[HarmonyPatch", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(combinedSource.Contains("AccessTools", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(combinedSource.Contains("CheckTemperatureForStatusItems", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(combinedSource.Contains("WorldContainers", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(combinedSource.Contains("worldAmounts", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(combinedSource.Contains("FastTrack", StringComparison.Ordinal)).IsFalse();
     }
 
-    [TestMethod]
-    public void FastTrackCompatibilityInspectorSource_WhenInspected_CentralizesExactBuildPolicyAndSeparatesIdentityIo()
+    [Test]
+    public async Task FastTrackCompatibilityInspectorSource_WhenInspected_CentralizesExactBuildPolicyAndSeparatesIdentityIo()
     {
         var inspectorPath = ResolveProductionSourcePath(
             Path.Combine(
@@ -1770,60 +1675,49 @@ public sealed class HarmonyPatchContractVerifierTests
                 "FastTrackCompatibility",
                 "FeatureContractVerification"),
             "FastTrackSupportedAssemblyBuildCatalog.cs");
-        Assert.IsTrue(File.Exists(inspectorPath));
-        Assert.IsTrue(File.Exists(identityReaderPath));
-        Assert.IsTrue(File.Exists(supportedBuildCatalogPath));
+        await Assert.That(File.Exists(inspectorPath)).IsTrue();
+        await Assert.That(File.Exists(identityReaderPath)).IsTrue();
+        await Assert.That(File.Exists(supportedBuildCatalogPath)).IsTrue();
         var inspectorSource = File.ReadAllText(inspectorPath);
         var identityReaderSource = File.ReadAllText(identityReaderPath);
         var supportedBuildCatalogSource =
             File.ReadAllText(supportedBuildCatalogPath);
 
-        StringAssert.Contains(
-            inspectorSource,
-            "HarmonyPatchContractVerifier.RequireSingleMatch");
-        StringAssert.Contains(
-            inspectorSource,
-            "IFastTrackAssemblyFileIdentityReader");
-        StringAssert.Contains(
-            inspectorSource,
-            "FastTrackSupportedAssemblyBuildCatalog");
-        StringAssert.Contains(
-            inspectorSource,
-            "supportedAssemblyBuildCatalog.Contains(");
-        Assert.AreEqual(
-            1,
-            CountOrdinalOccurrences(
+        await Assert.That(inspectorSource).Contains("HarmonyPatchContractVerifier.RequireSingleMatch");
+        await Assert.That(inspectorSource).Contains("IFastTrackAssemblyFileIdentityReader");
+        await Assert.That(inspectorSource).Contains("FastTrackSupportedAssemblyBuildCatalog");
+        await Assert.That(inspectorSource).Contains("supportedAssemblyBuildCatalog.Contains(");
+        await Assert.That(CountOrdinalOccurrences(
                 inspectorSource,
-                "assemblyFileIdentityReader.Read("),
-            "One loaded FastTrack assembly must produce one shared physical-file identity read.");
-        Assert.IsFalse(inspectorSource.Contains("using HarmonyLib", StringComparison.Ordinal));
-        Assert.IsFalse(inspectorSource.Contains("using UnityEngine", StringComparison.Ordinal));
-        Assert.IsFalse(inspectorSource.Contains("using PeterHan", StringComparison.Ordinal));
-        Assert.IsFalse(inspectorSource.Contains("AccessTools", StringComparison.Ordinal));
-        Assert.IsFalse(inspectorSource.Contains("Type.GetType", StringComparison.Ordinal));
-        Assert.IsFalse(inspectorSource.Contains("Assembly.GetAssemblies", StringComparison.Ordinal));
-        Assert.IsFalse(inspectorSource.Contains("File.Open", StringComparison.Ordinal));
-        Assert.IsFalse(inspectorSource.Contains("FileVersionInfo", StringComparison.Ordinal));
-        Assert.IsFalse(inspectorSource.Contains("SHA256", StringComparison.Ordinal));
+                "assemblyFileIdentityReader.Read(")).IsEqualTo(1).Because("One loaded FastTrack assembly must produce one shared physical-file identity read.");
+        await Assert.That(inspectorSource.Contains("using HarmonyLib", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(inspectorSource.Contains("using UnityEngine", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(inspectorSource.Contains("using PeterHan", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(inspectorSource.Contains("AccessTools", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(inspectorSource.Contains("Type.GetType", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(inspectorSource.Contains("Assembly.GetAssemblies", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(inspectorSource.Contains("File.Open", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(inspectorSource.Contains("FileVersionInfo", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(inspectorSource.Contains("SHA256", StringComparison.Ordinal)).IsFalse();
 
-        Assert.IsFalse(inspectorSource.Contains(
+        await Assert.That(inspectorSource.Contains(
             "new Version(0, 18, 4, 0)",
-            StringComparison.Ordinal));
-        Assert.IsFalse(inspectorSource.Contains(
+            StringComparison.Ordinal)).IsFalse();
+        await Assert.That(inspectorSource.Contains(
             "new Version(0, 18, 5, 0)",
-            StringComparison.Ordinal));
-        Assert.IsFalse(inspectorSource.Contains(
+            StringComparison.Ordinal)).IsFalse();
+        await Assert.That(inspectorSource.Contains(
             "D291C0D58379B77B4A60FB6D386B3783E4061E5C620DEF93502AE984CD657ADD",
-            StringComparison.Ordinal));
-        Assert.IsFalse(inspectorSource.Contains(
+            StringComparison.Ordinal)).IsFalse();
+        await Assert.That(inspectorSource.Contains(
             "CDF0150546952FDA3A31A612D61FBEF3808E05DB89B9B6E8CCEEA1F3C752AA3B",
-            StringComparison.Ordinal));
-        Assert.IsFalse(supportedBuildCatalogSource.Contains(
+            StringComparison.Ordinal)).IsFalse();
+        await Assert.That(supportedBuildCatalogSource.Contains(
             "System.IO",
-            StringComparison.Ordinal));
-        Assert.IsFalse(supportedBuildCatalogSource.Contains(
+            StringComparison.Ordinal)).IsFalse();
+        await Assert.That(supportedBuildCatalogSource.Contains(
             "System.Net",
-            StringComparison.Ordinal));
+            StringComparison.Ordinal)).IsFalse();
 
         string supportedBuildCatalogDirectory =
             Path.GetDirectoryName(supportedBuildCatalogPath)!;
@@ -1843,127 +1737,89 @@ public sealed class HarmonyPatchContractVerifierTests
                     SearchOption.AllDirectories)
                 .OrderBy(path => path, StringComparer.Ordinal)
                 .Select(File.ReadAllText));
-        Assert.IsFalse(
-            gameplayActivationCoreSource.Contains(
+        await Assert.That(gameplayActivationCoreSource.Contains(
                 "FastTrackSupportedAssemblyBuildCatalog",
-                StringComparison.Ordinal));
+                StringComparison.Ordinal)).IsFalse();
 
-        StringAssert.Contains(identityReaderSource, "fastTrackAssembly.Location");
-        StringAssert.Contains(identityReaderSource, "FileVersionInfo.GetVersionInfo");
-        StringAssert.Contains(identityReaderSource, "SHA256.Create()");
-        StringAssert.Contains(identityReaderSource, "ComputeHash(stream)");
-        Assert.IsFalse(identityReaderSource.Contains("using HarmonyLib", StringComparison.Ordinal));
-        Assert.IsFalse(identityReaderSource.Contains("using UnityEngine", StringComparison.Ordinal));
-        Assert.IsFalse(identityReaderSource.Contains("using PeterHan", StringComparison.Ordinal));
+        await Assert.That(identityReaderSource).Contains("fastTrackAssembly.Location");
+        await Assert.That(identityReaderSource).Contains("FileVersionInfo.GetVersionInfo");
+        await Assert.That(identityReaderSource).Contains("SHA256.Create()");
+        await Assert.That(identityReaderSource).Contains("ComputeHash(stream)");
+        await Assert.That(identityReaderSource.Contains("using HarmonyLib", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(identityReaderSource.Contains("using UnityEngine", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(identityReaderSource.Contains("using PeterHan", StringComparison.Ordinal)).IsFalse();
     }
 
-    [TestMethod]
-    public void FastTrackWorldInventoryAdapterSource_WhenInspected_UsesBoundContractsAndIncrementalPublicationWithoutHotPathDiscovery()
+    [Test]
+    public async Task FastTrackWorldInventoryAdapterSource_WhenInspected_UsesBoundContractsAndIncrementalPublicationWithoutHotPathDiscovery()
     {
         var adapterPath = ResolveProductionSourcePath(
             Path.Combine(
                 "FastTrackCompatibility",
                 "InventoryUpdateAdapters"),
             "FastTrackWorldInventoryTemperaturePatches.cs");
-        Assert.IsTrue(
-            File.Exists(adapterPath),
-            $"Missing FastTrack world-inventory adapter source {adapterPath}.");
+        await Assert.That(File.Exists(adapterPath)).IsTrue().Because($"Missing FastTrack world-inventory adapter source {adapterPath}.");
         var source = File.ReadAllText(adapterPath);
 
-        StringAssert.Contains(source, "BindVerifiedWorldInventoryFeature");
-        StringAssert.Contains(
-            source,
-            "ResolveBackgroundWorldInventoryRunUpdateTarget");
-        StringAssert.Contains(
-            source,
-            "ResolveBackgroundWorldInventorySumTotalTarget");
-        StringAssert.Contains(
-            source,
-            "BackgroundWorldInventoryRunUpdatePrefix");
-        StringAssert.Contains(
-            source,
-            "BackgroundWorldInventoryRunUpdateTranspiler");
-        StringAssert.Contains(
-            source,
-            "BackgroundWorldInventoryRunUpdatePostfix");
-        StringAssert.Contains(
-            source,
-            "BackgroundWorldInventoryRunUpdateFinalizer");
-        StringAssert.Contains(
-            source,
-            "BackgroundWorldInventorySumTotalTranspiler");
-        StringAssert.Contains(
-            source,
-            "FastTrackWorldInventoryPublicationSession");
-        StringAssert.Contains(
-            source,
-            "FastTrackVerifiedMember.WorldInventoryInventoryField");
-        StringAssert.Contains(source, "CreateWorldInventoryEntriesReader");
-        StringAssert.Contains(source, "DynamicMethod");
-        StringAssert.Contains(source, "ThreadConfinedSessionSlot");
-        StringAssert.Contains(source, "BeginResourceTagEnumeration");
-        StringAssert.Contains(
-            source,
-            "RecordFilteredPickupTemperatureAmount");
-        StringAssert.Contains(source, "GetCurrentPublicationSession");
-        StringAssert.Contains(source, "CompleteResourceTagEnumeration");
-        StringAssert.Contains(
-            source,
-            "GetWorldResourceTagCoverageRequirementState");
-        StringAssert.Contains(
-            source,
-            "PublishCompleteWorldResourceAmounts");
-        StringAssert.Contains(
-            source,
-            "PublishWorldResourceTagCoverage");
-        StringAssert.Contains(
-            source,
-            "PublishWorldResourceTemperatureSeries");
-        StringAssert.Contains(source, "___firstUpdate");
-        StringAssert.Contains(source, "___worldContainer");
-        StringAssert.Contains(source, "___worldInventory");
-        StringAssert.Contains(
-            source,
-            "PrimaryElement primaryElement = pickupable.PrimaryElement");
-        Assert.AreEqual(
-            1,
-            CountOrdinalOccurrences(
+        await Assert.That(source).Contains("BindVerifiedWorldInventoryFeature");
+        await Assert.That(source).Contains("ResolveBackgroundWorldInventoryRunUpdateTarget");
+        await Assert.That(source).Contains("ResolveBackgroundWorldInventorySumTotalTarget");
+        await Assert.That(source).Contains("BackgroundWorldInventoryRunUpdatePrefix");
+        await Assert.That(source).Contains("BackgroundWorldInventoryRunUpdateTranspiler");
+        await Assert.That(source).Contains("BackgroundWorldInventoryRunUpdatePostfix");
+        await Assert.That(source).Contains("BackgroundWorldInventoryRunUpdateFinalizer");
+        await Assert.That(source).Contains("BackgroundWorldInventorySumTotalTranspiler");
+        await Assert.That(source).Contains("FastTrackWorldInventoryPublicationSession");
+        await Assert.That(source).Contains("FastTrackVerifiedMember.WorldInventoryInventoryField");
+        await Assert.That(source).Contains("CreateWorldInventoryEntriesReader");
+        await Assert.That(source).Contains("DynamicMethod");
+        await Assert.That(source).Contains("ThreadConfinedSessionSlot");
+        await Assert.That(source).Contains("BeginResourceTagEnumeration");
+        await Assert.That(source).Contains("RecordFilteredPickupTemperatureAmount");
+        await Assert.That(source).Contains("GetCurrentPublicationSession");
+        await Assert.That(source).Contains("CompleteResourceTagEnumeration");
+        await Assert.That(source).Contains("GetWorldResourceTagCoverageRequirementState");
+        await Assert.That(source).Contains("PublishCompleteWorldResourceAmounts");
+        await Assert.That(source).Contains("PublishWorldResourceTagCoverage");
+        await Assert.That(source).Contains("PublishWorldResourceTemperatureSeries");
+        await Assert.That(source).Contains("___firstUpdate");
+        await Assert.That(source).Contains("___worldContainer");
+        await Assert.That(source).Contains("___worldInventory");
+        await Assert.That(source).Contains("PrimaryElement primaryElement = pickupable.PrimaryElement");
+        await Assert.That(CountOrdinalOccurrences(
                 source,
-                "GetWorldResourceTagCoverageRequirementState("));
-        Assert.AreEqual(
-            1,
-            CountOrdinalOccurrences(source, "worldInventoryEntries.Keys"));
-        Assert.IsFalse(source.Contains("[HarmonyPatch", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("AccessTools", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("Type.GetType", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("Assembly.GetAssemblies", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("FileVersionInfo", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("SHA256", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("operand.ToString", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("GetComponent", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("ClusterManager", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("WorldContainers", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("StartUpdateAll", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("System.Linq", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("FastTrackOptions", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("FieldInfo.GetValue", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("MethodInfo.Invoke", StringComparison.Ordinal));
-        Assert.IsFalse(source.Contains("DynamicInvoke", StringComparison.Ordinal));
-        Assert.IsFalse(
-            source.Contains(
+                "GetWorldResourceTagCoverageRequirementState(")).IsEqualTo(1);
+        await Assert.That(CountOrdinalOccurrences(source, "worldInventoryEntries.Keys")).IsEqualTo(1);
+        await Assert.That(source.Contains("[HarmonyPatch", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("AccessTools", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("Type.GetType", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("Assembly.GetAssemblies", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("FileVersionInfo", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("SHA256", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("operand.ToString", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("GetComponent", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("ClusterManager", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("WorldContainers", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("StartUpdateAll", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("System.Linq", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("FastTrackOptions", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("FieldInfo.GetValue", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("MethodInfo.Invoke", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains("DynamicInvoke", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(source.Contains(
                 "private static bool IsTemperatureCollectionActive",
-                StringComparison.Ordinal));
+                StringComparison.Ordinal)).IsFalse();
     }
 
-    [TestMethod]
-    public void AddTemperatureAmount_WhenPrimaryElementIsMissing_IsNotCalledByAdapter()
+    [Test]
+    public async Task AddTemperatureAmount_WhenPrimaryElementIsMissing_IsNotCalledByAdapter()
     {
         var adapterPath = ResolveProductionSourcePath(
             Path.Combine(
                 "FastTrackCompatibility",
                 "InventoryUpdateAdapters"),
             "FastTrackWorldInventoryTemperaturePatches.cs");
-        Assert.IsTrue(File.Exists(adapterPath));
+        await Assert.That(File.Exists(adapterPath)).IsTrue();
         var source = File.ReadAllText(adapterPath);
         int primaryElementCaptureIndex = source.IndexOf(
             "PrimaryElement primaryElement = pickupable.PrimaryElement",
@@ -1977,17 +1833,13 @@ public sealed class HarmonyPatchContractVerifierTests
             missingPrimaryElementGuardIndex,
             StringComparison.Ordinal);
 
-        Assert.IsGreaterThanOrEqualTo(0, primaryElementCaptureIndex);
-        Assert.IsTrue(
-            primaryElementCaptureIndex < missingPrimaryElementGuardIndex,
-            "The cached PrimaryElement must be checked before accumulation.");
-        Assert.IsTrue(
-            missingPrimaryElementGuardIndex < addTemperatureAmountIndex,
-            "The null guard must dominate AddTemperatureAmount.");
+        await Assert.That(primaryElementCaptureIndex).IsGreaterThanOrEqualTo(0);
+        await Assert.That(primaryElementCaptureIndex < missingPrimaryElementGuardIndex).IsTrue().Because("The cached PrimaryElement must be checked before accumulation.");
+        await Assert.That(missingPrimaryElementGuardIndex < addTemperatureAmountIndex).IsTrue().Because("The null guard must dominate AddTemperatureAmount.");
     }
 
-    [TestMethod]
-    public void RecordFilteredPickupTemperatureAmount_WhenInspected_UsesPassedSessionWithoutPerPickupThreadLocalLookup()
+    [Test]
+    public async Task RecordFilteredPickupTemperatureAmount_WhenInspected_UsesPassedSessionWithoutPerPickupThreadLocalLookup()
     {
         var adapterPath = ResolveProductionSourcePath(
             Path.Combine(
@@ -2003,27 +1855,19 @@ public sealed class HarmonyPatchContractVerifierTests
             hookStartIndex,
             StringComparison.Ordinal);
 
-        Assert.IsGreaterThanOrEqualTo(0, hookStartIndex);
-        Assert.IsTrue(
-            nextMethodIndex > hookStartIndex,
-            "The exact pickup hook body must have a bounded source region.");
+        await Assert.That(hookStartIndex).IsGreaterThanOrEqualTo(0);
+        await Assert.That(nextMethodIndex > hookStartIndex).IsTrue().Because("The exact pickup hook body must have a bounded source region.");
         string hookSource = source.Substring(
             hookStartIndex,
             nextMethodIndex - hookStartIndex);
-        StringAssert.Contains(
-            hookSource,
-            "FastTrackWorldInventoryPublicationSession publicationSession");
-        StringAssert.Contains(
-            hookSource,
-            "PrimaryElement primaryElement = pickupable.PrimaryElement");
-        Assert.IsFalse(
-            hookSource.Contains("TryGetCurrent", StringComparison.Ordinal),
-            "The accepted-pickup hook must consume its method-local cached " +
+        await Assert.That(hookSource).Contains("FastTrackWorldInventoryPublicationSession publicationSession");
+        await Assert.That(hookSource).Contains("PrimaryElement primaryElement = pickupable.PrimaryElement");
+        await Assert.That(hookSource.Contains("TryGetCurrent", StringComparison.Ordinal)).IsFalse().Because("The accepted-pickup hook must consume its method-local cached " +
             "session instead of rereading thread-local state.");
     }
 
-    [TestMethod]
-    public void GameDestroyInstancesContract_WhenInstalledShapeMatches_ReturnsExactMethod()
+    [Test]
+    public async Task GameDestroyInstancesContract_WhenInstalledShapeMatches_ReturnsExactMethod()
     {
         var method = HarmonyPatchContractVerifier.RequireInstanceMethod(
             typeof(GameDestroyInstancesContractFixture),
@@ -2032,15 +1876,15 @@ public sealed class HarmonyPatchContractVerifierTests
             typeof(void),
             Array.Empty<Type>());
 
-        AssertExactInstanceMethod(
+        await AssertExactInstanceMethod(
             method,
             typeof(GameDestroyInstancesContractFixture),
             isPublic: false,
             Array.Empty<Type>());
     }
 
-    [TestMethod]
-    public void GameOnPrefabInitContract_WhenFixtureShapeMatches_ReturnsExactProtectedMethod()
+    [Test]
+    public async Task GameOnPrefabInitContract_WhenFixtureShapeMatches_ReturnsExactProtectedMethod()
     {
         var method = HarmonyPatchContractVerifier.RequireInstanceMethod(
             typeof(GameOnPrefabInitContractFixture),
@@ -2049,24 +1893,22 @@ public sealed class HarmonyPatchContractVerifierTests
             typeof(void),
             Array.Empty<Type>());
 
-        AssertExactInstanceMethod(
+        await AssertExactInstanceMethod(
             method,
             typeof(GameOnPrefabInitContractFixture),
             isPublic: false,
             Array.Empty<Type>());
-        Assert.IsTrue(
-            method.IsFamily,
-            "The fixture must model ONI's exact protected lifecycle boundary.");
+        await Assert.That(method.IsFamily).IsTrue().Because("The fixture must model ONI's exact protected lifecycle boundary.");
     }
 
-    [TestMethod]
+    [Test]
     public void GameOnPrefabInitContract_WhenInstalledOniAssemblyIsInspected_MatchesProtectedInstanceVoidMethodWithoutParameters()
     {
         string? managedAssemblyDirectory = Environment.GetEnvironmentVariable(
             "ONI_MANAGED_ASSEMBLY_DIRECTORY");
         if (string.IsNullOrWhiteSpace(managedAssemblyDirectory))
         {
-            throw new AssertFailedException(
+            throw new TUnit.Assertions.Exceptions.AssertionException(
                 "The ONI mod pipeline must provide " +
                 "ONI_MANAGED_ASSEMBLY_DIRECTORY.");
         }
@@ -2082,38 +1924,29 @@ public sealed class HarmonyPatchContractVerifierTests
                 "OnPrefabInit");
     }
 
-    [TestMethod]
-    public void GameLoadAuthorityAdapterSource_WhenInspected_DelegatesOnlyToRuntimeInstaller()
+    [Test]
+    public async Task GameLoadAuthorityAdapterSource_WhenInspected_DelegatesOnlyToRuntimeInstaller()
     {
         string adapterPath = ResolveProductionSourcePath(
             "RuntimePatchInstallation",
             "DeliveryTemperatureGameLoadAuthorityPatches.cs");
         string source = File.ReadAllText(adapterPath);
 
-        StringAssert.Contains(source, "ResolveGameOnPrefabInitTarget");
-        StringAssert.Contains(source, "typeof(Game)");
-        StringAssert.Contains(source, "\"OnPrefabInit\"");
-        StringAssert.Contains(
-            source,
-            "DeclaredMemberVisibility.NonPublic");
-        StringAssert.Contains(source, "typeof(void)");
-        StringAssert.Contains(source, "Array.Empty<Type>()");
-        Assert.AreEqual(
-            1,
-            CountOrdinalOccurrences(
+        await Assert.That(source).Contains("ResolveGameOnPrefabInitTarget");
+        await Assert.That(source).Contains("typeof(Game)");
+        await Assert.That(source).Contains("\"OnPrefabInit\"");
+        await Assert.That(source).Contains("DeclaredMemberVisibility.NonPublic");
+        await Assert.That(source).Contains("typeof(void)");
+        await Assert.That(source).Contains("Array.Empty<Type>()");
+        await Assert.That(CountOrdinalOccurrences(
                 source,
-                "TryStartAuthorizedGameSession(__instance)"),
-            "The game-load prefix must make exactly one installer delegation.");
-        Assert.IsFalse(
-            source.Contains("EnsureGameSession", StringComparison.Ordinal),
-            "Only the verified installer success branch may publish a session.");
-        Assert.IsFalse(
-            source.Contains("[Harmony", StringComparison.Ordinal),
-            "The adapter is installed explicitly and must remain undiscoverable.");
+                "TryStartAuthorizedGameSession(__instance)")).IsEqualTo(1).Because("The game-load prefix must make exactly one installer delegation.");
+        await Assert.That(source.Contains("EnsureGameSession", StringComparison.Ordinal)).IsFalse().Because("Only the verified installer success branch may publish a session.");
+        await Assert.That(source.Contains("[Harmony", StringComparison.Ordinal)).IsFalse().Because("The adapter is installed explicitly and must remain undiscoverable.");
     }
 
-    [TestMethod]
-    public void ClusterManagerRegisterWorldContainerContract_WhenInstalledShapeMatches_ReturnsExactMethod()
+    [Test]
+    public async Task ClusterManagerRegisterWorldContainerContract_WhenInstalledShapeMatches_ReturnsExactMethod()
     {
         var method = HarmonyPatchContractVerifier.RequireInstanceMethod(
             typeof(ClusterManagerWorldLifecycleContractFixture),
@@ -2122,15 +1955,15 @@ public sealed class HarmonyPatchContractVerifierTests
             typeof(void),
             [typeof(WorldContainerLifecycleContractFixture)]);
 
-        AssertExactInstanceMethod(
+        await AssertExactInstanceMethod(
             method,
             typeof(ClusterManagerWorldLifecycleContractFixture),
             isPublic: true,
             [typeof(WorldContainerLifecycleContractFixture)]);
     }
 
-    [TestMethod]
-    public void ClusterManagerUnregisterWorldContainerContract_WhenInstalledShapeMatches_ReturnsExactMethod()
+    [Test]
+    public async Task ClusterManagerUnregisterWorldContainerContract_WhenInstalledShapeMatches_ReturnsExactMethod()
     {
         var method = HarmonyPatchContractVerifier.RequireInstanceMethod(
             typeof(ClusterManagerWorldLifecycleContractFixture),
@@ -2139,15 +1972,15 @@ public sealed class HarmonyPatchContractVerifierTests
             typeof(void),
             [typeof(WorldContainerLifecycleContractFixture)]);
 
-        AssertExactInstanceMethod(
+        await AssertExactInstanceMethod(
             method,
             typeof(ClusterManagerWorldLifecycleContractFixture),
             isPublic: true,
             [typeof(WorldContainerLifecycleContractFixture)]);
     }
 
-    [TestMethod]
-    public void WorldContainerSetParentIdxContract_WhenInstalledShapeMatches_ReturnsExactMethod()
+    [Test]
+    public async Task WorldContainerSetParentIdxContract_WhenInstalledShapeMatches_ReturnsExactMethod()
     {
         var method = HarmonyPatchContractVerifier.RequireInstanceMethod(
             typeof(WorldContainerLifecycleContractFixture),
@@ -2156,114 +1989,114 @@ public sealed class HarmonyPatchContractVerifierTests
             typeof(void),
             [typeof(int)]);
 
-        AssertExactInstanceMethod(
+        await AssertExactInstanceMethod(
             method,
             typeof(WorldContainerLifecycleContractFixture),
             isPublic: true,
             [typeof(int)]);
     }
 
-    [TestMethod]
-    public void LifecycleTargetContracts_WhenOnlyOverloadsMatch_ThrowContractViolations()
+    [Test]
+    public async Task LifecycleTargetContracts_WhenOnlyOverloadsMatch_ThrowContractViolations()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireInstanceMethod(
                 typeof(GameDestroyInstancesOverloadOnlyFixture),
                 "DestroyInstances",
                 DeclaredMemberVisibility.NonPublic,
                 typeof(void),
-                Array.Empty<Type>()));
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+                Array.Empty<Type>())).ThrowsExactly<HarmonyPatchContractViolationException>();
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireInstanceMethod(
                 typeof(ClusterManagerWorldLifecycleOverloadOnlyFixture),
                 "RegisterWorldContainer",
                 DeclaredMemberVisibility.Public,
                 typeof(void),
-                [typeof(WorldContainerLifecycleContractFixture)]));
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+                [typeof(WorldContainerLifecycleContractFixture)])).ThrowsExactly<HarmonyPatchContractViolationException>();
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireInstanceMethod(
                 typeof(ClusterManagerWorldLifecycleOverloadOnlyFixture),
                 "UnregisterWorldContainer",
                 DeclaredMemberVisibility.Public,
                 typeof(void),
-                [typeof(WorldContainerLifecycleContractFixture)]));
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+                [typeof(WorldContainerLifecycleContractFixture)])).ThrowsExactly<HarmonyPatchContractViolationException>();
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireInstanceMethod(
                 typeof(WorldContainerSetParentIdxOverloadOnlyFixture),
                 "SetParentIdx",
                 DeclaredMemberVisibility.Public,
                 typeof(void),
-                [typeof(int)]));
+                [typeof(int)])).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void LifecycleTargetContracts_WhenReturnTypesChange_ThrowContractViolations()
+    [Test]
+    public async Task LifecycleTargetContracts_WhenReturnTypesChange_ThrowContractViolations()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireInstanceMethod(
                 typeof(GameDestroyInstancesChangedReturnFixture),
                 "DestroyInstances",
                 DeclaredMemberVisibility.NonPublic,
                 typeof(void),
-                Array.Empty<Type>()));
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+                Array.Empty<Type>())).ThrowsExactly<HarmonyPatchContractViolationException>();
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireInstanceMethod(
                 typeof(ClusterManagerWorldLifecycleChangedReturnFixture),
                 "RegisterWorldContainer",
                 DeclaredMemberVisibility.Public,
                 typeof(void),
-                [typeof(WorldContainerLifecycleContractFixture)]));
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+                [typeof(WorldContainerLifecycleContractFixture)])).ThrowsExactly<HarmonyPatchContractViolationException>();
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireInstanceMethod(
                 typeof(ClusterManagerWorldLifecycleChangedReturnFixture),
                 "UnregisterWorldContainer",
                 DeclaredMemberVisibility.Public,
                 typeof(void),
-                [typeof(WorldContainerLifecycleContractFixture)]));
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+                [typeof(WorldContainerLifecycleContractFixture)])).ThrowsExactly<HarmonyPatchContractViolationException>();
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireInstanceMethod(
                 typeof(WorldContainerSetParentIdxChangedReturnFixture),
                 "SetParentIdx",
                 DeclaredMemberVisibility.Public,
                 typeof(void),
-                [typeof(int)]));
+                [typeof(int)])).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void LifecycleTargetContracts_WhenStaticnessChanges_ThrowContractViolations()
+    [Test]
+    public async Task LifecycleTargetContracts_WhenStaticnessChanges_ThrowContractViolations()
     {
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireInstanceMethod(
                 typeof(GameDestroyInstancesStaticFixture),
                 "DestroyInstances",
                 DeclaredMemberVisibility.NonPublic,
                 typeof(void),
-                Array.Empty<Type>()));
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+                Array.Empty<Type>())).ThrowsExactly<HarmonyPatchContractViolationException>();
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireInstanceMethod(
                 typeof(ClusterManagerWorldLifecycleStaticFixture),
                 "RegisterWorldContainer",
                 DeclaredMemberVisibility.Public,
                 typeof(void),
-                [typeof(WorldContainerLifecycleContractFixture)]));
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+                [typeof(WorldContainerLifecycleContractFixture)])).ThrowsExactly<HarmonyPatchContractViolationException>();
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireInstanceMethod(
                 typeof(ClusterManagerWorldLifecycleStaticFixture),
                 "UnregisterWorldContainer",
                 DeclaredMemberVisibility.Public,
                 typeof(void),
-                [typeof(WorldContainerLifecycleContractFixture)]));
-        Assert.ThrowsExactly<HarmonyPatchContractViolationException>(() =>
+                [typeof(WorldContainerLifecycleContractFixture)])).ThrowsExactly<HarmonyPatchContractViolationException>();
+        await Assert.That(() =>
             HarmonyPatchContractVerifier.RequireInstanceMethod(
                 typeof(WorldContainerSetParentIdxStaticFixture),
                 "SetParentIdx",
                 DeclaredMemberVisibility.Public,
                 typeof(void),
-                [typeof(int)]));
+                [typeof(int)])).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
 
-    [TestMethod]
-    public void LifecycleAdapterSources_WhenInspected_DeclareExactResolversWithoutPatchDiscoveryAttributes()
+    [Test]
+    public async Task LifecycleAdapterSources_WhenInspected_DeclareExactResolversWithoutPatchDiscoveryAttributes()
     {
         var shutdownAdapterPath = ResolveProductionSourcePath(
             "KleiImplementationAdapters",
@@ -2271,75 +2104,40 @@ public sealed class HarmonyPatchContractVerifierTests
         var worldTopologyAdapterPath = ResolveProductionSourcePath(
             "KleiImplementationAdapters",
             "WorldParentTopologyPatches.cs");
-        Assert.IsTrue(
-            File.Exists(shutdownAdapterPath),
-            $"Missing lifecycle adapter source {shutdownAdapterPath}.");
-        Assert.IsTrue(
-            File.Exists(worldTopologyAdapterPath),
-            $"Missing world-topology adapter source {worldTopologyAdapterPath}.");
+        await Assert.That(File.Exists(shutdownAdapterPath)).IsTrue().Because($"Missing lifecycle adapter source {shutdownAdapterPath}.");
+        await Assert.That(File.Exists(worldTopologyAdapterPath)).IsTrue().Because($"Missing world-topology adapter source {worldTopologyAdapterPath}.");
         var combinedSource =
             File.ReadAllText(shutdownAdapterPath) +
             Environment.NewLine +
             File.ReadAllText(worldTopologyAdapterPath);
 
-        Assert.AreEqual(
-            4,
-            CountOrdinalOccurrences(
+        await Assert.That(CountOrdinalOccurrences(
                 combinedSource,
-                "HarmonyPatchContractVerifier.RequireInstanceMethod"));
-        StringAssert.Contains(
-            combinedSource,
-            "ResolveGameDestroyInstancesTarget");
-        StringAssert.Contains(
-            combinedSource,
-            "ResolveClusterManagerRegisterWorldContainerTarget");
-        StringAssert.Contains(
-            combinedSource,
-            "ResolveClusterManagerUnregisterWorldContainerTarget");
-        StringAssert.Contains(
-            combinedSource,
-            "ResolveWorldContainerSetParentIdxTarget");
-        StringAssert.Contains(combinedSource, "typeof(Game)");
-        StringAssert.Contains(combinedSource, "\"DestroyInstances\"");
-        StringAssert.Contains(combinedSource, "Array.Empty<Type>()");
-        Assert.AreEqual(
-            2,
-            CountOrdinalOccurrences(
+                "HarmonyPatchContractVerifier.RequireInstanceMethod")).IsEqualTo(4);
+        await Assert.That(combinedSource).Contains("ResolveGameDestroyInstancesTarget");
+        await Assert.That(combinedSource).Contains("ResolveClusterManagerRegisterWorldContainerTarget");
+        await Assert.That(combinedSource).Contains("ResolveClusterManagerUnregisterWorldContainerTarget");
+        await Assert.That(combinedSource).Contains("ResolveWorldContainerSetParentIdxTarget");
+        await Assert.That(combinedSource).Contains("typeof(Game)");
+        await Assert.That(combinedSource).Contains("\"DestroyInstances\"");
+        await Assert.That(combinedSource).Contains("Array.Empty<Type>()");
+        await Assert.That(CountOrdinalOccurrences(
                 combinedSource,
-                "new[] { typeof(WorldContainer) }"));
-        StringAssert.Contains(
-            combinedSource,
-            "\"RegisterWorldContainer\"");
-        StringAssert.Contains(
-            combinedSource,
-            "\"UnregisterWorldContainer\"");
-        StringAssert.Contains(combinedSource, "\"SetParentIdx\"");
-        StringAssert.Contains(
-            combinedSource,
-            "new[] { typeof(int) }");
-        Assert.AreEqual(
-            4,
-            CountOrdinalOccurrences(combinedSource, "typeof(void)"));
-        StringAssert.Contains(
-            combinedSource,
-            "DeclaredMemberVisibility.NonPublic");
-        StringAssert.Contains(
-            combinedSource,
-            "DeclaredMemberVisibility.Public");
-        Assert.IsFalse(
-            combinedSource.Contains("AccessTools", StringComparison.Ordinal));
-        Assert.IsFalse(
-            combinedSource.Contains("[HarmonyPatch", StringComparison.Ordinal));
-        Assert.IsFalse(
-            combinedSource.Contains("[HarmonyPrefix", StringComparison.Ordinal));
-        Assert.IsFalse(
-            combinedSource.Contains("[HarmonyPostfix", StringComparison.Ordinal));
-        Assert.IsFalse(
-            combinedSource.Contains("[HarmonyFinalizer", StringComparison.Ordinal));
-        Assert.IsFalse(
-            combinedSource.Contains("OnLoadLevel", StringComparison.Ordinal));
-        Assert.IsFalse(
-            combinedSource.Contains("OnPrefabInit", StringComparison.Ordinal));
+                "new[] { typeof(WorldContainer) }")).IsEqualTo(2);
+        await Assert.That(combinedSource).Contains("\"RegisterWorldContainer\"");
+        await Assert.That(combinedSource).Contains("\"UnregisterWorldContainer\"");
+        await Assert.That(combinedSource).Contains("\"SetParentIdx\"");
+        await Assert.That(combinedSource).Contains("new[] { typeof(int) }");
+        await Assert.That(CountOrdinalOccurrences(combinedSource, "typeof(void)")).IsEqualTo(4);
+        await Assert.That(combinedSource).Contains("DeclaredMemberVisibility.NonPublic");
+        await Assert.That(combinedSource).Contains("DeclaredMemberVisibility.Public");
+        await Assert.That(combinedSource.Contains("AccessTools", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(combinedSource.Contains("[HarmonyPatch", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(combinedSource.Contains("[HarmonyPrefix", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(combinedSource.Contains("[HarmonyPostfix", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(combinedSource.Contains("[HarmonyFinalizer", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(combinedSource.Contains("OnLoadLevel", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(combinedSource.Contains("OnPrefabInit", StringComparison.Ordinal)).IsFalse();
     }
 
     private static KleiDirectEligibilityInstructionAnchors
@@ -3057,34 +2855,32 @@ public sealed class HarmonyPatchContractVerifierTests
         string operation) =>
         new(operation, null, null);
 
-    private static void AssertExactInstanceMethod(
+    private static async Task AssertExactInstanceMethod(
         MethodInfo method,
         Type expectedDeclaringType,
         bool isPublic,
         IReadOnlyList<Type> expectedParameterTypes) =>
-        AssertExactInstanceMethod(
+        await AssertExactInstanceMethod(
             method,
             expectedDeclaringType,
             isPublic,
             typeof(void),
             expectedParameterTypes);
 
-    private static void AssertExactInstanceMethod(
+    private static async Task AssertExactInstanceMethod(
         MethodInfo method,
         Type expectedDeclaringType,
         bool isPublic,
         Type expectedReturnType,
         IReadOnlyList<Type> expectedParameterTypes)
     {
-        Assert.AreSame(expectedDeclaringType, method.DeclaringType);
-        Assert.AreEqual(isPublic, method.IsPublic);
-        Assert.IsFalse(method.IsStatic);
-        Assert.AreSame(expectedReturnType, method.ReturnType);
-        Assert.AreSequenceEqual(
-            expectedParameterTypes,
-            method.GetParameters()
+        await Assert.That(method.DeclaringType).IsSameReferenceAs(expectedDeclaringType);
+        await Assert.That(method.IsPublic).IsEqualTo(isPublic);
+        await Assert.That(method.IsStatic).IsFalse();
+        await Assert.That(method.ReturnType).IsSameReferenceAs(expectedReturnType);
+        await Assert.That(method.GetParameters()
                 .Select(parameter => parameter.ParameterType)
-                .ToArray());
+                .ToArray()).IsEquivalentTo(expectedParameterTypes, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     private static string ResolveProductionSourcePath(
@@ -3144,23 +2940,23 @@ public sealed class HarmonyPatchContractVerifierTests
         return occurrenceCount;
     }
 
-    private static ActiveHarmonyPrefixDescriptor CreateDescriptor(
+    private static async Task<ActiveHarmonyPrefixDescriptor> CreateDescriptor(
         MethodBase targetMethod,
         string patchMethodName,
         string harmonyOwner,
         int priority) =>
         new ActiveHarmonyPrefixDescriptor(
             targetMethod,
-            RequireFixtureMethod(patchMethodName),
+            (await RequireFixtureMethod(patchMethodName)),
             harmonyOwner,
             priority);
 
-    private static MethodInfo RequireFixtureMethod(string methodName)
+    private static async Task<MethodInfo> RequireFixtureMethod(string methodName)
     {
         var method = typeof(HarmonyAuthorityFixture).GetMethod(
             methodName,
             BindingFlags.Static | BindingFlags.NonPublic);
-        Assert.IsNotNull(method);
+        Assert.NotNull(method);
         return method;
     }
 

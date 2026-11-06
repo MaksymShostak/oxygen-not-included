@@ -8,11 +8,9 @@ using System.Text;
 using System.Text.Json;
 
 namespace MaksymShostak.OniModPipeline.Tests.ReleaseCandidates;
-
-[TestClass]
 public sealed class AcceptanceRecorderTests
 {
-    [TestMethod]
+    [Test]
     public async Task RecordAsync_WhenInputIsNotInteractive_ReturnsOnip5008BeforePromptingOrWriting()
     {
         await using var fixture = await AcceptanceRecorderFixture.CreateInstalledAsync(
@@ -23,12 +21,12 @@ public sealed class AcceptanceRecorderTests
             "Tester",
             CancellationToken.None);
 
-        fixture.AssertPreconditionFailure(
+        await fixture.AssertPreconditionFailure(
             result,
             DiagnosticIds.AcceptanceRequiresInteractiveTerminal);
     }
 
-    [TestMethod]
+    [Test]
     public async Task RecordAsync_WhenInstallationReceiptIsMissing_FailsBeforePromptingOrWriting()
     {
         await using var fixture = await AcceptanceRecorderFixture.CreateInstalledAsync();
@@ -39,10 +37,10 @@ public sealed class AcceptanceRecorderTests
             "Tester",
             CancellationToken.None);
 
-        fixture.AssertPreconditionFailure(result, DiagnosticIds.AcceptanceDigestMismatch);
+        await fixture.AssertPreconditionFailure(result, DiagnosticIds.AcceptanceDigestMismatch);
     }
 
-    [TestMethod]
+    [Test]
     public async Task RecordAsync_WhenReceiptDigestDiffers_FailsBeforePromptingOrWriting()
     {
         await using var fixture = await AcceptanceRecorderFixture.CreateInstalledAsync();
@@ -57,10 +55,10 @@ public sealed class AcceptanceRecorderTests
             "Tester",
             CancellationToken.None);
 
-        fixture.AssertPreconditionFailure(result, DiagnosticIds.AcceptanceDigestMismatch);
+        await fixture.AssertPreconditionFailure(result, DiagnosticIds.AcceptanceDigestMismatch);
     }
 
-    [TestMethod]
+    [Test]
     public async Task RecordAsync_WhenCurrentCandidateContentDiffers_FailsBeforePromptingOrWriting()
     {
         await using var fixture = await AcceptanceRecorderFixture.CreateInstalledAsync();
@@ -71,10 +69,10 @@ public sealed class AcceptanceRecorderTests
             "Tester",
             CancellationToken.None);
 
-        fixture.AssertPreconditionFailure(result, DiagnosticIds.AcceptanceDigestMismatch);
+        await fixture.AssertPreconditionFailure(result, DiagnosticIds.AcceptanceDigestMismatch);
     }
 
-    [TestMethod]
+    [Test]
     public async Task RecordAsync_WhenInstalledRuntimeByteDiffers_FailsBeforePromptingOrWriting()
     {
         await using var fixture = await AcceptanceRecorderFixture.CreateInstalledAsync();
@@ -87,10 +85,10 @@ public sealed class AcceptanceRecorderTests
             "Tester",
             CancellationToken.None);
 
-        fixture.AssertPreconditionFailure(result, DiagnosticIds.AcceptanceDigestMismatch);
+        await fixture.AssertPreconditionFailure(result, DiagnosticIds.AcceptanceDigestMismatch);
     }
 
-    [TestMethod]
+    [Test]
     public async Task RecordAsync_WhenAcceptancePlanHashDiffers_FailsBeforePromptingOrWriting()
     {
         await using var fixture = await AcceptanceRecorderFixture.CreateInstalledAsync();
@@ -101,10 +99,10 @@ public sealed class AcceptanceRecorderTests
             "Tester",
             CancellationToken.None);
 
-        fixture.AssertPreconditionFailure(result, DiagnosticIds.AcceptanceDigestMismatch);
+        await fixture.AssertPreconditionFailure(result, DiagnosticIds.AcceptanceDigestMismatch);
     }
 
-    [TestMethod]
+    [Test]
     public async Task RecordAsync_WhenExplicitTesterIsEmpty_FailsBeforePromptingOrWriting()
     {
         await using var fixture = await AcceptanceRecorderFixture.CreateInstalledAsync();
@@ -114,11 +112,11 @@ public sealed class AcceptanceRecorderTests
             "   ",
             CancellationToken.None);
 
-        fixture.AssertPreconditionFailure(result, DiagnosticIds.RequiredAcceptanceMissing);
-        Assert.AreEqual(PipelineExitCode.InvalidInput, result.ExitCode);
+        await fixture.AssertPreconditionFailure(result, DiagnosticIds.RequiredAcceptanceMissing);
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.InvalidInput);
     }
 
-    [TestMethod]
+    [Test]
     public async Task RecordAsync_WhenResultsAlreadyExist_PreservesTheirExactBytesWithoutPrompting()
     {
         await using var fixture = await AcceptanceRecorderFixture.CreateInstalledAsync();
@@ -132,17 +130,15 @@ public sealed class AcceptanceRecorderTests
             "Tester",
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(PipelineExitCode.ReleaseNotReady, result.ExitCode);
-        Assert.AreEqual(DiagnosticIds.ReleaseNotReady, result.Diagnostics[0].Id);
-        CollectionAssert.AreEqual(
-            existing,
-            await File.ReadAllBytesAsync(fixture.Layout.AcceptanceTestResultsPath));
-        Assert.AreEqual(0, fixture.Console.InteractionCount);
-        Assert.IsEmpty(fixture.Console.Lines);
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.ReleaseNotReady);
+        await Assert.That(result.Diagnostics[0].Id).IsEqualTo(DiagnosticIds.ReleaseNotReady);
+        await Assert.That(await File.ReadAllBytesAsync(fixture.Layout.AcceptanceTestResultsPath)).IsEquivalentTo(existing, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(fixture.Console.InteractionCount).IsEqualTo(0);
+        await Assert.That(fixture.Console.Lines).IsEmpty();
     }
 
-    [TestMethod]
+    [Test]
     public async Task RecordAsync_WhenOneCheckFails_WritesCompleteDigestBoundResultsAndReturnsExitSix()
     {
         await using var fixture = await AcceptanceRecorderFixture.CreateInstalledAsync();
@@ -156,48 +152,40 @@ public sealed class AcceptanceRecorderTests
             "  Maksym Shostak  ",
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(PipelineExitCode.ReleaseNotReady, result.ExitCode);
-        Assert.AreEqual(DiagnosticIds.RequiredAcceptanceMissing, result.Diagnostics[0].Id);
-        Assert.IsNotNull(result.Value);
-        Assert.IsFalse(result.Value.AllChecksPassed);
-        Assert.IsTrue(File.Exists(fixture.Layout.AcceptanceTestResultsPath));
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.ExitCode).IsEqualTo(PipelineExitCode.ReleaseNotReady);
+        await Assert.That(result.Diagnostics[0].Id).IsEqualTo(DiagnosticIds.RequiredAcceptanceMissing);
+        Assert.NotNull(result.Value);
+        await Assert.That(result.Value.AllChecksPassed).IsFalse();
+        await Assert.That(File.Exists(fixture.Layout.AcceptanceTestResultsPath)).IsTrue();
         var recorded = await fixture.ReadJsonAsync<AcceptanceTestResults>(
             fixture.Layout.AcceptanceTestResultsPath);
-        Assert.AreEqual(1, recorded.SchemaVersion);
-        Assert.AreEqual("Maksym Shostak", recorded.Tester);
-        Assert.AreEqual(AcceptanceRecorderFixture.RecordedAt, recorded.RecordedAtUtc);
-        Assert.AreEqual(fixture.InstallationDigest, recorded.ContentDigest);
-        Assert.AreEqual(
-            fixture.Provenance.AcceptanceTestPlanSha256,
-            recorded.AcceptancePlanSha256);
-        Assert.HasCount(2, recorded.Checks);
-        Assert.AreEqual(AcceptanceOutcome.Passed, recorded.Checks[0].Outcome);
-        Assert.AreEqual("first note", recorded.Checks[0].Note);
-        Assert.AreEqual(AcceptanceOutcome.Failed, recorded.Checks[1].Outcome);
-        Assert.AreEqual("failure reproduced", recorded.Checks[1].Note);
-        AssertCheckCopied(fixture.Plan.Checks[0], recorded.Checks[0]);
-        AssertCheckCopied(fixture.Plan.Checks[1], recorded.Checks[1]);
+        await Assert.That(recorded.SchemaVersion).IsEqualTo(1);
+        await Assert.That(recorded.Tester).IsEqualTo("Maksym Shostak");
+        await Assert.That(recorded.RecordedAtUtc).IsEqualTo(AcceptanceRecorderFixture.RecordedAt);
+        await Assert.That(recorded.ContentDigest).IsEqualTo(fixture.InstallationDigest);
+        await Assert.That(recorded.AcceptancePlanSha256).IsEqualTo(fixture.Provenance.AcceptanceTestPlanSha256);
+        await Assert.That(recorded.Checks).Count().IsEqualTo(2);
+        await Assert.That(recorded.Checks[0].Outcome).IsEqualTo(AcceptanceOutcome.Passed);
+        await Assert.That(recorded.Checks[0].Note).IsEqualTo("first note");
+        await Assert.That(recorded.Checks[1].Outcome).IsEqualTo(AcceptanceOutcome.Failed);
+        await Assert.That(recorded.Checks[1].Note).IsEqualTo("failure reproduced");
+        await AssertCheckCopied(fixture.Plan.Checks[0], recorded.Checks[0]);
+        await AssertCheckCopied(fixture.Plan.Checks[1], recorded.Checks[1]);
         var resultBytes = await File.ReadAllBytesAsync(
             fixture.Layout.AcceptanceTestResultsPath);
-        Assert.IsFalse(resultBytes.AsSpan().StartsWith(
-            new byte[] { 0xEF, 0xBB, 0xBF }));
-        Assert.IsFalse(resultBytes.Contains((byte)'\r'));
+        await Assert.That(resultBytes.AsSpan().StartsWith(
+            new byte[] { 0xEF, 0xBB, 0xBF })).IsFalse();
+        await Assert.That(resultBytes.Contains((byte)'\r')).IsFalse();
         var resultJson = Encoding.UTF8.GetString(resultBytes);
-        Assert.Contains("\"outcome\": \"passed\"", resultJson, StringComparison.Ordinal);
-        Assert.Contains("\"outcome\": \"failed\"", resultJson, StringComparison.Ordinal);
-        Assert.Contains(
-            $"Candidate static ID: {fixture.Plan.StaticId}",
-            fixture.Console.Lines);
-        Assert.Contains(
-            $"Candidate version: {fixture.Plan.Version}",
-            fixture.Console.Lines);
-        Assert.Contains(
-            $"Candidate content digest: {fixture.Plan.ContentDigest}",
-            fixture.Console.Lines);
+        await Assert.That(resultJson).Contains("\"outcome\": \"passed\"", StringComparison.Ordinal);
+        await Assert.That(resultJson).Contains("\"outcome\": \"failed\"", StringComparison.Ordinal);
+        await Assert.That(fixture.Console.Lines).Contains($"Candidate static ID: {fixture.Plan.StaticId}");
+        await Assert.That(fixture.Console.Lines).Contains($"Candidate version: {fixture.Plan.Version}");
+        await Assert.That(fixture.Console.Lines).Contains($"Candidate content digest: {fixture.Plan.ContentDigest}");
     }
 
-    [TestMethod]
+    [Test]
     public async Task RecordAsync_WhenEveryCheckPasses_WritesOnceAndReturnsAcceptancePassed()
     {
         await using var fixture = await AcceptanceRecorderFixture.CreateInstalledAsync();
@@ -212,20 +200,18 @@ public sealed class AcceptanceRecorderTests
             tester: null,
             CancellationToken.None);
 
-        Assert.IsTrue(result.IsSuccess, AcceptanceRecorderFixture.Render(result.Diagnostics));
-        Assert.IsNotNull(result.Value);
-        Assert.IsTrue(result.Value.AllChecksPassed);
-        Assert.AreEqual(
-            fixture.Layout.AcceptanceTestResultsPath,
-            result.Value.ResultsPath);
+        await Assert.That(result.IsSuccess).IsTrue().Because(AcceptanceRecorderFixture.Render(result.Diagnostics));
+        Assert.NotNull(result.Value);
+        await Assert.That(result.Value.AllChecksPassed).IsTrue();
+        await Assert.That(result.Value.ResultsPath).IsEqualTo(fixture.Layout.AcceptanceTestResultsPath);
         var recorded = await fixture.ReadJsonAsync<AcceptanceTestResults>(
             fixture.Layout.AcceptanceTestResultsPath);
-        Assert.AreEqual("Prompted Tester", recorded.Tester);
-        Assert.IsTrue(recorded.Checks.All(check => check.Outcome == AcceptanceOutcome.Passed));
-        Assert.IsTrue(recorded.Checks.All(check => check.Note is null));
+        await Assert.That(recorded.Tester).IsEqualTo("Prompted Tester");
+        await Assert.That(recorded.Checks.All(check => check.Outcome == AcceptanceOutcome.Passed)).IsTrue();
+        await Assert.That(recorded.Checks.All(check => check.Note is null)).IsTrue();
     }
 
-    [TestMethod]
+    [Test]
     public async Task RecordAsync_WhenInvokedAgain_CannotReplaceFailedResults()
     {
         await using var fixture = await AcceptanceRecorderFixture.CreateInstalledAsync();
@@ -237,7 +223,7 @@ public sealed class AcceptanceRecorderTests
             fixture.CandidateDirectory,
             "Tester",
             CancellationToken.None);
-        Assert.AreEqual(PipelineExitCode.ReleaseNotReady, first.ExitCode);
+        await Assert.That(first.ExitCode).IsEqualTo(PipelineExitCode.ReleaseNotReady);
         var originalBytes = await File.ReadAllBytesAsync(
             fixture.Layout.AcceptanceTestResultsPath);
         var originalInteractionCount = fixture.Console.InteractionCount;
@@ -251,15 +237,13 @@ public sealed class AcceptanceRecorderTests
             "Different Tester",
             CancellationToken.None);
 
-        Assert.IsFalse(second.IsSuccess);
-        Assert.AreEqual(DiagnosticIds.ReleaseNotReady, second.Diagnostics[0].Id);
-        CollectionAssert.AreEqual(
-            originalBytes,
-            await File.ReadAllBytesAsync(fixture.Layout.AcceptanceTestResultsPath));
-        Assert.AreEqual(originalInteractionCount, fixture.Console.InteractionCount);
+        await Assert.That(second.IsSuccess).IsFalse();
+        await Assert.That(second.Diagnostics[0].Id).IsEqualTo(DiagnosticIds.ReleaseNotReady);
+        await Assert.That(await File.ReadAllBytesAsync(fixture.Layout.AcceptanceTestResultsPath)).IsEquivalentTo(originalBytes, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(fixture.Console.InteractionCount).IsEqualTo(originalInteractionCount);
     }
 
-    [TestMethod]
+    [Test]
     public async Task RecordAsync_WhenInstalledBytesChangeDuringPrompting_DoesNotWriteResults()
     {
         await using var fixture = await AcceptanceRecorderFixture.CreateInstalledAsync();
@@ -276,20 +260,20 @@ public sealed class AcceptanceRecorderTests
             "Tester",
             CancellationToken.None);
 
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(DiagnosticIds.AcceptanceDigestMismatch, result.Diagnostics[0].Id);
-        Assert.IsFalse(File.Exists(fixture.Layout.AcceptanceTestResultsPath));
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Diagnostics[0].Id).IsEqualTo(DiagnosticIds.AcceptanceDigestMismatch);
+        await Assert.That(File.Exists(fixture.Layout.AcceptanceTestResultsPath)).IsFalse();
     }
 
-    private static void AssertCheckCopied(
+    private static async Task AssertCheckCopied(
         AcceptanceTestPlanCheck expected,
         AcceptanceCheckResult actual)
     {
-        Assert.AreEqual(expected.Id, actual.Id);
-        Assert.AreEqual(expected.Title, actual.Title);
-        Assert.AreEqual(expected.Setup, actual.Setup);
-        Assert.AreEqual(expected.Action, actual.Action);
-        Assert.AreEqual(expected.Expected, actual.Expected);
+        await Assert.That(actual.Id).IsEqualTo(expected.Id);
+        await Assert.That(actual.Title).IsEqualTo(expected.Title);
+        await Assert.That(actual.Setup).IsEqualTo(expected.Setup);
+        await Assert.That(actual.Action).IsEqualTo(expected.Action);
+        await Assert.That(actual.Expected).IsEqualTo(expected.Expected);
     }
 }
 
@@ -340,7 +324,7 @@ internal sealed class AcceptanceRecorderFixture : IAsyncDisposable
             InstallTarget.Dev,
             installation.Environment,
             CancellationToken.None);
-        Assert.IsTrue(installed.IsSuccess, Render(installed.Diagnostics));
+        await Assert.That(installed.IsSuccess).IsTrue().Because(Render(installed.Diagnostics));
         var fixture = new AcceptanceRecorderFixture(
             installation,
             new FakeAcceptanceConsole(interactive));
@@ -366,15 +350,15 @@ internal sealed class AcceptanceRecorderFixture : IAsyncDisposable
             value,
             CancellationToken.None);
 
-    internal void AssertPreconditionFailure<T>(
+    internal async Task AssertPreconditionFailure<T>(
         OperationResult<T> result,
         string diagnosticId)
     {
-        Assert.IsFalse(result.IsSuccess);
-        Assert.AreEqual(diagnosticId, result.Diagnostics[0].Id);
-        Assert.IsFalse(File.Exists(Layout.AcceptanceTestResultsPath));
-        Assert.AreEqual(0, Console.InteractionCount);
-        Assert.IsEmpty(Console.Lines);
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Diagnostics[0].Id).IsEqualTo(diagnosticId);
+        await Assert.That(File.Exists(Layout.AcceptanceTestResultsPath)).IsFalse();
+        await Assert.That(Console.InteractionCount).IsEqualTo(0);
+        await Assert.That(Console.Lines).IsEmpty();
     }
 
     internal static string Render(IReadOnlyList<Diagnostic> diagnostics) =>

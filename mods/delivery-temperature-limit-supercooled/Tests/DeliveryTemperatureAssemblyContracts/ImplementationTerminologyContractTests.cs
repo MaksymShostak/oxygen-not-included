@@ -3,20 +3,13 @@
 using System.Text.RegularExpressions;
 
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
-
-/// <summary>
-/// Keeps content mode and implementation path as two independent concepts. The
-/// forbidden token is assembled at runtime so this contract does not fail on its
-/// own diagnostic vocabulary.
-/// </summary>
-[TestClass]
 public sealed partial class ImplementationTerminologyContractTests
 {
     private static readonly string AmbiguousUnqualifiedTerm =
         string.Concat("vani", "lla");
 
-    [TestMethod]
-    public void ImplementationArtifacts_WhenTerminologyIsInspected_ContainOnlyQualifiedContentAndPathNames()
+    [Test]
+    public async Task ImplementationArtifacts_WhenTerminologyIsInspected_ContainOnlyQualifiedContentAndPathNames()
     {
         string repositoryRoot = ResolveRepositoryRoot();
         string modRoot = Path.Combine(
@@ -39,30 +32,24 @@ public sealed partial class ImplementationTerminologyContractTests
         foreach (string sourcePath in sourcePaths)
         {
             string relativePath = Path.GetRelativePath(modRoot, sourcePath);
-            Assert.IsFalse(
-                relativePath.Contains(
+            await Assert.That(relativePath.Contains(
                     AmbiguousUnqualifiedTerm,
-                    StringComparison.OrdinalIgnoreCase),
-                $"Ambiguous content/implementation terminology appears in path {relativePath}.");
+                    StringComparison.OrdinalIgnoreCase)).IsFalse().Because($"Ambiguous content/implementation terminology appears in path {relativePath}.");
 
             string[] sourceLines = File.ReadAllLines(sourcePath);
             for (int lineIndex = 0; lineIndex < sourceLines.Length; lineIndex++)
             {
                 string sourceLine = sourceLines[lineIndex];
-                Assert.IsFalse(
-                    AmbiguousWordRegex().IsMatch(sourceLine),
-                    $"Ambiguous unqualified terminology appears at " +
+                await Assert.That(AmbiguousWordRegex().IsMatch(sourceLine)).IsFalse().Because($"Ambiguous unqualified terminology appears at " +
                     $"{relativePath}:{lineIndex + 1}: {sourceLine.Trim()}");
-                Assert.IsFalse(
-                    AmbiguousTypeIdentifierRegex().IsMatch(sourceLine),
-                    $"Ambiguous type identifier appears at " +
+                await Assert.That(AmbiguousTypeIdentifierRegex().IsMatch(sourceLine)).IsFalse().Because($"Ambiguous type identifier appears at " +
                     $"{relativePath}:{lineIndex + 1}: {sourceLine.Trim()}");
             }
         }
     }
 
-    [TestMethod]
-    public void GenericSelectionBoundaries_WhenSourceIsInspected_ContainNoProviderOrGameRuntimeDependencies()
+    [Test]
+    public async Task GenericSelectionBoundaries_WhenSourceIsInspected_ContainNoProviderOrGameRuntimeDependencies()
     {
         string repositoryRoot = ResolveRepositoryRoot();
         string sourceRoot = Path.Combine(
@@ -102,9 +89,7 @@ public sealed partial class ImplementationTerminologyContractTests
             string source = File.ReadAllText(inspectedPath);
             foreach (string forbiddenToken in forbiddenTokens)
             {
-                Assert.IsFalse(
-                    source.Contains(forbiddenToken, StringComparison.Ordinal),
-                    $"Generic selection boundary {inspectedPath} contains " +
+                await Assert.That(source.Contains(forbiddenToken, StringComparison.Ordinal)).IsFalse().Because($"Generic selection boundary {inspectedPath} contains " +
                     $"provider/runtime token '{forbiddenToken}'.");
             }
         }
