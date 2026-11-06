@@ -16,17 +16,9 @@ internal sealed class InstalledMarkdownCanonicalizer(IExternalProcessRunner runn
         try
         {
             if (candidate.Length > DocumentLimit) throw new InvalidDataException("README exceeds the document limit.");
-            var bridge = ContainedPathResolver.ResolveExistingFile(repositoryRoot, "tooling/markdown/readme-document.mjs");
-            var manifestPath = ContainedPathResolver.ResolveExistingFile(repositoryRoot, "tooling/markdown/node_modules/@hadden-industries/markdown-quality/package.json");
-            var lockPath = ContainedPathResolver.ResolveExistingFile(repositoryRoot, "tooling/markdown/package-lock.json");
-            if (!bridge.IsSuccess || !manifestPath.IsSuccess || !lockPath.IsSuccess)
-                throw new InvalidDataException("Install the locked tooling/markdown graph before README synchronization.");
-            using var packageLock = JsonDocument.Parse(await File.ReadAllBytesAsync(lockPath.Value!, cancellationToken).ConfigureAwait(false));
-            var version = packageLock.RootElement.GetProperty("packages").GetProperty($"node_modules/{PackageName}").GetProperty("version").GetString();
-            using var manifest = JsonDocument.Parse(await File.ReadAllBytesAsync(manifestPath.Value!, cancellationToken).ConfigureAwait(false));
-            if (string.IsNullOrWhiteSpace(version) || manifest.RootElement.GetProperty("name").GetString() != PackageName ||
-                manifest.RootElement.GetProperty("version").GetString() != version)
-                throw new InvalidDataException("README normalization requires the locked installed package identity.");
+            var bridge = ContainedPathResolver.ResolveExistingFile(repositoryRoot, "tools/readme/canonicalize.mjs");
+            if (!bridge.IsSuccess)
+                throw new InvalidDataException("The README transport bridge is missing from the checkout.");
 
             var relative = Path.GetRelativePath(repositoryRoot, readmePath).Replace('\\', '/');
             var requestId = Guid.NewGuid().ToString("N");
@@ -49,10 +41,11 @@ internal sealed class InstalledMarkdownCanonicalizer(IExternalProcessRunner runn
             using var document = JsonDocument.Parse(response.StandardOutput);
             var report = document.RootElement;
             var output = report.GetProperty("document");
-            if (report.GetProperty("schemaVersion").GetInt32() != 3 || report.GetProperty("operation").GetString() != "format" ||
+            if (report.GetProperty("schemaVersion").GetInt32() != 5 || report.GetProperty("operation").GetString() != "format" ||
                 report.GetProperty("exitCode").GetInt32() != response.ExitCode ||
+                report.GetProperty("operationStatus").GetString() != "completed" ||
+                report.GetProperty("writtenPaths").GetArrayLength() != 0 ||
                 report.GetProperty("package").GetProperty("name").GetString() != PackageName ||
-                report.GetProperty("package").GetProperty("version").GetString() != version ||
                 output.GetProperty("path").GetString() != relative || output.GetProperty("requestId").GetString() != requestId)
                 throw new InvalidDataException("Markdown response does not match the README request.");
             var encoded = output.GetProperty("contentBase64").GetString()!;

@@ -10,7 +10,7 @@ internal static class CompatibilityBadgeLabels
     {
         if (System.Text.Encoding.UTF8.GetByteCount(markdown) > 2_097_152)
             throw new InvalidDataException("Generated description exceeds its transport limit.");
-        var bridge = ContainedPathResolver.ResolveExistingFile(root, "tooling/markdown/render-description.mjs");
+        var bridge = ContainedPathResolver.ResolveExistingFile(root, "tools/readme/render-description.mjs");
         if (!bridge.IsSuccess) throw new InvalidDataException("The domain description renderer is missing or unsafe.");
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
         timeout.CancelAfter(TimeSpan.FromSeconds(30));

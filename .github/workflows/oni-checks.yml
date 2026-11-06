@@ -43,8 +43,8 @@ jobs:
         run: python3 -m unittest discover -s tests -p test_ci_checks.py
 
   worker:
-    needs: select
-    if: needs.select.outputs.worker == 'true'
+    needs: [select, documentation]
+    if: ${{ !cancelled() && needs.select.result == 'success' && needs.select.outputs.worker == 'true' && (needs.documentation.result == 'success' || (needs.select.outputs.documentation != 'true' && needs.documentation.result == 'skipped')) }}
     name: Selected application checks
     runs-on: windows-latest
     timeout-minutes: 15
@@ -92,8 +92,6 @@ jobs:
           node --version
           npm --version
           npm ci --ignore-scripts --no-audit --no-fund --registry https://registry.npmjs.org/
-          npm --prefix tooling/markdown ci --ignore-scripts --no-audit --no-fund --registry https://registry.npmjs.org/
-          npm --prefix tooling/markdown test
       - id: producer
         name: Check real README producer convergence without game installation
         if: fromJSON(env.ONI_PLAN).checks.producer
@@ -105,23 +103,10 @@ jobs:
           ONI_STEPS: '{"pipeline":"${{ steps.pipeline.outcome }}","python":"${{ steps.python.outcome }}","producer":"${{ steps.producer.outcome }}"}'
         run: python tools/ci/checks.py complete
 
-  documentation_quality:
+  documentation:
     needs: select
     if: needs.select.outputs.documentation == 'true'
-    permissions:
-      contents: read
-    uses: Hadden-Industries/markdown-quality/.github/workflows/markdown-quality.yml@47febbe1b6f3282814e77db7ea13eac72b4928ed
-    with:
-      trusted-repository: MaksymShostak/oxygen-not-included
-      trusted-sha: ${{ github.event.pull_request.base.sha || github.sha }}
-      candidate-repository: MaksymShostak/oxygen-not-included
-      candidate-sha: ${{ github.sha }}
-      profile: .markdown-quality-execution.json
-
-  documentation:
-    needs: [select, documentation_quality]
-    if: needs.select.outputs.documentation == 'true'
-    name: Documentation integration and character policy
+    name: Markdown and README integration
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
@@ -143,11 +128,17 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .node-version
-      - name: Install locked Markdown tooling without lifecycle scripts
-        run: npm --prefix tooling/markdown ci --ignore-scripts --no-audit --no-fund
+      - name: Install the locked root development graph without lifecycle scripts
+        run: npm ci --include=dev --ignore-scripts --no-audit --no-fund
+      - name: Check all authored Markdown before consumer tests
+        run: |
+          token="$(node -e "process.stdout.write(require('node:crypto').randomBytes(32).toString('hex'))")"
+          trap 'status=$?; printf "\n::%s::\n" "$token"; exit "$status"' EXIT
+          printf '::stop-commands::%s\n' "$token"
+          npm run --silent check:markdown 2>&1
       - name: Verify public consumer contracts and independent character policy
         run: |
-          npm --prefix tooling/markdown test
+          npm run test:readme
           python3 tools/ci/check_doc_characters.py .
           python3 tools/ci/checks.py validate
       - id: complete

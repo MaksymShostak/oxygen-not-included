@@ -29,7 +29,7 @@ public sealed class InstalledMarkdownCanonicalizerTests
     public async Task Canonicalize_RejectsResponseForAnotherDocumentOrRequest(string mismatch)
     {
         using var fixture = new Fixture();
-        fixture.Runner.ResultVersion = "1.0.3";
+        fixture.Runner.ResultVersion = "3.0.0";
         fixture.Runner.Mismatch = mismatch;
         await Assert.ThrowsAsync<InvalidDataException>(fixture.Run);
         Assert.AreEqual(1, fixture.Runner.CheckerCalls);
@@ -48,29 +48,45 @@ public sealed class InstalledMarkdownCanonicalizerTests
     }
 
     [TestMethod]
-    public async Task Canonicalize_AcceptsLockedVersionAndMatchingAdvisoryResult()
+    public async Task Canonicalize_AcceptsMatchingPublicDocumentResult()
     {
-        using var fixture = new Fixture("1.0.4");
-        fixture.Runner.ResultVersion = "1.0.4";
+        using var fixture = new Fixture();
+        fixture.Runner.ResultVersion = "3.0.1";
         CollectionAssert.AreEqual(Encoding.UTF8.GetBytes(Fixture.Original), await fixture.Run());
         Assert.AreEqual(1, fixture.Runner.CheckerCalls);
         fixture.AssertOriginalAndNoTemporaryFiles();
     }
 
     [TestMethod]
-    public async Task Canonicalize_RejectsInstalledVersionDifferentFromLockBeforeLaunchingChecker()
+    public async Task Canonicalize_RejectsMissingBridgeBeforeLaunchingChecker()
     {
-        using var fixture = new Fixture(lockedVersion: "1.0.4", installedVersion: "1.0.3");
+        using var fixture = new Fixture();
+        fixture.RemoveBridge();
         await Assert.ThrowsAsync<InvalidDataException>(fixture.Run);
         Assert.AreEqual(0, fixture.Runner.CheckerCalls);
         fixture.AssertOriginalAndNoTemporaryFiles();
     }
 
     [TestMethod]
-    public async Task Canonicalize_RejectsPublicResultFromDifferentPackageVersion()
+    public async Task Canonicalize_RejectsPublicResultFromDifferentPackage()
     {
         using var fixture = new Fixture();
-        fixture.Runner.ResultVersion = "1.0.4";
+        fixture.Runner.ResultVersion = "3.0.0";
+        fixture.Runner.ResultPackage = "other-package";
+        await Assert.ThrowsAsync<InvalidDataException>(fixture.Run);
+        fixture.AssertOriginalAndNoTemporaryFiles();
+    }
+
+    [TestMethod]
+    [DataRow("previewed", false)]
+    [DataRow("refused", false)]
+    [DataRow("completed", true)]
+    public async Task Canonicalize_RejectsPreviewRefusalOrCheckoutWriteClaims(string status, bool wroteFile)
+    {
+        using var fixture = new Fixture();
+        fixture.Runner.ResultVersion = "3.0.0";
+        fixture.Runner.OperationStatus = status;
+        fixture.Runner.WroteFile = wroteFile;
         await Assert.ThrowsAsync<InvalidDataException>(fixture.Run);
         fixture.AssertOriginalAndNoTemporaryFiles();
     }
@@ -82,16 +98,14 @@ public sealed class InstalledMarkdownCanonicalizerTests
         internal Runner Runner { get; } = new();
         private string ReadmePath => directory.GetPath("README.md");
 
-        internal Fixture(string lockedVersion = "1.0.3", string? installedVersion = null)
+        internal Fixture()
         {
-            var package = directory.GetPath("tooling", "markdown", "node_modules", "@hadden-industries", "markdown-quality");
-            Directory.CreateDirectory(package);
-            File.WriteAllText(Path.Combine(package, "package.json"), JsonSerializer.Serialize(new { name = "@hadden-industries/markdown-quality", version = installedVersion ?? lockedVersion, bin = new Dictionary<string, string> { ["markdown-quality"] = "cli.js" } }));
-            File.WriteAllText(directory.GetPath("tooling", "markdown", "package-lock.json"), JsonSerializer.Serialize(new { packages = new Dictionary<string, object> { ["node_modules/@hadden-industries/markdown-quality"] = new { version = lockedVersion } } }));
-            File.WriteAllText(Path.Combine(package, "cli.js"), "// test-only installed bin");
-            File.WriteAllText(directory.GetPath("tooling", "markdown", "readme-document.mjs"), "// test-only bridge");
+            Directory.CreateDirectory(directory.GetPath("tools", "readme"));
+            File.WriteAllText(directory.GetPath("tools", "readme", "canonicalize.mjs"), "// controlled transport boundary");
             File.WriteAllText(ReadmePath, Original);
         }
+
+        internal void RemoveBridge() => File.Delete(directory.GetPath("tools", "readme", "canonicalize.mjs"));
 
         internal Task<byte[]> Run() => Run(CancellationToken.None);
         internal Task<byte[]> Run(CancellationToken token) => new InstalledMarkdownCanonicalizer(Runner)
@@ -108,6 +122,9 @@ public sealed class InstalledMarkdownCanonicalizerTests
 
     private sealed class Runner : IExternalProcessRunner
     {
+        internal string ResultPackage { get; set; } = "@hadden-industries/markdown-quality";
+        internal string OperationStatus { get; set; } = "completed";
+        internal bool WroteFile { get; set; }
         internal string? Mismatch { get; set; }
         internal string Output { get; set; } = "{}";
         internal string? ResultVersion { get; set; }
@@ -124,8 +141,8 @@ public sealed class InstalledMarkdownCanonicalizerTests
             {
                 using var input = JsonDocument.Parse(request.StandardInput!);
                 var value = input.RootElement;
-                return Task.FromResult(new ProcessResult(0, JsonSerializer.Serialize(new { schemaVersion = 3, operation = "format",
-                    package = new { name = "@hadden-industries/markdown-quality", version = ResultVersion },
+                return Task.FromResult(new ProcessResult(0, JsonSerializer.Serialize(new { schemaVersion = 5, operation = "format", operationStatus = OperationStatus, writtenPaths = WroteFile ? new[] { "README.md" } : Array.Empty<string>(),
+                    package = new { name = ResultPackage, version = ResultVersion },
                     exitCode = 0, outcome = "findings", document = new {
                         path = Mismatch == "path" ? "other.md" : value.GetProperty("path").GetString(),
                         requestId = Mismatch == "requestId" ? "other-request" : value.GetProperty("requestId").GetString(),

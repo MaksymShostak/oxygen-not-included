@@ -12,7 +12,7 @@ public sealed class RelevantSourceSetTests
     {
         using var directory = new TemporaryDirectory();
         var profile = CreateProfileFixture(directory) with { Readme = new ReadmeProfile("README.md") };
-        var inputs = new[] { "README.md", "package.json", "package-lock.json", ".markdown-quality.json", ".markdown-quality-execution.json", ".node-version", ".python-version", "tooling/markdown/package.json", "tooling/markdown/package-lock.json", "tooling/markdown/readme-document.mjs", "tooling/markdown/render-description.mjs", "tooling/markdown/compatibility-badges.mjs", "tooling/markdown/archives/core.tgz" };
+        var inputs = new[] { "README.md", "package.json", "package-lock.json", ".markdown-quality.json", ".markdown-quality-execution.json", ".node-version", ".python-version", "tools/readme/canonicalize.mjs", "tools/readme/render-description.mjs", "tools/readme/compatibility-badges.mjs" };
         foreach (var path in inputs) WriteFile(directory.GetPath(path));
         var result = RelevantSourceSet.Create(profile, directory.Path, ["README.md", "package.json", "package-lock.json"], null);
         Assert.IsTrue(result.IsSuccess);
@@ -121,6 +121,23 @@ public sealed class RelevantSourceSetTests
         Assert.IsFalse(result.Value!.AbsolutePaths.Contains(
             executablePath,
             StringComparer.OrdinalIgnoreCase));
+    }
+
+    [TestMethod]
+    [DataRow(".markdown-quality.json")]
+    [DataRow(".markdown-quality-execution.json")]
+    public void Create_WithReadme_AllowsAbsentDefaultsButRetainsTrackedControlDeletions(string control)
+    {
+        using var directory = new TemporaryDirectory();
+        var profile = CreateProfileFixture(directory) with { Readme = new ReadmeProfile("README.md") };
+        foreach (var input in new[] { "README.md", "package.json", "package-lock.json", ".node-version", ".python-version", "tools/readme/canonicalize.mjs", "tools/readme/render-description.mjs", "tools/readme/compatibility-badges.mjs" })
+            WriteFile(directory.GetPath(input));
+        var absent = RelevantSourceSet.Create(profile, directory.Path, [], null);
+        Assert.IsTrue(absent.IsSuccess);
+        Assert.IsFalse(absent.Value!.WorktreeRelativePaths.Contains(control));
+        var deleted = RelevantSourceSet.Create(profile, directory.Path, [control], null);
+        Assert.IsTrue(deleted.IsSuccess);
+        CollectionAssert.Contains(deleted.Value!.WorktreeRelativePaths.ToArray(), control);
     }
 
     private static ModProfile CreateProfileFixture(TemporaryDirectory temporaryDirectory)

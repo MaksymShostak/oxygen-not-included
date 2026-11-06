@@ -65,16 +65,13 @@ internal sealed record RelevantSourceSet(
                 builder.AddDeclaredFile(worktreeRoot, profile.Readme.RepositoryPath);
                 builder.AddDeclaredFile(worktreeRoot, "package.json");
                 builder.AddDeclaredFile(worktreeRoot, "package-lock.json");
-                builder.AddDeclaredFile(worktreeRoot, ".markdown-quality.json");
-                builder.AddDeclaredFile(worktreeRoot, ".markdown-quality-execution.json");
+                builder.AddOptionalControlFile(".markdown-quality.json", trackedWorktreeRelativePaths);
+                builder.AddOptionalControlFile(".markdown-quality-execution.json", trackedWorktreeRelativePaths);
                 builder.AddDeclaredFile(worktreeRoot, ".node-version");
                 builder.AddDeclaredFile(worktreeRoot, ".python-version");
-                builder.AddDeclaredFile(worktreeRoot, "tooling/markdown/package.json");
-                builder.AddDeclaredFile(worktreeRoot, "tooling/markdown/package-lock.json");
-                builder.AddDeclaredFile(worktreeRoot, "tooling/markdown/readme-document.mjs");
-                builder.AddDeclaredFile(worktreeRoot, "tooling/markdown/compatibility-badges.mjs");
-                builder.AddDeclaredFile(worktreeRoot, "tooling/markdown/render-description.mjs");
-                builder.AddDeclaredFileOrTree(worktreeRoot, "tooling/markdown/archives");
+                builder.AddDeclaredFile(worktreeRoot, "tools/readme/canonicalize.mjs");
+                builder.AddDeclaredFile(worktreeRoot, "tools/readme/compatibility-badges.mjs");
+                builder.AddDeclaredFile(worktreeRoot, "tools/readme/render-description.mjs");
             }
 
             foreach (var testProject in profile.TestProjects)
@@ -152,6 +149,15 @@ internal sealed record RelevantSourceSet(
             var canonicalPath = Path.GetFullPath(absolutePath);
             var relativePath = GetWorktreeRelativePath(canonicalPath);
             absolutePathByRelativePath.TryAdd(relativePath, canonicalPath);
+        }
+
+        // Missing optional policy is a valid default. Retain tracked deletions
+        // so Git status still refuses a control removed during preparation.
+        internal void AddOptionalControlFile(string relativePath, IReadOnlyList<string> trackedPaths)
+        {
+            var path = ResolveDeclaredPath(WorktreeRoot, relativePath);
+            if (File.Exists(path) || Directory.Exists(path)) AddDeclaredFile(WorktreeRoot, relativePath);
+            else if (trackedPaths.Contains(relativePath, StringComparer.Ordinal)) AddAbsolutePath(path);
         }
 
         internal void AddDeclaredFile(string root, string declaredPath)

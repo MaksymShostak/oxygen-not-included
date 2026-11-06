@@ -80,7 +80,8 @@ class CiChecksTests(unittest.TestCase):
         self.assertEqual(plan["languages"], ["python"])
 
     def test_shared_markdown_controls_select_qualification_and_readme_consumers(self):
-        for path in (".markdown-quality-execution.json", ".node-version", ".python-version"):
+        for path in (".markdown-quality.json", ".markdown-quality-execution.json", ".node-version", ".python-version",
+                     "tools/readme/canonicalize.mjs", "tests/readme.test.mjs"):
             with self.subTest(path=path):
                 self.write(path, "updated\n")
                 plan = self.push_plan()

@@ -21,18 +21,24 @@ Profiles with a `[catalogs]` table also require Python 3.10+ for validation, bui
 Resolve it from PATH or pass an absolute `--python` executable path.
 Catalog inspection can run without game or user-data discovery: `oni-mod-pipeline inspect-catalogs --mod <mod-root> --format json`.
 
-Profiles with a `[readme]` table also require the qualified Node.js version in `.node-version` and both locked npm dependency graphs for README synchronization and release freshness checks.
-The root graph provides `steam-community-bbcode`; the isolated `tooling/markdown` graph provides the shared Markdown formatter and checker.
-Install these explicitly from the repository root:
+Profiles with a `[readme]` table also require a supported Node.js runtime and the root locked npm development dependencies.
+`.node-version` selects the CI runtime; `package.json` declares the supported range.
+The root graph provides the BBCode converter, Markdown Quality and the domain image-labeling libraries.
+Install them from the repository root:
 
 ```text
-npm ci --ignore-scripts
-npm ci --prefix tooling/markdown --ignore-scripts
+npm ci --include=dev --ignore-scripts
 ```
 
-README synchronization uses the installed public logical-document contract and never installs or upgrades packages.
-The isolated lockfile consumes the committed core and platform archives from the producer commit paired with the shared CI workflow.
-The root repository's supported Node range and the Markdown package's supported engine range are separate from this qualified runtime.
+`@hadden-industries/markdown-quality` is an ordinary registry devDependency declared as `>=3.0.0`; npm installs its matching native package.
+Use `npm run check:markdown` for read-only checking and `npm run format:markdown -- -- path/to/file.md` for explicit repairs.
+`npm run inspect:markdown` reports the selected scope, and `npm run test:readme` exercises the real README integration.
+README synchronization never installs or upgrades packages.
+It sends the generated candidate through the package's public logical-document API, then checks the formatted candidate before the C# owner performs its guarded replacement.
+Formatting success alone is not a quality verdict.
+The README's authored bytes outside the generated block remain protected by the synchronizer.
+The Markdown configuration only excludes generated build output and dependency directories in addition to the package defaults.
+Repository development uses Python 3.15.2 or later; the catalog runtime requirement above remains Python 3.10+.
 
 ## Restore the locked tool dependencies
 

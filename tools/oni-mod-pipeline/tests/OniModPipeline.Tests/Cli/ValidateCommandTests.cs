@@ -19,14 +19,14 @@ public sealed class ValidateCommandTests
         Directory.CreateDirectory(package);
         File.WriteAllText(Path.Combine(package, "package.json"), "{\"name\":\"steam-community-bbcode\",\"bin\":\"cli.js\"}");
         File.WriteAllText(Path.Combine(package, "cli.js"), "// controlled process fixture");
-        var markdownPackage = Path.Combine(fixture.WorktreeRoot, "tooling", "markdown", "node_modules", "@hadden-industries", "markdown-quality");
+        var markdownPackage = Path.Combine(fixture.WorktreeRoot, "node_modules", "@hadden-industries", "markdown-quality");
         Directory.CreateDirectory(markdownPackage);
-        File.WriteAllText(Path.Combine(markdownPackage, "package.json"), "{\"name\":\"@hadden-industries/markdown-quality\",\"version\":\"1.0.3\",\"bin\":{\"markdown-quality\":\"cli.js\"}}");
+        File.WriteAllText(Path.Combine(markdownPackage, "package.json"), "{\"name\":\"@hadden-industries/markdown-quality\",\"version\":\"3.0.0\",\"bin\":{\"markdown-quality\":\"cli.js\"}}");
         File.WriteAllText(Path.Combine(markdownPackage, "cli.js"), "// controlled checker fixture");
-        Directory.CreateDirectory(Path.Combine(fixture.WorktreeRoot, "tooling/markdown/archives"));
-        foreach (var input in new[] { ".markdown-quality.json", ".markdown-quality-execution.json", ".node-version", ".python-version", "tooling/markdown/package.json", "tooling/markdown/readme-document.mjs", "tooling/markdown/render-description.mjs", "tooling/markdown/compatibility-badges.mjs", "tooling/markdown/archives/core.tgz" })
+        Directory.CreateDirectory(Path.Combine(fixture.WorktreeRoot, "tools/readme"));
+        foreach (var input in new[] { ".node-version", ".python-version", "tools/readme/canonicalize.mjs", "tools/readme/render-description.mjs", "tools/readme/compatibility-badges.mjs" })
             File.WriteAllText(Path.Combine(fixture.WorktreeRoot, input), "{}");
-        File.WriteAllText(Path.Combine(fixture.WorktreeRoot, "tooling/markdown/package-lock.json"), JsonSerializer.Serialize(new { packages = new Dictionary<string, object> { ["node_modules/@hadden-industries/markdown-quality"] = new { version = "1.0.3" } } }));
+        File.WriteAllText(Path.Combine(fixture.WorktreeRoot, "package-lock.json"), JsonSerializer.Serialize(new { packages = new Dictionary<string, object> { ["node_modules/@hadden-industries/markdown-quality"] = new { version = "3.0.0" } } }));
         var runner = new ReadmeValidationRunner(fixture.ProcessRunner);
         var services = fixture.Services with { ProcessRunner = runner, GitRepositoryInspector = new GitRepositoryInspector(runner) };
         var before = SourceSnapshot.CaptureTree(fixture.RootPath);
@@ -49,8 +49,8 @@ public sealed class ValidateCommandTests
                 {
                     using var input = JsonDocument.Parse(request.StandardInput);
                     var document = input.RootElement;
-                    return new(0, JsonSerializer.Serialize(new { schemaVersion = 3, operation = "format",
-                        package = new { name = "@hadden-industries/markdown-quality", version = "1.0.3" },
+                    return new(0, JsonSerializer.Serialize(new { schemaVersion = 5, operation = "format", operationStatus = "completed", writtenPaths = Array.Empty<string>(),
+                        package = new { name = "@hadden-industries/markdown-quality", version = "3.0.0" },
                         exitCode = 0, document = new {
                             path = document.GetProperty("path").GetString(),
                             requestId = document.GetProperty("requestId").GetString(),
@@ -61,7 +61,7 @@ public sealed class ValidateCommandTests
             }
             var result = await inner.RunAsync(request, cancellationToken);
             return request.Arguments.SequenceEqual(new[] { "ls-files", "-z" })
-                ? result with { StandardOutput = result.StandardOutput + "README.md\0package.json\0package-lock.json\0.markdown-quality.json\0.markdown-quality-execution.json\0.node-version\0.python-version\0tooling/markdown/package.json\0tooling/markdown/package-lock.json\0tooling/markdown/readme-document.mjs\0tooling/markdown/render-description.mjs\0tooling/markdown/compatibility-badges.mjs\0tooling/markdown/archives/core.tgz\0" }
+                ? result with { StandardOutput = result.StandardOutput + "README.md\0package.json\0package-lock.json\0.node-version\0.python-version\0tools/readme/canonicalize.mjs\0tools/readme/render-description.mjs\0tools/readme/compatibility-badges.mjs\0" }
                 : result;
         }
     }
