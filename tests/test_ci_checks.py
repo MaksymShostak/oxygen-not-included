@@ -155,6 +155,14 @@ class CiChecksTests(unittest.TestCase):
         self.assertTrue(all(plan["checks"].values()))
         self.assertEqual(plan["languages"], list(checks.LANGUAGES))
 
+    def test_shared_python_setup_selects_every_runtime_consumer(self):
+        for path in (".github/actions/setup-python/action.yml", ".github/actions/setup-python/helper.py"):
+            with self.subTest(path=path):
+                self.write(path, "bootstrap control\n")
+                plan = self.push_plan()
+                self.assertTrue(all(plan["checks"].values()))
+                self.assertEqual(plan["languages"], list(checks.LANGUAGES))
+
     def test_actions_source_selects_only_its_analysis_and_link_existence(self):
         self.write(".github/actions/helper/action.yml", "name: Helper\n")
         plan = self.push_plan()
@@ -526,7 +534,16 @@ class CodeqlWorkflowContractTests(unittest.TestCase):
         self.assertFalse({"strategy", "continue-on-error", "if"} & set(analysis))
         steps = analysis["steps"]
         self.assertEqual(len(steps), 6)
-        self.assertEqual(steps[1]["uses"], "astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884")
+        self.assertEqual(steps[1]["uses"], "./.github/actions/setup-python")
+        setup = json.loads((SOURCE.parents[2] / ".github/actions/setup-python/action.yml").read_text(encoding="utf-8"))
+        self.assertEqual(setup["runs"]["using"], "composite")
+        self.assertEqual(len(setup["runs"]["steps"]), 1)
+        uv_step = setup["runs"]["steps"][0]
+        self.assertEqual(uv_step["uses"], "astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884")
+        options = dict(uv_step["with"])
+        self.assertRegex(options.pop("version"), r"^\d+\.\d+\.\d+$")
+        self.assertEqual(options, {"activate-environment": True, "venv-path": "${{ runner.temp }}/python",
+                                   "no-project": True, "enable-cache": False})
         self.assertEqual(steps[0]["uses"], "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1")
         self.assertIn("python3 tools/ci/checks.py validate", steps[2]["run"])
         self.assertIn('language in ("actions","csharp","python")', steps[2]["run"])

@@ -105,7 +105,7 @@ def classify(path: str) -> tuple[set[str], set[str]] | None:
     suffix = Path(lower).suffix
     if path.startswith("docs/"):
         return {"documentation"}, set()
-    if path in {"AGENTS.md", ".gitignore", ".gitattributes"} or path.startswith("tools/ci/") or path == "tests/test_ci_checks.py" or path.startswith(".github/workflows/"):
+    if path in {"AGENTS.md", ".gitignore", ".gitattributes"} or path.startswith("tools/ci/") or path == "tests/test_ci_checks.py" or path.startswith(".github/workflows/") or path.startswith(".github/actions/setup-python/"):
         return set(CHECKS), set(LANGUAGES)
     if path.startswith(".github/actions/"):
         return {"codeql"}, {"actions"}

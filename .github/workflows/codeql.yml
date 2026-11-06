@@ -38,14 +38,7 @@
           }
         },
         {
-          "uses": "astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884",
-          "with": {
-            "version": "0.13.0",
-            "activate-environment": true,
-            "venv-path": "${{ runner.temp }}/python",
-            "no-project": true,
-            "enable-cache": false
-          }
+          "uses": "./.github/actions/setup-python"
         },
         {
           "id": "scope",
@@ -131,14 +124,7 @@
           }
         },
         {
-          "uses": "astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884",
-          "with": {
-            "version": "0.13.0",
-            "activate-environment": true,
-            "venv-path": "${{ runner.temp }}/python",
-            "no-project": true,
-            "enable-cache": false
-          }
+          "uses": "./.github/actions/setup-python"
         },
         {
           "id": "complete",
