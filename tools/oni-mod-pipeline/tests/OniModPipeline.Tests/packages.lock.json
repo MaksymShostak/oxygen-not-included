@@ -26,20 +26,20 @@
       },
       "TUnit.Assertions": {
         "type": "Direct",
-        "requested": "[1.81.0, )",
-        "resolved": "1.81.0",
-        "contentHash": "Rw7PVjyJsrGYFwFPJZrqKw5QyP/3TKgjHMVT369tG0dLnaMP+mTNi46X91D4i2kOyZQKeZv6cDS4oYQ5m5lFnQ=="
+        "requested": "[1.81.10, )",
+        "resolved": "1.81.10",
+        "contentHash": "1DEAWwQpiuN8tRSOSbBmwEfrfA1p2N3OjpO2pYcbhVF6erdyED+JKT7Vq9YXpb50w/Ttc+4iRI+A20oC3NN8pA=="
       },
       "TUnit.Engine": {
         "type": "Direct",
-        "requested": "[1.81.0, )",
-        "resolved": "1.81.0",
-        "contentHash": "8bp1m8aBUd0WdWTJnYSppRNFeTjUCe2kBOSM59HN94SGoeyPjRJoDoCwnYsnY/52x7xwGKn648zoO+/pQPoFVA==",
+        "requested": "[1.81.10, )",
+        "resolved": "1.81.10",
+        "contentHash": "P+qFCHZsrPuDywXEbYdOrZqBXur7Tp+KfVJ1mglAHuWxZSqdzzMZoOZBeFpHPpc8LkWnR3XVzVZ2Ein5fkRzpg==",
         "dependencies": {
           "Microsoft.Testing.Extensions.TrxReport.Abstractions": "2.5.2",
           "Microsoft.Testing.Platform": "2.5.2",
           "Microsoft.Testing.Platform.MSBuild": "2.5.2",
-          "TUnit.Core": "1.81.0"
+          "TUnit.Core": "1.81.10"
         }
       },
       "Microsoft.Testing.Extensions.TrxReport.Abstractions": {
@@ -70,14 +70,14 @@
       },
       "TUnit.Core": {
         "type": "Transitive",
-        "resolved": "1.81.0",
-        "contentHash": "gK6k3hTvrMzQnmyP00Nom0SWR8FOpr317Zk4dGoy82JQYJ6BM64Gxc8X7xUGgWB06GezU0hW3yzvemve4OQjkg=="
+        "resolved": "1.81.10",
+        "contentHash": "j8JWWkOrqREW3J1rkejL8MOLzFwNuGY+HCdI5gxIVN60sK5xlSWd6VY7DBpmEal5W/hi72rAnSsQhF0e7BTWIw=="
       },
       "MaksymShostak.OniModPipeline": {
         "type": "Project",
         "dependencies": {
           "System.CommandLine": "[2.0.14, )",
-          "Tomlyn": "[2.10.2, )",
+          "Tomlyn": "[2.11.1, )",
           "YamlDotNet": "[18.1.0, )"
         }
       },
@@ -101,9 +101,9 @@
       },
       "Tomlyn": {
         "type": "CentralTransitive",
-        "requested": "[2.10.2, )",
-        "resolved": "2.10.2",
-        "contentHash": "phQ8NSO4T9BDJu5hwmWcBA0rj2u1MgwY5YtmRqf4GOkPfo2Gc1POTpspUY09XvbT6Sr1y/X1Aeq1NLUARMLFlQ=="
+        "requested": "[2.11.1, )",
+        "resolved": "2.11.1",
+        "contentHash": "ePC5kPidQngNoOi7jCDeRo5hbXS5uV3o4CAzz5QaxkDo1IhgM0QtGinuI03tqj8/Dl/FigRG4gRiatUsV3pcrA=="
       },
       "YamlDotNet": {
         "type": "CentralTransitive",
