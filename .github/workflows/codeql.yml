@@ -65,9 +65,10 @@
       "needs": "validate",
       "if": "contains(fromJSON(needs.validate.outputs.languages), 'csharp')",
       "name": "Analyze (csharp)",
-      "uses": "./.github/workflows/codeql-language.yml",
+      "uses": "./.github/workflows/codeql-csharp.yml",
       "permissions": {
         "contents": "read",
+        "packages": "read",
         "security-events": "write"
       },
       "with": {

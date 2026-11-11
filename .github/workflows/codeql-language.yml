@@ -50,7 +50,7 @@
         },
         {
           "name": "Validate tested revision, selected language and analysis trust",
-          "run": "python3 tools/ci/checks.py validate\npython3 -c 'import json,os; plan=json.loads(os.environ[\"ONI_PLAN\"]); language=os.environ[\"ONI_LANGUAGE\"]; assert language in (\"actions\",\"csharp\",\"python\") and language in plan[\"languages\"] and plan[\"checks\"][\"codeql\"] and plan[\"eligibility\"][\"codeql\"]'\n"
+          "run": "python3 tools/ci/checks.py validate\npython3 -c 'import json,os; plan=json.loads(os.environ[\"ONI_PLAN\"]); language=os.environ[\"ONI_LANGUAGE\"]; assert language in (\"actions\",\"python\") and language in plan[\"languages\"] and plan[\"checks\"][\"codeql\"] and plan[\"eligibility\"][\"codeql\"]'\n"
         },
         {
           "name": "Initialize CodeQL",

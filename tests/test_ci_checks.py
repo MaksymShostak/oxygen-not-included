@@ -517,9 +517,11 @@ class CodeqlWorkflowContractTests(unittest.TestCase):
             call = parent["jobs"][f"analyze-{language}"]
             self.assertEqual(call["needs"], "validate")
             self.assertEqual(call["if"], f"contains(fromJSON(needs.validate.outputs.languages), '{language}')")
-            self.assertEqual(call["uses"], "./.github/workflows/codeql-language.yml")
+            self.assertEqual(call["uses"], "./.github/workflows/" +
+                             ("codeql-csharp.yml" if language == "csharp" else "codeql-language.yml"))
             self.assertEqual(call["with"], {"plan": "${{ inputs.plan }}", "language": language})
-            self.assertEqual(call["permissions"], {"contents": "read", "security-events": "write"})
+            self.assertEqual(call["permissions"], {"contents": "read", "security-events": "write",
+                                                 **({"packages": "read"} if language == "csharp" else {})})
             self.assertFalse({"strategy", "secrets", "steps", "continue-on-error"} & set(call))
         completion = parent["jobs"]["complete"]
         self.assertEqual(completion["if"], "always()")
@@ -555,7 +557,7 @@ class CodeqlWorkflowContractTests(unittest.TestCase):
                                    "no-project": True, "enable-cache": False})
         self.assertRegex(steps[0]["uses"], r"^actions/checkout@[0-9a-f]{40}$")
         self.assertIn("python3 tools/ci/checks.py validate", steps[2]["run"])
-        self.assertIn('language in ("actions","csharp","python")', steps[2]["run"])
+        self.assertIn('language in ("actions","python")', steps[2]["run"])
         self.assertIn('language in plan["languages"]', steps[2]["run"])
         self.assertIn('plan["checks"]["codeql"] and plan["eligibility"]["codeql"]', steps[2]["run"])
         self.assertRegex(steps[3]["uses"], r"^github/codeql-action/init@[0-9a-f]{40}$")

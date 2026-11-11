@@ -1,0 +1,77 @@
+{
+  "name": "CodeQL C# build analysis",
+  "on": {
+    "workflow_call": {
+      "inputs": {
+        "plan": { "required": true, "type": "string" },
+        "language": { "required": true, "type": "string" }
+      },
+      "outputs": {
+        "receipt": { "value": "${{ jobs.analyze.outputs.receipt }}" }
+      }
+    }
+  },
+  "permissions": {},
+  "jobs": {
+    "analyze": {
+      "name": "Build and analyze C# with real ONI references",
+      "runs-on": "ubuntu-24.04",
+      "timeout-minutes": 30,
+      "permissions": {
+        "contents": "read",
+        "packages": "read",
+        "security-events": "write"
+      },
+      "outputs": { "receipt": "${{ steps.receipt.outputs.receipt }}" },
+      "env": {
+        "ONI_PLAN": "${{ inputs.plan }}",
+        "ONI_LANGUAGE": "${{ inputs.language }}"
+      },
+      "steps": [
+        {
+          "name": "Check out the source revision",
+          "uses": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "with": { "fetch-depth": 0, "persist-credentials": false }
+        },
+        { "uses": "./.github/actions/setup-python" },
+        {
+          "name": "Validate tested revision, selected language and analysis trust",
+          "run": "python3 tools/ci/checks.py validate\npython3 -c 'import json,os; plan=json.loads(os.environ[\"ONI_PLAN\"]); language=os.environ[\"ONI_LANGUAGE\"]; assert language == \"csharp\" and language in plan[\"languages\"] and plan[\"checks\"][\"codeql\"] and plan[\"eligibility\"][\"codeql\"]'\n"
+        },
+        {
+          "uses": "actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73",
+          "with": { "global-json-file": "global.json" }
+        },
+        {
+          "id": "references",
+          "name": "Acquire and verify the pinned private ONI reference package",
+          "env": { "ONI_REFERENCES_TOKEN": "${{ github.token }}" },
+          "run": "python3 tools/ci/oni_references.py acquire --output-directory \"$RUNNER_TEMP/oni-codeql-references\""
+        },
+        {
+          "name": "Initialize CodeQL for a traced C# build",
+          "uses": "github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066",
+          "with": { "languages": "csharp", "build-mode": "manual", "tools": "linked" }
+        },
+        {
+          "id": "build",
+          "name": "Compile every C# project with the verified game assemblies",
+          "env": { "ONI_MANAGED_ASSEMBLY_DIRECTORY": "${{ steps.references.outputs.managed_directory }}" },
+          "run": "python3 tools/ci/codeql_build.py --managed-directory \"$ONI_MANAGED_ASSEMBLY_DIRECTORY\" --output-directory \"$RUNNER_TEMP/oni-codeql-build\""
+        },
+        {
+          "id": "analysis",
+          "name": "Analyze and upload results",
+          "uses": "github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066",
+          "with": { "category": "/language:csharp", "upload-database": false }
+        },
+        {
+          "id": "receipt",
+          "name": "Return successful selected-language completion",
+          "env": { "ONI_ANALYSIS_RESULT": "${{ steps.analysis.outcome }}" },
+          "run": "python3 tools/ci/checks.py codeql-receipt"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "manifestSha256": "475ee06821b1426eb5c3ea9c6da81525d99663acc58d4d272af2535ca4c658af",
+  "package": {
+    "byteLength": 18099331,
+    "id": "MaksymShostak.ONI.GameReferences",
+    "owner": "MaksymShostak",
+    "sha256": "a11e58e1ae9174363bede9cc27f41d181106e91fd9ef198938af7ffd2a018a47",
+    "version": "744825.0.0"
+  },
+  "schemaVersion": 1
+}

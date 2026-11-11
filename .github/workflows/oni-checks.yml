@@ -143,6 +143,7 @@ jobs:
     uses: ./.github/workflows/codeql.yml
     permissions:
       contents: read
+      packages: read
       security-events: write
     with:
       plan: ${{ needs.select.outputs.plan }}

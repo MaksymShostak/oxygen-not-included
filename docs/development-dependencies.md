@@ -12,6 +12,7 @@ Each dependency has one authored version authority:
 | uv toolchain             | `.github/actions/setup-python/action.yml` | All Python CI jobs                                                                         |
 | .NET SDK                 | `global.json`                             | All four .NET projects                                                                     |
 | NuGet packages           | `Directory.Packages.props`                | Versionless project package references and NuGet-generated locks                           |
+| ONI analysis references  | `tools/ci/oni-references.json`            | Private, hash-pinned copies of the actual supported game DLLs                              |
 | GitHub Actions           | `tools/ci/action-versions.json`           | Literal workflow and composite-action references                                           |
 
 Development package declarations use lower bounds.
@@ -45,6 +46,9 @@ The checker covers all workflow and composite-action YAML files, including JSON-
 It rejects unregistered dependencies, unused authorities, non-immutable catalog revisions, and projection drift.
 CI checks it before selecting dependent jobs.
 Dependabot proposals that change literal action references must be reconciled into the catalog and regenerated before they pass this check.
+
+C# CodeQL analysis builds all authored projects with the actual ONI/Unity reference assemblies.
+See [CodeQL reference preparation and private CI access](codeql-analysis.md) for package ownership, acquisition, and local verification.
 
 NuGet uses native central version resolution.
 Dependabot includes the repository root to discover these declarations.
