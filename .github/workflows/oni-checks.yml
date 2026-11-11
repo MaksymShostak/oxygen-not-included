@@ -14,7 +14,7 @@ concurrency:
 jobs:
   select:
     name: Select applicable checks
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     outputs:
       plan: ${{ steps.scope.outputs.plan }}
@@ -32,6 +32,8 @@ jobs:
         run: python3 --version
       - name: Check centralized action pins
         run: python3 tools/ci/action_versions.py --check
+      - name: Check Ubuntu runner selectors
+        run: python3 tools/ci/runner_policy.py --check
       - id: scope
         run: python3 tools/ci/checks.py select
       - name: Test CI contracts when their controls changed
@@ -101,7 +103,7 @@ jobs:
     needs: select
     if: needs.select.outputs.documentation == 'true'
     name: Markdown and README integration
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     outputs:
       completion_sha: ${{ steps.complete.outputs.completion_sha }}
@@ -161,7 +163,7 @@ jobs:
     name: Required ONI checks
     if: always()
     needs: [select, worker, documentation, codeql, dependency]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     env:
       ONI_PLAN: ${{ needs.select.outputs.plan }}

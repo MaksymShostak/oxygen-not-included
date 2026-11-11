@@ -21,6 +21,9 @@ SOURCE = Path(__file__).resolve().parents[1] / "tools/ci/checks.py"
 spec = importlib.util.spec_from_file_location("oni_checks", SOURCE)
 checks = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(checks)
+runner_spec = importlib.util.spec_from_file_location("oni_runner_policy", SOURCE.with_name("runner_policy.py"))
+runner_policy = importlib.util.module_from_spec(runner_spec)
+runner_spec.loader.exec_module(runner_policy)
 
 
 def setUpModule():
@@ -480,6 +483,33 @@ class CiChecksTests(unittest.TestCase):
             checks.dependency_ready(self.root, plan)
 
 
+class UbuntuRunnerPolicyTests(unittest.TestCase):
+    def test_committed_workflows_match_policy_and_round_trip(self):
+        runner_policy.synchronize()
+        runner = runner_policy.ubuntu_runner()
+        alternate = "ubuntu-24.04" if runner != "ubuntu-24.04" else "ubuntu-26.04"
+        workflows = SOURCE.parents[2] / ".github/workflows"
+        for name in runner_policy.JSON_JOBS.keys() | runner_policy.YAML_JOBS.keys():
+            with self.subTest(workflow=name):
+                source = (workflows / name).read_text(encoding="utf-8")
+                previous = runner_policy.project_workflow(name, source, alternate)
+                self.assertNotEqual(previous, source)
+                self.assertEqual(runner_policy.project_workflow(name, previous, runner), source)
+
+    def test_rejects_unmanaged_ubuntu_job(self):
+        name = "dependency-submission.yml"
+        source = (SOURCE.parents[2] / ".github/workflows" / name).read_text(encoding="utf-8")
+        extra_jobs = (
+            "  'extra': {runs-on: [ubuntu-24.04], steps: []}\n",
+            "  extra:\n    runs-on: [\n      ubuntu-24.04\n    ]\n",
+            "  extra:\n    runs-on: ${{ matrix.os }}\n    strategy:\n      matrix:\n        os: [ubuntu-24.04]\n",
+        )
+        for extra_job in extra_jobs:
+            with self.subTest(job=extra_job):
+                with self.assertRaisesRegex(ValueError, "expected exactly these Ubuntu jobs"):
+                    runner_policy.project_workflow(name, source + "\n" + extra_job, runner_policy.ubuntu_runner())
+
+
 class CodeqlWorkflowContractTests(unittest.TestCase):
     """Mutate the actual authored workflows and exercise their completion wiring.
 
@@ -536,7 +566,7 @@ class CodeqlWorkflowContractTests(unittest.TestCase):
         self.assertEqual(completion["steps"][2]["run"], "python3 tools/ci/checks.py codeql-complete")
         self.assertEqual(set(child["jobs"]), {"analyze"})
         analysis = child["jobs"]["analyze"]
-        self.assertEqual(analysis["runs-on"], "ubuntu-24.04")
+        self.assertEqual(analysis["runs-on"], runner_policy.ubuntu_runner())
         self.assertEqual(analysis["timeout-minutes"], 20)
         self.assertEqual(analysis["permissions"], {"contents": "read", "security-events": "write"})
         self.assertEqual(analysis["env"], {"ONI_PLAN": "${{ inputs.plan }}", "ONI_LANGUAGE": "${{ inputs.language }}"})

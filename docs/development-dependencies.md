@@ -46,6 +46,10 @@ It rejects unregistered dependencies, unused authorities, non-immutable catalog 
 CI checks it before selecting dependent jobs.
 Dependabot proposals that change literal action references must be reconciled into the catalog and regenerated before they pass this check.
 
+The [Ubuntu runner policy](../.github/runner-policy.json) selects the release for ONI checks, CodeQL and dependency submission.
+After changing the release, run `python tools/ci/runner_policy.py --write` and commit the regenerated workflows with the policy.
+The ONI selection job checks the projection before it selects dependent jobs.
+
 C# CodeQL analysis builds all authored projects with the actual ONI/Unity reference assemblies.
 See [CodeQL reference preparation and private CI access](codeql-analysis.md) for package ownership, acquisition, and local verification.
 
