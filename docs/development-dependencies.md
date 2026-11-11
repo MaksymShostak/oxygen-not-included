@@ -7,7 +7,7 @@ Each dependency has one authored version authority:
 | npm development packages | Root `package.json`                       | npm-generated `package-lock.json` and `npm ci`                                             |
 | npm transitive overrides | Root `package.json` → `overrides`         | Steam Markdown packages reuse direct version declarations; fast-uri has one authored floor |
 | npm toolchain            | `package.json` → `packageManager`         | Both Node CI jobs install this selection before `npm ci`                                   |
-| Node CI runtime          | `.node-version`                           | `actions/setup-node`; `engines.node` separately describes supported consumers              |
+| Node CI runtime          | `.node-version`                           | CI uses the exact reference.                                                               |
 | Python runtime           | `.python-version`                         | The shared Python setup action                                                             |
 | uv toolchain             | `.github/actions/setup-python/action.yml` | All Python CI jobs                                                                         |
 | .NET SDK                 | `global.json`                             | All four .NET projects                                                                     |
@@ -17,6 +17,19 @@ Each dependency has one authored version authority:
 Development package declarations use lower bounds.
 Exact resolved versions and integrity hashes remain in the native npm and NuGet lockfiles.
 Refresh affected locks with the selected package manager, then verify locked installation and affected consumers.
+
+## Choose Node.js and npm
+
+For local README generation and Markdown checks, use a stable Node.js release that meets the minimum in [the root manifest](../package.json) and is supported by npm and the locked tools.
+There is no separate local npm floor.
+
+Routine Node CI and qualification read the exact Node reference from [`.node-version`](../.node-version), then install and verify the manifest's exact npm `packageManager` before dependency installation.
+Use those selectors to reproduce CI; update each only in its owning file.
+The Node range in `engines.node` declares the local minimum independently of the exact CI reference.
+
+Run the workflow's Python checks locally with `python -m unittest discover -s tests -p "test_*.py"` from the repository root.
+
+## Update GitHub Actions
 
 GitHub requires literal action references.
 Their full commit SHAs in workflows and composite actions are checked projections of the catalog, following the single-authority pattern used in the owner's `google` repository.

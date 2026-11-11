@@ -28,6 +28,8 @@ Catalog inspection can run without game or user-data discovery: `oni-mod-pipelin
 
 Profiles with a `[readme]` table also require a supported Node.js runtime and the root locked npm development dependencies.
 `.node-version` selects the CI runtime; `package.json` declares the supported range.
+Local development can use a compatible bundled npm without a separate npm floor.
+To reproduce CI, also use the exact npm `packageManager` from the root manifest; see [toolchain ownership](../../../docs/development-dependencies.md#choose-nodejs-and-npm).
 The root graph provides the BBCode converter, Markdown Quality and the domain image-labeling libraries.
 Install them from the repository root:
 
