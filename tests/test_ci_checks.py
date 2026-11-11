@@ -549,12 +549,9 @@ class CodeqlWorkflowContractTests(unittest.TestCase):
         setup = json.loads((SOURCE.parents[2] / ".github/actions/setup-python/action.yml").read_text(encoding="utf-8"))
         self.assertEqual(setup["runs"]["using"], "composite")
         self.assertEqual(len(setup["runs"]["steps"]), 1)
-        uv_step = setup["runs"]["steps"][0]
-        self.assertRegex(uv_step["uses"], r"^astral-sh/setup-uv@[0-9a-f]{40}$")
-        options = dict(uv_step["with"])
-        self.assertRegex(options.pop("version"), r"^\d+\.\d+\.\d+$")
-        self.assertEqual(options, {"activate-environment": True, "venv-path": "${{ runner.temp }}/python",
-                                   "no-project": True, "enable-cache": False})
+        python_setup = setup["runs"]["steps"][0]
+        self.assertRegex(python_setup["uses"], r"^actions/setup-python@[0-9a-f]{40}$")
+        self.assertEqual(python_setup["with"], {"python-version-file": ".python-version"})
         self.assertRegex(steps[0]["uses"], r"^actions/checkout@[0-9a-f]{40}$")
         self.assertIn("python3 tools/ci/checks.py validate", steps[2]["run"])
         self.assertIn('language in ("actions","python")', steps[2]["run"])

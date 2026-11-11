@@ -2,18 +2,17 @@
 
 Each dependency has one authored version authority:
 
-| Dependency               | Authority                                 | Consumers                                                                                  |
-| ------------------------ | ----------------------------------------- | ------------------------------------------------------------------------------------------ |
-| npm development packages | Root `package.json`                       | npm-generated `package-lock.json` and `npm ci`                                             |
-| npm transitive overrides | Root `package.json` → `overrides`         | Steam Markdown packages reuse direct version declarations; fast-uri has one authored floor |
-| npm toolchain            | `package.json` → `packageManager`         | Both Node CI jobs install this selection before `npm ci`                                   |
-| Node CI runtime          | `.node-version`                           | CI uses the exact reference.                                                               |
-| Python runtime           | `.python-version`                         | The shared Python setup action                                                             |
-| uv toolchain             | `.github/actions/setup-python/action.yml` | All Python CI jobs                                                                         |
-| .NET SDK                 | `global.json`                             | All four .NET projects                                                                     |
-| NuGet packages           | `Directory.Packages.props`                | Versionless project package references and NuGet-generated locks                           |
-| ONI analysis references  | `tools/ci/oni-references.json`            | Private, hash-pinned copies of the actual supported game DLLs                              |
-| GitHub Actions           | `tools/ci/action-versions.json`           | Literal workflow and composite-action references                                           |
+| Dependency               | Authority                         | Consumers                                                                                  |
+| ------------------------ | --------------------------------- | ------------------------------------------------------------------------------------------ |
+| npm development packages | Root `package.json`               | npm-generated `package-lock.json` and `npm ci`                                             |
+| npm transitive overrides | Root `package.json` → `overrides` | Steam Markdown packages reuse direct version declarations; fast-uri has one authored floor |
+| npm toolchain            | `package.json` → `packageManager` | Both Node CI jobs install this selection before `npm ci`                                   |
+| Node CI runtime          | `.node-version`                   | CI uses the exact reference.                                                               |
+| Python runtime           | `.python-version`                 | The shared Python setup action                                                             |
+| .NET SDK                 | `global.json`                     | All four .NET projects                                                                     |
+| NuGet packages           | `Directory.Packages.props`        | Versionless project package references and NuGet-generated locks                           |
+| ONI analysis references  | `tools/ci/oni-references.json`    | Private, hash-pinned copies of the actual supported game DLLs                              |
+| GitHub Actions           | `tools/ci/action-versions.json`   | Literal workflow and composite-action references                                           |
 
 Development package declarations use lower bounds.
 Exact resolved versions and integrity hashes remain in the native npm and NuGet lockfiles.

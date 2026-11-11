@@ -48,7 +48,7 @@ The README's authored bytes outside the generated block remain protected by the 
 
 The Markdown configuration only excludes generated build output and dependency directories in addition to the package defaults.
 Repository development uses Python 3.15.2 or later; the catalog runtime requirement above remains Python 3.10+.
-CI workflows share `.github/actions/setup-python/action.yml`, which owns the uv version and isolated environment settings.
+CI workflows share `.github/actions/setup-python/action.yml`, which uses GitHub's `actions/setup-python` to provision the version selected by `.python-version`.
 
 ## Restore the locked tool dependencies
 

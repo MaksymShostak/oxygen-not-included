@@ -89,7 +89,7 @@ jobs:
       - id: producer
         name: Check real README producer convergence without game installation
         if: fromJSON(env.ONI_PLAN).checks.producer
-        run: npm run pipeline -- sync-readme --mod mods/delivery-temperature-limit-supercooled --check
+        run: npm.cmd run pipeline -- sync-readme --mod mods/delivery-temperature-limit-supercooled --check
       - id: complete
         name: Require successful selected steps and return tested identity
         env:
