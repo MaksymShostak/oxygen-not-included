@@ -18,7 +18,7 @@
   },
   "devDependencies": {
     "steam-community-bbcode": ">=1.0.0-rc.1",
-    "@hadden-industries/markdown-quality": ">=3.0.0",
+    "@hadden-industries/markdown-quality": ">=3.0.1",
     "mdast-util-from-markdown": ">=2.1.0",
     "mdast-util-gfm": ">=3.1.0",
     "mdast-util-to-markdown": ">=2.2.3",
