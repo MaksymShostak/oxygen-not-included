@@ -18,13 +18,16 @@
   },
   "devDependencies": {
     "steam-community-bbcode": ">=1.0.0-rc.1",
-    "@hadden-industries/markdown-quality": ">=3.0.0",
+    "@hadden-industries/markdown-quality": ">=3.0.4",
     "mdast-util-from-markdown": ">=2.1.0",
     "mdast-util-gfm": ">=3.1.0",
     "mdast-util-to-markdown": ">=2.2.3",
     "micromark-extension-gfm": ">=3.0.0"
   },
   "overrides": {
+    "micromark-extension-math@3.1.0": {
+      "katex": "0.19.1"
+    },
     "steam-community-bbcode": {
       "mdast-util-from-markdown": "$mdast-util-from-markdown",
       "mdast-util-to-markdown": "$mdast-util-to-markdown",

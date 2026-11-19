@@ -77,31 +77,32 @@ The ONI pipeline continues to require an exact TRX report for mod tests.
 Artifact contract tests run with the pipeline's explicit build binding or `DELIVERY_TEMPERATURE_LIMIT_BUILD_RESULT_PATH` naming the exact fresh `build-result.json`.
 TUnit's [MSTest migration guide](https://tunit.dev/docs/migration/mstest/) and [parallelism guidance](https://tunit.dev/docs/execution/parallelism/) describe the native attributes and execution controls.
 
-Markdown Quality's `>=3.0.0` floor intentionally retains the published 3.x line; the registry's older `latest` tag is not a reason to downgrade it.
+The root manifest requires Markdown Quality `>=3.0.4`.
+ESLint, ESLint Markdown, and their transitive dependencies resolve through the root npm lockfile.
+The root override selects patched KaTeX `0.19.1` for `micromark-extension-math@3.1.0`.
+[KaTeX security advisory](https://github.com/advisories/GHSA-238p-pmpm-9mq7)
+
 Steam Community BBCode currently publishes a release candidate, so its existing release-candidate floor is retained until a newer applicable release exists.
 
-Some transitive dependencies remain older than their latest releases because Markdown Quality ships bundled dependencies.
 The Steam Community BBCode overrides resolve its older Markdown package pins to the current direct declarations without repeating their version numbers.
 
-The direct dependencies and toolchain selections are current; the entire transitive closure is not.
-Those remaining versions require upstream releases or separately reviewed overrides.
+Other transitive versions follow upstream dependency ranges and the root overrides.
 
 The November 6, 2026 investigation found that the previous MSTest runner's telemetry client called the three-argument `TelemetryClient.TrackEvent` overload, while the published Application Insights 3.2.0 assemblies exposed only one- and two-argument overloads.
 See the [MSTest telemetry caller](https://github.com/microsoft/testfx/blob/933377f07ac4bded77e820b0beef7d27e805cd89/src/Platform/Microsoft.Testing.Extensions.Telemetry/AppInsightTelemetryClient.cs) and [Application Insights migration changes](https://github.com/microsoft/ApplicationInsights-dotnet/blob/main/BreakingChanges.md).
 The TUnit migration removes that caller and its Application Insights dependency.
 The test projects select the engine, assertions, reports, and coverage packages explicitly; their locked graphs contain neither MSTest nor the Microsoft telemetry extension.
 
-Markdown Quality's published bundle includes ESLint code that imports Ajv 6's draft-04 schema path and accesses `ajv._opts`.
-Updating its bundled Ajv to 8 requires migrating that caller and producing a new upstream package artifact.
-[npm's bundled-dependency ownership](https://docs.npmjs.com/cli/v12/configuring-npm/package-json/#bundledependencies) also means that root overrides cannot be treated as proof that shipped bundle contents changed.
+ESLint 10.15.0 still requires Ajv 6.
+The lockfile also records the Ajv 8 version that Markdown Quality declares directly.
+[ESLint 10.15.0 manifest](https://github.com/eslint/eslint/blob/v10.15.0/package.json)
 
-A clean isolated npm 12.2.2 installation with a root `minimatch >=11.0.5` override still materialized bundled minimatch 11.0.3 with `inBundle: true`.
-That native probe confirmed that a root override did not update the published bundle's contents.
+For the historical 3.0.0 bundle, an isolated npm 12.2.2 installation with a root `minimatch >=11.0.5` override still materialized bundled minimatch 11.0.3 with `inBundle: true`.
 
 Lib.Harmony.Ref 2.4.3 contains a reference assembly with assembly version 2.4.3.0; the supported ONI runtime contract currently expects Harmony 2.4.2.0.
 The owner selected the game-matched Lib.Harmony.Ref 2.4.2; no 2.4.3 compatibility trial was applied.
 
-## Remaining bundled versions observed on November 6, 2026
+## Bundled versions observed on November 6, 2026
 
 Native `npm outdated --all --json` reported the following 32 package names inside the published Markdown Quality 3.0.0 bundle after the approved overrides and a fresh locked installation.
 It reported no older unbundled npm package copies.

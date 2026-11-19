@@ -37,7 +37,7 @@ Install them from the repository root:
 npm ci --include=dev --ignore-scripts
 ```
 
-`@hadden-industries/markdown-quality` is an ordinary registry devDependency declared as `>=3.0.0`; npm installs its matching native package.
+`@hadden-industries/markdown-quality` is a registry development dependency declared as `>=3.0.4`. npm installs the matching optional native package from the root lock.
 Use `npm run check:markdown` for read-only checking and `npm run format:markdown -- -- path/to/file.md` for explicit repairs.
 `npm run inspect:markdown` reports the selected scope, and `npm run test:readme` exercises the real README integration.
 
