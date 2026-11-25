@@ -435,6 +435,7 @@ public sealed class RelevantSourceSetTests
         await Assert.That(plan.Directories[directory.GetPath("lib")]).IsTrue();
         await Assert.That(plan.Directories[directory.GetPath("other")]).IsFalse();
         await Assert.That(plan.Covers(directory.GetPath("lib", "missing", "WasHere.fs"), CancellationToken.None)).IsTrue();
+        await Assert.That(plan.Covers(directory.GetPath("LIB", "missing", "WasHere.fs"), CancellationToken.None)).IsTrue();
         await Assert.That(plan.Covers(directory.GetPath("library", "WasHere.fs"), CancellationToken.None)).IsFalse();
         await Assert.That(plan.Covers(directory.GetPath("other", "unrelated", "WasHere.fs"), CancellationToken.None)).IsFalse();
         using var cancelled = new CancellationTokenSource();

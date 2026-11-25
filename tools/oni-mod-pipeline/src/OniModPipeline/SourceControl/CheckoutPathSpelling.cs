@@ -7,7 +7,6 @@ internal sealed class CheckoutPathSpelling(string root)
 
     internal string ForExistingPath(string path, CancellationToken token)
     {
-        if (!OperatingSystem.IsWindows()) return path;
         string relative = Path.GetRelativePath(root, path);
         if (relative == ".") return root;
         if (Path.IsPathRooted(relative) || relative == ".." || relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal))
@@ -26,7 +25,7 @@ internal sealed class CheckoutPathSpelling(string root)
         return parent;
     }
 
-    // NTFS case sensitivity is per directory. Exact spellings distinguish real siblings.
+    // Case sensitivity varies by filesystem and can vary by directory. Exact names distinguish real siblings.
     // An alias may be collapsed only when a successful native lookup has a unique spelling.
     internal sealed class DirectoryNames
     {

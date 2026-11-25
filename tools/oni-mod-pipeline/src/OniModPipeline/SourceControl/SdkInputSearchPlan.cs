@@ -5,12 +5,10 @@ namespace MaksymShostak.OniModPipeline.SourceControl;
 /// <summary>Unique files and disjoint directory walks needed to consider statically declared MSBuild items.</summary>
 internal sealed class SdkInputSearchPlan
 {
-    private static StringComparer CoverageComparer => OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
-
     // Git observations may need a conservative case-insensitive prefilter. Physical paths and
     // classification results always keep distinct on-disk spellings.
-    private readonly HashSet<string> declaredFiles = new(CoverageComparer);
-    private readonly Dictionary<string, bool> declaredDirectories = new(CoverageComparer);
+    private readonly HashSet<string> declaredFiles = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, bool> declaredDirectories = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> files = new(StringComparer.Ordinal);
     private readonly Dictionary<string, bool> directories = new(StringComparer.Ordinal);
 
