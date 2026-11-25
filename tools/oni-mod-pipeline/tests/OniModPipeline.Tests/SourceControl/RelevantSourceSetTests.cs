@@ -428,7 +428,7 @@ public sealed class RelevantSourceSetTests
             """);
         var inputs = SdkProjectInputs.Read(project, ".fs", isolatedOutputs: true);
         await Assert.That(inputs.DeclaredIncludes.Count).IsEqualTo(5);
-        var plan = new SdkInputSearchPlan(inputs.DeclaredIncludes, CancellationToken.None);
+        var plan = new SdkInputSearchPlan(inputs.DeclaredIncludes, path => path, path => path, CancellationToken.None);
         await Assert.That(plan.Files.ToArray()).IsEquivalentTo([directory.GetPath("one.fs")]);
         await Assert.That(plan.Directories.Keys.ToArray()).IsEquivalentTo(
             [directory.GetPath("lib"), directory.GetPath("other"), directory.GetPath("other", "deep")]);
@@ -448,8 +448,56 @@ public sealed class RelevantSourceSetTests
             duringDiscovery.Cancel();
             yield return inputs.DeclaredIncludes[1];
         }
-        await Assert.That(() => new SdkInputSearchPlan(InterruptedPatterns(), duringDiscovery.Token)).ThrowsExactly<OperationCanceledException>();
+        await Assert.That(() => new SdkInputSearchPlan(InterruptedPatterns(), path => path, path => path, duringDiscovery.Token)).ThrowsExactly<OperationCanceledException>();
 
+    }
+
+    [Test]
+    public async Task CaseDistinctCandidateRootsAndFilesRetainTheirPhysicalIdentities()
+    {
+        using var directory = new TemporaryDirectory();
+        string project = directory.GetPath("Example.fsproj");
+        File.WriteAllText(project, """
+            <Project Sdk="Microsoft.NET.Sdk"><ItemGroup>
+              <Compile Include="Shared/One*.fs;shared/Two*.fs;Shared/Specific.fs;shared/specific.fs" />
+            </ItemGroup></Project>
+            """);
+        var inputs = SdkProjectInputs.Read(project, ".fs", isolatedOutputs: true);
+        var plan = new SdkInputSearchPlan(inputs.DeclaredIncludes, path => path, path => path, CancellationToken.None);
+        await Assert.That(plan.Directories.Keys.ToArray()).IsEquivalentTo([directory.GetPath("Shared"), directory.GetPath("shared")]);
+        await Assert.That(plan.Files.ToArray()).IsEquivalentTo(
+            [directory.GetPath("Shared", "Specific.fs"), directory.GetPath("shared", "specific.fs")]);
+        var ordinary = new SdkInputSearchPlan(inputs.DeclaredIncludes,
+            _ => directory.GetPath("Shared", "Specific.fs"), _ => directory.GetPath("Shared"), CancellationToken.None);
+        await Assert.That(ordinary.Files.Count).IsEqualTo(1);
+        await Assert.That(ordinary.Directories.Count).IsEqualTo(1);
+        var distinct = new CheckoutPathSpelling.DirectoryNames(["Shared", "shared"]);
+        await Assert.That(distinct.Select("shared")).IsEqualTo("shared");
+        await Assert.That(new CheckoutPathSpelling.DirectoryNames(["Shared"]).Select("SHARED")).IsEqualTo("Shared");
+        await Assert.That(() => distinct.Select("SHARED")).ThrowsExactly<InvalidDataException>();
+    }
+
+    [Test]
+    public async Task Inspect_UsesTheStoredSpellingOfEachRealSourceDirectory()
+    {
+        using var directory = new TemporaryDirectory();
+        var profile = CreateProfileFixture(directory);
+        string source = Path.Combine(profile.ModRoot, "Source");
+        File.WriteAllText(directory.GetPath(".gitignore"), "lib/\n");
+        File.WriteAllText(Path.Combine(source, "Example.fsproj"),
+            """<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><Compile Include="lib/Shared/One.fs;lib/shared/Two*.fs" /></ItemGroup></Project>""");
+        profile = profile with { Build = profile.Build! with { EntryPoint = "Source/Example.fsproj" } };
+        TestGitRepository.CommitAll(directory.Path);
+        string upper = Directory.CreateDirectory(Path.Combine(source, "lib", "Shared")).FullName;
+        string lower = Path.Combine(source, "lib", "shared");
+        bool distinctDirectories = !Directory.Exists(lower);
+        Directory.CreateDirectory(lower);
+        WriteFile(Path.Combine(upper, "One.fs"));
+        WriteFile(Path.Combine(lower, "Two.fs"));
+        var result = await new GitRepositoryInspector().InspectAsync(profile, null, CancellationToken.None);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value!.DirtyPaths.ToArray()).IsEquivalentTo(["mods/example/Source/lib/Shared/One.fs",
+            "mods/example/Source/lib/" + (distinctDirectories ? "shared" : "Shared") + "/Two.fs"]);
     }
 
     private static ModProfile CreateProfileFixture(TemporaryDirectory temporaryDirectory)

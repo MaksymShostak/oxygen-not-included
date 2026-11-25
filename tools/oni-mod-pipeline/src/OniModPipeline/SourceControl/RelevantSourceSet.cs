@@ -128,11 +128,13 @@ internal sealed record RelevantSourceSet(
             new(StringComparer.Ordinal);
 
         private readonly CancellationToken cancellationToken;
+        private readonly CheckoutPathSpelling spelling;
 
         internal SourceSetBuilder(string worktreeRoot, CancellationToken cancellationToken)
         {
             this.cancellationToken = cancellationToken;
             WorktreeRoot = Path.GetFullPath(worktreeRoot);
+            spelling = new CheckoutPathSpelling(WorktreeRoot);
         }
 
         private string WorktreeRoot { get; }
@@ -240,8 +242,8 @@ internal sealed record RelevantSourceSet(
             {
                 token.ThrowIfCancellationRequested();
                 string member = ResolveDeclaredPath(directory, project.FilePath);
-                AddAbsolutePath(member);
                 string? existing = ExistingContainedFile(member);
+                AddAbsolutePath(existing ?? member);
                 if (existing is not null && SourceExtension(existing) is not null)
                 {
                     AddObservedProjectPaths(Path.GetDirectoryName(existing)!, observedPaths, solution: false);
@@ -263,10 +265,15 @@ internal sealed record RelevantSourceSet(
 
         // Validate the whole path from the operator's checkout before a directory is enumerated.
         // Missing tracked files still participate in Git status even though they cannot be read.
-        private string? ExistingContainedFile(string path)
+        private string? ExistingContainedFile(string path) =>
+            VerifiedSpelling(ContainedPathResolver.ResolveExistingFile(WorktreeRoot, GetWorktreeRelativePath(path)));
+
+        private string? ExistingContainedDirectory(string path) => Path.GetRelativePath(WorktreeRoot, path) == "."
+            ? WorktreeRoot : VerifiedSpelling(ContainedPathResolver.ResolveExistingDirectory(WorktreeRoot, GetWorktreeRelativePath(path)));
+
+        private string? VerifiedSpelling(OperationResult<string> verified)
         {
-            var verified = ContainedPathResolver.ResolveExistingFile(WorktreeRoot, GetWorktreeRelativePath(path));
-            if (verified.IsSuccess) return verified.Value!;
+            if (verified.IsSuccess) return spelling.ForExistingPath(verified.Value!, cancellationToken);
             var diagnostic = verified.Diagnostics.Single();
             if (diagnostic.Id == DiagnosticIds.DeclaredInputMissing) return null;
             throw new SourceSetException(diagnostic, verified.ExitCode);
@@ -276,8 +283,8 @@ internal sealed record RelevantSourceSet(
         {
             string root = Path.GetDirectoryName(project)!;
             var inputs = SdkProjectInputs.Read(project, SourceExtension(project)!, isolatedOutputs, cancellationToken);
-            var search = new SdkInputSearchPlan(inputs.DeclaredIncludes, cancellationToken);
-            var classified = new Dictionary<string, bool>(SdkInputSearchPlan.PathComparer);
+            var search = new SdkInputSearchPlan(inputs.DeclaredIncludes, ExistingContainedFile, ExistingContainedDirectory, cancellationToken);
+            var classified = new Dictionary<string, bool>(StringComparer.Ordinal);
 
             bool DefaultLocation(string path)
             {
@@ -313,23 +320,12 @@ internal sealed record RelevantSourceSet(
             foreach (var file in search.Files)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                EnsureInsideWorktree(file);
-                if (Selected(file) && ExistingContainedFile(file) is { } present) AddAbsolutePath(present);
+                if (Selected(file)) AddAbsolutePath(file);
             }
             // Each physical directory is visited at most once by the explicit glob pass.
             foreach (var (prefix, recursive) in search.Directories)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (Path.GetRelativePath(WorktreeRoot, prefix) != ".")
-                {
-                    var verified = ContainedPathResolver.ResolveExistingDirectory(WorktreeRoot, GetWorktreeRelativePath(prefix));
-                    if (!verified.IsSuccess)
-                    {
-                        var diagnostic = verified.Diagnostics.Single();
-                        if (diagnostic.Id == DiagnosticIds.DeclaredInputMissing) continue;
-                        throw new SourceSetException(diagnostic, verified.ExitCode);
-                    }
-                }
                 foreach (var path in EnumerateRegularFiles(prefix, _ => recursive, Selected)) AddAbsolutePath(path);
             }
         }
