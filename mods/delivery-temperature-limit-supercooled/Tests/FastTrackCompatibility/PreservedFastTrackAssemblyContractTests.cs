@@ -65,9 +65,11 @@ public sealed class PreservedFastTrackAssemblyContractTests
             fixture.MetadataReader.GetModuleDefinition();
 
         await Assert.That(fixture.MetadataReader.GetString(assemblyDefinition.Name)).IsEqualTo(expectation.ExpectedAssemblyName);
-        await Assert.That(assemblyDefinition.Version).IsEqualTo(AssemblyName.GetAssemblyName(contractCase.AssemblyPath).Version);
+        string provenance = await File.ReadAllTextAsync(Path.Combine(Path.GetDirectoryName(contractCase.AssemblyPath)!, "README.md"));
+        string name = fixture.MetadataReader.GetString(assemblyDefinition.Name);
+        await Assert.That(provenance).Contains($"`{name}, Version={assemblyDefinition.Version}`");
         await Assert.That((await fixture.RequireAssemblyFileVersionAttributeValue())).IsEqualTo(expectation.AssemblyBuildIdentity.FileVersion.ToString());
-        await Assert.That(fixture.MetadataReader.GetGuid(moduleDefinition.Mvid)).IsNotEqualTo(Guid.Empty);
+        await Assert.That(provenance).Contains($"MVID was `{fixture.MetadataReader.GetGuid(moduleDefinition.Mvid):D}`");
     }
 
     [Test]

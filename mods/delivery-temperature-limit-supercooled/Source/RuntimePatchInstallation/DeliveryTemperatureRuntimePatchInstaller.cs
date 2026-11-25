@@ -471,8 +471,13 @@ namespace DeliveryTemperatureLimit
                 var collect = HarmonyPatchContractVerifier.RequireInstanceMethod(typeof(GlobalChoreProvider),
                     "CollectChores", DeclaredMemberVisibility.Public, typeof(void),
                     new[] { typeof(ChoreConsumerState), contexts, contexts });
-                requirements.Add(new RuntimeAuthorityRequirement(collect, RuntimeAuthorityRequirementKind.KleiOriginal,
-                    requiredHarmonyOwner: null, requiredPrefixMethod: null, Array.Empty<string>()));
+                var sweep = HarmonyPatchContractVerifier.RequireInstanceMethod(
+                    KleiDirectDeliveryEligibilityPatches.ResolveClearableManagerType(), "CollectChores",
+                    DeclaredMemberVisibility.Public, typeof(void),
+                    new[] { typeof(List<GlobalChoreProvider.Fetch>), typeof(ChoreConsumerState), contexts, contexts });
+                foreach (var upstream in new[] { collect, sweep })
+                    requirements.Add(new RuntimeAuthorityRequirement(upstream, RuntimeAuthorityRequirementKind.KleiOriginal,
+                        requiredHarmonyOwner: null, requiredPrefixMethod: null, Array.Empty<string>()));
             }
             return requirements.AsReadOnly();
         }

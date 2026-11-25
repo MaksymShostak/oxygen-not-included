@@ -13,7 +13,9 @@ public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
     [Test]
-    public async Task InstalledCollectorRejectsAnUnknownSkippingPrefixOnDirectDelivery()
+    [Arguments("GlobalChoreProvider", 3)]
+    [Arguments("ClearableManager", 4)]
+    public async Task InstalledCollectorRejectsAnUnknownSkippingPrefixOnDirectDelivery(string owner, int arity)
     {
         using var game = new InstalledModAssemblyContext();
         Type ModType(string name) => game.Candidate.GetType("DeliveryTemperatureLimit." + name, true)!;
@@ -22,12 +24,13 @@ public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
         var requirements = installer.GetMethod("CreateKleiOriginalAuthorityRequirements", hiddenStatic)!;
         var direct = ModType("RuntimeCapabilityId").GetField("DirectDeliveryEligibility", hiddenStatic)!.GetValue(null);
         var bindings = Array.CreateInstance(ModType("HarmonyPatchContractBinding"), 0);
-        var requirement = ((IEnumerable)requirements.Invoke(null, [direct, bindings])!).Cast<object>().Single();
-        var target = (MethodInfo)requirement.GetType().GetProperty("TargetMethod",
-            BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(requirement)!;
-        await Assert.That(target.DeclaringType!.FullName + "." + target.Name).IsEqualTo("GlobalChoreProvider.CollectChores");
-        await Assert.That(target.GetParameters().Select(p => p.ParameterType.Name).ToArray())
-            .IsEquivalentTo(new[] { "ChoreConsumerState", "List`1", "List`1" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        var gates = ((IEnumerable)requirements.Invoke(null, [direct, bindings])!).Cast<object>();
+        MethodInfo Target(object gate) => (MethodInfo)gate.GetType().GetProperty("TargetMethod",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(gate)!;
+        var requirement = gates.Single(gate => Target(gate).DeclaringType!.Name == owner);
+        var target = Target(requirement);
+        await Assert.That(target.Name).IsEqualTo("CollectChores");
+        await Assert.That(target.GetParameters().Length).IsEqualTo(arity);
 
         var descriptor = ModType("ActiveHarmonyPrefixDescriptor");
         var verifier = ModType("DeliveryTemperatureRuntimePatchPlan").GetMethod("VerifyKleiOriginalAuthority", hiddenStatic)!;

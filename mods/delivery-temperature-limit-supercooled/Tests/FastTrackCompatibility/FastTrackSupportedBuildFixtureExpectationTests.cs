@@ -36,24 +36,21 @@ public sealed class FastTrackSupportedBuildFixtureExpectationTests
                 .Select(NormalizeRelativePath)
                 .OrderBy(path => path, StringComparer.Ordinal)
                 .ToArray();
-        string[] actualRelativePaths = Directory
-            .EnumerateFiles(
-                fixtureRoot,
-                "*",
-                SearchOption.AllDirectories)
-            .Select(path => Path.GetRelativePath(fixtureRoot, path))
-            .Select(NormalizeRelativePath)
-            .OrderBy(path => path, StringComparer.Ordinal)
-            .ToArray();
-
         string repository = Environment.GetEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT")!;
         string source = Path.Combine(repository, "mods", "delivery-temperature-limit-supercooled", "Tests", "Fixtures", "ThirdParty", "FastTrack");
-        var current = FastTrackSupportedAssemblyBuildCatalog.SelectedBuild;
-        await Assert.That(Directory.GetDirectories(source).Select(path => Path.GetFileName(path)!).ToArray()).IsEquivalentTo([current.FileVersion.ToString()]);
-        await Assert.That(Directory.GetDirectories(Path.Combine(source, current.FileVersion.ToString())).Select(path => Path.GetFileName(path)!).ToArray())
-            .IsEquivalentTo(["sha256-" + current.AssemblySha256.ToLowerInvariant()]);
-        await Assert.That(actualRelativePaths).IsEquivalentTo(expectedRelativePaths, TUnit.Assertions.Enums.CollectionOrdering.Matching).Because("The preserved fixture tree must remain a closed set of exact " +
-            "selected DLL evidence and its human provenance/license notes.");
+        string[] expectedDirectories = expectedRelativePaths.SelectMany(path =>
+            new[] { path.Split('/')[0], path[..path.LastIndexOf('/')] }).Distinct().ToArray();
+        foreach (var root in new[] { source, fixtureRoot })
+        {
+            string Relative(string path) => NormalizeRelativePath(Path.GetRelativePath(root, path));
+            var files = Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories).Select(Relative).ToArray();
+            await Assert.That(files).IsEquivalentTo(expectedRelativePaths).Because("Unexpected files in " + root);
+            if (root == source)
+            {
+                var directories = Directory.EnumerateDirectories(root, "*", SearchOption.AllDirectories).Select(Relative).ToArray();
+                await Assert.That(directories).IsEquivalentTo(expectedDirectories).Because("Unexpected source fixture directory");
+            }
+        }
     }
 
     private static async Task<string> RequireCopiedFixtureRoot()

@@ -475,7 +475,7 @@ namespace DeliveryTemperatureLimit
             return constraint;
         }
 
-        private static Type ResolveClearableManagerType()
+        internal static Type ResolveClearableManagerType()
         {
             Type[] assemblyTypes = typeof(FetchManager).Assembly.GetTypes();
             return HarmonyPatchContractVerifier.RequireSingleMatch(
