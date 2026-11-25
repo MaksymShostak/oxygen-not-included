@@ -1,45 +1,13 @@
-[h3]Universal Translators and Calibrated Thermometers[/h3]
+[h3]November Quality of Life update[/h3]
 
-Colony broadcast update: Meep's attempt to explain temperature limits to Nisbet by waving a red-hot Obsidian boulder has been judged "informative, but unnecessarily hazardous."
-
-The mod now speaks 18 additional locales, the Options dialog has been rebuilt, temperature controls have had a proper calibration pass, and late-game errands spend considerably less time asking every loose rock on the planetoid for its paperwork.
-
-[b]Changes[/b]
 [list]
-[*] [b]The Printing Pod Has Been Studying:[/b] Added 18 translated locales: Simplified & Traditional Chinese, Czech, French, German, Greek, Hungarian, Italian, Japanese, Korean, Polish, Portuguese & Brazilian Portuguese, Spanish, Thai, Turkish, Ukrainian, and Vietnamese. The mod follows ONI's selected language automatically. Meep's interpretive-dance translation service is now considered deprecated.
-
-[*] [b]Rebuilt Mod Options:[/b] The settings screen now uses a dedicated dialog with live °C / °F / K previews and conversion, a one-click [b]Reset to Defaults[/b] button, and keyboard navigation with Tab, Enter, and Escape.
-
-[*] [b]Thermo Sensor-Grade Temperature Controls:[/b] The building side-screen now has independent [b]At least[/b] and [b]Below[/b] thresholds, unit labels outside the input fields, a dedicated [b]Clear[/b] button, live plain-language range status, and warning feedback for inverted limits.
-
-[*] [b]The Camera Has Been Released:[/b] Temperature fields no longer swallow WASD panning, Space to pause, or Escape. Duplicants may still sprint towards magma, but you can once again pan over in time to witness the decision.
-
-[*] [b]Less Asteroid Staring:[/b] Eligible buildings keep their configured temperature range available for direct errand checks instead of repeatedly scanning colony inventory. Delivery decisions and the optional temperature-aware [b]Lacks Resources[/b] warning use the streamlined path as colonies spread across planetoids and rockets.
-
-[*] [b]Clean State Between Colonies:[/b] Transient runtime tracking is cleared when leaving or changing colonies. Saved temperature limits and mod settings are not cleared. Storage Bins from abandoned colonies have therefore lost their ability to haunt new ones.
-
-[*] [b]Fast Track Compatibility:[/b] The mod coordinates with current releases of Peter Han's [i]Fast Track[/i] when present and uses the normal game path otherwise.
-
-[*] [b]Local Support Reports:[/b] Support reports can now be generated from the Options dialog without uploading anything automatically. The standard report does not read [i]Player.log[/i]; the clearly labelled Extended report can include a bounded, best-effort-redacted excerpt for harder failures.
+[*] Copy Settings now transfers a building's temperature limits through U60's building event. PLib has been updated for the new game version.
+[*] Sweep errands check each bin against the material's temperature before choosing a destination. A bin that rejects the material leaves the next eligible bin available.
+[*] Reachable bins requesting the same material contribute their individual temperature ranges. This also covers different tags that share an internal hash and keeps ranges separate across parent worlds.
 [/list]
 
-[b]Fixes[/b]
-[list]
-[*] [b]Carpooling Now Checks the Thermometer:[/b] When Duplicants bundled several nearby deliveries into one trip, the temperature check only asked the first destination. A picky Storage Bin could be handed whatever a more relaxed neighbour accepted, and a bin set to accept nothing at all could still receive a delivery. Deliveries are now only bundled when every destination along the way would accept the load. This bug has been with us since the original Delivery Temperature Limit mod, quietly slipping lukewarm surprises into fussy bins for generations of colonies. It has finally been escorted to the Printing Pod for re-education. Duplicants may make the occasional extra trip; they have been told it counts as cardio.
+[b]Fast Track compatibility[/b]
 
-[*] [b]Blueprint Thermometer Has a Backup Plan:[/b] The build menu's temperature controls no longer depend on the game's screens loading in one particular order. If they miss their cue during start-up, they now step in the moment you pick a building instead of sitting out the whole colony. Understudies have been briefed.
-[/list]
+Delivery Temperature Limit runs on its own. Fast Track support is best-effort. The current beta's default pickup and reachability options depend on game APIs that changed in U60. Leave Fast Track disabled for this release. No settings combination has completed paired in-game checks.
 
-[b]Existing Colonies[/b]
-[list]
-[*] [b]Your Bins Are Safe:[/b] Existing temperature limits, construction settings, copied building settings, and saved colonies carry over unchanged. The filing cabinet survived the renovation.
-[/list]
-
-[b]Known Issues[/b]
-[list]
-[*] Duplicants still have opinions about which rock is nearest. Temperature was the only behaviour approved for this maintenance window.
-[/list]
-
-Tested with Oxygen Not Included build 744825.
-
-Every colony remains its own lovingly overcomplicated thermodynamic incident. No Duplicants were asked to benchmark molten tungsten.
+This release targets the November Quality of Life update. Existing temperature limits use the same saved fields.

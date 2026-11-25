@@ -22,7 +22,8 @@ Duplicants remain free to make entirely different mistakes.
 **Localisation:** English + 18 translated locales, selected automatically from ONI's language setting.
 Simplified & Traditional Chinese, Czech, French, German, Greek, Hungarian, Italian, Japanese, Korean, Polish, Portuguese & Brazilian Portuguese, Spanish, Thai, Turkish, Ukrainian and Vietnamese.
 
-**Tested with ONI build 744825.**
+**Targets the November Quality of Life update (U60).**
+Automated checks exercise the released game's delivery and storage code.
 
 ---
 
@@ -54,7 +55,11 @@ The basic idea is unchanged; quite a lot underneath it is not.
   No haunted Storage Bins; no accidental exorcism of your actual settings.
 - **Rebuilt Temperature UI:** The side-screen now uses independent **At least** and **Below** values, external unit labels, live range summaries, warning feedback for inverted limits, dedicated clearing, and reliable keyboard handling.
 - **Safer Startup & Storage Discovery:** Defensive checks protect the mod's game hooks during startup and colony refreshes, while compatible storage targets introduced by other mods can be discovered dynamically.
-- **Fast Track Compatibility:** Integrates with Peter Han's [*Fast Track*](https://github.com/peterhaneve/ONIMods/tree/main/FastTrack) when it is present and uses the normal game path when it is not.
+- **Fast Track Compatibility:** Peter Han's [*Fast Track*](https://github.com/peterhaneve/ONIMods/tree/main/FastTrack) is optional.
+  Support is best-effort.
+  The current beta's default pickup and reachability options call game APIs that changed in U60.
+  No Fast Track settings combination has completed in-game checks for this release.
+  Leave Fast Track disabled when using it on U60.
 - **Built-In Localisation:** English plus 18 translated locales are bundled with the mod and follow ONI's selected language automatically.
   Meep's interpretive-dance translation programme has been retired.
 

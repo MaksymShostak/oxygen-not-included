@@ -1,6 +1,6 @@
 # Delivery Temperature Limit on ONI U60
 
-**Implementation plan for review, 25 November 2026.**
+**Accepted implementation plan, 25 November 2026.**
 Target the installed November Quality of Life release, Klei changelist `764025`.
 Adopt PLib `4.26.0`.
 Qualify FastTrack Beta `0.18.6.0` as the **only maintained FastTrack fixture** and retire both earlier fixtures and their runtime catalog entries in the same change.
@@ -16,26 +16,42 @@ Adopt the single-owner dependency rules below as part of each upgrade.
 [Version ownership and drift checks](#dependency-versions-have-one-editable-owner)
 
 The owner requested the plan and both upgrades, selected the latest-only fixture policy and a single editable version owner for each dependency, and confirmed the [FastTrack release policy](#accepted-fasttrack-release-policy).
-The implementation design remains a draft for review.
-The existing current-public-build policy sets the planned minimum to `764025` once that build qualifies.
-This raises the advertised floor from `744825`.
-The repository's exact-edit approval for the eventual metadata write still applies.
+The unpublished `2026.11.25` candidate projects its minimum build from the qualified U60 reference set.
+The maintainer approved the configuration edits.
+In-game acceptance and the release decision are separate gates.
 The event overload alone would not require that change.
 The fetch method bodies and the U60 dependency do require fresh qualification.
 The previous design and released binaries remain historical evidence.
 [Existing game compatibility decision](../specs/2026-08-29-delivery-temperature-limit-performance-rewrite-design.md) · [Existing fixture and runtime policy](../specs/2026-09-01-external-mod-compatibility-evidence-design.md)
 
 **HISEW route.**
-Use the R2 route for this draft's implementation and assurance design.
+Implementation followed the R2 route using the sibling workflow source.
 A missed Harmony branch can silently change deliveries or report no available material in existing colonies.
 The repo also ships a merged third-party library and pins private game references for CI.
 The maintainer owns acceptance of the requirements and the release decision.
-Baseline the accepted revision before an R2 implementation starts.
-An independent reviewer should check the native branch proofs, fixture identity and targeted evidence against that revision.
-This draft applies the sibling workflow at `d96ceba3aa1ee93e37bec6850d49d8b898236d68`.
+The accepted plan was baselined in signed commit `b197fa1`.
+Independent review covered the native branch proofs, fixture identity and targeted regression tests.
+This plan applies the sibling workflow at `d96ceba3aa1ee93e37bec6850d49d8b898236d68`.
 Its source-checkout setup inspection reported `repair-required` because the packaged engine bootstrap was absent.
 There is no engine-admitted baseline, review or execution result associated with this plan.
 [Planning procedure](https://github.com/Hadden-Industries/software-engineering-workflow/blob/d96ceba3aa1ee93e37bec6850d49d8b898236d68/skills/hadden-industries-plan-software-change/SKILL.md) · [Risk routes](https://github.com/Hadden-Industries/software-engineering-workflow/blob/d96ceba3aa1ee93e37bec6850d49d8b898236d68/method/risk-routes.md)
+
+## Implementation and acceptance record
+
+The local release is `2026.11.25` and the merged `netstandard2.1` assembly reports `2026.11.25.0`.
+Before the candidate freeze, 1,009 mod tests passed against an explicitly selected merged build, with no skips.
+The pipeline passed 440 tests and the private-reference suite passed 14.
+All four tracked C# projects compiled against the separately acquired reference pack and its directory was reverified after compilation.
+The development installation passed the package checksum check in an isolated ONI user-data directory.
+The Workshop listing describes the U60 target and the outstanding FastTrack limit.
+
+Human acceptance requires a copied legacy colony and a new colony, standalone and paired FastTrack runs, same-colony timings, and the Uploader paste-and-cancel check.
+The local Steam cache contained legacy items.
+A genuine loose Workshop item and its game-loader result remain outstanding.
+The private package has been built locally.
+Hosted CI qualification requires separately authorized private package publication and a trusted run.
+The candidate manifest, installed receipt and acceptance report carry the identities and readiness of the exact packaged bytes.
+[Local release procedure](../../tools/oni-mod-pipeline/manual/preparing-releases.md)
 
 ## Evidence for the target
 
@@ -280,14 +296,16 @@ Ensure one-tag requests can actually be swept.
 A matching `UnionWith` window or a passing builder test without the game adapter misses this regression.
 [Reference eligibility model](../../mods/delivery-temperature-limit-supercooled/Tests/ReferenceTemperatureModels/ReferenceTemperatureEligibilityModel.cs)
 
-**U60 implementation evidence.** The installed traversal checks each chore at most once.
+**U60 implementation evidence.**
+The installed traversal checks each chore at most once.
 For an already-seen tag hash the active collector also calls the native group probe for that destination.
 On first use or after a move, storage's offset tracker can register or move entries in the solid-change and navigation-change scene-partitioner layers.
 The nearby `GlobalChoreProvider.UpdateFetches(Navigator)` applies a specific navigator's automation and path-cost filters, so its results cannot establish colony-wide group reachability.
 The native pickup offset worker services pickups rather than these storage destinations.
 The adapter therefore uses the group probe on the game thread and skips extra probes when collection is inactive.
 For *n* constrained destinations in one parent-world/tag group, publication also sorts intervals and their endpoints in O(*n* log *n*) time.
-The installed-instruction tests compare tag contents against unmodified Klei code and check two worlds, disjoint ranges, an unconstrained destination and teardown. Same-colony timing still requires a live run.
+The installed-instruction tests compare tag contents against unmodified Klei code and check two worlds, disjoint ranges, an unconstrained destination and teardown.
+Same-colony timing still requires a live run.
 
 ### SLICE-005. Replace the FastTrack fixture and qualify the released beta
 
@@ -492,15 +510,15 @@ The paired game run also requires the exact FastTrack candidate.
 Complete the one-owner version work within the slice that changes each dependency.
 Slice 007 consumes the resulting immutable candidate.
 
-The following are **proposed future configuration edits**.
-The repository requires the owner's explicit approval for the exact file and change before writing it, including when a generator or restore performs the write.
+The owner approved the following configuration changes during implementation.
+The release candidate includes the date version and projected game floor below.
 
-| File                                                                    | Smallest proposed edit and effect                                                                                                                                                                                                                                    |
-| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Directory.Packages.props`                                              | Change only the `PLib` selection from `4.25.0` to `4.26.0`. The mod will compile and merge against the U60 library.                                                                                                                                                  |
-| `mods/delivery-temperature-limit-supercooled/Source/packages.lock.json` | Regenerate the `.NETStandard,Version=v2.1` PLib entry (requested range, resolution and content hash) from NuGet. Verify Harmony resolves to the game-matched `2.4.2`. Present any additional graph change before applying it.                                        |
-| `tools/ci/oni-references.json`                                          | Set `package.version` to `764025.0.0` and update `package.byteLength`, `package.sha256` and `manifestSha256` to the reviewed packer's measured values. Retain package ID, owner, schema and private access model. CI will consume the new complete reference set.    |
-| `mods/delivery-temperature-limit-supercooled/mod_info.yaml`             | Set the release version to `2026.11.25`. Project `minimumSupportedBuild` from `744825` to `764025` after qualification. ONI can then exclude earlier builds. Preserve `APIVersion: 2` and `supportedContent: ALL`. |
+| File                                                                    | Smallest proposed edit and effect                                                                                                                                                                                                                                 |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Directory.Packages.props`                                              | Change only the `PLib` selection from `4.25.0` to `4.26.0`. The mod will compile and merge against the U60 library.                                                                                                                                               |
+| `mods/delivery-temperature-limit-supercooled/Source/packages.lock.json` | Regenerate the `.NETStandard,Version=v2.1` PLib entry (requested range, resolution and content hash) from NuGet. Verify Harmony resolves to the game-matched `2.4.2`. Present any additional graph change before applying it.                                     |
+| `tools/ci/oni-references.json`                                          | Set `package.version` to `764025.0.0` and update `package.byteLength`, `package.sha256` and `manifestSha256` to the reviewed packer's measured values. Retain package ID, owner, schema and private access model. CI will consume the new complete reference set. |
+| `mods/delivery-temperature-limit-supercooled/mod_info.yaml`             | Set the release version to `2026.11.25`. Project `minimumSupportedBuild` from `744825` to `764025` after qualification. ONI can then exclude earlier builds. Preserve `APIVersion: 2` and `supportedContent: ALL`.                                                |
 
 Exercise new gameplay cases alongside the existing acceptance records.
 Package the candidate DLL from `{build-output}`, the source declared in the mod profile.

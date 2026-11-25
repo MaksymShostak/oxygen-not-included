@@ -31,18 +31,27 @@ Run the workflow's Python checks locally with `python -m unittest discover -s te
 
 ## Update game and mod dependencies
 
-PLib is selected in `Directory.Packages.props`. Restore the production project to regenerate its lock and run a locked build. The merged assembly tests compare PLib with the resolved package. Harmony comes from ONI at runtime and the PLib reference version comes from the generated NuGet graph.
+PLib is selected in `Directory.Packages.props`.
+Restore the production project to regenerate its lock and run a locked build.
+The merged assembly tests compare PLib with the resolved package.
+Harmony comes from ONI at runtime and the PLib reference version comes from the generated NuGet graph.
 
-FastTrack's sole editable file-version and DLL digest pair is `SelectedBuild` in [FastTrackSupportedAssemblyBuildCatalog.cs](../mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/FastTrackSupportedAssemblyBuildCatalog.cs). Replace the single content-addressed test fixture with the measured release, its provenance and its license. Admit the selected identity only after the paired game and settings checks in the [U60 plan](plans/2026-11-25-oni-u60-mod-compatibility.md).
+FastTrack's sole editable file-version and DLL digest pair is `SelectedBuild` in [FastTrackSupportedAssemblyBuildCatalog.cs](../mods/delivery-temperature-limit-supercooled/Source/FastTrackCompatibility/FeatureContractVerification/FastTrackSupportedAssemblyBuildCatalog.cs).
+Replace the single content-addressed test fixture with the measured release, its provenance and its license.
+Admit the selected identity only after the paired game and settings checks in the [U60 plan](plans/2026-11-25-oni-u60-mod-compatibility.md).
 
-The game reference packer writes the selected package version and hashes to `tools/ci/oni-references.json`. Pack into a fresh private directory, verify it with `acquire --archive`, and check the local game's complete DLL inventory with `verify-installed --managed-directory <Managed>`. For a single supported build the catalog version is `<changelist>.0.0`. From the repository root, project that changelist into the game metadata with the locked pipeline.
+The game reference packer writes the selected package version and hashes to `tools/ci/oni-references.json`.
+Pack into a fresh private directory, verify it with `acquire --archive`, and check the local game's complete DLL inventory with `verify-installed --managed-directory <Managed>`.
+For a single supported build the catalog version is `<changelist>.0.0`.
+From the repository root, project that changelist into the game metadata with the locked pipeline.
 
 ```powershell
 npm run pipeline -- sync-build-floor --mod mods/delivery-temperature-limit-supercooled --write
 npm run pipeline -- sync-build-floor --mod mods/delivery-temperature-limit-supercooled
 ```
 
-The second command checks for drift. The mod release date remains independently owned by `mod_info.yaml`.
+The second command checks for drift.
+The mod release date remains independently owned by `mod_info.yaml`.
 
 ## Update GitHub Actions
 
