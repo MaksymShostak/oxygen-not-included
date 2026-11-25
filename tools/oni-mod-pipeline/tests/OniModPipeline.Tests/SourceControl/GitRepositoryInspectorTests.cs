@@ -160,6 +160,34 @@ public sealed class GitRepositoryInspectorTests
         await Assert.That(diagnostic.NextAction).Contains("standard index");
     }
 
+    [Test]
+    public async Task NativeAndGitPathsDoNotAliasALiteralPosixBackslashWithADirectorySeparator()
+    {
+        const string git = "mods/A/B/file.txt";
+        const string withLiteral = @"mods/A\B/file.txt";
+        await Assert.That(GitPathIdentity.ToNative(withLiteral, '/')).IsEqualTo(withLiteral);
+        await Assert.That(() => GitPathIdentity.ToNative(withLiteral, '\\')).ThrowsExactly<InvalidDataException>();
+        await Assert.That(() => GitPathIdentity.ToPortableKey(withLiteral, '/')).ThrowsExactly<InvalidDataException>();
+        await Assert.That(GitPathIdentity.ToPortableKey(git, '/')).IsEqualTo(git);
+        await Assert.That(GitPathIdentity.ToPortableKey(@"mods\A\B\file.txt", '\\')).IsEqualTo(git);
+
+        if (Path.DirectorySeparatorChar == '/')
+        {
+            using var directory = new TemporaryDirectory();
+            string root = CreateRepository(directory);
+            string normal = Path.Combine(root, "mods", "A", "B", "file.txt");
+            string literal = Path.Combine(root, "mods", @"A\B", "file.txt");
+            Directory.CreateDirectory(Path.GetDirectoryName(normal)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(literal)!);
+            File.WriteAllText(normal, "tracked");
+            File.WriteAllText(literal, "separate file");
+            TestGitRepository.CommitAll(root);
+            File.WriteAllText(literal, "changed");
+            var result = await new GitRepositoryInspector().InspectAsync(root, [literal], CancellationToken.None);
+            await Assert.That(result.IsSuccess).IsFalse();
+        }
+    }
+
     private static string CreateRepository(TemporaryDirectory directory)
     {
         var root = Directory.CreateDirectory(directory.GetPath("repository")).FullName;

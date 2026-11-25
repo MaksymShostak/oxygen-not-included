@@ -58,7 +58,7 @@ internal sealed record RelevantSourceSet(
                 builder.AddAbsolutePath(buildEntryPoint);
                 await builder.AddProjectTreeAsync(
                     buildEntryPoint,
-                    observedAbsolutePaths, cancellationToken).ConfigureAwait(false);
+                    observedAbsolutePaths, isolatedOutputs: true, cancellationToken).ConfigureAwait(false);
             }
 
             foreach (var mapping in profile.PackageFiles)
@@ -96,7 +96,7 @@ internal sealed record RelevantSourceSet(
                 builder.AddAbsolutePath(testProjectPath);
                 await builder.AddProjectTreeAsync(
                     testProjectPath,
-                    observedAbsolutePaths, cancellationToken).ConfigureAwait(false);
+                    observedAbsolutePaths, isolatedOutputs: false, cancellationToken).ConfigureAwait(false);
             }
 
             if (pipelineExecutablePath is not null &&
@@ -144,9 +144,7 @@ internal sealed record RelevantSourceSet(
                 throw OutsideWorktree(relativePath);
             }
 
-            var platformPath = relativePath
-                .Replace((char)92, Path.DirectorySeparatorChar)
-                .Replace('/', Path.DirectorySeparatorChar);
+            var platformPath = GitPathIdentity.ToNative(relativePath, Path.DirectorySeparatorChar);
             var absolutePath = Path.GetFullPath(Path.Combine(WorktreeRoot, platformPath));
             EnsureInsideWorktree(absolutePath);
             return absolutePath;
@@ -216,7 +214,7 @@ internal sealed record RelevantSourceSet(
                 if (TryGetDescendantRelativePath(directory, path, out _)) AddAbsolutePath(path);
         }
 
-        internal async Task AddProjectTreeAsync(string entryPoint, IReadOnlyList<string> observedPaths, CancellationToken token)
+        internal async Task AddProjectTreeAsync(string entryPoint, IReadOnlyList<string> observedPaths, bool isolatedOutputs, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
             string directory = Path.GetDirectoryName(entryPoint)!;
@@ -227,7 +225,7 @@ internal sealed record RelevantSourceSet(
             if (input is null) return;
             if (!solution)
             {
-                AddSdkProjectInputs(input);
+                AddSdkProjectInputs(input, isolatedOutputs);
                 return;
             }
 
@@ -243,7 +241,7 @@ internal sealed record RelevantSourceSet(
                 if (existing is not null && SourceExtension(existing) is not null)
                 {
                     AddObservedProjectPaths(Path.GetDirectoryName(existing)!, observedPaths, solution: false);
-                    AddSdkProjectInputs(existing);
+                    AddSdkProjectInputs(existing, isolatedOutputs);
                 }
             }
         }
@@ -269,12 +267,12 @@ internal sealed record RelevantSourceSet(
             throw new SourceSetException(diagnostic, verified.ExitCode);
         }
 
-        private void AddSdkProjectInputs(string project)
+        private void AddSdkProjectInputs(string project, bool isolatedOutputs)
         {
             string root = Path.GetDirectoryName(project)!;
-            var inputs = SdkProjectInputs.Read(project, SourceExtension(project)!);
+            var inputs = SdkProjectInputs.Read(project, SourceExtension(project)!, isolatedOutputs);
             bool IncludeDirectory(string path) => !Path.GetFileName(path).StartsWith('.') &&
-                !IsTopLevelBuildOutput(Path.GetRelativePath(root, path));
+                !inputs.IsExcludedLocalOutput(Path.GetRelativePath(root, path));
             foreach (var path in EnumerateRegularFiles(root, IncludeDirectory, path => inputs.Includes(path, useDefaults: true)))
                 AddAbsolutePath(path);
             foreach (var pattern in inputs.DeclaredIncludes)
@@ -327,7 +325,7 @@ internal sealed record RelevantSourceSet(
                 return false;
             }
 
-            relativePath = relativePath.Replace((char)92, '/');
+            relativePath = relativePath.Replace(Path.DirectorySeparatorChar, '/');
             return relativePath.StartsWith("tools/oni-mod-pipeline/", StringComparison.Ordinal) &&
                 relativePath.Contains("/bin/", StringComparison.OrdinalIgnoreCase);
         }
@@ -385,8 +383,7 @@ internal sealed record RelevantSourceSet(
         private string GetWorktreeRelativePath(string absolutePath)
         {
             EnsureInsideWorktree(absolutePath);
-            return Path.GetRelativePath(WorktreeRoot, absolutePath)
-                .Replace((char)92, '/');
+            return GitPathIdentity.ToPortableKey(Path.GetRelativePath(WorktreeRoot, absolutePath), Path.DirectorySeparatorChar);
         }
 
         private void EnsureInsideWorktree(string absolutePath)

@@ -4,7 +4,7 @@
     <AssemblyTitle>Delivery Temperature Limit (Supercooled)</AssemblyTitle>
     <Authors>MaksymShostak</Authors>
     <Company>MaksymShostak</Company>
-    <DefaultItemExcludes>$(DefaultItemExcludes);$(MSBuildProjectDirectory)/obj/**</DefaultItemExcludes>
+    <DefaultItemExcludes>$(DefaultItemExcludes);$(MSBuildProjectDirectory)/bin/**;$(MSBuildProjectDirectory)/obj/**</DefaultItemExcludes>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>

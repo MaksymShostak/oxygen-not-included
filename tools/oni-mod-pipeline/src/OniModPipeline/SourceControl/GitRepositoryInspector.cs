@@ -98,11 +98,11 @@ internal sealed class GitRepositoryInspector
             var candidates = indexed.Union(changed, StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
             var scope = await resolveContributingPaths(root, candidates).ConfigureAwait(false);
             if (!scope.IsSuccess) return new(null, scope.Diagnostics, scope.ExitCode);
-            var contributing = scope.Value!.Select(NormalizeGitPath).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+            var contributing = scope.Value!.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
             var dirty = contributing.Where(path => changed.Contains(path) || !indexed.Contains(path)).ToArray();
             return new(new GitProvenance(root, commit, contributing, dirty), [], PipelineExitCode.Success);
         }
-        catch (Exception exception) when (exception is LibGit2SharpException or IOException or UnauthorizedAccessException ||
+        catch (Exception exception) when (exception is LibGit2SharpException or InvalidDataException or IOException or UnauthorizedAccessException ||
             exception.GetBaseException() is DllNotFoundException or BadImageFormatException or EntryPointNotFoundException)
         {
             return Failure<GitProvenance>($"Git provenance at '{root}' could not be read: {exception.Message}");
@@ -124,7 +124,7 @@ internal sealed class GitRepositoryInspector
                     $"Contributing path '{fullPath}' is outside Git worktree '{worktreeRoot}'.");
             }
 
-            contributingPaths.Add(NormalizeGitPath(relativePath));
+            contributingPaths.Add(GitPathIdentity.ToPortableKey(relativePath, Path.DirectorySeparatorChar));
         }
 
         return new OperationResult<IReadOnlyList<string>>(
@@ -138,9 +138,6 @@ internal sealed class GitRepositoryInspector
         relativePath == ".." ||
         relativePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
         relativePath.StartsWith($"..{Path.AltDirectorySeparatorChar}", StringComparison.Ordinal);
-
-    private static string NormalizeGitPath(string path) =>
-        path.Replace((char)92, '/');
 
     private static OperationResult<T> Failure<T>(string reason) =>
         new(

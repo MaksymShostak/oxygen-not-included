@@ -16,8 +16,18 @@ internal sealed class SdkProjectInputs
     private readonly List<MSBuildGlob> includes = [];
     private MSBuildGlob? defaultCompile;
     private MSBuildGlob? defaultResources;
+    private bool localBinExcluded;
+    private bool localObjExcluded;
 
     internal IReadOnlyList<MSBuildGlob> DeclaredIncludes => includes;
+
+    internal bool IsExcludedLocalOutput(string relativePath)
+    {
+        int end = relativePath.IndexOfAny([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar]);
+        string first = end < 0 ? relativePath : relativePath[..end];
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        return (localBinExcluded && first.Equals("bin", comparison)) || (localObjExcluded && first.Equals("obj", comparison));
+    }
 
     internal bool Includes(string path, bool useDefaults)
     {
@@ -32,12 +42,16 @@ internal sealed class SdkProjectInputs
         return selected != 0;
     }
 
-    internal static SdkProjectInputs Read(string projectFile, string language)
+    internal static SdkProjectInputs Read(string projectFile, string language, bool isolatedOutputs)
     {
         using var reader = XmlReader.Create(projectFile, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null });
         var project = XDocument.Load(reader).Root ?? throw new InvalidDataException($"Empty project: {projectFile}");
         string root = Path.GetDirectoryName(projectFile)!;
-        var result = new SdkProjectInputs();
+        var result = new SdkProjectInputs
+        {
+            localBinExcluded = ExcludesLocalOutput("bin", "BaseOutputPath"),
+            localObjExcluded = ExcludesLocalOutput("obj", "BaseIntermediateOutputPath")
+        };
         bool defaults = Property("EnableDefaultItems", true);
         if (defaults && Property("EnableDefaultCompileItems", language != ".fs"))
             result.defaultCompile = Glob("**/*" + language);
@@ -75,6 +89,36 @@ internal sealed class SdkProjectInputs
         {
             var glob = MSBuildGlob.Parse(root, pattern);
             return glob.IsLegal ? glob : throw new InvalidDataException($"Invalid item pattern in '{projectFile}': {pattern}");
+        }
+
+        bool ExcludesLocalOutput(string name, string outputProperty)
+        {
+            // The isolated build relocates the SDK's output exclusions. A project-local folder
+            // is then excluded only if the project independently retains that exclusion.
+            var groups = project.Elements().Where(element => element.Name.LocalName == "PropertyGroup").ToArray();
+            if (!isolatedOutputs && !groups.SelectMany(group => group.Elements()).Any(p => p.Name.LocalName == outputProperty))
+                return true;
+            bool excluded = false;
+            foreach (var group in groups)
+            {
+                foreach (var property in group.Elements().Where(p => p.Name.LocalName == "DefaultItemExcludes"))
+                {
+                    string[] values = property.Value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    if (!values.Contains("$(DefaultItemExcludes)", StringComparer.OrdinalIgnoreCase)) excluded = false;
+                    if (group.Attribute("Condition") is not null || property.Attribute("Condition") is not null) continue;
+                    foreach (var value in values)
+                    {
+                        string pattern = value.Replace('\\', '/');
+                        const string projectDirectory = "$(MSBuildProjectDirectory)/";
+                        const string fileDirectory = "$(MSBuildThisFileDirectory)";
+                        if (pattern.StartsWith(projectDirectory, StringComparison.OrdinalIgnoreCase)) pattern = pattern[projectDirectory.Length..];
+                        else if (pattern.StartsWith(fileDirectory, StringComparison.OrdinalIgnoreCase)) pattern = pattern[fileDirectory.Length..];
+                        if (pattern.StartsWith("./", StringComparison.Ordinal)) pattern = pattern[2..];
+                        if (pattern == name + "/**" || pattern == name + "/**/*") excluded = true;
+                    }
+                }
+            }
+            return excluded;
         }
 
         bool Property(string name, bool fallback)

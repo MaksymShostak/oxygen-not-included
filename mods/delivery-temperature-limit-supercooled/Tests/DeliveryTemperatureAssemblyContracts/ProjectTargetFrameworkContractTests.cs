@@ -6,6 +6,34 @@ namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
 public sealed class ProjectTargetFrameworkContractTests
 {
     [Test]
+    public async Task RedirectedProductionBuild_ExcludesLocalBinAndObjButRetainsOrdinarySourcesAndResources()
+    {
+        using var temp = new PipelineTestTemporaryDirectory();
+        string repo = await RequiredEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT");
+        string projectDirectory = Directory.CreateDirectory(Path.Combine(temp.Path, "project")).FullName;
+        string project = Path.Combine(projectDirectory, "DeliveryTemperatureLimit.csproj");
+        File.Copy(ProductionProjectPath(repo), project);
+        foreach (string folder in new[] { "bin", "obj", "kept" })
+        {
+            string path = Directory.CreateDirectory(Path.Combine(projectDirectory, folder)).FullName;
+            File.WriteAllText(Path.Combine(path, "Probe.cs"), "// item evaluation only");
+            File.WriteAllText(Path.Combine(path, "Probe.resx"), "<root />");
+        }
+        var result = await DotnetCommandRunner.RunAsync(repo, ["msbuild", project, "-nologo", "-getItem:Compile,EmbeddedResource",
+            "-p:BaseOutputPath=" + Path.Combine(temp.Path, "isolated-bin") + "/",
+            "-p:BaseIntermediateOutputPath=" + Path.Combine(temp.Path, "isolated-obj") + "/"]);
+        await Assert.That(result.ExitCode).IsEqualTo(0).Because(result.FormatEvidence());
+        using var document = JsonDocument.Parse(result.StandardOutput);
+        var items = document.RootElement.GetProperty("Items");
+        foreach (var (kind, extension) in new[] { ("Compile", ".cs"), ("EmbeddedResource", ".resx") })
+        {
+            var probes = items.GetProperty(kind).EnumerateArray().Select(item =>
+                item.GetProperty("Identity").GetString()!.Replace('\\', '/')).Where(path => path.EndsWith("Probe" + extension)).ToArray();
+            await Assert.That(probes).IsEquivalentTo(["kept/Probe" + extension]);
+        }
+    }
+
+    [Test]
     public async Task ProductionProject_WhenEvaluated_UsesCurrentOniRuntimeCompilerContract()
     {
         var repositoryRoot = await RequiredEnvironmentVariable(

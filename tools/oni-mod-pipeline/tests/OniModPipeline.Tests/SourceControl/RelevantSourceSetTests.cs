@@ -359,6 +359,28 @@ public sealed class RelevantSourceSetTests
         await Assert.That(result.Value!.DirtyPaths.ToArray()).IsEquivalentTo(["mods/example/Source/Code.cs"]);
     }
 
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task Inspect_RedirectedBuildsOnlyPruneLocalOutputsExcludedByTheProject(bool explicitlyExcluded)
+    {
+        using var directory = new TemporaryDirectory();
+        var profile = CreateProfileFixture(directory);
+        string source = Path.Combine(profile.ModRoot, "Source");
+        File.Delete(Path.Combine(source, "obj", "ignored.g.cs"));
+        File.WriteAllText(directory.GetPath(".gitignore"), "bin/\nobj/\n");
+        var declaration = explicitlyExcluded ?
+            """<PropertyGroup><DefaultItemExcludes>$(DefaultItemExcludes);$(MSBuildProjectDirectory)/bin/**;$(MSBuildProjectDirectory)/obj/**</DefaultItemExcludes></PropertyGroup>""" : "";
+        File.WriteAllText(Path.Combine(source, "Example.csproj"), $"<Project Sdk=\"Microsoft.NET.Sdk\">{declaration}</Project>");
+        TestGitRepository.CommitAll(directory.Path);
+        WriteFile(Path.Combine(source, "bin", "Unexpected.cs"));
+        WriteFile(Path.Combine(source, "obj", "Unexpected.resx"));
+        var result = await new GitRepositoryInspector().InspectAsync(profile, null, CancellationToken.None);
+        await Assert.That(result.IsSuccess).IsTrue();
+        string[] expected = explicitlyExcluded ? [] : ["mods/example/Source/bin/Unexpected.cs", "mods/example/Source/obj/Unexpected.resx"];
+        await Assert.That(result.Value!.DirtyPaths.ToArray()).IsEquivalentTo(expected);
+    }
+
     private static ModProfile CreateProfileFixture(TemporaryDirectory temporaryDirectory)
     {
         var modRoot = temporaryDirectory.GetPath("mods", "example");
@@ -370,6 +392,8 @@ public sealed class RelevantSourceSetTests
         WriteFile(Path.Combine(modRoot, "change-notes.bbcode"));
         WriteFile(Path.Combine(modRoot, "preview.png"));
         WriteFile(Path.Combine(modRoot, "Source", "Example.csproj"));
+        File.WriteAllText(Path.Combine(modRoot, "Source", "Example.csproj"),
+            """<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><DefaultItemExcludes>$(DefaultItemExcludes);bin/**;obj/**</DefaultItemExcludes></PropertyGroup></Project>""");
         WriteFile(Path.Combine(modRoot, "Source", "Code.cs"));
         WriteFile(Path.Combine(modRoot, "Source", "bin", "ignored.dll"));
         WriteFile(Path.Combine(modRoot, "Source", "obj", "ignored.g.cs"));
