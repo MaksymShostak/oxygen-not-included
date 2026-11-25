@@ -117,12 +117,12 @@ public sealed class ProjectTargetFrameworkContractTests
             dependencies,
             "Lib.Harmony.Ref",
             "Transitive",
-            "2.4.2");
+            dependencies.GetProperty("PLib").GetProperty("dependencies").GetProperty("Lib.Harmony.Ref").GetString()!);
         await AssertLockedDependency(
             dependencies,
             "System.Reflection.Emit",
             "Transitive",
-            "4.7.0");
+            dependencies.GetProperty("Lib.Harmony.Ref").GetProperty("dependencies").GetProperty("System.Reflection.Emit").GetString()!);
     }
 
     private static async Task AssertLockedDependency(

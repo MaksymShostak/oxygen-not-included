@@ -1,5 +1,7 @@
 using MaksymShostak.OniModPipeline.Diagnostics;
 using System.Globalization;
+using System.Text;
+using System.Text.Json;
 using YamlDotNet.Core;
 using YamlDotNet.RepresentationModel;
 
@@ -45,6 +47,59 @@ internal sealed class OniMetadataReader
         }
     }
 
+    internal OperationResult<string> SynchronizeMinimumBuild(ModProfile profile, string catalogPath, bool write)
+    {
+        var metadata = Read(profile);
+        if (!metadata.IsSuccess) return new(null, metadata.Diagnostics, metadata.ExitCode);
+        string path = profile.ModInfoYamlPath;
+        try
+        {
+            using var catalog = JsonDocument.Parse(File.ReadAllBytes(catalogPath), new JsonDocumentOptions { AllowDuplicateProperties = false });
+            string? version = catalog.RootElement.GetProperty("package").GetProperty("version").GetString();
+            if (!System.Version.TryParse(version, out var selected) || selected.Major < 1 ||
+                version != selected.Major.ToString(CultureInfo.InvariantCulture) + ".0.0")
+                throw InvalidMetadata(catalogPath, "the single-build reference version must be <positive changelist>.0.0");
+
+            path = ResolveMetadataPath(profile.ModRoot, profile.ModInfoYamlPath);
+            byte[] original = File.ReadAllBytes(path);
+            bool bom = original.AsSpan().StartsWith(Encoding.UTF8.Preamble);
+            var utf8 = new UTF8Encoding(bom, true);
+            string text = utf8.GetString(original.AsSpan(bom ? Encoding.UTF8.Preamble.Length : 0));
+            var mapping = ReadMapping(path, text);
+            if (mapping.Children[new YamlScalarNode("minimumSupportedBuild")] is not YamlScalarNode floor ||
+                !int.TryParse(floor.Value, NumberStyles.None, CultureInfo.InvariantCulture, out _))
+                throw InvalidMetadata(path, "minimumSupportedBuild must have a literal integer value");
+            int start = checked((int)floor.Start.Index);
+            int end = checked((int)floor.End.Index);
+            string token = text[start..end];
+            if (token == "'" + floor.Value + "'" || token == "\"" + floor.Value + "\"") { start++; end--; }
+            else if (token != floor.Value) throw InvalidMetadata(path, "cannot locate an unambiguous build-floor scalar");
+            string expected = selected.Major.ToString(CultureInfo.InvariantCulture);
+            if (text[start..end] == expected) return new(path, [], PipelineExitCode.Success);
+            if (!write)
+                return new(null, [DiagnosticCatalog.InvalidOniMetadata(path,
+                    $"minimumSupportedBuild differs from the reference catalog ({expected}). Run sync-build-floor --write.")],
+                    PipelineExitCode.ReleaseNotReady);
+
+            string temp = Path.Combine(Path.GetDirectoryName(path)!, "." + Guid.NewGuid().ToString("N") + ".tmp");
+            try
+            {
+                File.WriteAllText(temp, text[..start] + expected + text[end..], utf8);
+                if (!File.ReadAllBytes(path).AsSpan().SequenceEqual(original))
+                    throw InvalidMetadata(path, "metadata changed while projecting the build floor");
+                File.Replace(temp, path, null);
+            }
+            finally { File.Delete(temp); }
+            return new(path, [], PipelineExitCode.Success);
+        }
+        catch (MetadataReadException ex) { return new(null, [ex.Diagnostic], PipelineExitCode.InvalidInput); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or KeyNotFoundException
+            or InvalidOperationException or ArgumentException or OverflowException)
+        {
+            return new(null, [DiagnosticCatalog.InvalidOniMetadata(path, ex.Message)], PipelineExitCode.InvalidInput);
+        }
+    }
+
     private static string ResolveMetadataPath(string modRoot, string declaredPath)
     {
         var result = ContainedPathResolver.ResolveExistingFile(modRoot, declaredPath);
@@ -56,12 +111,12 @@ internal sealed class OniMetadataReader
         return result.Value!;
     }
 
-    private static YamlMappingNode ReadMapping(string path)
+    private static YamlMappingNode ReadMapping(string path, string? text = null)
     {
         var stream = new YamlStream();
         try
         {
-            using var reader = File.OpenText(path);
+            using TextReader reader = text is null ? File.OpenText(path) : new StringReader(text);
             stream.Load(reader);
         }
         catch (Exception exception) when (

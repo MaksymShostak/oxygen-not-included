@@ -34,6 +34,7 @@ internal static class CliApplication
         rootCommand.Subcommands.Add(CreateValidateCommand(services));
         rootCommand.Subcommands.Add(CreateInspectCatalogsCommand(services));
         rootCommand.Subcommands.Add(CreateSyncReadmeCommand(services));
+        rootCommand.Subcommands.Add(CreateSyncBuildFloorCommand(services));
         rootCommand.Subcommands.Add(CreateBuildCommand(services));
         rootCommand.Subcommands.Add(CreateTestCommand(services));
         rootCommand.Subcommands.Add(CreatePrepareReleaseCommand(services));
@@ -189,6 +190,37 @@ internal static class CliApplication
                 }
             }
             return DiagnosticRenderer.Render(result, options.GetOutputFormat(parseResult), parseResult.InvocationConfiguration.Output, parseResult.InvocationConfiguration.Error);
+        });
+        return command;
+    }
+
+    private static Command CreateSyncBuildFloorCommand(PipelineServices services)
+    {
+        var options = new CommandOptions();
+        var write = new Option<bool>("--write") { Description = "Update only the owned Klei metadata scalar." };
+        var command = new Command("sync-build-floor", "Check the minimum ONI build against the selected private reference catalog.");
+        options.AddTo(command, includeEnvironment: false);
+        command.Options.Add(write);
+        command.SetAction(async (parse, token) =>
+        {
+            var located = services.ProfileLocator.Locate(options.GetModPath(parse));
+            OperationResult<string> result;
+            if (!located.IsSuccess) result = located;
+            else
+            {
+                var loaded = services.ProfileLoader.Load(located.Value!);
+                if (!loaded.IsSuccess) result = ConvertFailure<ModProfile, string>(loaded);
+                else
+                {
+                    var profile = loaded.Value!;
+                    var provenance = await services.GitRepositoryInspector.InspectAsync(profile.ModRoot, [profile.ManifestPath], token);
+                    result = provenance.IsSuccess ? services.MetadataReader.SynchronizeMinimumBuild(profile,
+                        Path.Combine(provenance.Value!.WorktreeRoot, "tools", "ci", "oni-references.json"), parse.GetValue(write))
+                        : ConvertFailure<GitProvenance, string>(provenance);
+                }
+            }
+            return DiagnosticRenderer.Render(result, options.GetOutputFormat(parse), parse.InvocationConfiguration.Output,
+                parse.InvocationConfiguration.Error);
         });
         return command;
     }

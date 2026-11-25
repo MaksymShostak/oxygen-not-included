@@ -60,19 +60,33 @@ def read_catalog(path: Path = CATALOG) -> dict:
     return catalog
 
 
-def snapshot(managed: Path, version: str, destination: Path, catalog_path: Path) -> Path:
-    if not re.fullmatch(r"\d+\.\d+\.\d+", version):
-        raise ReferenceError("The private reference package needs an exact NuGet version")
+def installed_contents(managed: Path) -> dict[str, bytes]:
     managed = managed.resolve(strict=True)
     paths = sorted(managed.glob("*.dll"), key=lambda p: p.name)
     if not declared_references() <= {p.name for p in paths}:
         raise ReferenceError("The game installation lacks declared ONI/Unity reference DLLs")
     if any(p.is_symlink() or not p.is_file() for p in paths):
         raise ReferenceError("Game references must be regular DLL files")
-    contents = {p.name: p.read_bytes() for p in paths}
-    manifest = {"schemaVersion": 1, "packageId": PACKAGE_ID, "version": version,
-                "files": {name: {"byteLength": len(data), "sha256": digest(data)}
-                          for name, data in contents.items()}}
+    return {p.name: p.read_bytes() for p in paths}
+
+
+def reference_manifest(contents: dict[str, bytes], version: str) -> dict:
+    return {"schemaVersion": 1, "packageId": PACKAGE_ID, "version": version,
+            "files": {name: {"byteLength": len(data), "sha256": digest(data)}
+                      for name, data in contents.items()}}
+
+
+def verify_installed(managed: Path, catalog: dict) -> None:
+    manifest = reference_manifest(installed_contents(managed), catalog["package"]["version"])
+    if digest(json_bytes(manifest)) != catalog["manifestSha256"]:
+        raise ReferenceError("The installed game DLLs differ from the selected reference manifest")
+
+
+def snapshot(managed: Path, version: str, destination: Path, catalog_path: Path) -> Path:
+    if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+        raise ReferenceError("The private reference package needs an exact NuGet version")
+    contents = installed_contents(managed)
+    manifest = reference_manifest(contents, version)
     metadata = ET.Element("package")
     fields = ET.SubElement(metadata, "metadata")
     for name, value in {"id": PACKAGE_ID, "version": version, "authors": "MaksymShostak",
@@ -91,7 +105,7 @@ def snapshot(managed: Path, version: str, destination: Path, catalog_path: Path)
             item.compress_type = zipfile.ZIP_DEFLATED
             item.external_attr = 0o100644 << 16
             package.writestr(item, data)
-    if any(p.read_bytes() != contents[p.name] for p in paths):
+    if installed_contents(managed) != contents:
         raise ReferenceError("The game installation changed while its references were copied")
     data = archive.read_bytes()
     catalog = {"schemaVersion": 1,
@@ -213,9 +227,15 @@ def main() -> None:
     get.add_argument("--output-directory", type=Path, required=True)
     get.add_argument("--archive", type=Path)
     get.add_argument("--catalog", type=Path, default=CATALOG)
+    verify = commands.add_parser("verify-installed")
+    verify.add_argument("--managed-directory", type=Path, required=True)
+    verify.add_argument("--catalog", type=Path, default=CATALOG)
     args = parser.parse_args()
     if args.operation == "pack":
         print(snapshot(args.managed_directory, args.version, args.output_directory, args.catalog))
+    elif args.operation == "verify-installed":
+        verify_installed(args.managed_directory, read_catalog(args.catalog))
+        print("Installed game DLLs match the selected reference manifest")
     else:
         managed = acquire(args.output_directory, read_catalog(args.catalog), args.archive)
         print(f"Verified ONI reference directory: {managed}")

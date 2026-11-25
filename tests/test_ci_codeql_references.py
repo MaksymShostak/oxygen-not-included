@@ -117,6 +117,21 @@ class GameReferenceIntegrityTests(unittest.TestCase):
         with self.assertRaisesRegex(references.ReferenceError, "changed inventory"):
             references.validate_directory(managed, manifest)
 
+    def test_installed_identity_is_measured_independently_of_the_archive(self):
+        references.verify_installed(self.managed, self.catalog)
+        (self.managed / "Assembly-CSharp.dll").write_bytes(b"different installed game")
+        with self.assertRaisesRegex(references.ReferenceError, "installed.*manifest"):
+            references.verify_installed(self.managed, self.catalog)
+
+    def test_duplicate_archive_member_is_rejected_even_with_a_matching_archive_pin(self):
+        with self.assertWarns(UserWarning):
+            with zipfile.ZipFile(self.archive, "a") as package:
+                package.writestr("references/Assembly-CSharp.dll", self.files["Assembly-CSharp.dll"])
+        self.catalog["package"].update(byteLength=self.archive.stat().st_size,
+                                      sha256=references.digest(self.archive.read_bytes()))
+        with self.assertRaisesRegex(references.ReferenceError, "duplicate"):
+            references.verified_contents(self.archive, self.catalog)
+
     def test_native_download_uses_exact_data_only_package_and_transient_credentials(self):
         work = self.root / "download"
         work.mkdir()

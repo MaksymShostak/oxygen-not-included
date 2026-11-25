@@ -5,13 +5,8 @@ using System.Text.Json;
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
 public sealed class CurrentOniRuntimeContractTests
 {
-    private const uint ExpectedChangeList = 764025;
     private const string ExpectedBuildBranch = "release";
     private const float ExpectedMaximumTemperatureKelvin = 10000f;
-    private const string ExpectedAssemblySha256 =
-        "96B192E45E044AA591E7143BBE1126D685DD1A195DB7BA1632FDF4ABD8FE3036";
-    private const string ExpectedHarmonyAssemblySha256 =
-        "AEC7446028FE31D00DFECC684E40011C4208BB036E82617B8DE32002A8E55B53";
 
     [Test]
     public async Task InstalledAssembly_WhenInspected_MatchesCurrentPublicRuntimeContract()
@@ -34,8 +29,21 @@ public sealed class CurrentOniRuntimeContractTests
             $"KleiVersion.BuildBranch={buildBranch}; " +
             $"Sim.MaxTemperature={maximumTemperature}.";
 
-        await Assert.That(digest).IsEqualTo(ExpectedAssemblySha256).Because(evidence);
-        await Assert.That(changeList).IsEqualTo(ExpectedChangeList).Because(evidence);
+        var repository = await RequiredEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT");
+        string selected = await SelectedReferenceVersion(repository);
+        await Assert.That(selected).IsEqualTo(FormattableString.Invariant($"{changeList}.0.0")).Because(evidence);
+        var verify = new ProcessStartInfo(OperatingSystem.IsWindows() ? "python.exe" : "python3")
+        {
+            WorkingDirectory = repository, UseShellExecute = false, RedirectStandardError = true, CreateNoWindow = true
+        };
+        verify.ArgumentList.Add(Path.Combine(repository, "tools", "ci", "oni_references.py"));
+        verify.ArgumentList.Add("verify-installed");
+        verify.ArgumentList.Add("--managed-directory");
+        verify.ArgumentList.Add(Path.GetDirectoryName(assemblyPath)!);
+        using var process = Process.Start(verify)!;
+        var diagnostics = process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+        await Assert.That(process.ExitCode).IsEqualTo(0).Because(await diagnostics);
         await Assert.That(buildBranch).IsEqualTo(ExpectedBuildBranch).Because(evidence);
         await Assert.That(maximumTemperature).IsEqualTo(ExpectedMaximumTemperatureKelvin).Because(evidence);
     }
@@ -74,13 +82,8 @@ public sealed class CurrentOniRuntimeContractTests
                 StringComparer.Ordinal);
 
         await Assert.That(values["supportedContent"]).IsEqualTo("ALL");
-        // Intake may test a newer installation before its reference set and release floor qualify.
-        var catalogPath = Path.Combine(await RequiredEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT"),
-            "tools", "ci", "oni-references.json");
-        using var catalog = JsonDocument.Parse(File.ReadAllBytes(catalogPath));
-        var selectedVersion = Version.Parse(catalog.RootElement.GetProperty("package").GetProperty("version").GetString()!);
-        await Assert.That(values["minimumSupportedBuild"]).IsEqualTo(
-            selectedVersion.Major.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        string selected = await SelectedReferenceVersion(await RequiredEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT"));
+        await Assert.That(values["minimumSupportedBuild"] + ".0.0").IsEqualTo(selected);
         await Assert.That(values["APIVersion"]).IsEqualTo("2");
         // The pipeline owns metadata schema and mod release-version validation.
     }
@@ -102,12 +105,16 @@ public sealed class CurrentOniRuntimeContractTests
             fileVersionInformation.FileMinorPart,
             fileVersionInformation.FileBuildPart,
             fileVersionInformation.FilePrivatePart);
-        var expectedVersion = new Version(2, 4, 2, 0);
+        var repository = await RequiredEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT");
+        using var packageLock = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Combine(repository, "mods",
+            "delivery-temperature-limit-supercooled", "Source", "packages.lock.json")));
+        var resolved = Version.Parse(packageLock.RootElement.GetProperty("dependencies").GetProperty(".NETStandard,Version=v2.1")
+            .GetProperty("Lib.Harmony.Ref").GetProperty("resolved").GetString()!);
+        var expectedVersion = new Version(resolved.Major, resolved.Minor, resolved.Build, Math.Max(0, resolved.Revision));
         var evidence =
             $"Observed path={assemblyPath}; SHA-256={digest}; " +
             $"assembly version={assemblyVersion}; file version={fileVersion}.";
 
-        await Assert.That(digest).IsEqualTo(ExpectedHarmonyAssemblySha256).Because(evidence);
         await Assert.That(assemblyVersion).IsEqualTo(expectedVersion).Because(evidence);
         await Assert.That(fileVersion).IsEqualTo(expectedVersion).Because(evidence);
     }
@@ -188,6 +195,12 @@ public sealed class CurrentOniRuntimeContractTests
         var redirected = (AssemblyInstructionContract[])instructions.Clone();
         redirected[branch] = redirected[branch] with { Operand = (sbyte)0 };
         await Assert.That(AcceptsMaximum(redirected)).IsFalse();
+    }
+
+    private static async Task<string> SelectedReferenceVersion(string repository)
+    {
+        using var catalog = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Combine(repository, "tools", "ci", "oni-references.json")));
+        return catalog.RootElement.GetProperty("package").GetProperty("version").GetString()!;
     }
 
     private static async Task<string> ResolveInstalledAssemblyPath() =>

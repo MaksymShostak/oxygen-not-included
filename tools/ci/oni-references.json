@@ -1,11 +1,11 @@
 {
-  "manifestSha256": "475ee06821b1426eb5c3ea9c6da81525d99663acc58d4d272af2535ca4c658af",
+  "manifestSha256": "17a2f6c3be9cb1fd3a6dcdf127c0010422492aca6cf01ac632435120dce70661",
   "package": {
-    "byteLength": 18099331,
+    "byteLength": 18429800,
     "id": "MaksymShostak.ONI.GameReferences",
     "owner": "MaksymShostak",
-    "sha256": "a11e58e1ae9174363bede9cc27f41d181106e91fd9ef198938af7ffd2a018a47",
-    "version": "744825.0.0"
+    "sha256": "3049255b8b2e4463b3800a8bb676c6a31f8c98972b7c724607ad4998f4534d38",
+    "version": "764025.0.0"
   },
   "schemaVersion": 1
 }
