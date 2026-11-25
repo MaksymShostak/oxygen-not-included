@@ -54,6 +54,7 @@ internal interface IReleaseAutomatedTestRunner
         string worktreeRoot,
         string resultsRoot,
         BoundPipelineBuild? boundBuild,
+        string? pythonExecutable,
         CancellationToken cancellationToken);
 }
 
@@ -438,6 +439,7 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
                 new BoundPipelineBuild(
                     Path.Combine(build.RunRoot, "build-result.json"),
                     request.Environment.ArtifactsDirectory),
+                request.PythonExecutablePath,
                 cancellationToken).ConfigureAwait(false);
             if (!testResult.IsSuccess)
             {
@@ -1420,11 +1422,12 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
             string worktreeRoot,
             string resultsRoot,
             BoundPipelineBuild? boundBuild,
+            string? pythonExecutable,
             CancellationToken cancellationToken) =>
             new AutomatedTestRunner(
                 processRunner,
                 environment.OniManagedAssemblyDirectory,
-                worktreeRoot)
+                worktreeRoot, pythonExecutable)
                 .RunAsync(profile, resultsRoot, boundBuild, cancellationToken);
     }
 

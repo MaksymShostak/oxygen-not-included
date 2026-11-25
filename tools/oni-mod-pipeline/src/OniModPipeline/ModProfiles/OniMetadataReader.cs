@@ -1,7 +1,6 @@
 using MaksymShostak.OniModPipeline.Diagnostics;
 using System.Globalization;
 using System.Text;
-using System.Text.Json;
 using YamlDotNet.Core;
 using YamlDotNet.RepresentationModel;
 
@@ -47,35 +46,33 @@ internal sealed class OniMetadataReader
         }
     }
 
-    internal OperationResult<string> SynchronizeMinimumBuild(ModProfile profile, string catalogPath, bool write)
+    internal OperationResult<OniMetadata> SynchronizeMinimumBuild(ModProfile profile, int selectedBuild, bool write)
     {
         var metadata = Read(profile);
-        if (!metadata.IsSuccess) return new(null, metadata.Diagnostics, metadata.ExitCode);
+        if (!metadata.IsSuccess) return metadata;
+        var diagnostics = new List<Diagnostic>();
+        ModProfileValidator.ValidateMetadata(metadata.Value!, diagnostics);
+        if (diagnostics.Count > 0) return new(null, diagnostics, PipelineExitCode.InvalidInput);
         string path = profile.ModInfoYamlPath;
         try
         {
-            using var catalog = JsonDocument.Parse(File.ReadAllBytes(catalogPath), new JsonDocumentOptions { AllowDuplicateProperties = false });
-            string? version = catalog.RootElement.GetProperty("package").GetProperty("version").GetString();
-            if (!System.Version.TryParse(version, out var selected) || selected.Major < 1 ||
-                version != selected.Major.ToString(CultureInfo.InvariantCulture) + ".0.0")
-                throw InvalidMetadata(catalogPath, "the single-build reference version must be <positive changelist>.0.0");
-
+            if (selectedBuild <= 0) throw InvalidMetadata(path, "the selected build must be positive");
             path = ResolveMetadataPath(profile.ModRoot, profile.ModInfoYamlPath);
             byte[] original = File.ReadAllBytes(path);
             bool bom = original.AsSpan().StartsWith(Encoding.UTF8.Preamble);
             var utf8 = new UTF8Encoding(bom, true);
             string text = utf8.GetString(original.AsSpan(bom ? Encoding.UTF8.Preamble.Length : 0));
             var mapping = ReadMapping(path, text);
-            if (mapping.Children[new YamlScalarNode("minimumSupportedBuild")] is not YamlScalarNode floor ||
-                !int.TryParse(floor.Value, NumberStyles.None, CultureInfo.InvariantCulture, out _))
+            var floor = ReadRequiredScalarNode(mapping, "minimumSupportedBuild", path);
+            if (!int.TryParse(floor.Value, NumberStyles.None, CultureInfo.InvariantCulture, out _))
                 throw InvalidMetadata(path, "minimumSupportedBuild must have a literal integer value");
             int start = checked((int)floor.Start.Index);
             int end = checked((int)floor.End.Index);
             string token = text[start..end];
             if (token == "'" + floor.Value + "'" || token == "\"" + floor.Value + "\"") { start++; end--; }
             else if (token != floor.Value) throw InvalidMetadata(path, "cannot locate an unambiguous build-floor scalar");
-            string expected = selected.Major.ToString(CultureInfo.InvariantCulture);
-            if (text[start..end] == expected) return new(path, [], PipelineExitCode.Success);
+            string expected = selectedBuild.ToString(CultureInfo.InvariantCulture);
+            if (text[start..end] == expected) return metadata;
             if (!write)
                 return new(null, [DiagnosticCatalog.InvalidOniMetadata(path,
                     $"minimumSupportedBuild differs from the reference catalog ({expected}). Run sync-build-floor --write.")],
@@ -90,10 +87,10 @@ internal sealed class OniMetadataReader
                 File.Replace(temp, path, null);
             }
             finally { File.Delete(temp); }
-            return new(path, [], PipelineExitCode.Success);
+            return new(metadata.Value! with { MinimumSupportedBuild = selectedBuild }, [], PipelineExitCode.Success);
         }
         catch (MetadataReadException ex) { return new(null, [ex.Diagnostic], PipelineExitCode.InvalidInput); }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or KeyNotFoundException
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or KeyNotFoundException
             or InvalidOperationException or ArgumentException or OverflowException)
         {
             return new(null, [DiagnosticCatalog.InvalidOniMetadata(path, ex.Message)], PipelineExitCode.InvalidInput);
@@ -174,11 +171,12 @@ internal sealed class OniMetadataReader
         }
     }
 
-    private static string ReadRequiredScalar(
-        YamlMappingNode mapping,
-        string key,
-        string path)
+    private static string ReadRequiredScalar(YamlMappingNode mapping, string key, string path) =>
+        ReadRequiredScalarNode(mapping, key, path).Value!;
+
+    private static YamlScalarNode ReadRequiredScalarNode(YamlMappingNode mapping, string key, string path)
     {
+        YamlScalarNode? result = null;
         foreach (var pair in mapping.Children)
         {
             if (pair.Key is not YamlScalarNode keyNode ||
@@ -192,10 +190,11 @@ internal sealed class OniMetadataReader
                 throw InvalidMetadata(path, $"required field '{key}' must be a scalar.");
             }
 
-            return valueNode.Value;
+            if (result is not null) throw InvalidMetadata(path, $"required field '{key}' occurs more than once.");
+            result = valueNode;
         }
 
-        throw InvalidMetadata(path, $"required scalar field '{key}' is missing.");
+        return result ?? throw InvalidMetadata(path, $"required scalar field '{key}' is missing.");
     }
 
     private static int ReadRequiredInt(

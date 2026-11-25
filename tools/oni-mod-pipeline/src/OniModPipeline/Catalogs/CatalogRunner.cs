@@ -105,7 +105,7 @@ internal sealed class CatalogRunner(IExternalProcessRunner processRunner, TimeSp
         }
     }
 
-    private static string ResolvePython(string? selected)
+    internal static string ResolvePython(string? selected)
     {
         if (selected is not null)
         {

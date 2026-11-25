@@ -11,24 +11,30 @@ The package contains the original managed DLLs and a manifest with the length an
 It contains no game assets, saves, logs, credentials, or machine paths.
 No game DLL or package is committed to the public repository or uploaded as an Actions artifact.
 
-The current package was copied from the supported ONI changelist 744825 installation, using Unity 6000.3.5f2.
-The runtime assembly contracts in the mod tests remain the authority for the supported game and Harmony versions.
+The catalog selects the current private package.
+The installed runtime checks independently read the Klei changelist and compare the full DLL inventory with the pinned manifest.
 The package preserves the complete managed DLL directory so assembly dependencies can resolve without substitutes.
 
 ## Prepare and publish the private package
 
-From a supported local game installation, prepare a new immutable package:
+Start a new intake with the changelist measured from the installed game.
 
 ```powershell
-python tools/ci/oni_references.py pack --managed-directory "C:/Program Files (x86)/Steam/steamapps/common/OxygenNotIncluded/OxygenNotIncluded_Data/Managed" --version 744825.0.0 --output-directory artifacts/codeql-qualification/private-package
+$managed = "C:/Program Files (x86)/Steam/steamapps/common/OxygenNotIncluded/OxygenNotIncluded_Data/Managed"
+$changeList = Read-Host "Installed Klei changelist"
+$intake = New-Item -ItemType Directory -Path ("artifacts/private-intake-" + [guid]::NewGuid().ToString("N"))
+$catalog = Join-Path $intake.FullName "oni-references.json"
+python tools/ci/oni_references.py pack --managed-directory $managed --version "$changeList.0.0" --output-directory $intake.FullName --catalog $catalog
+python tools/ci/oni_references.py verify-installed --managed-directory $managed --catalog $catalog
 ```
 
-This copies the actual DLL bytes, creates a deterministic NuGet archive, and updates the catalog.
+This copies the DLLs and writes a deterministic archive and candidate catalog in the intake directory.
 It refuses to overwrite an existing package.
-Use a new package version when the supported assembly bytes change, and review the updated catalog with the corresponding runtime contract changes.
+Verify the archive with `acquire --archive` using that candidate catalog.
+After reviewing the measured hashes, promote the catalog to `tools/ci/oni-references.json` and run the [build-floor projection](development-dependencies.md#update-game-and-mod-dependencies).
 
-Publish `MaksymShostak.ONI.GameReferences.744825.0.0.nupkg` to `https://nuget.pkg.github.com/MaksymShostak/index.json` using a publishing credential with `write:packages`.
-The initial publication and fresh native NuGet download were verified using the existing GitHub CLI OAuth login after adding package scopes:
+After publication is authorized, publish the archive named by the selected package ID and version to `https://nuget.pkg.github.com/MaksymShostak/index.json` using a publishing credential with `write:packages`.
+The initial `744825.0.0` publication and download used the existing GitHub CLI OAuth login with package scopes.
 
 ```powershell
 gh auth refresh --hostname github.com --scopes read:packages,write:packages
@@ -75,8 +81,11 @@ No unresolved game API is replaced by a stub, excluded, or hidden through diagno
 Use the prepared archive without registry credentials:
 
 ```powershell
-python tools/ci/oni_references.py acquire --archive artifacts/codeql-qualification/private-package/MaksymShostak.ONI.GameReferences.744825.0.0.nupkg --output-directory artifacts/codeql-qualification/local-references
-python tools/ci/codeql_build.py --managed-directory artifacts/codeql-qualification/local-references/Managed --output-directory artifacts/codeql-qualification/native-build
+$pin = (Get-Content -Raw tools/ci/oni-references.json | ConvertFrom-Json).package
+$archive = Join-Path "artifacts/codeql-qualification/private-package" "$($pin.id).$($pin.version).nupkg"
+$run = Join-Path "artifacts" ("reference-check-" + [guid]::NewGuid().ToString("N"))
+python tools/ci/oni_references.py acquire --archive $archive --output-directory "$run/references"
+python tools/ci/codeql_build.py --managed-directory "$run/references/Managed" --output-directory "$run/build"
 python -m unittest discover -s tests -p "test_*.py"
 python tools/ci/action_versions.py --check
 ```

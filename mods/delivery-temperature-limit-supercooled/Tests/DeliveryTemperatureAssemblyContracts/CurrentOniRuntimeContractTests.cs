@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
+using DeliveryTemperatureLimit.Tests.OniModPipelineIntegration;
 
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
 public sealed class CurrentOniRuntimeContractTests
@@ -32,10 +33,13 @@ public sealed class CurrentOniRuntimeContractTests
         var repository = await RequiredEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT");
         string selected = await SelectedReferenceVersion(repository);
         await Assert.That(selected).IsEqualTo(FormattableString.Invariant($"{changeList}.0.0")).Because(evidence);
-        var verify = new ProcessStartInfo(OperatingSystem.IsWindows() ? "python.exe" : "python3")
+        var verify = new ProcessStartInfo(Environment.GetEnvironmentVariable("ONI_MOD_PIPELINE_PYTHON") ??
+            (OperatingSystem.IsWindows() ? "python.exe" : "python3"))
         {
             WorkingDirectory = repository, UseShellExecute = false, RedirectStandardError = true, CreateNoWindow = true
         };
+        verify.ArgumentList.Add("-I");
+        verify.ArgumentList.Add("-B");
         verify.ArgumentList.Add(Path.Combine(repository, "tools", "ci", "oni_references.py"));
         verify.ArgumentList.Add("verify-installed");
         verify.ArgumentList.Add("--managed-directory");
@@ -68,24 +72,21 @@ public sealed class CurrentOniRuntimeContractTests
     [Test]
     public async Task ModMetadata_MatchesSupportedOniRuntimeContract()
     {
-        var metadataPath = Path.Combine(
-            (await RequiredEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT")),
-            "mods",
-            "delivery-temperature-limit-supercooled",
-            "mod_info.yaml");
-        var values = File.ReadAllLines(metadataPath)
-            .Where(line => !string.IsNullOrWhiteSpace(line))
-            .Select(line => line.Split(':', count: 2))
-            .ToDictionary(
-                parts => parts[0].Trim(),
-                parts => parts[1].Trim(),
-                StringComparer.Ordinal);
-
-        await Assert.That(values["supportedContent"]).IsEqualTo("ALL");
-        string selected = await SelectedReferenceVersion(await RequiredEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT"));
-        await Assert.That(values["minimumSupportedBuild"] + ".0.0").IsEqualTo(selected);
-        await Assert.That(values["APIVersion"]).IsEqualTo("2");
-        // The pipeline owns metadata schema and mod release-version validation.
+        var repository = await RequiredEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT");
+        var arguments = new List<string>();
+        if (Environment.GetEnvironmentVariable("ONI_MOD_PIPELINE_CLI_ASSEMBLY") is { Length: > 0 } cli)
+            arguments.Add(cli);
+        else
+            arguments.AddRange(["run", "--project", "tools/oni-mod-pipeline/src/OniModPipeline/OniModPipeline.csproj", "--no-restore", "--"]);
+        arguments.AddRange(["sync-build-floor", "--mod", "mods/delivery-temperature-limit-supercooled", "--format", "json"]);
+        if (Environment.GetEnvironmentVariable("ONI_MOD_PIPELINE_PYTHON") is { Length: > 0 } python)
+            arguments.AddRange(["--python", python]);
+        var result = await DotnetCommandRunner.RunAsync(repository, arguments);
+        await Assert.That(result.ExitCode).IsEqualTo(0).Because(result.FormatEvidence());
+        using var response = JsonDocument.Parse(result.StandardOutput);
+        var metadata = response.RootElement.GetProperty("value");
+        await Assert.That(metadata.GetProperty("supportedContent").GetString()).IsEqualTo("ALL");
+        await Assert.That(metadata.GetProperty("apiVersion").GetInt32()).IsEqualTo(2);
     }
 
     [Test]

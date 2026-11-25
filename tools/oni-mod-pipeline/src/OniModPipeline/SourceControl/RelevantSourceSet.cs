@@ -31,6 +31,8 @@ internal sealed record RelevantSourceSet(
             {
                 builder.AddOptionalControlFile("Directory.Packages.props", trackedWorktreeRelativePaths);
                 builder.AddOptionalControlFile("global.json", trackedWorktreeRelativePaths);
+                builder.AddOptionalControlFile("tools/ci/oni_references.py", trackedWorktreeRelativePaths);
+                builder.AddOptionalControlFile("tools/ci/oni-references.json", trackedWorktreeRelativePaths);
                 builder.AddOptionalControlFile("tests/TUnitProjectDefaults.cs", trackedWorktreeRelativePaths);
                 builder.AddOptionalControlFile("tests/TUnitProject.props", trackedWorktreeRelativePaths);
             }

@@ -117,6 +117,19 @@ class GameReferenceIntegrityTests(unittest.TestCase):
         with self.assertRaisesRegex(references.ReferenceError, "changed inventory"):
             references.validate_directory(managed, manifest)
 
+    def test_floor_uses_a_complete_catalog_and_an_exact_changelist_version(self):
+        self.catalog["package"]["version"] = "765432.0.0"
+        self.assertEqual(references.selected_changelist(self.catalog), 765432)
+        self.catalog["package"]["version"] = "765432.0.1"
+        with self.assertRaises(references.ReferenceError):
+            references.selected_changelist(self.catalog)
+        self.catalog_path.write_text('{"package":{"version":"765432.0.0"}}')
+        with self.assertRaises((KeyError, references.ReferenceError)):
+            references.read_catalog(self.catalog_path)
+        self.catalog_path.write_text('{"package":{"version":"1.0.0","version":"2.0.0"}}')
+        with self.assertRaisesRegex(references.ReferenceError, "Duplicate"):
+            references.read_catalog(self.catalog_path)
+
     def test_installed_identity_is_measured_independently_of_the_archive(self):
         references.verify_installed(self.managed, self.catalog)
         (self.managed / "Assembly-CSharp.dll").write_bytes(b"different installed game")

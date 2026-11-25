@@ -8,6 +8,8 @@ public sealed class RelevantSourceSetTests
     [Test]
     [Arguments("Directory.Packages.props")]
     [Arguments("global.json")]
+    [Arguments("tools/ci/oni_references.py")]
+    [Arguments("tools/ci/oni-references.json")]
     [Arguments("tests/TUnitProjectDefaults.cs")]
     [Arguments("tests/TUnitProject.props")]
     public async Task Create_WithDotnetProjects_IncludesCentralControlsAndRetainsTrackedDeletions(string control)

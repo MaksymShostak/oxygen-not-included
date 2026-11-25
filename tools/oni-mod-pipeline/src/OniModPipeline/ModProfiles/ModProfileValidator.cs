@@ -68,7 +68,7 @@ internal sealed class ModProfileValidator
             : new OperationResult<ModProfile>(null, diagnostics, PipelineExitCode.InvalidInput);
     }
 
-    private static void ValidateMetadata(
+    internal static void ValidateMetadata(
         OniMetadata metadata,
         ICollection<Diagnostic> diagnostics)
     {

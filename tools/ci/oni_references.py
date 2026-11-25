@@ -47,7 +47,15 @@ def declared_references(root: Path = ROOT) -> set[str]:
 
 
 def read_catalog(path: Path = CATALOG) -> dict:
-    catalog = json.loads(path.read_text(encoding="utf-8"))
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ReferenceError(f"Duplicate ONI catalog key: {key}")
+            result[key] = value
+        return result
+
+    catalog = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique)
     package = catalog["package"]
     if (catalog.get("schemaVersion") != 1
             or not re.fullmatch(r"[A-Za-z0-9-]+", package["owner"])
@@ -58,6 +66,13 @@ def read_catalog(path: Path = CATALOG) -> dict:
             or not re.fullmatch(r"[0-9a-f]{64}", catalog["manifestSha256"])):
         raise ReferenceError("Invalid ONI reference catalog")
     return catalog
+
+
+def selected_changelist(catalog: dict) -> int:
+    version = catalog["package"]["version"]
+    if not re.fullmatch(r"[1-9][0-9]*\.0\.0", version) or int(version.split(".")[0]) > 2**31 - 1:
+        raise ReferenceError("The single-build reference version must be <positive changelist>.0.0")
+    return int(version.split(".")[0])
 
 
 def installed_contents(managed: Path) -> dict[str, bytes]:
@@ -230,9 +245,13 @@ def main() -> None:
     verify = commands.add_parser("verify-installed")
     verify.add_argument("--managed-directory", type=Path, required=True)
     verify.add_argument("--catalog", type=Path, default=CATALOG)
+    selected = commands.add_parser("selected-build")
+    selected.add_argument("--catalog", type=Path, default=CATALOG)
     args = parser.parse_args()
     if args.operation == "pack":
         print(snapshot(args.managed_directory, args.version, args.output_directory, args.catalog))
+    elif args.operation == "selected-build":
+        print(selected_changelist(read_catalog(args.catalog)))
     elif args.operation == "verify-installed":
         verify_installed(args.managed_directory, read_catalog(args.catalog))
         print("Installed game DLLs match the selected reference manifest")

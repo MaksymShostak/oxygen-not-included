@@ -121,35 +121,45 @@ public sealed class OniMetadataReaderTests
         var encoding = new System.Text.UTF8Encoding(true);
         string text = ValidModInfo.Replace("596100", "'596100' # keep this comment").ReplaceLineEndings("\r\n") + "\r\n";
         File.WriteAllText(path, text, encoding);
-        var catalog = directory.GetPath("catalog.json");
-        File.WriteAllText(catalog, """{"package":{"version":"765432.0.0"}}""");
         var profile = CreateProfile(directory);
         byte[] original = File.ReadAllBytes(path);
-        await Assert.That(metadataReader.SynchronizeMinimumBuild(profile, catalog, false).IsSuccess).IsFalse();
+        await Assert.That(metadataReader.SynchronizeMinimumBuild(profile, 765432, false).IsSuccess).IsFalse();
         await Assert.That(File.ReadAllBytes(path).SequenceEqual(original)).IsTrue();
-        await Assert.That(metadataReader.SynchronizeMinimumBuild(profile, catalog, true).IsSuccess).IsTrue();
+        await Assert.That(metadataReader.SynchronizeMinimumBuild(profile, 765432, true).IsSuccess).IsTrue();
         byte[] expected = [.. encoding.GetPreamble(), .. encoding.GetBytes(text.Replace("596100", "765432"))];
         await Assert.That(File.ReadAllBytes(path).SequenceEqual(expected)).IsTrue();
         var time = File.GetLastWriteTimeUtc(path);
-        await Assert.That(metadataReader.SynchronizeMinimumBuild(profile, catalog, true).IsSuccess).IsTrue();
+        await Assert.That(metadataReader.SynchronizeMinimumBuild(profile, 765432, true).IsSuccess).IsTrue();
         await Assert.That(File.GetLastWriteTimeUtc(path)).IsEqualTo(time);
-        await Assert.That(metadataReader.SynchronizeMinimumBuild(profile, catalog, false).IsSuccess).IsTrue();
+        await Assert.That(metadataReader.SynchronizeMinimumBuild(profile, 765432, false).IsSuccess).IsTrue();
     }
 
     [Test]
-    [Arguments("minimumSupportedBuild: &value 596100", "765432.0.0")]
-    [Arguments("minimumSupportedBuild: 1\nminimumSupportedBuild: 2", "765432.0.0")]
-    [Arguments("minimumSupportedBuild: 596100", "765432.0.1")]
-    public async Task BuildFloorProjectionRefusesAmbiguousInputs(string declaration, string selected)
+    [Arguments("minimumSupportedBuild: &value 596100")]
+    [Arguments("minimumSupportedBuild: 1\nminimumSupportedBuild: 2")]
+    [Arguments("!!str minimumSupportedBuild: 1\nminimumSupportedBuild: 765432")]
+    [Arguments("minimumSupportedBuild: 596100\ninvalid")]
+    public async Task BuildFloorProjectionRefusesAmbiguousInputs(string declaration)
     {
         using var directory = new TemporaryDirectory();
         WriteValidMetadata(directory);
         var path = directory.GetPath("mod_info.yaml");
         string original = ValidModInfo.Replace("minimumSupportedBuild: 596100", declaration);
         File.WriteAllText(path, original);
-        var catalog = directory.GetPath("catalog.json");
-        File.WriteAllText(catalog, System.Text.Json.JsonSerializer.Serialize(new { package = new { version = selected } }));
-        await Assert.That(metadataReader.SynchronizeMinimumBuild(CreateProfile(directory), catalog, true).IsSuccess).IsFalse();
+        await Assert.That(metadataReader.SynchronizeMinimumBuild(CreateProfile(directory), 765432, false).IsSuccess).IsFalse();
+        await Assert.That(metadataReader.SynchronizeMinimumBuild(CreateProfile(directory), 765432, true).IsSuccess).IsFalse();
+        await Assert.That(File.ReadAllText(path)).IsEqualTo(original);
+    }
+
+    [Test]
+    public async Task BuildFloorProjectionValidatesOtherMetadataBeforeWriting()
+    {
+        using var directory = new TemporaryDirectory();
+        WriteValidMetadata(directory);
+        var path = directory.GetPath("mod_info.yaml");
+        string original = ValidModInfo.Replace("APIVersion: 2", "APIVersion: 0");
+        File.WriteAllText(path, original);
+        await Assert.That(metadataReader.SynchronizeMinimumBuild(CreateProfile(directory), 765432, true).IsSuccess).IsFalse();
         await Assert.That(File.ReadAllText(path)).IsEqualTo(original);
     }
 

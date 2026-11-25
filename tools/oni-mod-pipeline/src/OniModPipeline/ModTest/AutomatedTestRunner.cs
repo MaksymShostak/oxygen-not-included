@@ -9,11 +9,13 @@ internal sealed class AutomatedTestRunner
     private readonly IExternalProcessRunner processRunner;
     private readonly string managedAssemblyDirectory;
     private readonly string repositoryRoot;
+    private readonly string? pythonExecutable;
 
     internal AutomatedTestRunner(
         IExternalProcessRunner processRunner,
         string managedAssemblyDirectory,
-        string repositoryRoot)
+        string repositoryRoot,
+        string? pythonExecutable = null)
     {
         ArgumentNullException.ThrowIfNull(processRunner);
         ArgumentException.ThrowIfNullOrWhiteSpace(managedAssemblyDirectory);
@@ -22,6 +24,7 @@ internal sealed class AutomatedTestRunner
         this.processRunner = processRunner;
         this.managedAssemblyDirectory = Path.GetFullPath(managedAssemblyDirectory);
         this.repositoryRoot = Path.GetFullPath(repositoryRoot);
+        this.pythonExecutable = pythonExecutable;
     }
 
     internal Task<OperationResult<IReadOnlyList<AutomatedTestResult>>> RunAsync(
@@ -173,8 +176,10 @@ internal sealed class AutomatedTestRunner
         var environment = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["ONI_MANAGED_ASSEMBLY_DIRECTORY"] = managedAssemblyDirectory,
-            ["ONI_MOD_PIPELINE_REPOSITORY_ROOT"] = repositoryRoot
+            ["ONI_MOD_PIPELINE_REPOSITORY_ROOT"] = repositoryRoot,
+            ["ONI_MOD_PIPELINE_CLI_ASSEMBLY"] = typeof(AutomatedTestRunner).Assembly.Location
         };
+        if (pythonExecutable is not null) environment["ONI_MOD_PIPELINE_PYTHON"] = pythonExecutable;
         if (boundBuild is not null)
         {
             environment["ONI_MOD_PIPELINE_BUILD_RESULT_PATH"] =

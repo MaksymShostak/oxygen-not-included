@@ -750,6 +750,7 @@ internal sealed class FixtureTestRunner(PreparationFixture fixture) :
         string worktreeRoot,
         string resultsRoot,
         BoundPipelineBuild? boundBuild,
+        string? pythonExecutable,
         CancellationToken cancellationToken)
     {
         fixture.Trace.Add("tests");

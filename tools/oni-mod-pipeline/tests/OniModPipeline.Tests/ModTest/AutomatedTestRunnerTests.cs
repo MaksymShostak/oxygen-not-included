@@ -131,7 +131,8 @@ public sealed class AutomatedTestRunnerTests
                     "--report-trx-filename",
                     $"{profile.Id}.trx"
                 }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
-            await Assert.That(test.EnvironmentVariables.Count).IsEqualTo(2);
+            await Assert.That(test.EnvironmentVariables.Count).IsEqualTo(3);
+            await Assert.That(test.EnvironmentVariables["ONI_MOD_PIPELINE_CLI_ASSEMBLY"]).IsEqualTo(typeof(AutomatedTestRunner).Assembly.Location);
             await Assert.That(test.EnvironmentVariables["ONI_MANAGED_ASSEMBLY_DIRECTORY"]).IsEqualTo(fixture.ManagedDirectory);
             await Assert.That(test.EnvironmentVariables.TryGetValue(
                 "ONI_MOD_PIPELINE_REPOSITORY_ROOT",
@@ -153,7 +154,8 @@ public sealed class AutomatedTestRunnerTests
             "release-candidates",
             "work",
             "build-result.json");
-        var runner = fixture.CreateRunner();
+        string python = Path.Combine(fixture.RepositoryRoot, "isolated interpreter", "python");
+        var runner = new AutomatedTestRunner(fixture.ProcessRunner, fixture.ManagedDirectory, fixture.RepositoryRoot, python);
 
         var result = await runner.RunAsync(
             fixture.Profile,
@@ -165,7 +167,8 @@ public sealed class AutomatedTestRunnerTests
         await Assert.That(fixture.ProcessRunner.Requests.Count).IsEqualTo(2);
         await Assert.That(fixture.ProcessRunner.Requests[0].EnvironmentVariables.Count).IsEqualTo(0).Because("Restore must not receive build-inspection variables.");
         var environment = fixture.ProcessRunner.Requests[1].EnvironmentVariables;
-        await Assert.That(environment.Count).IsEqualTo(5);
+        await Assert.That(environment.Count).IsEqualTo(7);
+        await Assert.That(environment["ONI_MOD_PIPELINE_PYTHON"]).IsEqualTo(python);
         await Assert.That(environment["ONI_MANAGED_ASSEMBLY_DIRECTORY"]).IsEqualTo(fixture.ManagedDirectory);
         await Assert.That(environment["ONI_MOD_PIPELINE_REPOSITORY_ROOT"]).IsEqualTo(fixture.RepositoryRoot);
         await Assert.That(environment["ONI_MOD_PIPELINE_BUILD_RESULT_PATH"]).IsEqualTo(buildResultPath);

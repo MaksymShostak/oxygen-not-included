@@ -199,30 +199,45 @@ internal static class CliApplication
         var options = new CommandOptions();
         var write = new Option<bool>("--write") { Description = "Update only the owned Klei metadata scalar." };
         var command = new Command("sync-build-floor", "Check the minimum ONI build against the selected private reference catalog.");
-        options.AddTo(command, includeEnvironment: false);
+        options.AddTo(command, includeEnvironment: false, includeCatalogs: true);
         command.Options.Add(write);
         command.SetAction(async (parse, token) =>
         {
-            var located = services.ProfileLocator.Locate(options.GetModPath(parse));
-            OperationResult<string> result;
-            if (!located.IsSuccess) result = located;
-            else
-            {
-                var loaded = services.ProfileLoader.Load(located.Value!);
-                if (!loaded.IsSuccess) result = ConvertFailure<ModProfile, string>(loaded);
-                else
-                {
-                    var profile = loaded.Value!;
-                    var provenance = await services.GitRepositoryInspector.InspectAsync(profile.ModRoot, [profile.ManifestPath], token);
-                    result = provenance.IsSuccess ? services.MetadataReader.SynchronizeMinimumBuild(profile,
-                        Path.Combine(provenance.Value!.WorktreeRoot, "tools", "ci", "oni-references.json"), parse.GetValue(write))
-                        : ConvertFailure<GitProvenance, string>(provenance);
-                }
-            }
+            var result = await SyncBuildFloorAsync(services, options.GetModPath(parse), options.GetPythonPath(parse),
+                parse.GetValue(write), token);
             return DiagnosticRenderer.Render(result, options.GetOutputFormat(parse), parse.InvocationConfiguration.Output,
                 parse.InvocationConfiguration.Error);
         });
         return command;
+    }
+
+    private static async Task<OperationResult<OniMetadata>> SyncBuildFloorAsync(PipelineServices services, string modPath,
+        string? pythonPath, bool write, CancellationToken token)
+    {
+        var located = services.ProfileLocator.Locate(modPath);
+        if (!located.IsSuccess) return ConvertFailure<string, OniMetadata>(located);
+        var loaded = services.ProfileLoader.Load(located.Value!);
+        if (!loaded.IsSuccess) return ConvertFailure<ModProfile, OniMetadata>(loaded);
+        var profile = loaded.Value!;
+        var provenance = await services.GitRepositoryInspector.InspectAsync(profile.ModRoot, [profile.ManifestPath], token);
+        if (!provenance.IsSuccess) return ConvertFailure<GitProvenance, OniMetadata>(provenance);
+        string root = provenance.Value!.WorktreeRoot;
+        var verifier = ContainedPathResolver.ResolveExistingFile(root, "tools/ci/oni_references.py");
+        if (!verifier.IsSuccess) return ConvertFailure<string, OniMetadata>(verifier);
+        var catalog = ContainedPathResolver.ResolveExistingFile(root, "tools/ci/oni-references.json");
+        if (!catalog.IsSuccess) return ConvertFailure<string, OniMetadata>(catalog);
+        try
+        {
+            var selected = await services.ProcessRunner.RunAsync(new ProcessRequest(CatalogRunner.ResolvePython(pythonPath),
+                ["-I", "-B", verifier.Value!, "selected-build", "--catalog", catalog.Value!], root, new Dictionary<string, string>()), token);
+            if (selected.ExitCode != 0 || !int.TryParse(selected.StandardOutput.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out int build))
+                return new(null, [DiagnosticCatalog.InvalidOniMetadata(catalog.Value!, "Reference selection failed. " + selected.StandardError)], PipelineExitCode.InvalidInput);
+            return services.MetadataReader.SynchronizeMinimumBuild(profile, build, write);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+        {
+            return new(null, [DiagnosticCatalog.InvalidOniMetadata(catalog.Value!, ex.Message)], PipelineExitCode.EnvironmentUnavailable);
+        }
     }
 
     private static Command CreateSyncReadmeCommand(PipelineServices services)
@@ -327,13 +342,14 @@ internal static class CliApplication
         var command = new Command(
             "test",
             "Run every declared mod test project into a new evidence directory.");
-        options.AddTo(command);
+        options.AddTo(command, includeCatalogs: true);
         command.SetAction(async (parseResult, cancellationToken) =>
         {
             var result = await TestAsync(
                 services,
                 options.GetModPath(parseResult),
                 options.GetEnvironmentRequest(parseResult),
+                options.GetPythonPath(parseResult),
                 cancellationToken).ConfigureAwait(false);
             return DiagnosticRenderer.Render(
                 result,
@@ -719,6 +735,7 @@ internal static class CliApplication
         PipelineServices services,
         string modPath,
         EnvironmentDiscoveryRequest environmentRequest,
+        string? pythonPath,
         CancellationToken cancellationToken)
     {
         var contextResult = await ResolveReadOnlyContextAsync(
@@ -750,7 +767,7 @@ internal static class CliApplication
         var testRunner = new AutomatedTestRunner(
             services.ProcessRunner,
             context.Environment.OniManagedAssemblyDirectory,
-            provenance.WorktreeRoot);
+            provenance.WorktreeRoot, pythonPath);
         var testResult = await testRunner.RunAsync(
             context.Profile,
             resultsRoot,

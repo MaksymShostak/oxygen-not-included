@@ -113,16 +113,12 @@ public sealed class ProjectTargetFrameworkContractTests
             "PLib",
             "Direct",
             centralVersions["PLib"]);
-        await AssertLockedDependency(
-            dependencies,
-            "Lib.Harmony.Ref",
-            "Transitive",
-            dependencies.GetProperty("PLib").GetProperty("dependencies").GetProperty("Lib.Harmony.Ref").GetString()!);
-        await AssertLockedDependency(
-            dependencies,
-            "System.Reflection.Emit",
-            "Transitive",
-            dependencies.GetProperty("Lib.Harmony.Ref").GetProperty("dependencies").GetProperty("System.Reflection.Emit").GetString()!);
+        foreach (var (parent, transitive) in new[] { ("PLib", "Lib.Harmony.Ref"), ("Lib.Harmony.Ref", "System.Reflection.Emit") })
+        {
+            // NuGet's locked restore checks the parent's version range against the resolution.
+            await Assert.That(dependencies.GetProperty(parent).GetProperty("dependencies").TryGetProperty(transitive, out _)).IsTrue();
+            await Assert.That(dependencies.GetProperty(transitive).GetProperty("type").GetString()).IsEqualTo("Transitive");
+        }
     }
 
     private static async Task AssertLockedDependency(
