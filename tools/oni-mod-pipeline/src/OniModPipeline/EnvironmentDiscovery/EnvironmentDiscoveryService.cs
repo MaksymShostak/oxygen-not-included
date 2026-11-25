@@ -1,6 +1,7 @@
 using MaksymShostak.OniModPipeline.Diagnostics;
 using MaksymShostak.OniModPipeline.ModProfiles;
 using MaksymShostak.OniModPipeline.Processes;
+using MaksymShostak.OniModPipeline.SourceControl;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
@@ -62,12 +63,11 @@ internal sealed partial class EnvironmentDiscoveryService(
             return ConvertFailure<string, PipelineEnvironment>(userDataResult);
         }
 
-        var artifactsResult = await SelectArtifactsDirectoryAsync(
+        var artifactsResult = SelectArtifactsDirectory(
             resolvedContextDirectory,
             request.ArtifactsDirectory,
             userDataResult.Value!,
-            GetSteamLibraries,
-            cancellationToken).ConfigureAwait(false);
+            GetSteamLibraries);
         if (!artifactsResult.IsSuccess)
         {
             return ConvertFailure<string, PipelineEnvironment>(artifactsResult);
@@ -248,12 +248,11 @@ internal sealed partial class EnvironmentDiscoveryService(
             !PathsEqual(fullPath, candidateSource.DocumentsDirectory);
     }
 
-    private async Task<OperationResult<string>> SelectArtifactsDirectoryAsync(
+    private OperationResult<string> SelectArtifactsDirectory(
         string contextDirectory,
         string? explicitDirectory,
         string userDataDirectory,
-        Func<IReadOnlyList<string>> getSteamLibraries,
-        CancellationToken cancellationToken)
+        Func<IReadOnlyList<string>> getSteamLibraries)
     {
         var overrideDirectory = explicitDirectory ?? environmentVariables.Get(
             EnvironmentVariableSource.ArtifactsDirectoryVariable);
@@ -279,10 +278,7 @@ internal sealed partial class EnvironmentDiscoveryService(
             return Success(fullOverride);
         }
 
-        var gitWorktreeRoot = await TryDiscoverGitWorktreeRootAsync(
-            contextDirectory,
-            cancellationToken).ConfigureAwait(false);
-        var artifactParent = gitWorktreeRoot ?? Path.GetFullPath(contextDirectory);
+        var artifactParent = GitWorktreeLocator.FindRoot(contextDirectory) ?? contextDirectory;
         var defaultArtifactsDirectory = Path.Combine(artifactParent, "artifacts");
         var defaultUnsafeReason = GetUnsafeArtifactsReason(
             defaultArtifactsDirectory,
@@ -343,44 +339,6 @@ internal sealed partial class EnvironmentDiscoveryService(
         }
 
         return null;
-    }
-
-    private async Task<string?> TryDiscoverGitWorktreeRootAsync(
-        string modRoot,
-        CancellationToken cancellationToken)
-    {
-        ProcessResult result;
-        try
-        {
-            result = await processRunner.RunAsync(
-                new ProcessRequest(
-                    "git",
-                    ["rev-parse", "--show-toplevel"],
-                    Path.GetFullPath(modRoot),
-                    new Dictionary<string, string>(StringComparer.Ordinal)
-                    {
-                        ["GIT_CONFIG_GLOBAL"] = "/dev/null",
-                        ["GIT_CONFIG_NOSYSTEM"] = "1",
-                        ["GIT_OPTIONAL_LOCKS"] = "0"
-                    }),
-                cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception exception) when (
-            exception is Win32Exception or FileNotFoundException)
-        {
-            return null;
-        }
-
-        if (result.ExitCode != 0 ||
-            !TryGetFullPath(result.StandardOutput.TrimEnd('\r', '\n'), out var root))
-        {
-            return null;
-        }
-
-        var relativeModPath = Path.GetRelativePath(root, Path.GetFullPath(modRoot));
-        return relativeModPath == "." || !IsOutside(relativeModPath)
-            ? root
-            : null;
     }
 
     private async Task<OperationResult<string>> DiscoverDotnetSdkVersionAsync(
@@ -467,12 +425,6 @@ internal sealed partial class EnvironmentDiscoveryService(
             return false;
         }
     }
-
-    private static bool IsOutside(string relativePath) =>
-        Path.IsPathRooted(relativePath) ||
-        relativePath == ".." ||
-        relativePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
-        relativePath.StartsWith($"..{Path.AltDirectorySeparatorChar}", StringComparison.Ordinal);
 
     private static string RenderPath(string? path) =>
         string.IsNullOrWhiteSpace(path) ? "<empty>" : path;

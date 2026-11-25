@@ -1,4 +1,5 @@
 using MaksymShostak.OniModPipeline.Diagnostics;
+using MaksymShostak.OniModPipeline.SourceControl;
 
 namespace MaksymShostak.OniModPipeline.ModProfiles;
 
@@ -69,8 +70,7 @@ internal sealed class ModProfileLocator
                 candidatePaths.Add(Path.GetFullPath(candidatePath));
             }
 
-            if (Directory.Exists(Path.Combine(directory.FullName, ".git")) ||
-                File.Exists(Path.Combine(directory.FullName, ".git")))
+            if (GitWorktreeLocator.HasMarker(directory))
             {
                 break;
             }

@@ -219,9 +219,9 @@ internal static class CliApplication
         var loaded = services.ProfileLoader.Load(located.Value!);
         if (!loaded.IsSuccess) return ConvertFailure<ModProfile, OniMetadata>(loaded);
         var profile = loaded.Value!;
-        var provenance = await services.GitRepositoryInspector.InspectAsync(profile.ModRoot, [profile.ManifestPath], token);
-        if (!provenance.IsSuccess) return ConvertFailure<GitProvenance, OniMetadata>(provenance);
-        var selected = await GameReferenceCatalog.ReadSelectedBuildAsync(services.ProcessRunner, provenance.Value!.WorktreeRoot, pythonPath, token);
+        var root = GitWorktreeLocator.RequireRoot(profile.ModRoot);
+        if (!root.IsSuccess) return ConvertFailure<string, OniMetadata>(root);
+        var selected = await GameReferenceCatalog.ReadSelectedBuildAsync(services.ProcessRunner, root.Value!, pythonPath, token);
         return selected.IsSuccess ? services.MetadataReader.SynchronizeMinimumBuild(profile, selected.Value, write)
             : ConvertFailure<int, OniMetadata>(selected);
     }
@@ -258,13 +258,13 @@ internal static class CliApplication
         if (!valid.IsSuccess) return ConvertFailure<ModProfile, ReadmeSynchronization>(valid);
         if (profile.Readme is null)
             return new OperationResult<ReadmeSynchronization>(null, [DiagnosticCatalog.ReadmeSynchronizationFailed("The profile has no [readme] repository-path declaration.")], PipelineExitCode.InvalidInput);
-        var provenance = await services.GitRepositoryInspector.InspectAsync(profile.ModRoot, [profile.ManifestPath], cancellationToken).ConfigureAwait(false);
-        if (!provenance.IsSuccess) return ConvertFailure<GitProvenance, ReadmeSynchronization>(provenance);
+        var rootResult = GitWorktreeLocator.RequireRoot(profile.ModRoot);
+        if (!rootResult.IsSuccess) return ConvertFailure<string, ReadmeSynchronization>(rootResult);
         var listing = await services.WorkshopListingValidator.ValidateAsync(profile, cancellationToken).ConfigureAwait(false);
         if (!listing.IsSuccess) return ConvertFailure<WorkshopListingValidation, ReadmeSynchronization>(listing);
         try
         {
-            var root = provenance.Value!.WorktreeRoot;
+            var root = rootResult.Value!;
             var report = await new ReadmeSynchronizer(new InstalledBbcodeConverter(services.ProcessRunner), new InstalledMarkdownCanonicalizer(services.ProcessRunner)).SynchronizeAsync(
                 root, profile.Readme, listing.Value!.Description,
                 packageDirectory is null ? Path.Combine(root, "node_modules", "steam-community-bbcode") : Path.GetFullPath(packageDirectory), check, cancellationToken).ConfigureAwait(false);

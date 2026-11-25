@@ -51,6 +51,8 @@ npm run pipeline -- sync-build-floor --mod mods/delivery-temperature-limit-super
 ```
 
 The second command checks for drift.
+Both modes use the nearest checkout’s `.git` marker to locate the catalog.
+Git configuration, hooks and worktree status play no part in this lookup.
 The mod release date remains independently owned by `mod_info.yaml`.
 
 ## Update GitHub Actions

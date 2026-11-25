@@ -538,10 +538,11 @@ public sealed class EnvironmentDiscoveryServiceTests
             temporaryDirectory.GetPath("home"),
             temporaryDirectory.GetPath("documents"),
             steamRoots ?? []);
+        if (gitWorktreeRoot is not null) Directory.CreateDirectory(Path.Combine(gitWorktreeRoot, ".git"));
         var environmentSource = new EnvironmentVariableSource(
             environment ?? new Dictionary<string, string?>());
         return new EnvironmentDiscoveryService(
-            new DiscoveryProcessRunner(sdkVersion, gitWorktreeRoot),
+            new DiscoveryProcessRunner(sdkVersion),
             environmentSource,
             candidateSource,
             new SteamLibraryCatalog());
@@ -632,32 +633,19 @@ public sealed class EnvironmentDiscoveryServiceTests
     private static string Normalize(string path) =>
         Path.GetFullPath(path).Replace((char)92, '/').TrimEnd('/');
 
-    private sealed class DiscoveryProcessRunner(
-        string sdkVersion,
-        string? gitWorktreeRoot) : IExternalProcessRunner
+    private sealed class DiscoveryProcessRunner(string sdkVersion) : IExternalProcessRunner
     {
         public async Task<ProcessResult> RunAsync(
             ProcessRequest request,
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (string.Equals(request.FileName, "dotnet", StringComparison.Ordinal))
-            {
-                await Assert.That(request.Arguments.ToArray()).IsEquivalentTo(new[] { "--version" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
-                return new ProcessResult(
-                    0,
-                    $"{sdkVersion}{Environment.NewLine}",
-                    string.Empty);
-            }
-
-            await Assert.That(request.FileName).IsEqualTo("git");
-            await Assert.That(request.Arguments.ToArray()).IsEquivalentTo(new[] { "rev-parse", "--show-toplevel" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
-            return gitWorktreeRoot is null
-                ? new ProcessResult(128, string.Empty, "not a Git worktree")
-                : new ProcessResult(
-                    0,
-                    $"{gitWorktreeRoot}{Environment.NewLine}",
-                    string.Empty);
+            await Assert.That(request.FileName).IsEqualTo("dotnet");
+            await Assert.That(request.Arguments.ToArray()).IsEquivalentTo(new[] { "--version" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+            return new ProcessResult(
+                0,
+                $"{sdkVersion}{Environment.NewLine}",
+                string.Empty);
         }
     }
 }
