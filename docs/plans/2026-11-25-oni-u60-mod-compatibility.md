@@ -30,7 +30,7 @@ A missed Harmony branch can silently change deliveries or report no available ma
 The repo also ships a merged third-party library and pins private game references for CI.
 The maintainer owns acceptance of the requirements and the release decision.
 The accepted plan was baselined in signed commit `b197fa1`.
-Independent review covered the native branch proofs, fixture identity and targeted regression tests.
+Local Codex Review Agent reviews covered the native branch proofs, fixture identity and targeted regression tests.
 This plan applies the sibling workflow at `d96ceba3aa1ee93e37bec6850d49d8b898236d68`.
 Its source-checkout setup inspection reported `repair-required` because the packaged engine bootstrap was absent.
 There is no engine-admitted baseline, review or execution result associated with this plan.
@@ -39,13 +39,15 @@ There is no engine-admitted baseline, review or execution result associated with
 ## Implementation and acceptance record
 
 The local release is `2026.11.25` and the merged `netstandard2.1` assembly reports `2026.11.25.0`.
-Before the candidate freeze, 1,009 mod tests passed against an explicitly selected merged build, with no skips.
-The pipeline passed 440 tests and the private-reference suite passed 14.
+Before the candidate freeze, 1,010 mod tests passed against an explicitly selected merged build, with no skips.
+After the projection review, the pipeline passed 444 tests and the private-reference suite passed 15.
 All four tracked C# projects compiled against the separately acquired reference pack and its directory was reverified after compilation.
 The development installation passed the package checksum check in an isolated ONI user-data directory.
 The Workshop listing describes the U60 target and the outstanding FastTrack limit.
 
-Human acceptance requires a copied legacy colony and a new colony, standalone and paired FastTrack runs, same-colony timings, and the Uploader paste-and-cancel check.
+Standalone human acceptance requires a copied legacy colony and a new colony, same-colony timings, and the Uploader paste-and-cancel check.
+A paired run qualifies a particular FastTrack beta and settings combination.
+The standalone candidate can proceed to release review after its own checks pass with that limitation disclosed.
 The local Steam cache contained legacy items.
 A genuine loose Workshop item and its game-loader result remain outstanding.
 The private package has been built locally.

@@ -57,7 +57,7 @@ The basic idea is unchanged; quite a lot underneath it is not.
 - **Safer Startup & Storage Discovery:** Defensive checks protect the mod's game hooks during startup and colony refreshes, while compatible storage targets introduced by other mods can be discovered dynamically.
 - **Fast Track Compatibility:** Peter Han's [*Fast Track*](https://github.com/peterhaneve/ONIMods/tree/main/FastTrack) is optional.
   Support is best-effort.
-  The current beta's default pickup and reachability options call game APIs that changed in U60.
+  Fast Track Beta 0.18.6.0 calls game APIs that changed in U60 when its default pickup and reachability options are enabled.
   No Fast Track settings combination has completed in-game checks for this release.
   Leave Fast Track disabled when using it on U60.
 - **Built-In Localisation:** English plus 18 translated locales are bundled with the mod and follow ONI's selected language automatically.

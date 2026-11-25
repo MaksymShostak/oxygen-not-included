@@ -53,6 +53,19 @@ public sealed class FastTrackSupportedBuildFixtureExpectationTests
         }
     }
 
+    [Test]
+    public async Task WorkshopLimitationIdentifiesTheMeasuredBetaInBothListingInputs()
+    {
+        string repository = Environment.GetEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT")!;
+        string mod = Path.Combine(repository, "mods", "delivery-temperature-limit-supercooled");
+        string measured = FastTrackSupportedAssemblyBuildCatalog.SelectedBuild.FileVersion.ToString();
+        foreach (string file in new[] { "STEAM_DESCRIPTION.bbcode", "STEAM_CHANGE_NOTES.bbcode" })
+        {
+            string listing = await File.ReadAllTextAsync(Path.Combine(mod, file));
+            await Assert.That(listing).Contains("Fast Track Beta " + measured).Because(file);
+        }
+    }
+
     private static async Task<string> RequireCopiedFixtureRoot()
     {
         string fixtureRoot = Path.GetFullPath(Path.Combine(
