@@ -193,7 +193,7 @@ public sealed class InstalledKleiFetchPatchTests
         var builder = new FetchTemperatureEligibilityBuilder();
         var session = new GameSessionGeneration(1);
         void Begin() => builder.Begin(session, new ActiveTemperatureConstraintSnapshot(new TemperatureConstraintGeneration(2),
-                0, 0, Array.AsReadOnly(Array.Empty<int>())), new FetchRequestTopologyVersion(3),
+                4, 4, Array.AsReadOnly(new[] { 5, 10, 15, 20, 40, 50, 70, 80 })), new FetchRequestTopologyVersion(3),
             new WorldParentTopologySnapshot(session, new WorldParentTopologyVersion(4), new Dictionary<int, int>()));
         Begin();
         HashSet<Tag> Traverse(List<Instruction> code, bool active)
@@ -249,6 +249,59 @@ public sealed class InstalledKleiFetchPatchTests
         builder.Discard();
         Begin();
         await Assert.That(builder.Build().TryGetStorageEligibility(2, iron, out _)).IsFalse();
+    }
+
+    [Test]
+    public async Task InstalledFetchFinalizerDiscardsInterruptedAndDetachedBuildsAndRecovers()
+    {
+        using var game = new InstalledModAssemblyContext();
+        const BindingFlags members = BindingFlags.Static | BindingFlags.NonPublic;
+        const BindingFlags properties = BindingFlags.Instance | BindingFlags.NonPublic;
+        Type Mod(string name) => game.Candidate.GetType("DeliveryTemperatureLimit." + name, true)!;
+        var host = Mod("DeliveryTemperatureGameSessionHost");
+        var hooks = Mod("KleiAuthoritativeFetchTemperatureEligibilityPatches");
+        object? Call(Type type, string name, params object?[] args) => type.GetMethod(name, members)!.Invoke(null, args);
+        object Start(int id)
+        {
+            var session = Call(host, "EnsureGameSession", id)!;
+            var registry = session.GetType().GetProperty("TemperatureConstraints", properties)!.GetValue(session)!;
+            var limit = Call(Mod("DeliveryTemperatureConstraint"), "FromSerializedLimits", 10, 20);
+            registry.GetType().GetMethod("Register", properties)!.Invoke(registry, [42, limit, false]);
+            return session;
+        }
+        object Begin()
+        {
+            object?[] args = [null];
+            Call(hooks, "UpdateStorageFetchableBitsPrefix", args);
+            return args[0]!;
+        }
+        object? Published(object session) => session.GetType().GetProperty("CurrentFetchTemperatureEligibility", properties)!.GetValue(session);
+        void Complete(object state)
+        {
+            Call(hooks, "UpdateStorageFetchableBitsPostfix", state);
+            Call(hooks, "UpdateStorageFetchableBitsFinalizer", null, state);
+        }
+        var first = Start(1);
+        Complete(Begin());
+        var initial = Published(first);
+        var interrupted = Begin();
+        var error = new InvalidOperationException("simulated native interruption");
+        var returned = Call(hooks, "UpdateStorageFetchableBitsFinalizer", error, interrupted);
+        var afterInterruption = Published(first);
+        var stale = Begin();
+        var detached = Call(host, "DetachGameSession", 1);
+        var second = Start(2);
+        Complete(stale);
+        var afterStale = Published(second);
+        Call(host, "CompleteShutdown", detached);
+        Complete(Begin());
+        var afterRecovery = Published(second);
+        Call(host, "CompleteShutdown", Call(host, "DetachGameSession", 2));
+
+        await Assert.That(initial is not null && ReferenceEquals(initial, afterInterruption)).IsTrue();
+        await Assert.That(ReferenceEquals(error, returned)).IsTrue();
+        await Assert.That(afterStale).IsNull();
+        await Assert.That(afterRecovery is not null && !ReferenceEquals(initial, afterRecovery)).IsTrue();
     }
 
     [Test]
