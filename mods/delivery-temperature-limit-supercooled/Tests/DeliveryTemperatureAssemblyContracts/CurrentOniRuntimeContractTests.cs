@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
 public sealed class CurrentOniRuntimeContractTests
@@ -73,7 +74,13 @@ public sealed class CurrentOniRuntimeContractTests
                 StringComparer.Ordinal);
 
         await Assert.That(values["supportedContent"]).IsEqualTo("ALL");
-        await Assert.That(values["minimumSupportedBuild"]).IsEqualTo(ExpectedChangeList.ToString());
+        // Intake may test a newer installation before its reference set and release floor qualify.
+        var catalogPath = Path.Combine(await RequiredEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT"),
+            "tools", "ci", "oni-references.json");
+        using var catalog = JsonDocument.Parse(File.ReadAllBytes(catalogPath));
+        var selectedVersion = Version.Parse(catalog.RootElement.GetProperty("package").GetProperty("version").GetString()!);
+        await Assert.That(values["minimumSupportedBuild"]).IsEqualTo(
+            selectedVersion.Major.ToString(System.Globalization.CultureInfo.InvariantCulture));
         await Assert.That(values["APIVersion"]).IsEqualTo("2");
         // The pipeline owns metadata schema and mod release-version validation.
     }
