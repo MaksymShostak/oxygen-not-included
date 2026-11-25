@@ -164,12 +164,39 @@ public sealed class InstalledKleiFetchPatchTests
             await Assert.That(string.Join(",", recorded)).IsEqualTo(active ? "A,B,C" : "");
             await Assert.That(probes).IsEqualTo(active ? 4 : 1);
         }
+        var deadDestination = TraceChore(code, true, true, 1, true, true, destinationExists: false);
+        await Assert.That(deadDestination).IsEqualTo((false, false, false, 0));
         var multiple = TraceChore(code, true, false, 2, true, true);
         await Assert.That(multiple.Recorded && multiple.NativeWrite && multiple.Probes == 1).IsTrue();
     }
 
+    [Test]
+    [Arguments("seen")]
+    [Arguments("reach")]
+    [Arguments("native-write")]
+    public async Task FetchPreflightRejectsBrokenNativeDestinationPaths(string mutation)
+    {
+        using var game = new InstalledGame();
+        var failure = await Assert.That(() => game.Rewrite("KleiAuthoritativeFetchTemperatureEligibilityPatches",
+            "ResolveGlobalChoreProviderUpdateStorageFetchableBits", method => method.Name == "UpdateStorageFetchableBitsTranspiler",
+            (il, _) =>
+            {
+                var items = il.Cast<object>().ToList();
+                var opcode = items[0].GetType().GetField("opcode")!;
+                var operand = items[0].GetType().GetField("operand")!;
+                int site = mutation switch
+                {
+                    "seen" => items.FindIndex(item => (operand.GetValue(item) as MethodInfo)?.Name == "Contains") + 1,
+                    "reach" => items.FindIndex(item => (operand.GetValue(item) as MethodInfo)?.Name == "IsReachable") + 1,
+                    _ => items.FindLastIndex(item => (operand.GetValue(item) as MethodInfo)?.Name == "Add")
+                };
+                opcode.SetValue(items[site], OpCodes.Nop);
+            })).ThrowsExactly<TargetInvocationException>();
+        await Assert.That(failure!.InnerException!.GetType().Name).IsEqualTo("HarmonyPatchContractViolationException");
+    }
+
     private static (bool Recorded, bool NativeWrite, bool HashInserted, int Probes) TraceChore(
-        List<Instruction> code, bool active, bool seen, int tagCount, bool reachable, bool storage)
+        List<Instruction> code, bool active, bool seen, int tagCount, bool reachable, bool storage, bool destinationExists = true)
     {
         // Follow the emitted control flow for one iteration. Substitute measured fixture
         // inputs only at game boundaries. The rejection label denotes the next chore.
@@ -200,7 +227,7 @@ public sealed class InstalledKleiFetchPatchTests
                 switch (call.Name)
                 {
                     case "get_choreType": value = storage ? 1 : 9; break;
-                    case "op_Implicit": value = 1; break;
+                    case "op_Implicit": value = destinationExists ? 1 : 0; break;
                     case "IsReachable": probes++; value = reachable ? 1 : 0; break;
                     case "get_Count": value = tagCount; break;
                     case "RecordSelectedFetchChore": records++; break;

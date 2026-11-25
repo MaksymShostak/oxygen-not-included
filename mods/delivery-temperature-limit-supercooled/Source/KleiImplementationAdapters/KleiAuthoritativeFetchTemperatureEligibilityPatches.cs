@@ -323,14 +323,15 @@ namespace DeliveryTemperatureLimit
                     .LocalIndex();
             int requestedTagUnionIndex = selectedFetchChoreIndex + 3;
 
-            if (parentWorldIdentityGetterIndex + 1 >=
-                    sourceInstructions.Count ||
-                requestedTagUnionIndex + 1 >= sourceInstructions.Count)
-            {
-                throw new HarmonyPatchContractViolationException(
-                    "GlobalChoreProvider.UpdateStorageFetchableBits semantic " +
-                    "anchors do not have safe continuation instructions.");
-            }
+            MethodInfo containsHash = typeof(HashSet<int>).GetMethod(nameof(HashSet<int>.Contains), new[] { typeof(int) })!;
+            MethodInfo reach = HarmonyPatchContractVerifier.RequireInstanceMethod(typeof(MinionGroupProber),
+                "IsReachable", DeclaredMemberVisibility.Public, typeof(bool), new[] { typeof(int), typeof(IReadOnlyList<CellOffset>) });
+            int hashBranch = HarmonyPatchContractVerifier.RequireSingleMatch(candidateIndices,
+                i => IsCall(sourceInstructions[i], containsHash), "Klei seen tag hash") + 1;
+            int selected = HarmonyPatchContractVerifier.RequireSingleMatch(candidateIndices,
+                i => IsCall(sourceInstructions[i], reach), "Klei destination reachability") + 2;
+            Label nextChore = RequireDestinationTraversal(sourceInstructions, parentWorldIdentityGetterIndex,
+                hashBranch, selected, selectedFetchChoreLocalIndex, requestedTagUnionIndex);
 
             MethodInfo isBuildActiveHook =
                 HarmonyPatchContractVerifier.RequireStaticMethod(
@@ -356,67 +357,54 @@ namespace DeliveryTemperatureLimit
 
             LocalBuilder isBuildActiveLocal =
                 generator.DeclareLocal(typeof(bool));
+            LocalBuilder hashWasSeen = generator.DeclareLocal(typeof(bool));
             Label skipParentWorldHookLabel = generator.DefineLabel();
-            Label skipSelectedFetchChoreHookLabel = generator.DefineLabel();
-            sourceInstructions[parentWorldIdentityGetterIndex + 1].labels.Add(
-                skipParentWorldHookLabel);
-            sourceInstructions[requestedTagUnionIndex + 1].labels.Add(
-                skipSelectedFetchChoreHookLabel);
+            Label nativeTagWrite = generator.DefineLabel();
+            Label checkDestination = generator.DefineLabel();
+            sourceInstructions[parentWorldIdentityGetterIndex + 1].labels.Add(skipParentWorldHookLabel);
+            sourceInstructions[hashBranch + 1].labels.Add(checkDestination);
+            sourceInstructions[selected].labels.Add(nativeTagWrite);
 
-            var instrumentedInstructions = new List<CodeInstruction>(
-                sourceInstructions.Count + 11);
-            instrumentedInstructions.Add(new CodeInstruction(
-                OpCodes.Call,
-                isBuildActiveHook));
-            instrumentedInstructions.Add(HarmonyCodeInstructionFactory.StoreLocal(
-                isBuildActiveLocal.LocalIndex));
+            var instrumentedInstructions = new List<CodeInstruction>(sourceInstructions.Count + 16);
+            instrumentedInstructions.Add(new CodeInstruction(OpCodes.Call, isBuildActiveHook));
+            instrumentedInstructions.Add(HarmonyCodeInstructionFactory.StoreLocal(isBuildActiveLocal.LocalIndex));
 
-            for (int instructionIndex = 0;
-                 instructionIndex < sourceInstructions.Count;
-                 instructionIndex++)
+            for (int i = 0; i < sourceInstructions.Count; i++)
             {
-                instrumentedInstructions.Add(
-                    sourceInstructions[instructionIndex]);
-
-                if (instructionIndex == parentWorldIdentityGetterIndex)
+                var original = sourceInstructions[i];
+                if (i == hashBranch)
                 {
-                    // List<int>.get_Item leaves the exact parent-world ID needed by
-                    // Klei's TryGetValue on the stack. Duplicate it only on the
-                    // active branch so Klei's original stack is identical on both
-                    // paths and no second fetchMap lookup is introduced.
-                    instrumentedInstructions.Add(
-                        HarmonyCodeInstructionFactory.LoadLocal(
-                            isBuildActiveLocal.LocalIndex));
-                    instrumentedInstructions.Add(new CodeInstruction(
-                        OpCodes.Brfalse,
-                        skipParentWorldHookLabel));
-                    instrumentedInstructions.Add(
-                        new CodeInstruction(OpCodes.Dup));
-                    instrumentedInstructions.Add(new CodeInstruction(
-                        OpCodes.Call,
-                        beginParentWorldHook));
+                    // An already-seen hash suppresses native tag writes. Only an active collection
+                    // needs Klei to check that particular destination's type, existence and reach.
+                    instrumentedInstructions.Add(new CodeInstruction(OpCodes.Dup));
+                    instrumentedInstructions.Add(HarmonyCodeInstructionFactory.StoreLocal(hashWasSeen.LocalIndex));
+                    instrumentedInstructions.Add(new CodeInstruction(OpCodes.Brfalse, checkDestination));
+                    instrumentedInstructions.Add(HarmonyCodeInstructionFactory.LoadLocal(isBuildActiveLocal.LocalIndex));
+                    instrumentedInstructions.Add(new CodeInstruction(OpCodes.Brfalse, nextChore));
+                    continue;
+                }
+                if (i == selected)
+                {
+                    instrumentedInstructions.Add(HarmonyCodeInstructionFactory.LoadLocal(isBuildActiveLocal.LocalIndex));
+                    instrumentedInstructions.Add(new CodeInstruction(OpCodes.Brfalse, nativeTagWrite));
+                    instrumentedInstructions.Add(HarmonyCodeInstructionFactory.LoadLocal(selectedFetchChoreLocalIndex));
+                    instrumentedInstructions.Add(new CodeInstruction(OpCodes.Call, recordSelectedFetchChoreHook));
+                    instrumentedInstructions.Add(HarmonyCodeInstructionFactory.LoadLocal(hashWasSeen.LocalIndex));
+                    instrumentedInstructions.Add(new CodeInstruction(OpCodes.Brtrue, nextChore));
                 }
 
-                if (instructionIndex == requestedTagUnionIndex)
+                // The inserted instructions lengthen the native rejection jumps across these gates.
+                if (original.opcode == OpCodes.Bne_Un_S) original.opcode = OpCodes.Bne_Un;
+                if (original.opcode == OpCodes.Brfalse_S) original.opcode = OpCodes.Brfalse;
+                instrumentedInstructions.Add(original);
+                if (i == parentWorldIdentityGetterIndex)
                 {
-                    // Klei has already checked chore type, destination existence,
-                    // and reachability before UnionWith. Capturing immediately
-                    // afterward reuses that authoritative selection decision.
-                    instrumentedInstructions.Add(
-                        HarmonyCodeInstructionFactory.LoadLocal(
-                            isBuildActiveLocal.LocalIndex));
-                    instrumentedInstructions.Add(new CodeInstruction(
-                        OpCodes.Brfalse,
-                        skipSelectedFetchChoreHookLabel));
-                    instrumentedInstructions.Add(
-                        HarmonyCodeInstructionFactory.LoadLocal(
-                            selectedFetchChoreLocalIndex));
-                    instrumentedInstructions.Add(new CodeInstruction(
-                        OpCodes.Call,
-                        recordSelectedFetchChoreHook));
+                    instrumentedInstructions.Add(HarmonyCodeInstructionFactory.LoadLocal(isBuildActiveLocal.LocalIndex));
+                    instrumentedInstructions.Add(new CodeInstruction(OpCodes.Brfalse, skipParentWorldHookLabel));
+                    instrumentedInstructions.Add(new CodeInstruction(OpCodes.Dup));
+                    instrumentedInstructions.Add(new CodeInstruction(OpCodes.Call, beginParentWorldHook));
                 }
             }
-
             return instrumentedInstructions;
         }
 
@@ -713,6 +701,52 @@ namespace DeliveryTemperatureLimit
 
             return instructions[fetchMapFieldIndex + 1].LocalIndex() !=
                 instructions[fetchMapFieldIndex + 2].LocalIndex();
+        }
+
+        private static Label RequireDestinationTraversal(List<CodeInstruction> code, int world, int hashBranch,
+            int selected, int choreLocal, int union)
+        {
+            bool SameChore(int index) => IsLoadLocal(code[index]) && code[index].LocalIndex() == choreLocal;
+            bool BranchTo(int index, int destination, OpCode shortForm, OpCode longForm) =>
+                (code[index].opcode == shortForm || code[index].opcode == longForm) &&
+                code[index].operand is Label label && code[destination].labels.Contains(label);
+            bool Calls(int index, Type type, string name, params Type[] arguments) =>
+                IsCall(code[index], type.GetMethod(name, arguments)!);
+
+            int next = union + 6; // HashSet<int>.Add, pop, then the native next-chore increment.
+            if (world >= hashBranch - 4 || hashBranch < 4 || hashBranch >= selected - 2 ||
+                selected + 16 != union || next + 3 >= code.Count || !(code[hashBranch].operand is Label rejection) ||
+                !BranchTo(hashBranch, next, OpCodes.Brtrue_S, OpCodes.Brtrue) || code[hashBranch].labels.Count != 0 ||
+                !IsLoadLocal(code[hashBranch - 4]) || !IsLoadLocal(code[union + 1]) ||
+                code[hashBranch - 4].LocalIndex() != code[union + 1].LocalIndex() ||
+                !SameChore(hashBranch - 3) || !IsFieldLoad(code[hashBranch - 2], typeof(FetchChore).GetField("tagsHash")!) ||
+                !SameChore(hashBranch + 1) || !Calls(hashBranch + 2, typeof(Chore), "get_choreType") ||
+                !BranchTo(hashBranch + 4, hashBranch + 9, OpCodes.Beq_S, OpCodes.Beq) ||
+                !SameChore(hashBranch + 5) || !Calls(hashBranch + 6, typeof(Chore), "get_choreType") ||
+                !BranchTo(hashBranch + 8, next, OpCodes.Bne_Un_S, OpCodes.Bne_Un) ||
+                !SameChore(hashBranch + 9) || !Calls(hashBranch + 10, typeof(FetchChore), "get_destination") ||
+                !Calls(hashBranch + 11, typeof(UnityEngine.Object), "op_Implicit", typeof(UnityEngine.Object)) ||
+                !BranchTo(hashBranch + 12, next, OpCodes.Brfalse_S, OpCodes.Brfalse) ||
+                !SameChore(selected - 12) || !Calls(selected - 11, typeof(FetchChore), "get_destination") ||
+                !SameChore(selected - 6) || !Calls(selected - 5, typeof(FetchChore), "get_destination") ||
+                !Calls(selected - 10, typeof(Grid), "PosToCell", typeof(KMonoBehaviour)) ||
+                !Calls(selected - 3, typeof(Workable), "GetOffsets", typeof(int)) ||
+                !BranchTo(selected - 1, next, OpCodes.Brfalse_S, OpCodes.Brfalse) ||
+                !SameChore(selected) || code[selected].labels.Count != 0 || !IsFieldLoad(code[selected + 1], RequireFetchChoreTagsField()) ||
+                !Calls(selected + 2, typeof(HashSet<Tag>), "get_Count") || code[selected + 3].opcode != OpCodes.Ldc_I4_1 ||
+                !BranchTo(selected + 4, union - 4, OpCodes.Bne_Un_S, OpCodes.Bne_Un) ||
+                !IsFieldLoad(code[selected + 6], RequireStorageFetchableTagsField()) || !SameChore(selected + 7) ||
+                !IsFieldLoad(code[selected + 8], typeof(FetchChore).GetField("tagsFirst")!) ||
+                !Calls(selected + 9, typeof(HashSet<Tag>), "Add", typeof(Tag)) ||
+                !BranchTo(selected + 11, union + 1, OpCodes.Br_S, OpCodes.Br) ||
+                !SameChore(union + 2) || !IsFieldLoad(code[union + 3], typeof(FetchChore).GetField("tagsHash")!) ||
+                !Calls(union + 4, typeof(HashSet<int>), "Add", typeof(int)) || code[union + 5].opcode != OpCodes.Pop ||
+                code[next + 1].opcode != OpCodes.Ldc_I4_1 || code[next + 2].opcode != OpCodes.Add)
+                throw new HarmonyPatchContractViolationException("Unrecognized Klei fetch destination or seen-tag write path.");
+            for (int i = world; i <= next; i++)
+                if (code[i].blocks.Count != 0)
+                    throw new HarmonyPatchContractViolationException("Klei fetch traversal crosses an exception boundary.");
+            return rejection;
         }
 
         private static bool MatchesSelectedFetchChoreTraversal(
