@@ -143,6 +143,23 @@ public sealed class GitRepositoryInspectorTests
         await Assert.That(result.Diagnostics.Single().Id).IsEqualTo("ONIP5001");
     }
 
+    [Test]
+    public async Task Inspect_UnsupportedRefStorageReportsTheSupportedReleaseCheckout()
+    {
+        using var directory = new TemporaryDirectory();
+        string root = CreateRepository(directory);
+        using (var repository = new Repository(root))
+        {
+            repository.Config.Set("core.repositoryformatversion", 1, ConfigurationLevel.Local);
+            repository.Config.Set("extensions.refstorage", "reftable", ConfigurationLevel.Local);
+        }
+        var result = new GitRepositoryInspector().Inspect(root, [Path.Combine(root, "contributing.txt")], CancellationToken.None);
+        await Assert.That(result.IsSuccess).IsFalse();
+        var diagnostic = result.Diagnostics.Single();
+        await Assert.That(diagnostic.Id).IsEqualTo("ONIP5001");
+        await Assert.That(diagnostic.NextAction).Contains("standard index");
+    }
+
     private static string CreateRepository(TemporaryDirectory directory)
     {
         var root = Directory.CreateDirectory(directory.GetPath("repository")).FullName;

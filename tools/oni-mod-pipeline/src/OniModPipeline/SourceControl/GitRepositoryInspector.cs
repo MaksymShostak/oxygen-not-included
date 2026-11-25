@@ -40,12 +40,12 @@ internal sealed class GitRepositoryInspector
 
         return Inspect(
             profile.ModRoot,
-            (worktreeRoot, trackedPaths) =>
+            (worktreeRoot, observedPaths) =>
             {
                 var sourceSetResult = RelevantSourceSet.Create(
                     profile,
                     worktreeRoot,
-                    trackedPaths,
+                    observedPaths,
                     pipelineExecutablePath);
                 return sourceSetResult.IsSuccess
                     ? new OperationResult<IReadOnlyList<string>>(
@@ -145,6 +145,6 @@ internal sealed class GitRepositoryInspector
     private static OperationResult<T> Failure<T>(string reason) =>
         new(
             default,
-            [DiagnosticCatalog.DirtyReleaseInput(reason)],
+            [DiagnosticCatalog.GitProvenanceUnavailable(reason)],
             PipelineExitCode.ReleaseNotReady);
 }

@@ -59,6 +59,8 @@ Release validation requires every contributing path to be:
 - clean in both the index and working tree.
 
 Contributing paths include the profile, metadata, declared package sources, build entry point, relevant project and lock files, declared tests, Workshop sources, preview, and in-worktree ONI Mod Pipeline source used to prepare the candidate.
+SDK source and resource files can enter the build even inside a Git-ignored directory, so release validation checks those files on disk.
+Removing a tracked member of a declared package directory also makes that input dirty until its deletion is committed.
 
 Unrelated changes outside that contributing set do not alter the candidate's source identity, but they remain user-owned work and should still be understood.
 Never discard unrelated changes merely to obtain a clean release scope.

@@ -209,6 +209,11 @@ internal static class DiagnosticCatalog
             "Use only the schema-version = 1 Workshop listing fields and identifiers.");
     }
 
+    internal static Diagnostic GitProvenanceUnavailable(string reason) =>
+        new(DiagnosticIds.DirtyReleaseInput, DiagnosticSeverity.Error,
+            "The Git commit and working-tree state could not be verified.", reason,
+            "Check the installed tool and selected paths. For unsupported Git metadata, use a full SHA-1 checkout with a standard index and loose or packed refs.");
+
     internal static Diagnostic DirtyReleaseInput(string reason)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);

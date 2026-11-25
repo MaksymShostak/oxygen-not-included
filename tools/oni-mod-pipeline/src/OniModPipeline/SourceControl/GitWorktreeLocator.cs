@@ -40,7 +40,7 @@ internal static class GitWorktreeLocator
     {
         var result = FindRoot(directoryPath);
         return result.IsSuccess && result.Value is null
-            ? new(null, [DiagnosticCatalog.DirtyReleaseInput($"Could not locate a checkout root from '{directoryPath}'.")],
+            ? new(null, [DiagnosticCatalog.GitProvenanceUnavailable($"Could not locate a checkout root from '{directoryPath}'.")],
                 PipelineExitCode.ReleaseNotReady)
             : result;
     }

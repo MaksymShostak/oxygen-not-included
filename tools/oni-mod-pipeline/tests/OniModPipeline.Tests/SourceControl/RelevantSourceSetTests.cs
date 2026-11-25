@@ -106,6 +106,7 @@ public sealed class RelevantSourceSetTests
 
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value!.WorktreeRelativePaths.ToArray()).Contains("global.json");
+        await Assert.That(result.Value.WorktreeRelativePaths.ToArray()).Contains("Directory.Packages.props");
         await Assert.That(result.Value.WorktreeRelativePaths.ToArray()).Contains("tools/ci/oni_references.py");
         await Assert.That(result.Value.WorktreeRelativePaths.ToArray()).Contains("tools/oni-mod-pipeline/src/OniModPipeline/Catalogs/Python/catalogs.py");
         await Assert.That(result.Value.WorktreeRelativePaths.ToArray()).Contains("tools/oni-mod-pipeline/src/OniModPipeline/Program.cs");
@@ -170,6 +171,49 @@ public sealed class RelevantSourceSetTests
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value!.DirtyPaths.ToArray()).IsEquivalentTo(
             ["mods/example/Source/Before.cs", "mods/example/Source/After.cs"]);
+    }
+
+    [Test]
+    public async Task Inspect_IgnoredSdkInputsAreDirtyButIgnoredNotesAndBuildOutputsAreOutsideTheScope()
+    {
+        using var directory = new TemporaryDirectory();
+        var profile = CreateProfileFixture(directory);
+        File.WriteAllText(directory.GetPath(".gitignore"), "lib/\nbin/\nobj/\n");
+        TestGitRepository.CommitAll(directory.Path);
+        WriteFile(Path.Combine(profile.ModRoot, "Source", "lib", "Ignored.cs"));
+        WriteFile(Path.Combine(profile.ModRoot, "Tests", "lib", "Messages.resx"));
+        WriteFile(Path.Combine(profile.ModRoot, "Source", "lib", "personal.txt"));
+        WriteFile(Path.Combine(profile.ModRoot, "Source", "nested", "bin", "StillCompiled.cs"));
+        WriteFile(Path.Combine(profile.ModRoot, "Source", "obj", "Generated.cs"));
+
+        var result = new GitRepositoryInspector().Inspect(profile, null, CancellationToken.None);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value!.DirtyPaths.ToArray()).IsEquivalentTo(
+            ["mods/example/Source/lib/Ignored.cs", "mods/example/Source/nested/bin/StillCompiled.cs", "mods/example/Tests/lib/Messages.resx"]);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task Inspect_ReportsADeletedMemberOfADeclaredPackageDirectory(bool stageDeletion)
+    {
+        using var directory = new TemporaryDirectory();
+        var profile = CreateProfileFixture(directory);
+        string assets = Path.Combine(profile.ModRoot, "sprites");
+        WriteFile(Path.Combine(assets, "retained.png"));
+        WriteFile(Path.Combine(assets, "removed.png"));
+        profile = profile with { PackageFiles = [.. profile.PackageFiles, new PackageFileMapping("sprites", "sprites")] };
+        TestGitRepository.CommitAll(directory.Path);
+        File.Delete(Path.Combine(assets, "removed.png"));
+        if (stageDeletion)
+        {
+            using var repository = new LibGit2Sharp.Repository(directory.Path);
+            LibGit2Sharp.Commands.Stage(repository, "mods/example/sprites/removed.png");
+        }
+
+        var result = new GitRepositoryInspector().Inspect(profile, null, CancellationToken.None);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value!.DirtyPaths.ToArray()).IsEquivalentTo(["mods/example/sprites/removed.png"]);
     }
 
     private static ModProfile CreateProfileFixture(TemporaryDirectory temporaryDirectory)

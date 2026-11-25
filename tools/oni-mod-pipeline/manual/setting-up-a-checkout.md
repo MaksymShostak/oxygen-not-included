@@ -16,6 +16,10 @@ For a local gameplay build, prepare:
 **For release work**, use a committed Git working tree.
 The pipeline reads its commit, index and working-tree changes through its bundled LibGit2Sharp library.
 It performs these checks without launching Git or checkout-configured helpers.
+Release provenance supports full SHA-1 checkouts with a standard index and loose or packed refs, including linked worktrees.
+Split indexes, sparse indexes and reftable repositories can produce `ONIP5001`.
+For those formats, prepare the same commit in a separate full checkout using the standard index and files ref backend.
+The build-floor check only needs the checkout marker and catalog.
 The final Workshop text check and handoff also require current Windows Notepad and the authenticated ONI Uploader.
 
 ONI Mod Pipeline does not download the SDK, install or update ONI, create the ONI user-data hierarchy, install the Uploader, or authenticate a Steam account.

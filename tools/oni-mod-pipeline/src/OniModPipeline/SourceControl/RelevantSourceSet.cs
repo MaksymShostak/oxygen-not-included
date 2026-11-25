@@ -42,7 +42,7 @@ internal sealed record RelevantSourceSet(
             builder.AddDeclaredFile(profile.ModRoot, profile.ModInfoYamlPath);
             if (profile.Catalogs is { } catalogs)
             {
-                builder.AddDeclaredFileOrTree(profile.ModRoot, catalogs.Directory);
+                builder.AddDeclaredFileOrTree(profile.ModRoot, catalogs.Directory, observedAbsolutePaths);
                 builder.AddDeclaredFile(profile.ModRoot, catalogs.OptionsSource);
             }
 
@@ -53,7 +53,7 @@ internal sealed record RelevantSourceSet(
                     build.EntryPoint);
                 builder.AddAbsolutePath(buildEntryPoint);
                 builder.AddProjectTree(
-                    Path.GetDirectoryName(buildEntryPoint)!,
+                    buildEntryPoint,
                     observedAbsolutePaths);
             }
 
@@ -64,7 +64,7 @@ internal sealed record RelevantSourceSet(
                     continue;
                 }
 
-                builder.AddDeclaredFileOrTree(profile.ModRoot, mapping.Source);
+                builder.AddDeclaredFileOrTree(profile.ModRoot, mapping.Source, observedAbsolutePaths);
             }
 
             builder.AddDeclaredFile(profile.ModRoot, profile.WorkshopListing.Description);
@@ -91,7 +91,7 @@ internal sealed record RelevantSourceSet(
                     testProject.Path);
                 builder.AddAbsolutePath(testProjectPath);
                 builder.AddProjectTree(
-                    Path.GetDirectoryName(testProjectPath)!,
+                    testProjectPath,
                     observedAbsolutePaths);
             }
 
@@ -183,7 +183,7 @@ internal sealed record RelevantSourceSet(
             AddAbsolutePath(result.Value!);
         }
 
-        internal void AddDeclaredFileOrTree(string root, string declaredPath)
+        internal void AddDeclaredFileOrTree(string root, string declaredPath, IReadOnlyList<string> observedPaths)
         {
             var fileResult = ContainedPathResolver.ResolveExistingFile(root, declaredPath);
             if (fileResult.IsSuccess)
@@ -200,31 +200,52 @@ internal sealed record RelevantSourceSet(
                     fileResult.ExitCode);
             }
 
-            foreach (var path in EnumerateRegularFiles(directoryResult.Value!))
-            {
+            var directory = directoryResult.Value!;
+            foreach (var path in EnumerateRegularFiles(directory))
                 AddAbsolutePath(path);
-            }
+            // Deleted files no longer exist on disk, but remain inputs to the selected directory mapping.
+            foreach (var path in observedPaths)
+                if (TryGetDescendantRelativePath(directory, path, out _)) AddAbsolutePath(path);
         }
 
-        internal void AddProjectTree(
-            string projectDirectory,
-            IReadOnlyList<string> observedAbsolutePaths)
+        internal void AddProjectTree(string entryPoint, IReadOnlyList<string> observedPaths)
         {
-            var canonicalProjectDirectory = Path.GetFullPath(projectDirectory);
-            foreach (var path in observedAbsolutePaths)
+            string directory = Path.GetDirectoryName(entryPoint)!;
+            bool solution = SourceExtension(entryPoint) is null;
+            var projects = new HashSet<string>(StringComparer.Ordinal);
+            if (!solution) projects.Add(entryPoint);
+            foreach (var path in observedPaths)
             {
-                if (!TryGetDescendantRelativePath(
-                    canonicalProjectDirectory,
-                    path,
-                    out var projectRelativePath) ||
-                    HasBuildDirectorySegment(projectRelativePath))
-                {
-                    continue;
-                }
-
+                if (!TryGetDescendantRelativePath(directory, path, out var relative)) continue;
+                if (solution ? HasBuildDirectorySegment(relative) : IsTopLevelBuildOutput(relative)) continue;
                 AddAbsolutePath(path);
+                if (solution && SourceExtension(path) is not null && File.Exists(path)) projects.Add(path);
+            }
+
+            // SDK compiler/resource globs operate on disk irrespective of Git ignore rules.
+            foreach (var project in projects)
+            {
+                string root = Path.GetDirectoryName(project)!;
+                string extension = SourceExtension(project)!;
+                bool IncludeDirectory(string path) => !Path.GetFileName(path).StartsWith('.') &&
+                    !IsTopLevelBuildOutput(Path.GetRelativePath(root, path));
+                bool IncludeFile(string path)
+                {
+                    string ext = Path.GetExtension(path).ToLowerInvariant();
+                    return ext == extension || ext == ".resx" || (extension == ".fs" && ext == ".fsi");
+                }
+                foreach (var path in EnumerateRegularFiles(root, IncludeDirectory, IncludeFile))
+                    AddAbsolutePath(path);
             }
         }
+
+        private static string? SourceExtension(string project) => Path.GetExtension(project).ToLowerInvariant() switch
+        {
+            ".csproj" => ".cs",
+            ".vbproj" => ".vb",
+            ".fsproj" => ".fs",
+            _ => null
+        };
 
         internal bool IsPipelineExecutableBuiltFromWorktree(string executablePath)
         {
@@ -245,6 +266,7 @@ internal sealed record RelevantSourceSet(
         {
             var toolRoot = Path.Combine(WorktreeRoot, "tools", "oni-mod-pipeline");
             AddAbsolutePath(Path.Combine(WorktreeRoot, "global.json"));
+            AddAbsolutePath(Path.Combine(WorktreeRoot, "Directory.Packages.props"));
             AddAbsolutePath(Path.Combine(WorktreeRoot, "tools", "ci", "oni_references.py"));
             AddAbsolutePath(Path.Combine(toolRoot, "OniModPipeline.slnx"));
             AddAbsolutePath(Path.Combine(
@@ -273,16 +295,10 @@ internal sealed record RelevantSourceSet(
                 return;
             }
 
-            foreach (var sourcePath in EnumerateRegularFiles(toolRoot)
-                .Where(path => string.Equals(Path.GetExtension(path), ".cs", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(Path.GetExtension(path), ".py", StringComparison.OrdinalIgnoreCase)))
-            {
-                var toolRelativePath = Path.GetRelativePath(toolRoot, sourcePath);
-                if (!HasBuildDirectorySegment(toolRelativePath))
-                {
-                    AddAbsolutePath(sourcePath);
-                }
-            }
+            foreach (var sourcePath in EnumerateRegularFiles(toolRoot,
+                directory => !IsBuildDirectoryName(Path.GetFileName(directory)),
+                path => Path.GetExtension(path).ToLowerInvariant() is ".cs" or ".py"))
+                AddAbsolutePath(sourcePath);
         }
 
         internal RelevantSourceSet Build()
@@ -335,15 +351,21 @@ internal sealed record RelevantSourceSet(
                 !relativePath.StartsWith($"..{Path.AltDirectorySeparatorChar}", StringComparison.Ordinal);
         }
 
-        private static bool HasBuildDirectorySegment(string relativePath) =>
-            relativePath
-                .Replace((char)92, '/')
-                .Split('/', StringSplitOptions.RemoveEmptyEntries)
-                .Any(segment =>
-                    string.Equals(segment, "bin", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(segment, "obj", StringComparison.OrdinalIgnoreCase));
+        private static bool IsBuildDirectoryName(string name) =>
+            name.Equals("bin", StringComparison.OrdinalIgnoreCase) || name.Equals("obj", StringComparison.OrdinalIgnoreCase);
 
-        private static IEnumerable<string> EnumerateRegularFiles(string root)
+        private static bool IsTopLevelBuildOutput(string relativePath)
+        {
+            int end = relativePath.IndexOfAny([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar]);
+            return IsBuildDirectoryName(end < 0 ? relativePath : relativePath[..end]);
+        }
+
+        private static bool HasBuildDirectorySegment(string relativePath) =>
+            relativePath.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries)
+                .Any(IsBuildDirectoryName);
+
+        private static IEnumerable<string> EnumerateRegularFiles(string root, Func<string, bool>? includeDirectory = null,
+            Func<string, bool>? includeFile = null)
         {
             var pendingDirectories = new Stack<string>();
             pendingDirectories.Push(Path.GetFullPath(root));
@@ -355,12 +377,13 @@ internal sealed record RelevantSourceSet(
                     .OrderBy(path => path, StringComparer.Ordinal))
                 {
                     var attributes = File.GetAttributes(entry);
+                    bool isDirectory = (attributes & FileAttributes.Directory) != 0;
+                    if ((isDirectory ? includeDirectory : includeFile)?.Invoke(entry) == false) continue;
                     if ((attributes & FileAttributes.ReparsePoint) != 0)
-                    {
-                        continue;
-                    }
+                        throw new SourceSetException(DiagnosticCatalog.UnsafeProfilePath(root, entry,
+                            "a contributing path is a symbolic link or reparse point"), PipelineExitCode.InvalidInput);
 
-                    if ((attributes & FileAttributes.Directory) != 0)
+                    if (isDirectory)
                     {
                         pendingDirectories.Push(entry);
                     }
