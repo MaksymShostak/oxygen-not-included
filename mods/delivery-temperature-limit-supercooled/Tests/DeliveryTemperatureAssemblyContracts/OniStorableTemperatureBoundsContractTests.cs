@@ -14,7 +14,6 @@ public sealed partial class OniStorableTemperatureBoundsContractTests
         await Assert.That(source).Matches(InternalStaticClassPattern());
         await Assert.That(source).Matches(MinimumConstantPattern());
         await Assert.That(source).Matches(MaximumConstantPattern());
-        await Assert.That(source).Contains("changelist 744825");
         await Assert.That(source).Contains("Sim.MaxTemperature");
         await Assert.That(source).Contains("inclusive");
         await Assert.That(source).Contains(nameof(OniStorableTemperatureBoundsContractTests));

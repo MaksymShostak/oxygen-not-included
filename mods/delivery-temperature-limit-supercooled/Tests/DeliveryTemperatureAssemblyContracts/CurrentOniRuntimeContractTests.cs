@@ -4,11 +4,11 @@ using System.Security.Cryptography;
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
 public sealed class CurrentOniRuntimeContractTests
 {
-    private const uint ExpectedChangeList = 744825;
+    private const uint ExpectedChangeList = 764025;
     private const string ExpectedBuildBranch = "release";
     private const float ExpectedMaximumTemperatureKelvin = 10000f;
     private const string ExpectedAssemblySha256 =
-        "A58E04D0FFDF89B86FB28B71AD900625B3B539DB30D67F8C6269F73A9F5AE599";
+        "96B192E45E044AA591E7143BBE1126D685DD1A195DB7BA1632FDF4ABD8FE3036";
     private const string ExpectedHarmonyAssemblySha256 =
         "AEC7446028FE31D00DFECC684E40011C4208BB036E82617B8DE32002A8E55B53";
 
@@ -144,48 +144,44 @@ public sealed class CurrentOniRuntimeContractTests
         string methodIdentity,
         IReadOnlyList<AssemblyMethodBodyContract> methodBodies)
     {
-        var methodsWithMaximum = methodBodies
-            .Where(body => body.Instructions.Any(IsExpectedMaximumOperand))
-            .ToArray();
-        var observedBodies = string.Join(
-            Environment.NewLine + Environment.NewLine,
-            methodBodies.Select(body =>
-                $"{body.DeclaringType}.{body.MethodName} signature {body.Signature}" +
-                Environment.NewLine +
-                body.FormatInstructions()));
+        var body = methodBodies.Single(candidate => candidate.Instructions.Any(
+            instruction => instruction.Operation == "ldc.r4" &&
+                Equals(instruction.Operand, ExpectedMaximumTemperatureKelvin)));
+        var instructions = body.Instructions.ToArray();
+        int maximum = Array.FindIndex(instructions, instruction =>
+            instruction.Operation == "ldc.r4" && Equals(instruction.Operand, ExpectedMaximumTemperatureKelvin));
+        bool deserialize = methodIdentity == "PrimaryElement.OnDeserialized";
+        int branch = deserialize ? maximum + 2 : maximum + 1;
+        string comparison = deserialize ? "bge.un.s" : "ble.un.s";
+        string input = deserialize ? "ldloc.0" : "ldarg.2";
 
-        await Assert.That(methodBodies).IsNotEmpty().Because($"No metadata body was found for {methodIdentity}.");
-        await Assert.That(methodsWithMaximum).IsNotEmpty().Because($"{methodIdentity} does not contain the reviewed 10000 K bound. " +
-            $"Observed IL:{Environment.NewLine}{observedBodies}");
-
-        var inclusiveComparisonOperations = new HashSet<string>(
-            StringComparer.Ordinal)
+        bool AcceptsMaximum(AssemblyInstructionContract[] code)
         {
-            "ble",
-            "ble.s",
-            "ble.un",
-            "ble.un.s",
-            "bgt",
-            "bgt.s",
-            "bgt.un",
-            "bgt.un.s",
-            "clt",
-            "clt.un"
-        };
-        await Assert.That(methodsWithMaximum.Any(body => body.Instructions.Any(instruction =>
-                inclusiveComparisonOperations.Contains(instruction.Operation)))).IsTrue().Because($"{methodIdentity} no longer has the reviewed inclusive-bound comparison shape. " +
-            $"Observed IL:{Environment.NewLine}{observedBodies}");
+            // ECMA-335 short branch displacements are relative to the next instruction.
+            // Both game methods fall through into repair and jump over it on success.
+            if (code[deserialize ? maximum + 1 : maximum - 1].Operation != input ||
+                code[branch].Operation != comparison || code[branch].Operand is not sbyte displacement)
+                return false;
+            int accepted = Array.FindIndex(code, op => op.Offset == code[branch + 1].Offset + displacement);
+            if (accepted <= branch + 1 || accepted + 2 >= code.Length) return false;
+            return deserialize
+                ? code[branch + 1].ResolvedOperand == "DeserializeWarnings.Instance" &&
+                    code[accepted].Operation == "ldarg.0" && code[accepted + 1].Operation == input &&
+                    code[accepted + 2].ResolvedOperand == "PrimaryElement._Temperature"
+                : code[branch + 1].Operation == "ldstr" &&
+                    code[branch + 1].ResolvedOperand!.Contains("temp out of bounds", StringComparison.Ordinal) &&
+                    code[accepted].Operation == input && code[accepted + 1].Operation == "ldc.r4" &&
+                    Equals(code[accepted + 1].Operand, 0f) && code[accepted + 2].Operation == "bne.un.s";
+        }
+
+        await Assert.That(AcceptsMaximum(instructions)).IsTrue().Because(body.FormatInstructions());
+        var exclusive = (AssemblyInstructionContract[])instructions.Clone();
+        exclusive[branch] = exclusive[branch] with { Operation = deserialize ? "bgt.un.s" : "blt.un.s" };
+        await Assert.That(AcceptsMaximum(exclusive)).IsFalse();
+        var redirected = (AssemblyInstructionContract[])instructions.Clone();
+        redirected[branch] = redirected[branch] with { Operand = (sbyte)0 };
+        await Assert.That(AcceptsMaximum(redirected)).IsFalse();
     }
-
-    private static bool IsExpectedMaximumOperand(
-        AssemblyInstructionContract instruction) =>
-        instruction.Operand switch
-        {
-            float value => value.Equals(ExpectedMaximumTemperatureKelvin),
-            double value => value.Equals(ExpectedMaximumTemperatureKelvin),
-            int value => value == (int)ExpectedMaximumTemperatureKelvin,
-            _ => false
-        };
 
     private static async Task<string> ResolveInstalledAssemblyPath() =>
         DeliveryTemperatureAssemblyMetadataReader.ResolveManagedAssemblyPath(

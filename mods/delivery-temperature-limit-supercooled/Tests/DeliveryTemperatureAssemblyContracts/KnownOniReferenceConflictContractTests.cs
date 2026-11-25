@@ -1,16 +1,9 @@
-using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using DeliveryTemperatureLimit.Tests.OniModPipelineIntegration;
 
 namespace DeliveryTemperatureLimit.Tests.DeliveryTemperatureAssemblyContracts;
-public sealed partial class KnownOniReferenceConflictContractTests
+public sealed class KnownOniReferenceConflictContractTests
 {
-    private static readonly IReadOnlyDictionary<string, (string FrameworkVersion, string OniVersion)>
-        ExpectedConflicts = new Dictionary<string, (string, string)>(StringComparer.Ordinal)
-        {
-            ["System.IO.Compression"] = ("4.1.3.0", "4.2.0.0"),
-            ["System.Net.Http"] = ("4.1.2.0", "4.2.0.0")
-        };
 
     [Test]
     public async Task ProductionBuild_WhenCurrentOniAssembliesAreUsed_ReportsOnlyReviewedConflictRoots()
@@ -65,19 +58,8 @@ public sealed partial class KnownOniReferenceConflictContractTests
         var combinedOutput = productionBuild.StandardOutput +
             Environment.NewLine +
             productionBuild.StandardError;
-        var observedConflictRoots = ConflictRootPattern()
-            .Matches(combinedOutput)
-            .Select(match => match.Groups["root"].Value)
-            .Distinct(StringComparer.Ordinal)
-            .OrderBy(value => value, StringComparer.Ordinal)
-            .ToArray();
-        await Assert.That(observedConflictRoots).IsEquivalentTo(ExpectedConflicts.Keys.OrderBy(value => value, StringComparer.Ordinal).ToArray(), TUnit.Assertions.Enums.CollectionOrdering.Matching).Because($"The visible MSB3277 inventory changed.{Environment.NewLine}{combinedOutput}");
-
-        foreach (var (assemblyName, versions) in ExpectedConflicts)
-        {
-            await Assert.That(combinedOutput).Contains($"{assemblyName}, Version={versions.FrameworkVersion}").Because($"Framework/reference root changed for {assemblyName}.");
-            await Assert.That(combinedOutput).Contains($"{assemblyName}, Version={versions.OniVersion}").Because($"ONI root changed for {assemblyName}.");
-        }
+        // U60 targets .NET Standard 2.1. Its game references no longer introduce the old Framework conflicts.
+        await Assert.That(combinedOutput).DoesNotContain("warning MSB3277");
     }
 
     [Test]
@@ -99,8 +81,8 @@ public sealed partial class KnownOniReferenceConflictContractTests
             await Assert.That(project.Descendants(property).Any()).IsFalse().Because($"{property} must not conceal the reviewed ONI reference conflicts.");
         }
 
-        var prohibitedDirectReferences = ExpectedConflicts.Keys.ToHashSet(
-            StringComparer.OrdinalIgnoreCase);
+        var prohibitedDirectReferences = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            { "System.IO.Compression", "System.Net.Http" };
         var directReferences = project.Descendants("Reference")
             .Select(element => ((string?)element.Attribute("Include"))?.Split(',')[0])
             .Where(value => value is not null)
@@ -142,8 +124,4 @@ public sealed partial class KnownOniReferenceConflictContractTests
         return value!;
     }
 
-    [GeneratedRegex(
-        "warning MSB3277: Found conflicts between different versions of \\\"(?<root>[^\\\"]+)\\\"",
-        RegexOptions.CultureInvariant)]
-    private static partial Regex ConflictRootPattern();
 }
