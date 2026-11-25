@@ -27,11 +27,18 @@ namespace DeliveryTemperatureLimit
         // the GameObject or registry integer identity in a later loaded game.
         private GameSessionTemperatureLimitRegistrationToken? registrationToken;
 
-        private static readonly EventSystem.IntraObjectHandler<TemperatureLimit>
-            CopySettingsHandler =
-                new EventSystem.IntraObjectHandler<TemperatureLimit>(
-                    (component, data) => component.CopySettings(
-                        Get(data as GameObject)));
+        private static readonly Action<object, object> CopySettingsHandler = OnCopySettings;
+
+        private static void OnCopySettings(object context, object data)
+        {
+            // Klei supplies the registered receiver first and the selected source as event data.
+            // A delayed event can outlive the receiver's registration in a previous colony.
+            if (context is TemperatureLimit receiver && receiver != null &&
+                ReferenceEquals(Get(receiver.gameObject), receiver))
+            {
+                receiver.CopySettings(Get(data as GameObject));
+            }
+        }
 
         public const int MinValue = 0;
 
@@ -109,7 +116,7 @@ namespace DeliveryTemperatureLimit
             try
             {
                 base.OnPrefabInit();
-                Subscribe((int)GameHashes.CopySettings, CopySettingsHandler);
+                Subscribe((int)GameHashes.CopySettings, CopySettingsHandler, this);
             }
             catch (Exception exception)
             {

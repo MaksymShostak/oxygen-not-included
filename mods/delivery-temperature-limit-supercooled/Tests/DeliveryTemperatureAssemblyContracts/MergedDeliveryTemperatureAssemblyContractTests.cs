@@ -86,6 +86,7 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
             await IntentionalRuntimeContractTests.AssertMergedAssembly(assemblyPath);
             await NoShimArchitectureContractTests.AssertMergedAssembly(assemblyPath);
             await AssertPlibIsMergedRatherThanExternallyReferenced(assemblyPath);
+            await AssertCopySettingsSubscription(assemblyPath);
             await AssertSupportedFastTrackFixturesAreNotContainedAsync(
                 repositoryRoot,
                 assemblyPath);
@@ -274,6 +275,21 @@ public sealed class MergedDeliveryTemperatureAssemblyContractTests
         {
             await Assert.That(references).DoesNotContain(prohibitedReference).Because($"{assemblyPath} must not directly reference {prohibitedReference}.");
         }
+    }
+
+    private static async Task AssertCopySettingsSubscription(string assemblyPath)
+    {
+        const string type = "DeliveryTemperatureLimit.TemperatureLimit";
+        var init = DeliveryTemperatureAssemblyMetadataReader.ReadMethodBodies(assemblyPath, type, "OnPrefabInit")
+            .Single().Instructions.ToArray();
+        int subscribe = Array.FindIndex(init, instruction => instruction.ResolvedOperand == "KMonoBehaviour.Subscribe");
+        await Assert.That(subscribe >= 2).IsTrue();
+        await Assert.That(init[subscribe - 2].ResolvedOperand).IsEqualTo(type + ".CopySettingsHandler");
+        await Assert.That(init[subscribe - 1].Operation).IsEqualTo("ldarg.0");
+        var callback = DeliveryTemperatureAssemblyMetadataReader.ReadMethodBodies(assemblyPath, type, "OnCopySettings")
+            .Single().Instructions;
+        await Assert.That(callback.Count(op => op.ResolvedOperand == type + ".CopySettings")).IsEqualTo(1);
+        await Assert.That(callback.Any(op => op.Operation == "ldarg.1")).IsTrue();
     }
 
     private static async Task AssertPlibIsMergedRatherThanExternallyReferenced(

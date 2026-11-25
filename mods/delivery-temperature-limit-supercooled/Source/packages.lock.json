@@ -10,9 +10,9 @@
       },
       "PLib": {
         "type": "Direct",
-        "requested": "[4.25.0, )",
-        "resolved": "4.25.0",
-        "contentHash": "Vu8DyNlKIHS41oYgZENAAyxo8PXLqU/jyc7MbEvoaQY/1yZkIUrrLvA9TwQONaJvj8T7EvBNpvMt8uN4NVrehg==",
+        "requested": "[4.26.0, )",
+        "resolved": "4.26.0",
+        "contentHash": "Hs7Z70J7Otdcks7ECzh0hyiDbGj3MpSgtcMVbgyEJVi8oiIM8DI3iG7TKjgqso8cxl0nIea60gRfoWlKx7hWyQ==",
         "dependencies": {
           "Lib.Harmony.Ref": "2.4.2"
         }
