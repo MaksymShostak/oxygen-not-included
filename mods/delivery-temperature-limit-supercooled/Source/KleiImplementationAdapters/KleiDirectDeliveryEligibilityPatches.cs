@@ -568,12 +568,35 @@ namespace DeliveryTemperatureLimit
 
             int increment = HarmonyPatchContractVerifier.RequireSingleMatch(indices, i => code[i].labels.Contains(next),
                 "Klei sweep next candidate");
-            if (increment <= join + 15 || increment + 4 >= code.Count ||
+            for (int i = join + 1; i <= join + 7; i++)
+                if (code[i].labels.Count != 0)
+                    throw new HarmonyPatchContractViolationException("Another sweep path enters the native context after the temperature gate.");
+
+            Type range = original.GetParameters()[0].ParameterType;
+            FieldInfo count = HarmonyPatchContractVerifier.RequireField(range, "count",
+                DeclaredMemberVisibility.Public, FieldStorageKind.Instance, typeof(int));
+            FieldInfo start = HarmonyPatchContractVerifier.RequireField(range, "start",
+                DeclaredMemberVisibility.Public, FieldStorageKind.Instance, typeof(int));
+            if (increment <= join + 15 || increment + 7 >= code.Count ||
                 !code[increment].labels.Contains(preconditionRejected) || !IsLoadLocal(code[increment]) ||
                 code[increment + 1].opcode != OpCodes.Ldc_I4_1 || code[increment + 2].opcode != OpCodes.Add ||
                 !IsStoreLocal(code[increment + 3]) || GetLocalIndex(code[increment]) != GetLocalIndex(code[increment + 3]) ||
-                !IsLoadLocal(code[increment + 4]) || GetLocalIndex(code[increment]) != GetLocalIndex(code[increment + 4]))
+                !IsLoadLocal(code[increment + 4]) || GetLocalIndex(code[increment]) != GetLocalIndex(code[increment + 4]) ||
+                !IsLoadArgument(code[increment + 5], 1) || !IsFieldLoad(code[increment + 6], count) ||
+                (code[increment + 7].opcode != OpCodes.Blt && code[increment + 7].opcode != OpCodes.Blt_S) ||
+                !(code[increment + 7].operand is Label nextPair))
                 throw new HarmonyPatchContractViolationException("Klei sweep rejection no longer advances the candidate index.");
+            int pair = HarmonyPatchContractVerifier.RequireSingleMatch(indices, i => code[i].labels.Contains(nextPair),
+                "Klei sweep indexed candidate");
+            if (pair + 11 != join - 11 || !IsLoadArgument(code[pair], 2) || !IsLoadArgument(code[pair + 1], 1) ||
+                !IsFieldLoad(code[pair + 2], start) || !IsLoadLocal(code[pair + 3]) ||
+                GetLocalIndex(code[pair + 3]) != GetLocalIndex(code[increment]) || code[pair + 4].opcode != OpCodes.Add ||
+                !IsCall(code[pair + 5], typeof(List<int>).GetMethod("get_Item")!) || !IsStoreLocal(code[pair + 6]) ||
+                !IsLoadArgument(code[pair + 7], 3) || !IsLoadLocal(code[pair + 8]) ||
+                GetLocalIndex(code[pair + 6]) != GetLocalIndex(code[pair + 8]) ||
+                !IsCall(code[pair + 9], typeof(List<GlobalChoreProvider.Fetch>).GetMethod("get_Item")!) ||
+                !IsStoreLocal(code[pair + 10]) || GetLocalIndex(code[pair + 10]) != GetLocalIndex(code[join + 1]))
+                throw new HarmonyPatchContractViolationException("Klei sweep loop no longer reads the indexed candidate.");
             RequireSafeExtensionBoundary(code, join - 7, join + 15, "Klei sweep candidate");
             return join;
         }

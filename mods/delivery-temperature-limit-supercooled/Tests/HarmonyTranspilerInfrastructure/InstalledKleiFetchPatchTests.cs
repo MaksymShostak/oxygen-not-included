@@ -33,15 +33,77 @@ public sealed class InstalledKleiFetchPatchTests
     }
 
     [Test]
+    public async Task SweepSelectsTheFirstEligibleNativeCandidateForEachPickup()
+    {
+        using var game = new InstalledGame();
+        var code = game.Rewrite("KleiDirectDeliveryEligibilityPatches", "ResolveClearableManager",
+            method => method.Name.EndsWith("EvaluateFetchRangeTranspiler", StringComparison.Ordinal));
+        var pair = CompileSweepPair(code);
+        int visited = 0;
+        string Pick(int kelvin, bool limits, bool exact, bool tag, bool nativeAcceptsHot)
+        {
+            visited = 0;
+            foreach (var (name, low, high, native) in new[] { ("hot", 400, 501, nativeAcceptsHot), ("cold", 100, 201, true) })
+                if (pair(exact ? 1 : 0, tag, !limits || low <= kelvin && kelvin < high, native, () => visited++))
+                    return name;
+            return "";
+        }
+        await Assert.That(Pick(150, true, true, true, true)).IsEqualTo("cold");
+        await Assert.That(visited).IsEqualTo(1);
+        await Assert.That(Pick(450, true, false, false, true)).IsEqualTo("hot");
+        await Assert.That(Pick(450, true, true, true, false)).IsEqualTo("");
+        await Assert.That(Pick(300, true, true, true, true)).IsEqualTo("");
+        await Assert.That(visited).IsEqualTo(0);
+        await Assert.That(Pick(150, true, true, false, true)).IsEqualTo("");
+        await Assert.That(Pick(150, false, true, true, false)).IsEqualTo("cold");
+        await Assert.That(visited).IsEqualTo(2);
+    }
+
+    private delegate bool SweepPair(int criteria, bool tag, bool temperatureAllowed, bool preconditions, Action run);
+    private static SweepPair CompileSweepPair(List<Instruction> code)
+    {
+        // Execute the emitted branch instructions unchanged. The fixture supplies the
+        // Unity-dependent predicate results and counts calls at Klei's native precondition boundary.
+        var method = new DynamicMethod("SweepCandidateControlFlow", typeof(bool),
+            [typeof(int), typeof(bool), typeof(bool), typeof(bool), typeof(Action)]);
+        var il = method.GetILGenerator();
+        int first = code.FindIndex(op => op.Code == OpCodes.Bne_Un_S || op.Code == OpCodes.Bne_Un);
+        int failed = code.FindIndex(op => op.Member == "IsSuccess") + 1;
+        int next = code.FindIndex(op => op.Labels.Contains((Label)code[failed].Operand!));
+        var labels = Enumerable.Range(0, next + 1).Select(_ => il.DefineLabel()).ToArray();
+        for (int i = first; i <= next; i++)
+        {
+            var op = code[i];
+            il.MarkLabel(labels[i]);
+            if (i == first) { il.Emit(OpCodes.Ldarg_0); il.Emit(OpCodes.Ldc_I4_1); }
+            if (op.Member == "HasTag") il.Emit(OpCodes.Ldarg_1);
+            else if (op.Member == "IsPickupAllowedForFetchChore") il.Emit(OpCodes.Ldarg_2);
+            else if (op.Member == "IsSuccess") il.Emit(OpCodes.Ldarg_3);
+            else if (op.Member == "RunPreconditions")
+            {
+                il.Emit(OpCodes.Ldarg_S, (byte)4);
+                il.Emit(OpCodes.Callvirt, typeof(Action).GetMethod(nameof(Action.Invoke))!);
+            }
+            else if (op.Operand is Label target && op.Code.FlowControl == FlowControl.Cond_Branch)
+                il.Emit(op.Code, labels[code.FindIndex(item => item.Labels.Contains(target))]);
+            else if (op.Code == OpCodes.Ret) { il.Emit(OpCodes.Ldc_I4_1); il.Emit(OpCodes.Ret); }
+            else if (i == next) { il.Emit(OpCodes.Ldc_I4_0); il.Emit(OpCodes.Ret); }
+        }
+        return method.CreateDelegate<SweepPair>();
+    }
+
+    [Test]
     [Arguments("missing")]
     [Arguments("duplicate")]
     [Arguments("redirected")]
+    [Arguments("interior")]
+    [Arguments("loop-exit")]
     public async Task SweepPreflightRejectsAnUnprovedCandidateGate(string mutation)
     {
         using var game = new InstalledGame();
         var failure = await Assert.That(() => game.Rewrite("KleiDirectDeliveryEligibilityPatches",
             "ResolveClearableManager", method => method.Name.EndsWith("EvaluateFetchRangeTranspiler", StringComparison.Ordinal),
-            il =>
+            (il, generator) =>
             {
                 var items = il.Cast<object>().ToList();
                 var type = items[0].GetType();
@@ -50,7 +112,18 @@ public sealed class InstalledKleiFetchPatchTests
                 int hasTag = items.FindIndex(item => (operand.GetValue(item) as MethodInfo)?.Name == "HasTag");
                 if (mutation == "missing") il.RemoveAt(set);
                 else if (mutation == "duplicate") il.Add(items[set]);
-                else operand.SetValue(items[hasTag + 1], operand.GetValue(items[hasTag - 5]));
+                else if (mutation == "redirected") operand.SetValue(items[hasTag + 1], operand.GetValue(items[hasTag - 5]));
+                else if (mutation == "interior")
+                {
+                    var label = generator.DefineLabel();
+                    ((List<Label>)type.GetField("labels")!.GetValue(items[set - 6])!).Add(label);
+                    il.Add(Activator.CreateInstance(type, OpCodes.Br, label));
+                }
+                else
+                {
+                    var rangeCount = items.Single(item => (operand.GetValue(item) as FieldInfo)?.Name == "count");
+                    type.GetField("opcode")!.SetValue(rangeCount, OpCodes.Pop);
+                }
             })).ThrowsExactly<TargetInvocationException>();
         await Assert.That(failure!.InnerException!.GetType().Name).IsEqualTo("HarmonyPatchContractViolationException");
     }
@@ -179,7 +252,7 @@ public sealed class InstalledKleiFetchPatchTests
             return File.Exists(path) ? LoadFromAssemblyPath(path) : null;
         }
 
-        internal List<Instruction> Rewrite(string adapter, string resolverPrefix, Func<MethodInfo, bool> match, Action<IList>? mutate = null)
+        internal List<Instruction> Rewrite(string adapter, string resolverPrefix, Func<MethodInfo, bool> match, Action<IList, ILGenerator>? mutate = null)
         {
             const BindingFlags declared = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance |
                 BindingFlags.Static | BindingFlags.DeclaredOnly;
@@ -190,7 +263,7 @@ public sealed class InstalledKleiFetchPatchTests
                 .GetMethods().Single(m => m.Name == "GetOriginalInstructions" && m.GetParameters()[1].ParameterType == typeof(ILGenerator));
             var generator = new DynamicMethod("ReadInstalledChore", typeof(void), Type.EmptyTypes).GetILGenerator();
             var il = reader.Invoke(null, [original, generator]);
-            mutate?.Invoke((IList)il!);
+            mutate?.Invoke((IList)il!, generator);
             var patch = members.Single(match);
             var result = (IEnumerable)patch.Invoke(null, [il, patch.GetParameters()[1].ParameterType == typeof(ILGenerator) ? generator : original])!;
             return result.Cast<object>().Select(instruction =>
