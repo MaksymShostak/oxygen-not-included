@@ -1,8 +1,8 @@
 Microsoft.VisualStudio.SolutionPersistence
 Copyright (c) Microsoft Corporation
 
-Microsoft.Extensions.FileSystemGlobbing
-Copyright (c) .NET Foundation and Contributors
+Microsoft.Build and Microsoft.Build.Framework
+Copyright (c) .NET Foundation and contributors
 
 The MIT License (MIT)
 

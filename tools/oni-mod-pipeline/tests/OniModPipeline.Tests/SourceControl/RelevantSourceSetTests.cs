@@ -313,6 +313,52 @@ public sealed class RelevantSourceSetTests
             ["mods/example/Source/lib/parts/regular/Used.cs", "mods/example/Source/lib/Strings.resx"]).Because(string.Join(", ", result.Value.DirtyPaths));
     }
 
+    [Test]
+    public async Task Inspect_UsesMsBuildSingleCharacterPatternsAndOrderedItemRemovals()
+    {
+        using var directory = new TemporaryDirectory();
+        var profile = CreateProfileFixture(directory);
+        string source = Path.Combine(profile.ModRoot, "Source");
+        File.WriteAllText(directory.GetPath(".gitignore"), "lib/\n");
+        File.WriteAllText(Path.Combine(source, "Example.fsproj"), """
+            <Project Sdk="Microsoft.NET.Sdk"><ItemGroup>
+              <Compile Include="lib/Part?.fs;lib/*.fsi" />
+              <Compile Remove="lib/Drop.fsi;lib/Again.fsi" />
+              <Compile Include="lib/Again.fsi" />
+            </ItemGroup></Project>
+            """);
+        profile = profile with { Build = profile.Build! with { EntryPoint = "Source/Example.fsproj" } };
+        TestGitRepository.CommitAll(directory.Path);
+        foreach (string name in new[] { "Part2.fs", "Part22.fs", "Keep.fsi", "Drop.fsi", "Again.fsi" })
+            WriteFile(Path.Combine(source, "lib", name));
+        var result = await new GitRepositoryInspector().InspectAsync(profile, null, CancellationToken.None);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value!.DirtyPaths.ToArray()).IsEquivalentTo(
+            ["mods/example/Source/lib/Part2.fs", "mods/example/Source/lib/Keep.fsi", "mods/example/Source/lib/Again.fsi"]);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task Inspect_RetainsDeletedInputsOfASolutionMemberOutsideTheSolutionDirectory(bool staged)
+    {
+        using var directory = new TemporaryDirectory();
+        var profile = CreateProfileFixture(directory);
+        string solutionDirectory = Directory.CreateDirectory(Path.Combine(profile.ModRoot, "solutions")).FullName;
+        File.WriteAllText(Path.Combine(solutionDirectory, "Release.slnx"), """<Solution><Project Path="../Source/Example.csproj" /></Solution>""");
+        profile = profile with { Build = profile.Build! with { EntryPoint = "solutions/Release.slnx" } };
+        TestGitRepository.CommitAll(directory.Path);
+        File.Delete(Path.Combine(profile.ModRoot, "Source", "Code.cs"));
+        if (staged)
+        {
+            using var repository = new LibGit2Sharp.Repository(directory.Path);
+            LibGit2Sharp.Commands.Stage(repository, "mods/example/Source/Code.cs");
+        }
+        var result = await new GitRepositoryInspector().InspectAsync(profile, null, CancellationToken.None);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value!.DirtyPaths.ToArray()).IsEquivalentTo(["mods/example/Source/Code.cs"]);
+    }
+
     private static ModProfile CreateProfileFixture(TemporaryDirectory temporaryDirectory)
     {
         var modRoot = temporaryDirectory.GetPath("mods", "example");

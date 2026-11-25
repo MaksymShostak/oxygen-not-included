@@ -1,6 +1,6 @@
 using MaksymShostak.OniModPipeline.Diagnostics;
 using MaksymShostak.OniModPipeline.ModProfiles;
-using Microsoft.Extensions.FileSystemGlobbing;
+using Microsoft.Build.Globbing;
 using Microsoft.VisualStudio.SolutionPersistence.Model;
 using Microsoft.VisualStudio.SolutionPersistence.Serializer;
 
@@ -221,12 +221,7 @@ internal sealed record RelevantSourceSet(
             token.ThrowIfCancellationRequested();
             string directory = Path.GetDirectoryName(entryPoint)!;
             bool solution = SourceExtension(entryPoint) is null;
-            foreach (var path in observedPaths)
-            {
-                if (!TryGetDescendantRelativePath(directory, path, out var relative)) continue;
-                if (solution ? HasBuildDirectorySegment(relative) : IsTopLevelBuildOutput(relative)) continue;
-                AddAbsolutePath(path);
-            }
+            AddObservedProjectPaths(directory, observedPaths, solution);
 
             string? input = ExistingContainedFile(entryPoint);
             if (input is null) return;
@@ -246,7 +241,20 @@ internal sealed record RelevantSourceSet(
                 AddAbsolutePath(member);
                 string? existing = ExistingContainedFile(member);
                 if (existing is not null && SourceExtension(existing) is not null)
+                {
+                    AddObservedProjectPaths(Path.GetDirectoryName(existing)!, observedPaths, solution: false);
                     AddSdkProjectInputs(existing);
+                }
+            }
+        }
+
+        private void AddObservedProjectPaths(string directory, IReadOnlyList<string> observedPaths, bool solution)
+        {
+            foreach (var path in observedPaths)
+            {
+                if (!TryGetDescendantRelativePath(directory, path, out var relative)) continue;
+                if (solution ? HasBuildDirectorySegment(relative) : IsTopLevelBuildOutput(relative)) continue;
+                AddAbsolutePath(path);
             }
         }
 
@@ -267,31 +275,25 @@ internal sealed record RelevantSourceSet(
             var inputs = SdkProjectInputs.Read(project, SourceExtension(project)!);
             bool IncludeDirectory(string path) => !Path.GetFileName(path).StartsWith('.') &&
                 !IsTopLevelBuildOutput(Path.GetRelativePath(root, path));
-            bool IncludeFile(string path) => inputs.IncludesDefault(Path.GetRelativePath(root, path));
-            foreach (var path in EnumerateRegularFiles(root, IncludeDirectory, IncludeFile))
+            foreach (var path in EnumerateRegularFiles(root, IncludeDirectory, path => inputs.Includes(path, useDefaults: true)))
                 AddAbsolutePath(path);
-            foreach (var pattern in inputs.DeclaredItems)
-                AddDeclaredProjectItems(root, pattern);
+            foreach (var pattern in inputs.DeclaredIncludes)
+                AddDeclaredProjectItems(inputs, pattern);
         }
 
-        private void AddDeclaredProjectItems(string projectDirectory, SdkProjectInputs.Item item)
+        private void AddDeclaredProjectItems(SdkProjectInputs inputs, MSBuildGlob pattern)
         {
-            var (prefix, glob) = BindPattern(projectDirectory, item.Include);
-            var exclusions = new Matcher(StringComparison.OrdinalIgnoreCase);
-            foreach (var exclude in item.Excludes)
+            string prefix = Path.TrimEndingDirectorySeparator(pattern.FixedDirectoryPart);
+            if (pattern.WildcardDirectoryPart.Length == 0 && pattern.FilenamePart.IndexOfAny(['*', '?']) < 0)
             {
-                var (excludeRoot, tail) = BindPattern(projectDirectory, exclude);
-                string relative = Path.GetRelativePath(WorktreeRoot, excludeRoot).Replace('\\', '/');
-                exclusions.AddInclude(tail is null ? relative : (relative == "." ? tail : relative + "/" + tail));
-            }
-            bool Excluded(string path) => exclusions.Match(Path.GetRelativePath(WorktreeRoot, path).Replace('\\', '/')).HasMatches;
-            if (glob is null)
-            {
-                if (!Excluded(prefix) && ExistingContainedFile(prefix) is { } file) AddAbsolutePath(file);
+                string file = Path.Combine(prefix, pattern.FilenamePart);
+                if (inputs.Includes(file, useDefaults: false) && ExistingContainedFile(file) is { } present)
+                    AddAbsolutePath(present);
                 return;
             }
 
-            // Validate the non-wildcard prefix before enumerating anything on disk.
+            // The native glob supplies the search prefix and matching semantics; validate the
+            // prefix against the checkout before inspecting any of its children.
             if (Path.GetRelativePath(WorktreeRoot, prefix) != ".")
             {
                 var verified = ContainedPathResolver.ResolveExistingDirectory(WorktreeRoot, GetWorktreeRelativePath(prefix));
@@ -302,20 +304,9 @@ internal sealed record RelevantSourceSet(
                     throw new SourceSetException(diagnostic, verified.ExitCode);
                 }
             }
-            var includes = new Matcher(StringComparison.OrdinalIgnoreCase).AddInclude(glob);
-            bool Matches(string path) => includes.Match(Path.GetRelativePath(prefix, path).Replace('\\', '/')).HasMatches && !Excluded(path);
-            foreach (var path in EnumerateRegularFiles(prefix, includeFile: Matches)) AddAbsolutePath(path);
-        }
-
-        private (string Path, string? Glob) BindPattern(string projectDirectory, string pattern)
-        {
-            int wildcard = pattern.IndexOfAny(['*', '?']);
-            if (wildcard < 0) return (ResolveDeclaredPath(projectDirectory, pattern), null);
-            int slash = pattern.LastIndexOf('/', wildcard);
-            string prefix = slash < 0 ? "." : pattern[..(slash + 1)];
-            var directory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(Path.Combine(projectDirectory, prefix)));
-            if (Path.GetRelativePath(WorktreeRoot, directory) != ".") EnsureInsideWorktree(directory);
-            return (directory, pattern[(slash + 1)..]);
+            bool Recurse(string _) => pattern.WildcardDirectoryPart.Length != 0;
+            bool Matches(string path) => pattern.IsMatch(path) && inputs.Includes(path, useDefaults: false);
+            foreach (var path in EnumerateRegularFiles(prefix, Recurse, Matches)) AddAbsolutePath(path);
         }
 
         private static string? SourceExtension(string project) => Path.GetExtension(project).ToLowerInvariant() switch

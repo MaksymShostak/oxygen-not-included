@@ -22,12 +22,12 @@
     <None Include="$([System.IO.Path]::GetDirectoryName('$(libgit2_propsfile)'))/../libgit2/libgit2.license.txt"
           Link="licenses/libgit2.txt" CopyToPublishDirectory="PreserveNewest" Pack="false"
           Condition="'$(libgit2_propsfile)' != ''" />
-    <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Build" GeneratePathProperty="true" />
+    <None Include="$(PkgMicrosoft_Build)/notices/THIRDPARTYNOTICES.txt"
+          Link="licenses/MSBuild-NOTICES.txt" CopyToPublishDirectory="PreserveNewest" Pack="false" />
     <PackageReference Include="Microsoft.VisualStudio.SolutionPersistence" GeneratePathProperty="true" />
     <None Include="$(PkgMicrosoft_VisualStudio_SolutionPersistence)/NOTICE"
           Link="licenses/SolutionPersistence-NOTICE.txt" CopyToPublishDirectory="PreserveNewest" Pack="false" />
-    <None Include="$(PkgMicrosoft_Extensions_FileSystemGlobbing)/THIRD-PARTY-NOTICES.TXT"
-          Link="licenses/FileSystemGlobbing-NOTICES.txt" CopyToPublishDirectory="PreserveNewest" Pack="false" />
     <None Update="licenses/Microsoft-MIT.txt" CopyToPublishDirectory="PreserveNewest" Pack="false" />
     <PackageReference Include="System.CommandLine" />
     <PackageReference Include="Tomlyn" />
