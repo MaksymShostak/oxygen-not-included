@@ -18,14 +18,14 @@ public sealed class RelevantSourceSetTests
         var profile = CreateProfileFixture(directory);
         var path = directory.GetPath(control);
         WriteFile(path);
-        var present = RelevantSourceSet.Create(profile, directory.Path, [], null);
+        var present = await RelevantSourceSet.CreateAsync(profile, directory.Path, [], null);
         await Assert.That(present.IsSuccess).IsTrue();
         await Assert.That(present.Value!.WorktreeRelativePaths.ToArray()).Contains(control);
         File.Delete(path);
-        var deleted = RelevantSourceSet.Create(profile, directory.Path, [control], null);
+        var deleted = await RelevantSourceSet.CreateAsync(profile, directory.Path, [control], null);
         await Assert.That(deleted.IsSuccess).IsTrue();
         await Assert.That(deleted.Value!.WorktreeRelativePaths.ToArray()).Contains(control);
-        var absent = RelevantSourceSet.Create(profile, directory.Path, [], null);
+        var absent = await RelevantSourceSet.CreateAsync(profile, directory.Path, [], null);
         await Assert.That(absent.IsSuccess).IsTrue();
         await Assert.That(absent.Value!.WorktreeRelativePaths.Contains(control)).IsFalse();
     }
@@ -37,7 +37,7 @@ public sealed class RelevantSourceSetTests
         var profile = CreateProfileFixture(directory) with { Readme = new ReadmeProfile("README.md") };
         var inputs = new[] { "README.md", "package.json", "package-lock.json", ".markdown-quality.json", ".markdown-quality-execution.json", ".node-version", ".python-version", "tools/readme/canonicalize.mjs", "tools/readme/render-description.mjs", "tools/readme/compatibility-badges.mjs" };
         foreach (var path in inputs) WriteFile(directory.GetPath(path));
-        var result = RelevantSourceSet.Create(profile, directory.Path, ["README.md", "package.json", "package-lock.json"], null);
+        var result = await RelevantSourceSet.CreateAsync(profile, directory.Path, ["README.md", "package.json", "package-lock.json"], null);
         await Assert.That(result.IsSuccess).IsTrue();
         foreach (var path in inputs)
             await Assert.That(result.Value!.WorktreeRelativePaths.ToArray()).Contains(path);
@@ -52,7 +52,7 @@ public sealed class RelevantSourceSetTests
             .Select(path => NormalizeRelative(temporaryDirectory.Path, path))
             .ToArray();
 
-        var result = RelevantSourceSet.Create(
+        var result = await RelevantSourceSet.CreateAsync(
             profile,
             temporaryDirectory.Path,
             trackedPaths,
@@ -98,7 +98,7 @@ public sealed class RelevantSourceSetTests
         WriteFile(Path.Combine(toolRoot, "tests", "OniModPipeline.Tests", "SmokeTests.cs"));
         WriteFile(executablePath);
 
-        var result = RelevantSourceSet.Create(
+        var result = await RelevantSourceSet.CreateAsync(
             profile,
             temporaryDirectory.Path,
             [],
@@ -125,7 +125,7 @@ public sealed class RelevantSourceSetTests
         var executablePath = externalDirectory.GetPath("oni-mod-pipeline.dll");
         WriteFile(executablePath);
 
-        var result = RelevantSourceSet.Create(
+        var result = await RelevantSourceSet.CreateAsync(
             profile,
             temporaryDirectory.Path,
             [],
@@ -146,10 +146,10 @@ public sealed class RelevantSourceSetTests
         var profile = CreateProfileFixture(directory) with { Readme = new ReadmeProfile("README.md") };
         foreach (var input in new[] { "README.md", "package.json", "package-lock.json", ".node-version", ".python-version", "tools/readme/canonicalize.mjs", "tools/readme/render-description.mjs", "tools/readme/compatibility-badges.mjs" })
             WriteFile(directory.GetPath(input));
-        var absent = RelevantSourceSet.Create(profile, directory.Path, [], null);
+        var absent = await RelevantSourceSet.CreateAsync(profile, directory.Path, [], null);
         await Assert.That(absent.IsSuccess).IsTrue();
         await Assert.That(absent.Value!.WorktreeRelativePaths.Contains(control)).IsFalse();
-        var deleted = RelevantSourceSet.Create(profile, directory.Path, [control], null);
+        var deleted = await RelevantSourceSet.CreateAsync(profile, directory.Path, [control], null);
         await Assert.That(deleted.IsSuccess).IsTrue();
         await Assert.That(deleted.Value!.WorktreeRelativePaths.ToArray()).Contains(control);
     }
@@ -167,7 +167,7 @@ public sealed class RelevantSourceSetTests
             LibGit2Sharp.Commands.Stage(repository, "mods/example/Source/Before.cs");
         File.WriteAllText(Path.Combine(profile.ModRoot, "Source", "After.cs"), "// new untracked input");
 
-        var result = new GitRepositoryInspector().Inspect(profile, null, CancellationToken.None);
+        var result = await new GitRepositoryInspector().InspectAsync(profile, null, CancellationToken.None);
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value!.DirtyPaths.ToArray()).IsEquivalentTo(
             ["mods/example/Source/Before.cs", "mods/example/Source/After.cs"]);
@@ -186,7 +186,7 @@ public sealed class RelevantSourceSetTests
         WriteFile(Path.Combine(profile.ModRoot, "Source", "nested", "bin", "StillCompiled.cs"));
         WriteFile(Path.Combine(profile.ModRoot, "Source", "obj", "Generated.cs"));
 
-        var result = new GitRepositoryInspector().Inspect(profile, null, CancellationToken.None);
+        var result = await new GitRepositoryInspector().InspectAsync(profile, null, CancellationToken.None);
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value!.DirtyPaths.ToArray()).IsEquivalentTo(
             ["mods/example/Source/lib/Ignored.cs", "mods/example/Source/nested/bin/StillCompiled.cs", "mods/example/Tests/lib/Messages.resx"]);
@@ -211,9 +211,106 @@ public sealed class RelevantSourceSetTests
             LibGit2Sharp.Commands.Stage(repository, "mods/example/sprites/removed.png");
         }
 
-        var result = new GitRepositoryInspector().Inspect(profile, null, CancellationToken.None);
+        var result = await new GitRepositoryInspector().InspectAsync(profile, null, CancellationToken.None);
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value!.DirtyPaths.ToArray()).IsEquivalentTo(["mods/example/sprites/removed.png"]);
+    }
+
+    [Test]
+    [Arguments(".slnx")]
+    [Arguments(".sln")]
+    public async Task Inspect_UsesDeclaredSolutionMembersForIgnoredCompilerFiles(string format)
+    {
+        using var directory = new TemporaryDirectory();
+        var profile = CreateProfileFixture(directory);
+        string source = Path.Combine(profile.ModRoot, "Source");
+        string solution = Path.Combine(source, "Release" + format);
+        File.WriteAllText(directory.GetPath(".gitignore"), "lib/\n");
+        string document = format == ".slnx" ? """<Solution><Project Path="lib/Member.csproj" /></Solution>""" :
+            """
+            Microsoft Visual Studio Solution File, Format Version 12.00
+            Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Member", "lib\Member.csproj", "{68B559FC-18A6-43BE-A1AD-FFE42A115500}"
+            EndProject
+            Global
+            EndGlobal
+            """;
+        File.WriteAllText(solution, document);
+        profile = profile with { Build = profile.Build! with { EntryPoint = "Source/Release" + format } };
+        WriteFile(Path.Combine(source, "sibling", "Unlisted.csproj"));
+        TestGitRepository.CommitAll(directory.Path);
+        WriteFile(Path.Combine(source, "lib", "Member.csproj"));
+        WriteFile(Path.Combine(source, "lib", "Member.cs"));
+        WriteFile(Path.Combine(source, "sibling", "lib", "Personal.cs"));
+
+        var result = await new GitRepositoryInspector().InspectAsync(profile, null, CancellationToken.None);
+        await Assert.That(result.IsSuccess).IsTrue().Because(string.Join(" ", result.Diagnostics.Select(d => d.Evidence)));
+        await Assert.That(result.Value!.DirtyPaths.ToArray()).IsEquivalentTo(
+            ["mods/example/Source/lib/Member.csproj", "mods/example/Source/lib/Member.cs"]);
+    }
+
+    [Test]
+    public async Task Create_RejectsALinkedSolutionMemberBeforeEnumeratingItsDirectory()
+    {
+        using var directory = new TemporaryDirectory();
+        var profile = CreateProfileFixture(directory);
+        string source = Path.Combine(profile.ModRoot, "Source");
+        File.WriteAllText(Path.Combine(source, "Release.slnx"), """<Solution><Project Path="linked/Member.csproj" /></Solution>""");
+        WriteFile(directory.GetPath("external", "Member.csproj"));
+        profile = profile with { Build = profile.Build! with { EntryPoint = "Source/Release.slnx" } };
+        string link = await TestDirectoryLink.CreateAsync(source, "linked", "../../../external");
+        try
+        {
+            var result = await RelevantSourceSet.CreateAsync(profile, directory.Path, ["mods/example/Source/linked/Member.csproj"], null);
+            await Assert.That(result.IsSuccess).IsFalse();
+            await Assert.That(result.Diagnostics.Single().Id).IsEqualTo("ONIP1003");
+        }
+        finally { Directory.Delete(link, recursive: false); }
+    }
+
+    [Test]
+    public async Task Inspect_FSharpTracksItsDeclaredSourceListAndAllowsUnlistedIgnoredFiles()
+    {
+        using var directory = new TemporaryDirectory();
+        var profile = CreateProfileFixture(directory);
+        string source = Path.Combine(profile.ModRoot, "Source");
+        File.WriteAllText(directory.GetPath(".gitignore"), "lib/\n");
+        File.WriteAllText(Path.Combine(source, "Example.fsproj"),
+            """<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><Compile Include="lib/Active.fs" /></ItemGroup></Project>""");
+        profile = profile with { Build = profile.Build! with { EntryPoint = "Source/Example.fsproj" } };
+        TestGitRepository.CommitAll(directory.Path);
+        WriteFile(Path.Combine(source, "lib", "Active.fs"));
+        WriteFile(Path.Combine(source, "lib", "Personal.fs"));
+        WriteFile(Path.Combine(source, "lib", "Unused.fsi"));
+        var result = await new GitRepositoryInspector().InspectAsync(profile, null, CancellationToken.None);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value!.DirtyPaths.ToArray()).IsEquivalentTo(["mods/example/Source/lib/Active.fs"]);
+    }
+
+    [Test]
+    public async Task Inspect_ExplicitCompilerGlobHonorsItsExclusionsIndependentlyOfResources()
+    {
+        using var directory = new TemporaryDirectory();
+        var profile = CreateProfileFixture(directory);
+        string source = Path.Combine(profile.ModRoot, "Source");
+        File.WriteAllText(directory.GetPath(".gitignore"), "lib/\n");
+        File.WriteAllText(Path.Combine(source, "Example.csproj"), """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup>
+              <ItemGroup>
+                <Compile Include="lib/parts/**/*.cs" Exclude="lib/parts/local/**" />
+                <Compile Remove="**/*.resx" />
+              </ItemGroup>
+            </Project>
+            """);
+        TestGitRepository.CommitAll(directory.Path);
+        WriteFile(Path.Combine(source, "lib", "parts", "regular", "Used.cs"));
+        WriteFile(Path.Combine(source, "lib", "parts", "local", "Personal.cs"));
+        WriteFile(Path.Combine(source, "lib", "Other.cs"));
+        WriteFile(Path.Combine(source, "lib", "Strings.resx"));
+        var result = await new GitRepositoryInspector().InspectAsync(profile, null, CancellationToken.None);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value!.DirtyPaths.ToArray()).IsEquivalentTo(
+            ["mods/example/Source/lib/parts/regular/Used.cs", "mods/example/Source/lib/Strings.resx"]).Because(string.Join(", ", result.Value.DirtyPaths));
     }
 
     private static ModProfile CreateProfileFixture(TemporaryDirectory temporaryDirectory)
@@ -268,7 +365,8 @@ public sealed class RelevantSourceSetTests
     private static void WriteFile(string path)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, "content");
+        File.WriteAllText(path, Path.GetExtension(path) is ".csproj" or ".fsproj" or ".vbproj"
+            ? """<Project Sdk="Microsoft.NET.Sdk" />""" : "content");
     }
 
     private static string NormalizeRelative(string root, string path) =>

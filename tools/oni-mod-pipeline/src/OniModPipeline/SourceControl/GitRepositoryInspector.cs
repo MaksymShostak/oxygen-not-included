@@ -15,7 +15,7 @@ internal sealed record GitProvenance(
 
 internal sealed class GitRepositoryInspector
 {
-    internal OperationResult<GitProvenance> Inspect(
+    internal Task<OperationResult<GitProvenance>> InspectAsync(
         string workingDirectory,
         IReadOnlyList<string> contributingAbsolutePaths,
         CancellationToken cancellationToken)
@@ -23,30 +23,30 @@ internal sealed class GitRepositoryInspector
         ArgumentException.ThrowIfNullOrWhiteSpace(workingDirectory);
         ArgumentNullException.ThrowIfNull(contributingAbsolutePaths);
 
-        return Inspect(
+        return InspectAsync(
             workingDirectory,
-            (worktreeRoot, _) => ResolveContributingPaths(
+            (worktreeRoot, _) => Task.FromResult(ResolveContributingPaths(
                 worktreeRoot,
-                contributingAbsolutePaths),
+                contributingAbsolutePaths)),
             cancellationToken);
     }
 
-    internal OperationResult<GitProvenance> Inspect(
+    internal Task<OperationResult<GitProvenance>> InspectAsync(
         ModProfile profile,
         string? pipelineExecutablePath,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(profile);
 
-        return Inspect(
+        return InspectAsync(
             profile.ModRoot,
-            (worktreeRoot, observedPaths) =>
+            async (worktreeRoot, observedPaths) =>
             {
-                var sourceSetResult = RelevantSourceSet.Create(
+                var sourceSetResult = await RelevantSourceSet.CreateAsync(
                     profile,
                     worktreeRoot,
                     observedPaths,
-                    pipelineExecutablePath);
+                    pipelineExecutablePath, cancellationToken).ConfigureAwait(false);
                 return sourceSetResult.IsSuccess
                     ? new OperationResult<IReadOnlyList<string>>(
                         sourceSetResult.Value!.WorktreeRelativePaths,
@@ -60,9 +60,9 @@ internal sealed class GitRepositoryInspector
             cancellationToken);
     }
 
-    private static OperationResult<GitProvenance> Inspect(
+    private static async Task<OperationResult<GitProvenance>> InspectAsync(
         string workingDirectory,
-        Func<string, IReadOnlyList<string>, OperationResult<IReadOnlyList<string>>> resolveContributingPaths,
+        Func<string, IReadOnlyList<string>, Task<OperationResult<IReadOnlyList<string>>>> resolveContributingPaths,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -96,7 +96,7 @@ internal sealed class GitRepositoryInspector
             var changed = status.Select(entry => entry.FilePath).ToHashSet(StringComparer.Ordinal);
             // A staged deletion is already absent from the index; an untracked source can still affect a build.
             var candidates = indexed.Union(changed, StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
-            var scope = resolveContributingPaths(root, candidates);
+            var scope = await resolveContributingPaths(root, candidates).ConfigureAwait(false);
             if (!scope.IsSuccess) return new(null, scope.Diagnostics, scope.ExitCode);
             var contributing = scope.Value!.Select(NormalizeGitPath).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
             var dirty = contributing.Where(path => changed.Contains(path) || !indexed.Contains(path)).ToArray();

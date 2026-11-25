@@ -2,6 +2,7 @@ using System.Text.Json;
 using MaksymShostak.OniModPipeline.Catalogs;
 using MaksymShostak.OniModPipeline.Cli;
 using MaksymShostak.OniModPipeline.Processes;
+using MaksymShostak.OniModPipeline.Tests.Fixtures;
 
 namespace MaksymShostak.OniModPipeline.Tests.Cli;
 
@@ -71,16 +72,7 @@ public sealed class SyncBuildFloorCommandTests
         var outer = Directory.CreateDirectory(Path.Combine(fixture.RootPath, "outer")).FullName;
         Directory.CreateDirectory(Path.Combine(outer, ".git"));
         WriteCatalog(outer, 654321);
-        string link = Path.Combine(outer, "linked-mods");
-        if (OperatingSystem.IsWindows())
-        {
-            // NTFS junctions exercise the same reparse boundary without developer-mode privileges.
-            var result = await new ExternalProcessRunner().RunAsync(new ProcessRequest(
-                Path.Combine(Environment.SystemDirectory, "cmd.exe"), ["/d", "/c", "mklink", "/j", "linked-mods", @"..\repository\mods"],
-                outer, new Dictionary<string, string>()), CancellationToken.None);
-            await Assert.That(result.ExitCode).IsEqualTo(0).Because(result.StandardError);
-        }
-        else Directory.CreateSymbolicLink(link, Path.GetDirectoryName(fixture.ModRoot)!);
+        string link = await TestDirectoryLink.CreateAsync(outer, "linked-mods", "../repository/mods");
 
         try
         {

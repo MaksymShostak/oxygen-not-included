@@ -1,5 +1,8 @@
 using MaksymShostak.OniModPipeline.Diagnostics;
 using MaksymShostak.OniModPipeline.ModProfiles;
+using Microsoft.Extensions.FileSystemGlobbing;
+using Microsoft.VisualStudio.SolutionPersistence.Model;
+using Microsoft.VisualStudio.SolutionPersistence.Serializer;
 
 namespace MaksymShostak.OniModPipeline.SourceControl;
 
@@ -10,11 +13,12 @@ internal sealed record RelevantSourceSet(
 {
     private const string BuildOutputPrefix = "{build-output}/";
 
-    internal static OperationResult<RelevantSourceSet> Create(
+    internal static async Task<OperationResult<RelevantSourceSet>> CreateAsync(
         ModProfile profile,
         string worktreeRoot,
         IReadOnlyList<string> observedWorktreePaths,
-        string? pipelineExecutablePath)
+        string? pipelineExecutablePath,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentException.ThrowIfNullOrWhiteSpace(worktreeRoot);
@@ -52,9 +56,9 @@ internal sealed record RelevantSourceSet(
                     profile.ModRoot,
                     build.EntryPoint);
                 builder.AddAbsolutePath(buildEntryPoint);
-                builder.AddProjectTree(
+                await builder.AddProjectTreeAsync(
                     buildEntryPoint,
-                    observedAbsolutePaths);
+                    observedAbsolutePaths, cancellationToken).ConfigureAwait(false);
             }
 
             foreach (var mapping in profile.PackageFiles)
@@ -90,9 +94,9 @@ internal sealed record RelevantSourceSet(
                     profile.ModRoot,
                     testProject.Path);
                 builder.AddAbsolutePath(testProjectPath);
-                builder.AddProjectTree(
+                await builder.AddProjectTreeAsync(
                     testProjectPath,
-                    observedAbsolutePaths);
+                    observedAbsolutePaths, cancellationToken).ConfigureAwait(false);
             }
 
             if (pipelineExecutablePath is not null &&
@@ -105,6 +109,10 @@ internal sealed record RelevantSourceSet(
                 builder.Build(),
                 [],
                 PipelineExitCode.Success);
+        }
+        catch (Exception exception) when (exception is SolutionException or InvalidDataException or System.Xml.XmlException)
+        {
+            return new(null, [DiagnosticCatalog.GitProvenanceUnavailable(exception.Message)], PipelineExitCode.ReleaseNotReady);
         }
         catch (SourceSetException exception)
         {
@@ -208,35 +216,106 @@ internal sealed record RelevantSourceSet(
                 if (TryGetDescendantRelativePath(directory, path, out _)) AddAbsolutePath(path);
         }
 
-        internal void AddProjectTree(string entryPoint, IReadOnlyList<string> observedPaths)
+        internal async Task AddProjectTreeAsync(string entryPoint, IReadOnlyList<string> observedPaths, CancellationToken token)
         {
+            token.ThrowIfCancellationRequested();
             string directory = Path.GetDirectoryName(entryPoint)!;
             bool solution = SourceExtension(entryPoint) is null;
-            var projects = new HashSet<string>(StringComparer.Ordinal);
-            if (!solution) projects.Add(entryPoint);
             foreach (var path in observedPaths)
             {
                 if (!TryGetDescendantRelativePath(directory, path, out var relative)) continue;
                 if (solution ? HasBuildDirectorySegment(relative) : IsTopLevelBuildOutput(relative)) continue;
                 AddAbsolutePath(path);
-                if (solution && SourceExtension(path) is not null && File.Exists(path)) projects.Add(path);
             }
 
-            // SDK compiler/resource globs operate on disk irrespective of Git ignore rules.
-            foreach (var project in projects)
+            string? input = ExistingContainedFile(entryPoint);
+            if (input is null) return;
+            if (!solution)
             {
-                string root = Path.GetDirectoryName(project)!;
-                string extension = SourceExtension(project)!;
-                bool IncludeDirectory(string path) => !Path.GetFileName(path).StartsWith('.') &&
-                    !IsTopLevelBuildOutput(Path.GetRelativePath(root, path));
-                bool IncludeFile(string path)
-                {
-                    string ext = Path.GetExtension(path).ToLowerInvariant();
-                    return ext == extension || ext == ".resx" || (extension == ".fs" && ext == ".fsi");
-                }
-                foreach (var path in EnumerateRegularFiles(root, IncludeDirectory, IncludeFile))
-                    AddAbsolutePath(path);
+                AddSdkProjectInputs(input);
+                return;
             }
+
+            var serializer = SolutionSerializers.GetSerializerByMoniker(input)
+                ?? throw new InvalidDataException($"Unsupported solution format at '{input}'.");
+            var model = await serializer.OpenAsync(input, token).ConfigureAwait(false);
+            foreach (var project in model.SolutionProjects)
+            {
+                token.ThrowIfCancellationRequested();
+                string member = ResolveDeclaredPath(directory, project.FilePath);
+                AddAbsolutePath(member);
+                string? existing = ExistingContainedFile(member);
+                if (existing is not null && SourceExtension(existing) is not null)
+                    AddSdkProjectInputs(existing);
+            }
+        }
+
+        // Validate the whole path from the operator's checkout before a directory is enumerated.
+        // Missing tracked files still participate in Git status even though they cannot be read.
+        private string? ExistingContainedFile(string path)
+        {
+            var verified = ContainedPathResolver.ResolveExistingFile(WorktreeRoot, GetWorktreeRelativePath(path));
+            if (verified.IsSuccess) return verified.Value!;
+            var diagnostic = verified.Diagnostics.Single();
+            if (diagnostic.Id == DiagnosticIds.DeclaredInputMissing) return null;
+            throw new SourceSetException(diagnostic, verified.ExitCode);
+        }
+
+        private void AddSdkProjectInputs(string project)
+        {
+            string root = Path.GetDirectoryName(project)!;
+            var inputs = SdkProjectInputs.Read(project, SourceExtension(project)!);
+            bool IncludeDirectory(string path) => !Path.GetFileName(path).StartsWith('.') &&
+                !IsTopLevelBuildOutput(Path.GetRelativePath(root, path));
+            bool IncludeFile(string path) => inputs.IncludesDefault(Path.GetRelativePath(root, path));
+            foreach (var path in EnumerateRegularFiles(root, IncludeDirectory, IncludeFile))
+                AddAbsolutePath(path);
+            foreach (var pattern in inputs.DeclaredItems)
+                AddDeclaredProjectItems(root, pattern);
+        }
+
+        private void AddDeclaredProjectItems(string projectDirectory, SdkProjectInputs.Item item)
+        {
+            var (prefix, glob) = BindPattern(projectDirectory, item.Include);
+            var exclusions = new Matcher(StringComparison.OrdinalIgnoreCase);
+            foreach (var exclude in item.Excludes)
+            {
+                var (excludeRoot, tail) = BindPattern(projectDirectory, exclude);
+                string relative = Path.GetRelativePath(WorktreeRoot, excludeRoot).Replace('\\', '/');
+                exclusions.AddInclude(tail is null ? relative : (relative == "." ? tail : relative + "/" + tail));
+            }
+            bool Excluded(string path) => exclusions.Match(Path.GetRelativePath(WorktreeRoot, path).Replace('\\', '/')).HasMatches;
+            if (glob is null)
+            {
+                if (!Excluded(prefix) && ExistingContainedFile(prefix) is { } file) AddAbsolutePath(file);
+                return;
+            }
+
+            // Validate the non-wildcard prefix before enumerating anything on disk.
+            if (Path.GetRelativePath(WorktreeRoot, prefix) != ".")
+            {
+                var verified = ContainedPathResolver.ResolveExistingDirectory(WorktreeRoot, GetWorktreeRelativePath(prefix));
+                if (!verified.IsSuccess)
+                {
+                    var diagnostic = verified.Diagnostics.Single();
+                    if (diagnostic.Id == DiagnosticIds.DeclaredInputMissing) return;
+                    throw new SourceSetException(diagnostic, verified.ExitCode);
+                }
+            }
+            var includes = new Matcher(StringComparison.OrdinalIgnoreCase).AddInclude(glob);
+            bool Matches(string path) => includes.Match(Path.GetRelativePath(prefix, path).Replace('\\', '/')).HasMatches && !Excluded(path);
+            foreach (var path in EnumerateRegularFiles(prefix, includeFile: Matches)) AddAbsolutePath(path);
+        }
+
+        private (string Path, string? Glob) BindPattern(string projectDirectory, string pattern)
+        {
+            int wildcard = pattern.IndexOfAny(['*', '?']);
+            if (wildcard < 0) return (ResolveDeclaredPath(projectDirectory, pattern), null);
+            int slash = pattern.LastIndexOf('/', wildcard);
+            string prefix = slash < 0 ? "." : pattern[..(slash + 1)];
+            var directory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(Path.Combine(projectDirectory, prefix)));
+            if (Path.GetRelativePath(WorktreeRoot, directory) != ".") EnsureInsideWorktree(directory);
+            return (directory, pattern[(slash + 1)..]);
         }
 
         private static string? SourceExtension(string project) => Path.GetExtension(project).ToLowerInvariant() switch

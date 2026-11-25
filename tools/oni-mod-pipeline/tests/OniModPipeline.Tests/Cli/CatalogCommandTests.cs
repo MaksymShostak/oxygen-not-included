@@ -156,7 +156,7 @@ public sealed class CatalogCommandTests
         var profile = new ModProfileLoader().Load(Path.Combine(fixture.ModRoot, "oni-mod-pipeline.toml")).Value!;
         var paths = Directory.EnumerateFiles(fixture.ModRoot, "*", SearchOption.AllDirectories)
             .Select(path => Path.GetRelativePath(fixture.WorktreeRoot, path).Replace('\\', '/')).ToArray();
-        var result = RelevantSourceSet.Create(profile, fixture.WorktreeRoot, paths, null);
+        var result = await RelevantSourceSet.CreateAsync(profile, fixture.WorktreeRoot, paths, null);
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value!.WorktreeRelativePaths.ToArray()).Contains("mods/example/translations/example.pot");
         await Assert.That(result.Value!.WorktreeRelativePaths.ToArray()).Contains("mods/example/Options.cs");

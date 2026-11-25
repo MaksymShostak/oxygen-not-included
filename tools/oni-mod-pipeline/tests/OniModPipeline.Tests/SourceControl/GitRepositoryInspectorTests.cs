@@ -15,7 +15,7 @@ public sealed class GitRepositoryInspectorTests
         File.WriteAllText(contributingPath, "modified");
         var inspector = new GitRepositoryInspector();
 
-        var result = inspector.Inspect(
+        var result = await inspector.InspectAsync(
             repositoryPath,
             [contributingPath],
             CancellationToken.None);
@@ -34,7 +34,7 @@ public sealed class GitRepositoryInspectorTests
         File.WriteAllText(Path.Combine(repositoryPath, "unrelated.txt"), "modified");
         var inspector = new GitRepositoryInspector();
 
-        var result = inspector.Inspect(
+        var result = await inspector.InspectAsync(
             repositoryPath,
             [contributingPath],
             CancellationToken.None);
@@ -53,7 +53,7 @@ public sealed class GitRepositoryInspectorTests
         File.WriteAllText(contributingPath, "untracked");
         var inspector = new GitRepositoryInspector();
 
-        var result = inspector.Inspect(
+        var result = await inspector.InspectAsync(
             repositoryPath,
             [contributingPath],
             CancellationToken.None);
@@ -71,7 +71,7 @@ public sealed class GitRepositoryInspectorTests
         File.WriteAllText(outsidePath, "outside");
         var inspector = new GitRepositoryInspector();
 
-        var result = inspector.Inspect(
+        var result = await inspector.InspectAsync(
             repositoryPath,
             [outsidePath],
             CancellationToken.None);
@@ -93,7 +93,7 @@ public sealed class GitRepositoryInspectorTests
         var indexFile = Path.Combine(root, ".git", "index");
         byte[] indexBefore = File.ReadAllBytes(indexFile);
 
-        var result = new GitRepositoryInspector().Inspect(root,
+        var result = await new GitRepositoryInspector().InspectAsync(root,
             names.Select(name => Path.Combine(root, name)).ToArray(), CancellationToken.None);
 
         await Assert.That(result.IsSuccess).IsTrue();
@@ -109,7 +109,7 @@ public sealed class GitRepositoryInspectorTests
         string admin = Path.Combine(root, ".git");
         Directory.Move(admin, directory.GetPath("admin"));
         File.WriteAllText(admin, "gitdir: ../admin\n");
-        var result = new GitRepositoryInspector().Inspect(root, [Path.Combine(root, "contributing.txt")], CancellationToken.None);
+        var result = await new GitRepositoryInspector().InspectAsync(root, [Path.Combine(root, "contributing.txt")], CancellationToken.None);
         await Assert.That(result.IsSuccess).IsTrue().Because(string.Join(" ", result.Diagnostics.Select(d => d.Evidence)));
         await Assert.That(result.Value!.WorktreeRoot).IsEqualTo(root);
         await Assert.That(result.Value.IsClean).IsTrue();
@@ -125,7 +125,7 @@ public sealed class GitRepositoryInspectorTests
 
         string file = Path.Combine(root, "contributing.txt");
         File.WriteAllText(file, "updated after the index was written");
-        var result = new GitRepositoryInspector().Inspect(root, [file], CancellationToken.None);
+        var result = await new GitRepositoryInspector().InspectAsync(root, [file], CancellationToken.None);
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value!.DirtyPaths.ToArray()).IsEquivalentTo(["contributing.txt"]);
     }
@@ -138,7 +138,7 @@ public sealed class GitRepositoryInspectorTests
         var other = Directory.CreateDirectory(directory.GetPath("other"));
         using (var repository = new Repository(root))
             repository.Config.Set("core.worktree", other.FullName, ConfigurationLevel.Local);
-        var result = new GitRepositoryInspector().Inspect(root, [Path.Combine(root, "contributing.txt")], CancellationToken.None);
+        var result = await new GitRepositoryInspector().InspectAsync(root, [Path.Combine(root, "contributing.txt")], CancellationToken.None);
         await Assert.That(result.IsSuccess).IsFalse();
         await Assert.That(result.Diagnostics.Single().Id).IsEqualTo("ONIP5001");
     }
@@ -153,7 +153,7 @@ public sealed class GitRepositoryInspectorTests
             repository.Config.Set("core.repositoryformatversion", 1, ConfigurationLevel.Local);
             repository.Config.Set("extensions.refstorage", "reftable", ConfigurationLevel.Local);
         }
-        var result = new GitRepositoryInspector().Inspect(root, [Path.Combine(root, "contributing.txt")], CancellationToken.None);
+        var result = await new GitRepositoryInspector().InspectAsync(root, [Path.Combine(root, "contributing.txt")], CancellationToken.None);
         await Assert.That(result.IsSuccess).IsFalse();
         var diagnostic = result.Diagnostics.Single();
         await Assert.That(diagnostic.Id).IsEqualTo("ONIP5001");

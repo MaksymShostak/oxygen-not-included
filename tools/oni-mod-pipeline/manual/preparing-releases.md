@@ -60,6 +60,9 @@ Release validation requires every contributing path to be:
 
 Contributing paths include the profile, metadata, declared package sources, build entry point, relevant project and lock files, declared tests, Workshop sources, preview, and in-worktree ONI Mod Pipeline source used to prepare the candidate.
 SDK source and resource files can enter the build even inside a Git-ignored directory, so release validation checks those files on disk.
+For a solution entry point, the pipeline reads the project members named in the solution.
+It inspects ordinary SDK defaults and statically declared source paths as data, including the F# project’s explicit file list.
+MSBuild evaluates targets, imports and property expressions in the separate build step.
 Removing a tracked member of a declared package directory also makes that input dirty until its deletion is committed.
 
 Unrelated changes outside that contributing set do not alter the candidate's source identity, but they remain user-owned work and should still be understood.

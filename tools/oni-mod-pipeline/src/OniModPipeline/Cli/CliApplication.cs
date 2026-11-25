@@ -567,10 +567,10 @@ internal static class CliApplication
         }
 
         var context = contextResult.Value!;
-        var provenanceResult = services.GitRepositoryInspector.Inspect(
+        var provenanceResult = await services.GitRepositoryInspector.InspectAsync(
             context.Profile,
             typeof(CliApplication).Assembly.Location,
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
         var provenance = provenanceResult.IsSuccess ? provenanceResult.Value : null;
         var environment = context.Environment;
         var report = new DiagnoseReport(
@@ -619,10 +619,10 @@ internal static class CliApplication
             return ConvertFailure<WorkshopListingValidation, ValidationReport>(listingResult);
         }
 
-        var provenanceResult = services.GitRepositoryInspector.Inspect(
+        var provenanceResult = await services.GitRepositoryInspector.InspectAsync(
             context.Profile,
             typeof(CliApplication).Assembly.Location,
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
         if (forRelease && !provenanceResult.IsSuccess)
         {
             return ConvertFailure<GitProvenance, ValidationReport>(provenanceResult);
@@ -678,10 +678,10 @@ internal static class CliApplication
         }
 
         var context = contextResult.Value!;
-        var provenanceResult = services.GitRepositoryInspector.Inspect(
+        var provenanceResult = await services.GitRepositoryInspector.InspectAsync(
             context.Profile,
             typeof(CliApplication).Assembly.Location,
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
         if (!provenanceResult.IsSuccess)
         {
             return ConvertFailure<GitProvenance, string>(provenanceResult);
@@ -735,10 +735,10 @@ internal static class CliApplication
         }
 
         var context = contextResult.Value!;
-        var provenanceResult = services.GitRepositoryInspector.Inspect(
+        var provenanceResult = await services.GitRepositoryInspector.InspectAsync(
             context.Profile,
             typeof(CliApplication).Assembly.Location,
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
         if (!provenanceResult.IsSuccess)
         {
             return ConvertFailure<GitProvenance, string>(provenanceResult);
@@ -785,10 +785,10 @@ internal static class CliApplication
 
         var context = contextResult.Value!;
         var pipelineExecutablePath = typeof(CliApplication).Assembly.Location;
-        var provenanceResult = services.GitRepositoryInspector.Inspect(
+        var provenanceResult = await services.GitRepositoryInspector.InspectAsync(
             context.Profile,
             pipelineExecutablePath,
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
         if (!provenanceResult.IsSuccess)
         {
             return ConvertFailure<GitProvenance, PreparedReleaseCandidate>(
