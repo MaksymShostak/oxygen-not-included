@@ -13,7 +13,9 @@ For a local gameplay build, prepare:
 - a local ONI installation with `Assembly-CSharp.dll` and `0Harmony.dll` in its managed-assembly directory;
 - an existing ONI per-user data directory with a `mods` directory.
 
-**For release work**, use Git to validate provenance or prepare a candidate.
+**For release work**, use a committed Git working tree.
+The pipeline reads its commit, index and working-tree changes through its bundled LibGit2Sharp library.
+It performs these checks without launching Git or checkout-configured helpers.
 The final Workshop text check and handoff also require current Windows Notepad and the authenticated ONI Uploader.
 
 ONI Mod Pipeline does not download the SDK, install or update ONI, create the ONI user-data hierarchy, install the Uploader, or authenticate a Steam account.

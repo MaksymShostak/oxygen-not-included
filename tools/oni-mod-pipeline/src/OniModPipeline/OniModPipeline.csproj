@@ -16,6 +16,12 @@
   <ItemGroup>
     <EmbeddedResource Include="Catalogs/Python/catalogs.py" />
     <EmbeddedResource Include="../../../ci/oni_references.py" LogicalName="OniModPipeline.oni_references.py" />
+    <PackageReference Include="LibGit2Sharp" GeneratePathProperty="true" />
+    <None Include="$(PkgLibGit2Sharp)/App_Readme/LICENSE.md"
+          Link="licenses/LibGit2Sharp.txt" CopyToPublishDirectory="PreserveNewest" Pack="false" />
+    <None Include="$([System.IO.Path]::GetDirectoryName('$(libgit2_propsfile)'))/../libgit2/libgit2.license.txt"
+          Link="licenses/libgit2.txt" CopyToPublishDirectory="PreserveNewest" Pack="false"
+          Condition="'$(libgit2_propsfile)' != ''" />
     <PackageReference Include="System.CommandLine" />
     <PackageReference Include="Tomlyn" />
     <PackageReference Include="YamlDotNet" />

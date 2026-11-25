@@ -36,7 +36,7 @@ public sealed class BuildCommandTests
         await Assert.That(document.RootElement
             .GetProperty("primaryOutputPath")
             .ValueKind).IsEqualTo(JsonValueKind.Null);
-        await Assert.That(document.RootElement.GetProperty("sourceCommit").GetString()).IsEqualTo(PipelineCommandFixture.Commit);
+        await Assert.That(document.RootElement.GetProperty("sourceCommit").GetString()).IsEqualTo(fixture.Commit);
         await Assert.That(fixture.ProcessRunner.BuildOrTestRequests.Count).IsEqualTo(0);
     }
 
@@ -61,7 +61,7 @@ public sealed class BuildCommandTests
 
 internal sealed class PipelineCommandFixture : IDisposable
 {
-    internal const string Commit = "0123456789abcdef0123456789abcdef01234567";
+    internal string Commit { get; }
 
     private readonly TemporaryDirectory temporaryDirectory = new();
 
@@ -78,19 +78,14 @@ internal sealed class PipelineCommandFixture : IDisposable
         ArtifactsDirectory = temporaryDirectory.GetPath("pipeline-artifacts");
         WriteProfile(includeTests);
         WriteEnvironment();
-        var trackedPaths = Directory
-            .EnumerateFiles(ModRoot, "*", SearchOption.AllDirectories)
-            .Select(path => Path.GetRelativePath(WorktreeRoot, path)
-                .Replace((char)92, '/'))
-            .OrderBy(path => path, StringComparer.Ordinal)
-            .ToArray();
-        ProcessRunner = new PipelineCommandProcessRunner(WorktreeRoot, trackedPaths);
+        Commit = TestGitRepository.CommitAll(WorktreeRoot);
+        ProcessRunner = new PipelineCommandProcessRunner();
         var candidateSource = new GameInstallationCandidateSource(
             HostOperatingSystem.Windows,
             temporaryDirectory.GetPath("home"),
             temporaryDirectory.GetPath("documents"),
             []);
-        var gitRepositoryInspector = new GitRepositoryInspector(ProcessRunner);
+        var gitRepositoryInspector = new GitRepositoryInspector();
         Services = new PipelineServices(
             new ModProfileLocator(),
             new ModProfileLoader(),
@@ -224,13 +219,9 @@ internal sealed class PipelineCommandFixture : IDisposable
     }
 }
 
-internal sealed class PipelineCommandProcessRunner(
-    string worktreeRoot,
-    IReadOnlyList<string> trackedPaths) : IExternalProcessRunner
+internal sealed class PipelineCommandProcessRunner : IExternalProcessRunner
 {
     internal List<ProcessRequest> Requests { get; } = [];
-
-    internal string GitStatusOutput { get; set; } = string.Empty;
 
     internal IReadOnlyList<ProcessRequest> BuildOrTestRequests => Requests
         .Where(request =>
@@ -245,31 +236,8 @@ internal sealed class PipelineCommandProcessRunner(
     {
         cancellationToken.ThrowIfCancellationRequested();
         Requests.Add(request);
-        if (request.FileName == "dotnet")
-        {
-            return RunDotnet(request);
-        }
-
-        await Assert.That(request.FileName).IsEqualTo("git");
-        var key = string.Join(' ', request.Arguments);
-        return key switch
-        {
-            "rev-parse --show-toplevel" => new ProcessResult(
-                0,
-                $"{worktreeRoot}{Environment.NewLine}",
-                string.Empty),
-            "rev-parse HEAD" => new ProcessResult(
-                0,
-                $"{PipelineCommandFixture.Commit}{Environment.NewLine}",
-                string.Empty),
-            "status --porcelain=v1 -z --untracked-files=all" =>
-                new ProcessResult(0, GitStatusOutput, string.Empty),
-            "ls-files -z" => new ProcessResult(
-                0,
-                string.Join('\0', trackedPaths) + '\0',
-                string.Empty),
-            _ => new ProcessResult(2, string.Empty, $"Unexpected git arguments: {key}")
-        };
+        await Assert.That(request.FileName).IsEqualTo("dotnet");
+        return RunDotnet(request);
     }
 
     private static ProcessResult RunDotnet(ProcessRequest request)

@@ -12,7 +12,7 @@ public sealed class SyncBuildFloorCommandTests
     [Arguments(true)]
     public async Task CheckAndWriteUseTheNearestCheckoutWithoutRunningGit(bool useGitFile)
     {
-        using var fixture = new CliCommandFixture(sourceIsDirty: false, gitIsAvailable: false);
+        using var fixture = new CliCommandFixture(sourceIsDirty: false, hasRepository: false);
         var admin = Path.Combine(fixture.WorktreeRoot, ".git");
         if (useGitFile)
             File.WriteAllText(admin, "gitdir: ../elsewhere/worktrees/example\n");
@@ -47,7 +47,7 @@ public sealed class SyncBuildFloorCommandTests
     [Test]
     public async Task MissingCatalogAtNestedBoundaryDoesNotUseTheEnclosingCheckout()
     {
-        using var fixture = new CliCommandFixture(sourceIsDirty: false, gitIsAvailable: false);
+        using var fixture = new CliCommandFixture(sourceIsDirty: false, hasRepository: false);
         Directory.CreateDirectory(Path.Combine(fixture.RootPath, ".git"));
         WriteCatalog(fixture.RootPath, 654321);
         Directory.CreateDirectory(Path.Combine(fixture.WorktreeRoot, ".git"));
@@ -66,7 +66,7 @@ public sealed class SyncBuildFloorCommandTests
     [Test]
     public async Task WriteRejectsAnIntermediateDirectoryLinkBeforeSelectingAnotherCheckoutsCatalog()
     {
-        using var fixture = new CliCommandFixture(sourceIsDirty: false, gitIsAvailable: false);
+        using var fixture = new CliCommandFixture(sourceIsDirty: false, hasRepository: false);
         Directory.CreateDirectory(Path.Combine(fixture.WorktreeRoot, ".git"));
         var outer = Directory.CreateDirectory(Path.Combine(fixture.RootPath, "outer")).FullName;
         Directory.CreateDirectory(Path.Combine(outer, ".git"));
@@ -91,6 +91,16 @@ public sealed class SyncBuildFloorCommandTests
             var write = await DiagnoseCommandTests.InvokeAsync(command, ["sync-build-floor", "--mod", Path.Combine(link, "example"), "--write"]);
             await Assert.That(write.ExitCode).IsNotEqualTo(0);
             await Assert.That(File.ReadAllText(metadata)).IsEqualTo(original);
+            await Assert.That(runner.InvocationCount).IsEqualTo(0);
+
+            // An unconfigured directory behind the link must not select a manifest above that link.
+            foreach (string name in new[] { "oni-mod-pipeline.toml", "mod.yaml", "mod_info.yaml" })
+                File.Copy(Path.Combine(fixture.ModRoot, name), Path.Combine(outer, name));
+            Directory.CreateDirectory(Path.Combine(Path.GetDirectoryName(fixture.ModRoot)!, "unconfigured"));
+            var outerWrite = await DiagnoseCommandTests.InvokeAsync(command,
+                ["sync-build-floor", "--mod", Path.Combine(link, "unconfigured"), "--write"]);
+            await Assert.That(outerWrite.ExitCode).IsNotEqualTo(0);
+            await Assert.That(File.ReadAllText(Path.Combine(outer, "mod_info.yaml"))).IsEqualTo(original);
             await Assert.That(runner.InvocationCount).IsEqualTo(0);
         }
         finally

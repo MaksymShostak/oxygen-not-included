@@ -1,7 +1,6 @@
 using MaksymShostak.OniModPipeline.Diagnostics;
 using MaksymShostak.OniModPipeline.ModProfiles;
-using MaksymShostak.OniModPipeline.Processes;
-using System.ComponentModel;
+using LibGit2Sharp;
 
 namespace MaksymShostak.OniModPipeline.SourceControl;
 
@@ -14,9 +13,9 @@ internal sealed record GitProvenance(
     internal bool IsClean => DirtyPaths.Count == 0;
 }
 
-internal sealed class GitRepositoryInspector(IExternalProcessRunner processRunner)
+internal sealed class GitRepositoryInspector
 {
-    internal async Task<OperationResult<GitProvenance>> InspectAsync(
+    internal OperationResult<GitProvenance> Inspect(
         string workingDirectory,
         IReadOnlyList<string> contributingAbsolutePaths,
         CancellationToken cancellationToken)
@@ -24,22 +23,22 @@ internal sealed class GitRepositoryInspector(IExternalProcessRunner processRunne
         ArgumentException.ThrowIfNullOrWhiteSpace(workingDirectory);
         ArgumentNullException.ThrowIfNull(contributingAbsolutePaths);
 
-        return await InspectAsync(
+        return Inspect(
             workingDirectory,
             (worktreeRoot, _) => ResolveContributingPaths(
                 worktreeRoot,
                 contributingAbsolutePaths),
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
     }
 
-    internal async Task<OperationResult<GitProvenance>> InspectAsync(
+    internal OperationResult<GitProvenance> Inspect(
         ModProfile profile,
         string? pipelineExecutablePath,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(profile);
 
-        return await InspectAsync(
+        return Inspect(
             profile.ModRoot,
             (worktreeRoot, trackedPaths) =>
             {
@@ -58,93 +57,56 @@ internal sealed class GitRepositoryInspector(IExternalProcessRunner processRunne
                         sourceSetResult.Diagnostics,
                         sourceSetResult.ExitCode);
             },
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
     }
 
-    private async Task<OperationResult<GitProvenance>> InspectAsync(
+    private static OperationResult<GitProvenance> Inspect(
         string workingDirectory,
-        Func<string, IReadOnlyList<string>, OperationResult<IReadOnlyList<string>>>
-            resolveContributingPaths,
+        Func<string, IReadOnlyList<string>, OperationResult<IReadOnlyList<string>>> resolveContributingPaths,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-
-        var rootResult = await RunGitAsync(
-            workingDirectory,
-            ["rev-parse", "--show-toplevel"],
-            cancellationToken).ConfigureAwait(false);
-        if (rootResult.ExitCode != 0)
+        var rootResult = GitWorktreeLocator.RequireRoot(workingDirectory);
+        if (!rootResult.IsSuccess)
+            return new(null, rootResult.Diagnostics, rootResult.ExitCode);
+        var root = rootResult.Value!;
+        try
         {
-            return Failure<GitProvenance>(
-                $"Git could not locate a worktree from '{workingDirectory}': {rootResult.StandardError}");
-        }
+            // Read Git data through the installed library. Provenance must never run an executable,
+            // hook, filesystem monitor or filter program selected by a checkout.
+            using var repository = new Repository(root);
+            var worktree = repository.Info.WorkingDirectory;
+            if (repository.Info.IsBare || worktree is null || Path.GetRelativePath(root, worktree) != ".")
+                return Failure<GitProvenance>($"Git metadata does not describe the selected worktree '{root}'.");
+            var commit = repository.Head.Tip?.Sha;
+            if (commit is null)
+                return Failure<GitProvenance>($"Git could not resolve a committed HEAD in '{root}'.");
 
-        var worktreeRoot = Path.GetFullPath(rootResult.StandardOutput.TrimEnd('\r', '\n'));
-        var commitResult = await RunGitAsync(
-            worktreeRoot,
-            ["rev-parse", "HEAD"],
-            cancellationToken).ConfigureAwait(false);
-        if (commitResult.ExitCode != 0)
+            var indexed = repository.Index.Select(entry => entry.Path).ToHashSet(StringComparer.Ordinal);
+            var status = repository.RetrieveStatus(new StatusOptions
+            {
+                IncludeIgnored = false,
+                IncludeUntracked = true,
+                RecurseUntrackedDirs = true,
+                // Separate additions and deletions preserve both rename endpoints without a similarity scan.
+                DetectRenamesInIndex = false,
+                DetectRenamesInWorkDir = false
+            });
+            cancellationToken.ThrowIfCancellationRequested();
+            var changed = status.Select(entry => entry.FilePath).ToHashSet(StringComparer.Ordinal);
+            // A staged deletion is already absent from the index; an untracked source can still affect a build.
+            var candidates = indexed.Union(changed, StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+            var scope = resolveContributingPaths(root, candidates);
+            if (!scope.IsSuccess) return new(null, scope.Diagnostics, scope.ExitCode);
+            var contributing = scope.Value!.Select(NormalizeGitPath).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+            var dirty = contributing.Where(path => changed.Contains(path) || !indexed.Contains(path)).ToArray();
+            return new(new GitProvenance(root, commit, contributing, dirty), [], PipelineExitCode.Success);
+        }
+        catch (Exception exception) when (exception is LibGit2SharpException or IOException or UnauthorizedAccessException ||
+            exception.GetBaseException() is DllNotFoundException or BadImageFormatException or EntryPointNotFoundException)
         {
-            return Failure<GitProvenance>(
-                $"Git could not resolve HEAD: {commitResult.StandardError}");
+            return Failure<GitProvenance>($"Git provenance at '{root}' could not be read: {exception.Message}");
         }
-
-        var statusResult = await RunGitAsync(
-            worktreeRoot,
-            ["status", "--porcelain=v1", "-z", "--untracked-files=all"],
-            cancellationToken).ConfigureAwait(false);
-        if (statusResult.ExitCode != 0)
-        {
-            return Failure<GitProvenance>(
-                $"Git could not inspect worktree status: {statusResult.StandardError}");
-        }
-
-        var trackedResult = await RunGitAsync(
-            worktreeRoot,
-            ["ls-files", "-z"],
-            cancellationToken).ConfigureAwait(false);
-        if (trackedResult.ExitCode != 0)
-        {
-            return Failure<GitProvenance>(
-                $"Git could not enumerate tracked files: {trackedResult.StandardError}");
-        }
-
-        var statusPaths = ParseStatusPaths(statusResult.StandardOutput);
-        var trackedPaths = trackedResult.StandardOutput
-            .Split('\0', StringSplitOptions.RemoveEmptyEntries)
-            .Select(NormalizeGitPath)
-            .Distinct(StringComparer.Ordinal)
-            .OrderBy(path => path, StringComparer.Ordinal)
-            .ToArray();
-        var contributingResult = resolveContributingPaths(worktreeRoot, trackedPaths);
-        if (!contributingResult.IsSuccess)
-        {
-            return new OperationResult<GitProvenance>(
-                null,
-                contributingResult.Diagnostics,
-                contributingResult.ExitCode);
-        }
-
-        var normalizedContributingPaths = contributingResult.Value!
-            .Select(NormalizeGitPath)
-            .Distinct(StringComparer.Ordinal)
-            .OrderBy(path => path, StringComparer.Ordinal)
-            .ToArray();
-        var trackedPathSet = trackedPaths.ToHashSet(StringComparer.Ordinal);
-        var dirtyPaths = normalizedContributingPaths
-            .Where(path => statusPaths.Contains(path) || !trackedPathSet.Contains(path))
-            .ToArray();
-
-        var provenance = new GitProvenance(
-            worktreeRoot,
-            commitResult.StandardOutput.TrimEnd('\r', '\n'),
-            normalizedContributingPaths,
-            dirtyPaths);
-        return new OperationResult<GitProvenance>(
-            provenance,
-            [],
-            PipelineExitCode.Success);
     }
 
     private static OperationResult<IReadOnlyList<string>> ResolveContributingPaths(
@@ -169,56 +131,6 @@ internal sealed class GitRepositoryInspector(IExternalProcessRunner processRunne
             contributingPaths,
             [],
             PipelineExitCode.Success);
-    }
-
-    private async Task<ProcessResult> RunGitAsync(
-        string workingDirectory,
-        IReadOnlyList<string> arguments,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            return await processRunner.RunAsync(
-                new ProcessRequest(
-                    "git",
-                    arguments,
-                    workingDirectory,
-                    new Dictionary<string, string>(StringComparer.Ordinal)
-                    {
-                        ["GIT_CONFIG_GLOBAL"] = "/dev/null",
-                        ["GIT_CONFIG_NOSYSTEM"] = "1",
-                        ["GIT_OPTIONAL_LOCKS"] = "0"
-                    }),
-                cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception exception) when (
-            exception is Win32Exception or FileNotFoundException)
-        {
-            return new ProcessResult(-1, string.Empty, exception.Message);
-        }
-    }
-
-    private static HashSet<string> ParseStatusPaths(string porcelainOutput)
-    {
-        var paths = new HashSet<string>(StringComparer.Ordinal);
-        var fields = porcelainOutput.Split('\0');
-        for (var index = 0; index < fields.Length; index++)
-        {
-            var record = fields[index];
-            if (record.Length < 4)
-            {
-                continue;
-            }
-
-            paths.Add(NormalizeGitPath(record[3..]));
-            var isRenameOrCopy = record[0] is 'R' or 'C' || record[1] is 'R' or 'C';
-            if (isRenameOrCopy && index + 1 < fields.Length && fields[index + 1].Length > 0)
-            {
-                paths.Add(NormalizeGitPath(fields[++index]));
-            }
-        }
-
-        return paths;
     }
 
     private static bool IsOutsideWorktree(string relativePath) =>

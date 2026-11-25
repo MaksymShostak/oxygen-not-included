@@ -1515,9 +1515,6 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
             ModProfile profile,
             string pipelineExecutablePath,
             CancellationToken cancellationToken) =>
-            inspector.InspectAsync(
-                profile,
-                pipelineExecutablePath,
-                cancellationToken);
+            Task.FromResult(inspector.Inspect(profile, pipelineExecutablePath, cancellationToken));
     }
 }

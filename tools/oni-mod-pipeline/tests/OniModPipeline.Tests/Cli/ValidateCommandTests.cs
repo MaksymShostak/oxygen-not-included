@@ -1,4 +1,5 @@
 using MaksymShostak.OniModPipeline.Cli;
+using MaksymShostak.OniModPipeline.Tests.Fixtures;
 using MaksymShostak.OniModPipeline.SourceControl;
 using System.Text.Json;
 
@@ -25,8 +26,9 @@ public sealed class ValidateCommandTests
         foreach (var input in new[] { ".node-version", ".python-version", "tools/readme/canonicalize.mjs", "tools/readme/render-description.mjs", "tools/readme/compatibility-badges.mjs" })
             File.WriteAllText(Path.Combine(fixture.WorktreeRoot, input), "{}");
         File.WriteAllText(Path.Combine(fixture.WorktreeRoot, "package-lock.json"), JsonSerializer.Serialize(new { packages = new Dictionary<string, object> { ["node_modules/@hadden-industries/markdown-quality"] = new { version = "3.0.0" } } }));
+        TestGitRepository.CommitAll(fixture.WorktreeRoot);
         var runner = new ReadmeValidationRunner(fixture.ProcessRunner);
-        var services = fixture.Services with { ProcessRunner = runner, GitRepositoryInspector = new GitRepositoryInspector(runner) };
+        var services = fixture.Services with { ProcessRunner = runner };
         var before = SourceSnapshot.CaptureTree(fixture.RootPath);
         var invocation = await DiagnoseCommandTests.InvokeAsync(CliApplication.CreateRootCommand(services), fixture.CreateArguments("validate", "--for-release"));
         await Assert.That(invocation.ExitCode).IsEqualTo(6);
@@ -57,10 +59,7 @@ public sealed class ValidateCommandTests
                 }
                 return new(0, "{\"value\":\"# Updated\\n\",\"diagnostics\":[]}", "");
             }
-            var result = await inner.RunAsync(request, cancellationToken);
-            return request.Arguments.SequenceEqual(new[] { "ls-files", "-z" })
-                ? result with { StandardOutput = result.StandardOutput + "README.md\0package.json\0package-lock.json\0.node-version\0.python-version\0tools/readme/canonicalize.mjs\0tools/readme/render-description.mjs\0tools/readme/compatibility-badges.mjs\0" }
-                : result;
+            return await inner.RunAsync(request, cancellationToken);
         }
     }
     [Test]
@@ -145,11 +144,11 @@ public sealed class ValidateCommandTests
     }
 
     [Test]
-    public async Task Validate_WhenGitIsUnavailable_SucceedsWithoutForRelease()
+    public async Task Validate_WhenCheckoutIsUnavailable_SucceedsWithoutForRelease()
     {
         using var fixture = new CliCommandFixture(
             sourceIsDirty: false,
-            gitIsAvailable: false);
+            hasRepository: false);
         var before = SourceSnapshot.CaptureTree(fixture.RootPath);
         var command = CliApplication.CreateRootCommand(fixture.Services);
 
@@ -165,11 +164,11 @@ public sealed class ValidateCommandTests
     }
 
     [Test]
-    public async Task Validate_WhenGitIsUnavailableAndForRelease_ReturnsExitCodeSix()
+    public async Task Validate_WhenCheckoutIsUnavailableAndForRelease_ReturnsExitCodeSix()
     {
         using var fixture = new CliCommandFixture(
             sourceIsDirty: false,
-            gitIsAvailable: false);
+            hasRepository: false);
         var before = SourceSnapshot.CaptureTree(fixture.RootPath);
         var command = CliApplication.CreateRootCommand(fixture.Services);
 
@@ -181,7 +180,7 @@ public sealed class ValidateCommandTests
         await Assert.That(invocation.ExitCode).IsEqualTo(6);
         await Assert.That(invocation.StandardOutput).IsEqualTo(string.Empty);
         await Assert.That(invocation.StandardError).Contains("ONIP5001");
-        await Assert.That(invocation.StandardError).Contains("git is unavailable");
+        await Assert.That(invocation.StandardError).Contains("Could not locate a checkout root");
         await Assert.That(before.ChangedPathsComparedWith(after).Count).IsEqualTo(0);
     }
 

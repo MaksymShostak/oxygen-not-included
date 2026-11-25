@@ -42,6 +42,11 @@
           "TUnit.Core": "1.86.6"
         }
       },
+      "LibGit2Sharp.NativeBinaries": {
+        "type": "Transitive",
+        "resolved": "2.0.324",
+        "contentHash": "5YZVGNuO9nYFQfzRQGPGY9fdpSsABwlF2jSaZ7ydxCfjvt5Krbj/eHbXkvvgAQzp4lkjvgDrlAuuI4KTmqhDlA=="
+      },
       "Microsoft.Testing.Extensions.TrxReport.Abstractions": {
         "type": "Transitive",
         "resolved": "2.5.3",
@@ -76,9 +81,19 @@
       "MaksymShostak.OniModPipeline": {
         "type": "Project",
         "dependencies": {
+          "LibGit2Sharp": "[0.32.0, )",
           "System.CommandLine": "[2.0.15, )",
           "Tomlyn": "[2.11.1, )",
           "YamlDotNet": "[18.1.0, )"
+        }
+      },
+      "LibGit2Sharp": {
+        "type": "CentralTransitive",
+        "requested": "[0.32.0, )",
+        "resolved": "0.32.0",
+        "contentHash": "BL3eMVRnkWWS9zbz6n0H+iDVJ9ZK7hDeiuASnHlsFvwZYTJtDuBFRRVIaH//s4VlF0baOGvCeenXbobE1JLLiQ==",
+        "dependencies": {
+          "LibGit2Sharp.NativeBinaries": "[2.0.324]"
         }
       },
       "Microsoft.DiaSymReader": {

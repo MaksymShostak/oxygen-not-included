@@ -9,7 +9,6 @@ using MaksymShostak.OniModPipeline.SourceControl;
 using MaksymShostak.OniModPipeline.Tests.Fixtures;
 using MaksymShostak.OniModPipeline.WorkshopListing;
 using System.CommandLine;
-using System.ComponentModel;
 using System.Globalization;
 
 namespace MaksymShostak.OniModPipeline.Tests.Cli;
@@ -29,6 +28,8 @@ public sealed class DiagnoseCommandTests
         await Assert.That(invocation.StandardError).IsEqualTo(string.Empty);
         await Assert.That(invocation.StandardOutput).Contains(fixture.ModRoot);
         await Assert.That(invocation.StandardOutput).Contains(fixture.WorktreeRoot);
+        await Assert.That(fixture.ProcessRunner.Requests.Select(request => request.FileName).Distinct().ToArray())
+            .IsEquivalentTo(["dotnet"]).Because("Reading Git provenance must not run an external executable.");
         await Assert.That(invocation.StandardOutput).Contains(fixture.GameDirectory);
         await Assert.That(invocation.StandardOutput).Contains(fixture.ManagedDirectory);
         await Assert.That(invocation.StandardOutput).Contains(fixture.UserDataDirectory);
@@ -61,11 +62,11 @@ public sealed class DiagnoseCommandTests
     }
 
     [Test]
-    public async Task Diagnose_WhenGitIsUnavailable_ReportsEnvironmentWithoutWorktreeProvenance()
+    public async Task Diagnose_WhenCheckoutIsUnavailable_ReportsEnvironmentWithoutWorktreeProvenance()
     {
         using var fixture = new CliCommandFixture(
             sourceIsDirty: false,
-            gitIsAvailable: false);
+            hasRepository: false);
         var before = SourceSnapshot.CaptureTree(fixture.RootPath);
         var command = CliApplication.CreateRootCommand(fixture.Services);
 
@@ -116,7 +117,7 @@ internal sealed class CliCommandFixture : IDisposable
 {
     private readonly TemporaryDirectory temporaryDirectory = new();
 
-    internal CliCommandFixture(bool sourceIsDirty, bool gitIsAvailable = true)
+    internal CliCommandFixture(bool sourceIsDirty, bool hasRepository = true)
     {
         RootPath = temporaryDirectory.Path;
         WorktreeRoot = temporaryDirectory.GetPath("repository");
@@ -131,27 +132,18 @@ internal sealed class CliCommandFixture : IDisposable
         WriteProfile();
         WriteEnvironment();
 
-        var trackedPaths = Directory
-            .EnumerateFiles(ModRoot, "*", SearchOption.AllDirectories)
-            .Select(path => Path.GetRelativePath(WorktreeRoot, path)
-                .Replace((char)92, '/'))
-            .OrderBy(path => path, StringComparer.Ordinal)
-            .ToArray();
-        var dirtyPath = Path.GetRelativePath(
-                WorktreeRoot,
-                Path.Combine(ModRoot, "description.bbcode"))
-            .Replace((char)92, '/');
-        ProcessRunner = new CliProcessRunner(
-            WorktreeRoot,
-            trackedPaths,
-            sourceIsDirty ? dirtyPath : null,
-            gitIsAvailable);
+        if (hasRepository)
+        {
+            TestGitRepository.CommitAll(WorktreeRoot);
+            if (sourceIsDirty) File.AppendAllText(Path.Combine(ModRoot, "description.bbcode"), "dirty input\n");
+        }
+        ProcessRunner = new CliProcessRunner();
         var candidateSource = new GameInstallationCandidateSource(
             HostOperatingSystem.Windows,
             temporaryDirectory.GetPath("home"),
             temporaryDirectory.GetPath("documents"),
             []);
-        var gitRepositoryInspector = new GitRepositoryInspector(ProcessRunner);
+        var gitRepositoryInspector = new GitRepositoryInspector();
         Services = new PipelineServices(
             new ModProfileLocator(),
             new ModProfileLoader(),
@@ -275,55 +267,16 @@ internal sealed class CliCommandFixture : IDisposable
     }
 }
 
-internal sealed class CliProcessRunner(
-    string worktreeRoot,
-    IReadOnlyList<string> trackedPaths,
-    string? dirtyPath,
-    bool gitIsAvailable) : IExternalProcessRunner
+internal sealed class CliProcessRunner : IExternalProcessRunner
 {
     internal List<ProcessRequest> Requests { get; } = [];
 
-    public async Task<ProcessResult> RunAsync(
-        ProcessRequest request,
-        CancellationToken cancellationToken)
+    public async Task<ProcessResult> RunAsync(ProcessRequest request, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         Requests.Add(request);
-        if (string.Equals(request.FileName, "dotnet", StringComparison.Ordinal))
-        {
-            await Assert.That(request.Arguments.ToArray()).IsEquivalentTo(new[] { "--version" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
-            return new ProcessResult(
-                0,
-                $"10.0.400{Environment.NewLine}",
-                string.Empty);
-        }
-
-        await Assert.That(request.FileName).IsEqualTo("git");
-        if (!gitIsAvailable)
-        {
-            throw new Win32Exception("git is unavailable for this test.");
-        }
-
-        var key = string.Join(' ', request.Arguments);
-        return key switch
-        {
-            "rev-parse --show-toplevel" => new ProcessResult(
-                0,
-                $"{worktreeRoot}{Environment.NewLine}",
-                string.Empty),
-            "rev-parse HEAD" => new ProcessResult(
-                0,
-                $"0123456789abcdef0123456789abcdef01234567{Environment.NewLine}",
-                string.Empty),
-            "status --porcelain=v1 -z --untracked-files=all" => new ProcessResult(
-                0,
-                dirtyPath is null ? string.Empty : $" M {dirtyPath}\0",
-                string.Empty),
-            "ls-files -z" => new ProcessResult(
-                0,
-                string.Join('\0', trackedPaths) + '\0',
-                string.Empty),
-            _ => new ProcessResult(2, string.Empty, $"Unexpected git arguments: {key}")
-        };
+        await Assert.That(request.FileName).IsEqualTo("dotnet");
+        await Assert.That(request.Arguments.ToArray()).IsEquivalentTo(new[] { "--version" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        return new ProcessResult(0, $"10.0.400{Environment.NewLine}", string.Empty);
     }
 }

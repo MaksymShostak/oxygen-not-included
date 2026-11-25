@@ -63,6 +63,8 @@ internal sealed class ModProfileLocator
              directory is not null;
              directory = directory.Parent)
         {
+            var boundary = GitWorktreeLocator.InspectBoundary(directory, startDirectory);
+            if (!boundary.IsSuccess) return new(null, boundary.Diagnostics, boundary.ExitCode);
             var candidatePath = Path.Combine(directory.FullName, ManifestFileName);
             searchedPaths.Add(candidatePath);
             if (File.Exists(candidatePath))
@@ -70,7 +72,7 @@ internal sealed class ModProfileLocator
                 candidatePaths.Add(Path.GetFullPath(candidatePath));
             }
 
-            if (GitWorktreeLocator.HasMarker(directory))
+            if (boundary.Value)
             {
                 break;
             }

@@ -13,28 +13,28 @@ internal sealed record RelevantSourceSet(
     internal static OperationResult<RelevantSourceSet> Create(
         ModProfile profile,
         string worktreeRoot,
-        IReadOnlyList<string> trackedWorktreeRelativePaths,
+        IReadOnlyList<string> observedWorktreePaths,
         string? pipelineExecutablePath)
     {
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentException.ThrowIfNullOrWhiteSpace(worktreeRoot);
-        ArgumentNullException.ThrowIfNull(trackedWorktreeRelativePaths);
+        ArgumentNullException.ThrowIfNull(observedWorktreePaths);
 
         try
         {
             var builder = new SourceSetBuilder(worktreeRoot);
-            var trackedAbsolutePaths = trackedWorktreeRelativePaths
+            var observedAbsolutePaths = observedWorktreePaths
                 .Select(builder.ResolveWorktreeRelativePath)
                 .ToArray();
 
             if (profile.Build is not null || profile.TestProjects.Count > 0)
             {
-                builder.AddOptionalControlFile("Directory.Packages.props", trackedWorktreeRelativePaths);
-                builder.AddOptionalControlFile("global.json", trackedWorktreeRelativePaths);
-                builder.AddOptionalControlFile("tools/ci/oni_references.py", trackedWorktreeRelativePaths);
-                builder.AddOptionalControlFile("tools/ci/oni-references.json", trackedWorktreeRelativePaths);
-                builder.AddOptionalControlFile("tests/TUnitProjectDefaults.cs", trackedWorktreeRelativePaths);
-                builder.AddOptionalControlFile("tests/TUnitProject.props", trackedWorktreeRelativePaths);
+                builder.AddOptionalControlFile("Directory.Packages.props", observedWorktreePaths);
+                builder.AddOptionalControlFile("global.json", observedWorktreePaths);
+                builder.AddOptionalControlFile("tools/ci/oni_references.py", observedWorktreePaths);
+                builder.AddOptionalControlFile("tools/ci/oni-references.json", observedWorktreePaths);
+                builder.AddOptionalControlFile("tests/TUnitProjectDefaults.cs", observedWorktreePaths);
+                builder.AddOptionalControlFile("tests/TUnitProject.props", observedWorktreePaths);
             }
 
             builder.AddAbsolutePath(profile.ManifestPath);
@@ -52,9 +52,9 @@ internal sealed record RelevantSourceSet(
                     profile.ModRoot,
                     build.EntryPoint);
                 builder.AddAbsolutePath(buildEntryPoint);
-                builder.AddTrackedProjectTree(
+                builder.AddProjectTree(
                     Path.GetDirectoryName(buildEntryPoint)!,
-                    trackedAbsolutePaths);
+                    observedAbsolutePaths);
             }
 
             foreach (var mapping in profile.PackageFiles)
@@ -75,8 +75,8 @@ internal sealed record RelevantSourceSet(
                 builder.AddDeclaredFile(worktreeRoot, profile.Readme.RepositoryPath);
                 builder.AddDeclaredFile(worktreeRoot, "package.json");
                 builder.AddDeclaredFile(worktreeRoot, "package-lock.json");
-                builder.AddOptionalControlFile(".markdown-quality.json", trackedWorktreeRelativePaths);
-                builder.AddOptionalControlFile(".markdown-quality-execution.json", trackedWorktreeRelativePaths);
+                builder.AddOptionalControlFile(".markdown-quality.json", observedWorktreePaths);
+                builder.AddOptionalControlFile(".markdown-quality-execution.json", observedWorktreePaths);
                 builder.AddDeclaredFile(worktreeRoot, ".node-version");
                 builder.AddDeclaredFile(worktreeRoot, ".python-version");
                 builder.AddDeclaredFile(worktreeRoot, "tools/readme/canonicalize.mjs");
@@ -90,9 +90,9 @@ internal sealed record RelevantSourceSet(
                     profile.ModRoot,
                     testProject.Path);
                 builder.AddAbsolutePath(testProjectPath);
-                builder.AddTrackedProjectTree(
+                builder.AddProjectTree(
                     Path.GetDirectoryName(testProjectPath)!,
-                    trackedAbsolutePaths);
+                    observedAbsolutePaths);
             }
 
             if (pipelineExecutablePath is not null &&
@@ -163,11 +163,11 @@ internal sealed record RelevantSourceSet(
 
         // Missing optional policy is a valid default. Retain tracked deletions
         // so Git status still refuses a control removed during preparation.
-        internal void AddOptionalControlFile(string relativePath, IReadOnlyList<string> trackedPaths)
+        internal void AddOptionalControlFile(string relativePath, IReadOnlyList<string> observedPaths)
         {
             var path = ResolveDeclaredPath(WorktreeRoot, relativePath);
             if (File.Exists(path) || Directory.Exists(path)) AddDeclaredFile(WorktreeRoot, relativePath);
-            else if (trackedPaths.Contains(relativePath, StringComparer.Ordinal)) AddAbsolutePath(path);
+            else if (observedPaths.Contains(relativePath, StringComparer.Ordinal)) AddAbsolutePath(path);
         }
 
         internal void AddDeclaredFile(string root, string declaredPath)
@@ -206,23 +206,23 @@ internal sealed record RelevantSourceSet(
             }
         }
 
-        internal void AddTrackedProjectTree(
+        internal void AddProjectTree(
             string projectDirectory,
-            IReadOnlyList<string> trackedAbsolutePaths)
+            IReadOnlyList<string> observedAbsolutePaths)
         {
             var canonicalProjectDirectory = Path.GetFullPath(projectDirectory);
-            foreach (var trackedPath in trackedAbsolutePaths)
+            foreach (var path in observedAbsolutePaths)
             {
                 if (!TryGetDescendantRelativePath(
                     canonicalProjectDirectory,
-                    trackedPath,
+                    path,
                     out var projectRelativePath) ||
                     HasBuildDirectorySegment(projectRelativePath))
                 {
                     continue;
                 }
 
-                AddAbsolutePath(trackedPath);
+                AddAbsolutePath(path);
             }
         }
 

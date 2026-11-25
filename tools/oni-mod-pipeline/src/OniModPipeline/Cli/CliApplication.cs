@@ -48,7 +48,7 @@ internal static class CliApplication
     {
         var processRunner = new ExternalProcessRunner();
         var candidateSource = GameInstallationCandidateSource.CreateDefault();
-        var gitRepositoryInspector = new GitRepositoryInspector(processRunner);
+        var gitRepositoryInspector = new GitRepositoryInspector();
         return new PipelineServices(
             new ModProfileLocator(),
             new ModProfileLoader(),
@@ -567,10 +567,10 @@ internal static class CliApplication
         }
 
         var context = contextResult.Value!;
-        var provenanceResult = await services.GitRepositoryInspector.InspectAsync(
+        var provenanceResult = services.GitRepositoryInspector.Inspect(
             context.Profile,
             typeof(CliApplication).Assembly.Location,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         var provenance = provenanceResult.IsSuccess ? provenanceResult.Value : null;
         var environment = context.Environment;
         var report = new DiagnoseReport(
@@ -619,10 +619,10 @@ internal static class CliApplication
             return ConvertFailure<WorkshopListingValidation, ValidationReport>(listingResult);
         }
 
-        var provenanceResult = await services.GitRepositoryInspector.InspectAsync(
+        var provenanceResult = services.GitRepositoryInspector.Inspect(
             context.Profile,
             typeof(CliApplication).Assembly.Location,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         if (forRelease && !provenanceResult.IsSuccess)
         {
             return ConvertFailure<GitProvenance, ValidationReport>(provenanceResult);
@@ -678,10 +678,10 @@ internal static class CliApplication
         }
 
         var context = contextResult.Value!;
-        var provenanceResult = await services.GitRepositoryInspector.InspectAsync(
+        var provenanceResult = services.GitRepositoryInspector.Inspect(
             context.Profile,
             typeof(CliApplication).Assembly.Location,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         if (!provenanceResult.IsSuccess)
         {
             return ConvertFailure<GitProvenance, string>(provenanceResult);
@@ -735,10 +735,10 @@ internal static class CliApplication
         }
 
         var context = contextResult.Value!;
-        var provenanceResult = await services.GitRepositoryInspector.InspectAsync(
+        var provenanceResult = services.GitRepositoryInspector.Inspect(
             context.Profile,
             typeof(CliApplication).Assembly.Location,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         if (!provenanceResult.IsSuccess)
         {
             return ConvertFailure<GitProvenance, string>(provenanceResult);
@@ -785,10 +785,10 @@ internal static class CliApplication
 
         var context = contextResult.Value!;
         var pipelineExecutablePath = typeof(CliApplication).Assembly.Location;
-        var provenanceResult = await services.GitRepositoryInspector.InspectAsync(
+        var provenanceResult = services.GitRepositoryInspector.Inspect(
             context.Profile,
             pipelineExecutablePath,
-            cancellationToken).ConfigureAwait(false);
+            cancellationToken);
         if (!provenanceResult.IsSuccess)
         {
             return ConvertFailure<GitProvenance, PreparedReleaseCandidate>(

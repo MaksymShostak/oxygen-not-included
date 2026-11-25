@@ -1,5 +1,5 @@
 using MaksymShostak.OniModPipeline.Diagnostics;
-using MaksymShostak.OniModPipeline.Processes;
+using LibGit2Sharp;
 using MaksymShostak.OniModPipeline.SourceControl;
 using MaksymShostak.OniModPipeline.Tests.Fixtures;
 
@@ -7,15 +7,15 @@ namespace MaksymShostak.OniModPipeline.Tests.SourceControl;
 public sealed class GitRepositoryInspectorTests
 {
     [Test]
-    public async Task InspectAsync_WhenContributingFileIsModified_ReportsThatFileDirty()
+    public async Task Inspect_WhenContributingFileIsModified_ReportsThatFileDirty()
     {
         using var temporaryDirectory = new TemporaryDirectory();
-        var repositoryPath = await CreateRepositoryAsync(temporaryDirectory);
+        var repositoryPath = CreateRepository(temporaryDirectory);
         var contributingPath = Path.Combine(repositoryPath, "contributing.txt");
         File.WriteAllText(contributingPath, "modified");
-        var inspector = new GitRepositoryInspector(new ExternalProcessRunner());
+        var inspector = new GitRepositoryInspector();
 
-        var result = await inspector.InspectAsync(
+        var result = inspector.Inspect(
             repositoryPath,
             [contributingPath],
             CancellationToken.None);
@@ -26,15 +26,15 @@ public sealed class GitRepositoryInspectorTests
     }
 
     [Test]
-    public async Task InspectAsync_WhenUnrelatedFileIsModified_RemainsCleanForReleaseScope()
+    public async Task Inspect_WhenUnrelatedFileIsModified_RemainsCleanForReleaseScope()
     {
         using var temporaryDirectory = new TemporaryDirectory();
-        var repositoryPath = await CreateRepositoryAsync(temporaryDirectory);
+        var repositoryPath = CreateRepository(temporaryDirectory);
         var contributingPath = Path.Combine(repositoryPath, "contributing.txt");
         File.WriteAllText(Path.Combine(repositoryPath, "unrelated.txt"), "modified");
-        var inspector = new GitRepositoryInspector(new ExternalProcessRunner());
+        var inspector = new GitRepositoryInspector();
 
-        var result = await inspector.InspectAsync(
+        var result = inspector.Inspect(
             repositoryPath,
             [contributingPath],
             CancellationToken.None);
@@ -45,15 +45,15 @@ public sealed class GitRepositoryInspectorTests
     }
 
     [Test]
-    public async Task InspectAsync_WhenContributingFileIsUntracked_ReportsThatFileDirty()
+    public async Task Inspect_WhenContributingFileIsUntracked_ReportsThatFileDirty()
     {
         using var temporaryDirectory = new TemporaryDirectory();
-        var repositoryPath = await CreateRepositoryAsync(temporaryDirectory);
+        var repositoryPath = CreateRepository(temporaryDirectory);
         var contributingPath = Path.Combine(repositoryPath, "new-input.txt");
         File.WriteAllText(contributingPath, "untracked");
-        var inspector = new GitRepositoryInspector(new ExternalProcessRunner());
+        var inspector = new GitRepositoryInspector();
 
-        var result = await inspector.InspectAsync(
+        var result = inspector.Inspect(
             repositoryPath,
             [contributingPath],
             CancellationToken.None);
@@ -63,15 +63,15 @@ public sealed class GitRepositoryInspectorTests
     }
 
     [Test]
-    public async Task InspectAsync_WhenPathIsOutsideWorktree_ReturnsOnip5001()
+    public async Task Inspect_WhenPathIsOutsideWorktree_ReturnsOnip5001()
     {
         using var temporaryDirectory = new TemporaryDirectory();
-        var repositoryPath = await CreateRepositoryAsync(temporaryDirectory);
+        var repositoryPath = CreateRepository(temporaryDirectory);
         var outsidePath = temporaryDirectory.GetPath("outside.txt");
         File.WriteAllText(outsidePath, "outside");
-        var inspector = new GitRepositoryInspector(new ExternalProcessRunner());
+        var inspector = new GitRepositoryInspector();
 
-        var result = await inspector.InspectAsync(
+        var result = inspector.Inspect(
             repositoryPath,
             [outsidePath],
             CancellationToken.None);
@@ -81,106 +81,74 @@ public sealed class GitRepositoryInspectorTests
     }
 
     [Test]
-    public async Task InspectAsync_WhenPorcelainContainsRenameAndCopy_ReportsBothPathsForEachRecord()
+    public async Task Inspect_ReportsBothEndsOfAStagedRenameAndChangesToACopiedSource()
     {
-        using var temporaryDirectory = new TemporaryDirectory();
-        var runner = new SequenceProcessRunner(
-        [
-            new ProcessResult(0, $"{temporaryDirectory.Path}{Environment.NewLine}", string.Empty),
-            new ProcessResult(0, $"0123456789abcdef{Environment.NewLine}", string.Empty),
-            new ProcessResult(
-                0,
-                "R  renamed.txt\0original.txt\0C  copied.txt\0source.txt\0",
-                string.Empty),
-            new ProcessResult(
-                0,
-                "renamed.txt\0original.txt\0copied.txt\0source.txt\0",
-                string.Empty)
-        ]);
-        var inspector = new GitRepositoryInspector(runner);
-        var contributingPaths = new[]
-        {
-            "renamed.txt",
-            "original.txt",
-            "copied.txt",
-            "source.txt"
-        }
-        .Select(path => Path.Combine(temporaryDirectory.Path, path))
-        .ToArray();
+        using var directory = new TemporaryDirectory();
+        string root = CreateRepository(directory);
+        File.Move(Path.Combine(root, "contributing.txt"), Path.Combine(root, "renamed.txt"));
+        File.Copy(Path.Combine(root, "unrelated.txt"), Path.Combine(root, "copied.txt"));
+        File.WriteAllText(Path.Combine(root, "unrelated.txt"), "source edited after copying");
+        using (var repository = new Repository(root)) Commands.Stage(repository, "*");
+        string[] names = ["contributing.txt", "renamed.txt", "copied.txt", "unrelated.txt"];
+        var indexFile = Path.Combine(root, ".git", "index");
+        byte[] indexBefore = File.ReadAllBytes(indexFile);
 
-        var result = await inspector.InspectAsync(
-            temporaryDirectory.Path,
-            contributingPaths,
-            CancellationToken.None);
+        var result = new GitRepositoryInspector().Inspect(root,
+            names.Select(name => Path.Combine(root, name)).ToArray(), CancellationToken.None);
 
         await Assert.That(result.IsSuccess).IsTrue();
-        await Assert.That(result.Value!.DirtyPaths.ToArray()).IsEquivalentTo(new[] { "copied.txt", "original.txt", "renamed.txt", "source.txt" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
-        await Assert.That(runner.Requests).Count().IsEqualTo(4);
-        await Assert.That(runner.Requests[0].Arguments.ToArray()).IsEquivalentTo(new[] { "rev-parse", "--show-toplevel" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
-        await Assert.That(runner.Requests[1].Arguments.ToArray()).IsEquivalentTo(new[] { "rev-parse", "HEAD" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
-        await Assert.That(runner.Requests[2].Arguments.ToArray()).IsEquivalentTo(new[] { "status", "--porcelain=v1", "-z", "--untracked-files=all" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
-        await Assert.That(runner.Requests[3].Arguments.ToArray()).IsEquivalentTo(new[] { "ls-files", "-z" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(result.Value!.DirtyPaths.ToArray()).IsEquivalentTo(names);
+        await Assert.That(File.ReadAllBytes(indexFile).SequenceEqual(indexBefore)).IsTrue();
     }
 
-    private static async Task<string> CreateRepositoryAsync(
-        TemporaryDirectory temporaryDirectory)
+    [Test]
+    public async Task Inspect_UsesTheActualWorkingTreeForASeparateGitDirectory()
     {
-        var repositoryPath = temporaryDirectory.GetPath("repository");
-        Directory.CreateDirectory(repositoryPath);
-        File.WriteAllText(Path.Combine(repositoryPath, "contributing.txt"), "initial");
-        File.WriteAllText(Path.Combine(repositoryPath, "unrelated.txt"), "initial");
-        var runner = new ExternalProcessRunner();
-
-        await RunGitAsync(runner, repositoryPath, "init", "--quiet");
-        await RunGitAsync(runner, repositoryPath, "config", "user.name", "Pipeline Tests");
-        await RunGitAsync(
-            runner,
-            repositoryPath,
-            "config",
-            "user.email",
-            "pipeline-tests@example.invalid");
-        await RunGitAsync(runner, repositoryPath, "config", "commit.gpgsign", "false");
-        await RunGitAsync(runner, repositoryPath, "config", "core.autocrlf", "false");
-        await RunGitAsync(runner, repositoryPath, "add", "--all");
-        await RunGitAsync(runner, repositoryPath, "commit", "--quiet", "--message", "initial");
-
-        return repositoryPath;
+        using var directory = new TemporaryDirectory();
+        string root = CreateRepository(directory);
+        string admin = Path.Combine(root, ".git");
+        Directory.Move(admin, directory.GetPath("admin"));
+        File.WriteAllText(admin, "gitdir: ../admin\n");
+        var result = new GitRepositoryInspector().Inspect(root, [Path.Combine(root, "contributing.txt")], CancellationToken.None);
+        await Assert.That(result.IsSuccess).IsTrue().Because(string.Join(" ", result.Diagnostics.Select(d => d.Evidence)));
+        await Assert.That(result.Value!.WorktreeRoot).IsEqualTo(root);
+        await Assert.That(result.Value.IsClean).IsTrue();
     }
 
-    private static async Task RunGitAsync(
-        IExternalProcessRunner runner,
-        string workingDirectory,
-        params string[] arguments)
+    [Test]
+    public async Task Inspect_UsesTheWorkingFileWhenRepositoryMetadataNamesAnUnavailableMonitor()
     {
-        var result = await runner.RunAsync(
-            new ProcessRequest(
-                "git",
-                arguments,
-                workingDirectory,
-                new Dictionary<string, string>(StringComparer.Ordinal)
-                {
-                    ["GIT_CONFIG_GLOBAL"] = "/dev/null",
-                    ["GIT_CONFIG_NOSYSTEM"] = "1"
-                }),
-            CancellationToken.None);
+        using var directory = new TemporaryDirectory();
+        string root = CreateRepository(directory);
+        using (var repository = new Repository(root))
+            repository.Config.Set("core.fsmonitor", directory.GetPath("absent-monitor"), ConfigurationLevel.Local);
 
-        await Assert.That(result.ExitCode).IsEqualTo(0).Because($"git {string.Join(' ', arguments)} failed: {result.StandardError}");
+        string file = Path.Combine(root, "contributing.txt");
+        File.WriteAllText(file, "updated after the index was written");
+        var result = new GitRepositoryInspector().Inspect(root, [file], CancellationToken.None);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value!.DirtyPaths.ToArray()).IsEquivalentTo(["contributing.txt"]);
     }
 
-    private sealed class SequenceProcessRunner(IEnumerable<ProcessResult> results)
-        : IExternalProcessRunner
+    [Test]
+    public async Task Inspect_RefusesMetadataThatSelectsADifferentWorkingTree()
     {
-        private readonly Queue<ProcessResult> results = new(results);
+        using var directory = new TemporaryDirectory();
+        string root = CreateRepository(directory);
+        var other = Directory.CreateDirectory(directory.GetPath("other"));
+        using (var repository = new Repository(root))
+            repository.Config.Set("core.worktree", other.FullName, ConfigurationLevel.Local);
+        var result = new GitRepositoryInspector().Inspect(root, [Path.Combine(root, "contributing.txt")], CancellationToken.None);
+        await Assert.That(result.IsSuccess).IsFalse();
+        await Assert.That(result.Diagnostics.Single().Id).IsEqualTo("ONIP5001");
+    }
 
-        internal List<ProcessRequest> Requests { get; } = [];
-
-        public Task<ProcessResult> RunAsync(
-            ProcessRequest request,
-            CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            Requests.Add(request);
-            return Task.FromResult(results.Dequeue());
-        }
+    private static string CreateRepository(TemporaryDirectory directory)
+    {
+        var root = Directory.CreateDirectory(directory.GetPath("repository")).FullName;
+        File.WriteAllText(Path.Combine(root, "contributing.txt"), "first file\n");
+        File.WriteAllText(Path.Combine(root, "unrelated.txt"), "another file\n");
+        TestGitRepository.CommitAll(root);
+        return root;
     }
 }

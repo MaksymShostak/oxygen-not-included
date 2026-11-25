@@ -153,6 +153,25 @@ public sealed class RelevantSourceSetTests
         await Assert.That(deleted.Value!.WorktreeRelativePaths.ToArray()).Contains(control);
     }
 
+    [Test]
+    public async Task Inspect_FlagsStagedDeletionsAndNewBuildInputsWithinTheDeclaredProject()
+    {
+        using var directory = new TemporaryDirectory();
+        var profile = CreateProfileFixture(directory);
+        string original = Path.Combine(profile.ModRoot, "Source", "Before.cs");
+        File.WriteAllText(original, "// initial source");
+        TestGitRepository.CommitAll(directory.Path);
+        File.Delete(original);
+        using (var repository = new LibGit2Sharp.Repository(directory.Path))
+            LibGit2Sharp.Commands.Stage(repository, "mods/example/Source/Before.cs");
+        File.WriteAllText(Path.Combine(profile.ModRoot, "Source", "After.cs"), "// new untracked input");
+
+        var result = new GitRepositoryInspector().Inspect(profile, null, CancellationToken.None);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value!.DirtyPaths.ToArray()).IsEquivalentTo(
+            ["mods/example/Source/Before.cs", "mods/example/Source/After.cs"]);
+    }
+
     private static ModProfile CreateProfileFixture(TemporaryDirectory temporaryDirectory)
     {
         var modRoot = temporaryDirectory.GetPath("mods", "example");

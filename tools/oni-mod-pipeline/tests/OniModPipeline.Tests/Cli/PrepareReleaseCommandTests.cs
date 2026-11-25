@@ -25,7 +25,7 @@ public sealed class PrepareReleaseCommandTests
         await Assert.That(preparer.Request.Metadata.StaticId).IsEqualTo("Example.Mod");
         await Assert.That(preparer.Request.Metadata.Version).IsEqualTo("1.2.3");
         await Assert.That(preparer.Request.InitialProvenance.IsClean).IsTrue();
-        await Assert.That(preparer.Request.InitialProvenance.Commit).IsEqualTo(PipelineCommandFixture.Commit);
+        await Assert.That(preparer.Request.InitialProvenance.Commit).IsEqualTo(fixture.Commit);
         await Assert.That(preparer.Request.Environment.ArtifactsDirectory).IsEqualTo(fixture.ArtifactsDirectory);
         await Assert.That(invocation.StandardOutput).Contains($"Candidate: {preparer.CandidateDirectory}", StringComparison.Ordinal);
         await Assert.That(invocation.StandardOutput).Contains($"Content digest: {CapturingCandidatePreparer.ContentDigest}", StringComparison.Ordinal);
@@ -58,8 +58,7 @@ public sealed class PrepareReleaseCommandTests
     public async Task PrepareRelease_WhenContributingInputIsDirty_FailsBeforePreparer()
     {
         using var fixture = new PipelineCommandFixture(includeTests: true);
-        fixture.ProcessRunner.GitStatusOutput =
-            " M mods/example/mod.yaml\0";
+        File.AppendAllText(Path.Combine(fixture.ModRoot, "mod.yaml"), "\n# changed input\n");
         var preparer = new CapturingCandidatePreparer();
         var command = CliApplication.CreateRootCommand(
             fixture.Services with { ReleaseCandidatePreparer = preparer });

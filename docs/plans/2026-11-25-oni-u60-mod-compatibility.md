@@ -42,6 +42,9 @@ The local release is `2026.11.25` and the merged `netstandard2.1` assembly repor
 Before the candidate freeze, 1,010 mod tests passed against an explicitly selected merged build, with no skips.
 The pipeline passed 445 tests, including validation with an invalid checkout-side verifier, and the private-reference suite passed 15.
 The installed CLI reads the selected catalog as data and uses the verifier embedded in its own assembly.
+The subsequent security review identified two ways that Git discovery could execute code from a supplied checkout.
+The corrected floor command walks to the nearest checkout marker and rejects intervening directory links.
+Commands that need a commit or dirty-file list now read the index and working tree in process with LibGit2Sharp.
 All four tracked C# projects compiled against the separately acquired reference pack and its directory was reverified after compilation.
 The development installation passed the package checksum check in an isolated ONI user-data directory.
 The Workshop listing describes the U60 target and the outstanding FastTrack limit.
