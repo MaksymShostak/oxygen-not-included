@@ -431,11 +431,12 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
                     workDirectory);
             }
 
+            var rawTestResults = Path.Combine(workDirectory, "test-results");
             var testResult = await automatedTestRunner.RunAsync(
                 request.Profile,
                 request.Environment,
                 request.InitialProvenance.WorktreeRoot,
-                stagedTestResultsDirectory,
+                rawTestResults,
                 new BoundPipelineBuild(
                     Path.Combine(build.RunRoot, "build-result.json"),
                     request.Environment.ArtifactsDirectory),
@@ -451,11 +452,8 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
                     workDirectory);
             }
 
-            var automatedTests = testResult.Value!;
             var testContractDiagnostic = ValidateAutomatedTestResults(
-                request.Profile,
-                automatedTests,
-                stagedTestResultsDirectory);
+                request.Profile, testResult.Value!, rawTestResults);
             if (testContractDiagnostic is not null)
             {
                 return FailAndCleanup(
@@ -464,6 +462,17 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
                     layout,
                     stagingDirectory,
                     workDirectory);
+            }
+
+            // Test runners own their diagnostic output. Only the declared TRX receipts belong
+            // to the immutable release evidence, and the final candidate inventory stays closed.
+            fileSystem.CreateDirectory(stagedTestResultsDirectory);
+            var automatedTests = new List<AutomatedTestResult>();
+            foreach (var result in testResult.Value!)
+            {
+                var stagedTrx = Path.Combine(stagedTestResultsDirectory, result.TestProjectId + ".trx");
+                File.Copy(result.TrxPath, stagedTrx, overwrite: false);
+                automatedTests.Add(result with { TrxPath = stagedTrx });
             }
 
             var contentResult = await workshopContentAssembler.AssembleAsync(
@@ -895,7 +904,7 @@ internal sealed class ReleaseCandidatePreparer : IReleaseCandidatePreparer
             if (!HostPathComparer.Equals(
                     Path.GetFullPath(result.TrxPath),
                     expectedTrxPath) ||
-                !File.Exists(expectedTrxPath))
+                !ContainedPathResolver.ResolveExistingFile(resultsRoot, result.TestProjectId + ".trx").IsSuccess)
             {
                 return DiagnosticCatalog.AutomatedTestFailed(
                     result.TestProjectId,

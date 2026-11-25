@@ -766,6 +766,9 @@ internal sealed class FixtureTestRunner(PreparationFixture fixture) :
         }
 
         Directory.CreateDirectory(resultsRoot);
+        // The installed TUnit runner emits auxiliary reports next to its canonical TRX.
+        await File.WriteAllTextAsync(Path.Combine(resultsRoot, "run-report.html"), "html", cancellationToken);
+        await File.WriteAllTextAsync(Path.Combine(resultsRoot, "run.tunit-report.json"), "{}", cancellationToken);
         var trxPath = Path.Combine(resultsRoot, "example-regressions.trx");
         await File.WriteAllTextAsync(
             trxPath,

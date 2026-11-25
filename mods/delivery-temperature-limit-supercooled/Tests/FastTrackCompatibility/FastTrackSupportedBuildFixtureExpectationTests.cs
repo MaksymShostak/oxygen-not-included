@@ -59,10 +59,12 @@ public sealed class FastTrackSupportedBuildFixtureExpectationTests
         string repository = Environment.GetEnvironmentVariable("ONI_MOD_PIPELINE_REPOSITORY_ROOT")!;
         string mod = Path.Combine(repository, "mods", "delivery-temperature-limit-supercooled");
         string measured = FastTrackSupportedAssemblyBuildCatalog.SelectedBuild.FileVersion.ToString();
+        var versions = new System.Text.RegularExpressions.Regex(@"\bFast Track Beta (?<version>[0-9]+(?:\.[0-9]+)+)(?![\w]|\.[0-9])");
         foreach (string file in new[] { "STEAM_DESCRIPTION.bbcode", "STEAM_CHANGE_NOTES.bbcode" })
         {
             string listing = await File.ReadAllTextAsync(Path.Combine(mod, file));
-            await Assert.That(listing).Contains("Fast Track Beta " + measured).Because(file);
+            var recorded = versions.Matches(listing).Select(match => match.Groups["version"].Value).Distinct().ToArray();
+            await Assert.That(recorded).IsEquivalentTo([measured]).Because(file);
         }
     }
 
