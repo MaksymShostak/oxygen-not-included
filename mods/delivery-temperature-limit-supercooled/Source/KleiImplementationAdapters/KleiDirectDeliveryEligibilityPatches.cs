@@ -577,7 +577,7 @@ namespace DeliveryTemperatureLimit
                 DeclaredMemberVisibility.Public, FieldStorageKind.Instance, typeof(int));
             FieldInfo start = HarmonyPatchContractVerifier.RequireField(range, "start",
                 DeclaredMemberVisibility.Public, FieldStorageKind.Instance, typeof(int));
-            if (increment <= join + 15 || increment + 7 >= code.Count ||
+            if (increment <= join + 15 || increment + 9 >= code.Count ||
                 !IsCall(code[increment - 3], typeof(List<Chore.Precondition.Context>).GetMethod("Add")!) ||
                 code[increment - 2].opcode != OpCodes.Ldc_I4_1 || code[increment - 1].opcode != OpCodes.Ret ||
                 !code[increment].labels.Contains(preconditionRejected) || !IsLoadLocal(code[increment]) ||
@@ -586,7 +586,8 @@ namespace DeliveryTemperatureLimit
                 !IsLoadLocal(code[increment + 4]) || GetLocalIndex(code[increment]) != GetLocalIndex(code[increment + 4]) ||
                 !IsLoadArgument(code[increment + 5], 1) || !IsFieldLoad(code[increment + 6], count) ||
                 (code[increment + 7].opcode != OpCodes.Blt && code[increment + 7].opcode != OpCodes.Blt_S) ||
-                !(code[increment + 7].operand is Label nextPair))
+                !(code[increment + 7].operand is Label nextPair) ||
+                code[increment + 8].opcode != OpCodes.Ldc_I4_0 || code[increment + 9].opcode != OpCodes.Ret)
                 throw new HarmonyPatchContractViolationException("Klei sweep rejection no longer advances the candidate index.");
             int pair = HarmonyPatchContractVerifier.RequireSingleMatch(indices, i => code[i].labels.Contains(nextPair),
                 "Klei sweep indexed candidate");

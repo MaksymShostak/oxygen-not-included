@@ -47,6 +47,9 @@ internal static class CopySettingsEventContract
         receiver.Owner.Current = newer;
         dispatch(receiver, newer.Owner);
         await Assert.That((receiver.Low, receiver.High, newer.Low, newer.High)).IsEqualTo((0, 0, 600, 700));
+        receiver.Destroyed = true;
+        dispatch(receiver, newer.Owner);
+        await Assert.That(receiver.Changes).IsEqualTo(2);
     }
 
     private static AssemblyInstructionContract[] Body(string path, string method) =>
@@ -108,9 +111,12 @@ internal static class CopySettingsEventContract
     private sealed class Bin
     {
         public int Low, High, Changes;
-        public Obj Owner { get; } = new();
+        private readonly Obj owner = new();
+        public bool Destroyed;
+        public Obj Owner => Destroyed ? throw new InvalidOperationException("Destroyed Unity receiver") : owner;
         public Bin(int low, int high) { Owner.Current = this; Low = low; High = high; }
-        public static bool Equal(Bin? a, Bin? b) => ReferenceEquals(a, b);
+        public static bool Equal(Bin? a, Bin? b) => ReferenceEquals(a, b) ||
+            (a is null && b?.Destroyed == true) || (b is null && a?.Destroyed == true);
         public static bool Unequal(Bin? a, Bin? b) => !Equal(a, b);
         public void Apply(int low, int high)
         {

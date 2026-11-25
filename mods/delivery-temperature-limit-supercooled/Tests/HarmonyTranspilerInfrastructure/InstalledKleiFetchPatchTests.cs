@@ -106,6 +106,7 @@ public sealed class InstalledKleiFetchPatchTests
     [Arguments("redirected")]
     [Arguments("interior")]
     [Arguments("loop-exit")]
+    [Arguments("false-exhaustion")]
     public async Task SweepPreflightRejectsAnUnprovedCandidateGate(string mutation)
     {
         using var game = new InstalledGame();
@@ -127,6 +128,7 @@ public sealed class InstalledKleiFetchPatchTests
                     ((List<Label>)type.GetField("labels")!.GetValue(items[set - 6])!).Add(label);
                     il.Add(Activator.CreateInstance(type, OpCodes.Br, label));
                 }
+                else if (mutation == "false-exhaustion") type.GetField("opcode")!.SetValue(items[^2], OpCodes.Ldc_I4_1);
                 else
                 {
                     var rangeCount = items.Single(item => (operand.GetValue(item) as FieldInfo)?.Name == "count");
