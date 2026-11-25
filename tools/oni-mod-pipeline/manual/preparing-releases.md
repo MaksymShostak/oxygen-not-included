@@ -63,7 +63,7 @@ SDK source and resource files can enter the build even inside a Git-ignored dire
 For a solution entry point, the pipeline reads the project members named in the solution.
 It inspects ordinary SDK defaults and statically declared source paths as data, including the F# project’s explicit file list.
 MSBuild evaluates targets, imports and property expressions in the separate build step.
-Removing a tracked member of a declared package directory also makes that input dirty until its deletion is committed.
+Removing a tracked member of a declared package directory or a linked source wildcard makes that input dirty until its deletion is committed, even after the directory itself has been removed.
 A literal backslash in a POSIX filename cannot be represented unambiguously in portable release evidence.
 Rename a contributing file or directory with such a name before preparing the release.
 

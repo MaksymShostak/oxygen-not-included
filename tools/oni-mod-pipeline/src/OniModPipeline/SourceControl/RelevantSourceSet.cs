@@ -1,6 +1,5 @@
 using MaksymShostak.OniModPipeline.Diagnostics;
 using MaksymShostak.OniModPipeline.ModProfiles;
-using Microsoft.Build.Globbing;
 using Microsoft.VisualStudio.SolutionPersistence.Model;
 using Microsoft.VisualStudio.SolutionPersistence.Serializer;
 
@@ -26,7 +25,7 @@ internal sealed record RelevantSourceSet(
 
         try
         {
-            var builder = new SourceSetBuilder(worktreeRoot);
+            var builder = new SourceSetBuilder(worktreeRoot, cancellationToken);
             var observedAbsolutePaths = observedWorktreePaths
                 .Select(builder.ResolveWorktreeRelativePath)
                 .ToArray();
@@ -128,8 +127,11 @@ internal sealed record RelevantSourceSet(
         private readonly Dictionary<string, string> absolutePathByRelativePath =
             new(StringComparer.Ordinal);
 
-        internal SourceSetBuilder(string worktreeRoot)
+        private readonly CancellationToken cancellationToken;
+
+        internal SourceSetBuilder(string worktreeRoot, CancellationToken cancellationToken)
         {
+            this.cancellationToken = cancellationToken;
             WorktreeRoot = Path.GetFullPath(worktreeRoot);
         }
 
@@ -137,6 +139,7 @@ internal sealed record RelevantSourceSet(
 
         internal string ResolveWorktreeRelativePath(string relativePath)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (string.IsNullOrWhiteSpace(relativePath) ||
                 Path.IsPathRooted(relativePath) ||
                 relativePath.Length >= 2 && char.IsAsciiLetter(relativePath[0]) && relativePath[1] == ':')
@@ -162,6 +165,7 @@ internal sealed record RelevantSourceSet(
 
         internal void AddAbsolutePath(string absolutePath)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var canonicalPath = Path.GetFullPath(absolutePath);
             var relativePath = GetWorktreeRelativePath(canonicalPath);
             absolutePathByRelativePath.TryAdd(relativePath, canonicalPath);
@@ -225,7 +229,7 @@ internal sealed record RelevantSourceSet(
             if (input is null) return;
             if (!solution)
             {
-                AddSdkProjectInputs(input, isolatedOutputs);
+                AddSdkProjectInputs(input, observedPaths, isolatedOutputs);
                 return;
             }
 
@@ -241,7 +245,7 @@ internal sealed record RelevantSourceSet(
                 if (existing is not null && SourceExtension(existing) is not null)
                 {
                     AddObservedProjectPaths(Path.GetDirectoryName(existing)!, observedPaths, solution: false);
-                    AddSdkProjectInputs(existing, isolatedOutputs);
+                    AddSdkProjectInputs(existing, observedPaths, isolatedOutputs);
                 }
             }
         }
@@ -250,6 +254,7 @@ internal sealed record RelevantSourceSet(
         {
             foreach (var path in observedPaths)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!TryGetDescendantRelativePath(directory, path, out var relative)) continue;
                 if (solution ? HasBuildDirectorySegment(relative) : IsTopLevelBuildOutput(relative)) continue;
                 AddAbsolutePath(path);
@@ -267,44 +272,66 @@ internal sealed record RelevantSourceSet(
             throw new SourceSetException(diagnostic, verified.ExitCode);
         }
 
-        private void AddSdkProjectInputs(string project, bool isolatedOutputs)
+        private void AddSdkProjectInputs(string project, IReadOnlyList<string> observedPaths, bool isolatedOutputs)
         {
             string root = Path.GetDirectoryName(project)!;
-            var inputs = SdkProjectInputs.Read(project, SourceExtension(project)!, isolatedOutputs);
-            bool IncludeDirectory(string path) => !Path.GetFileName(path).StartsWith('.') &&
-                !inputs.IsExcludedLocalOutput(Path.GetRelativePath(root, path));
-            foreach (var path in EnumerateRegularFiles(root, IncludeDirectory, path => inputs.Includes(path, useDefaults: true)))
-                AddAbsolutePath(path);
-            foreach (var pattern in inputs.DeclaredIncludes)
-                AddDeclaredProjectItems(inputs, pattern);
-        }
+            var inputs = SdkProjectInputs.Read(project, SourceExtension(project)!, isolatedOutputs, cancellationToken);
+            var search = new SdkInputSearchPlan(inputs.DeclaredIncludes, cancellationToken);
+            var classified = new Dictionary<string, bool>(SdkInputSearchPlan.PathComparer);
 
-        private void AddDeclaredProjectItems(SdkProjectInputs inputs, MSBuildGlob pattern)
-        {
-            string prefix = Path.TrimEndingDirectorySeparator(pattern.FixedDirectoryPart);
-            if (pattern.WildcardDirectoryPart.Length == 0 && pattern.FilenamePart.IndexOfAny(['*', '?']) < 0)
+            bool DefaultLocation(string path)
             {
-                string file = Path.Combine(prefix, pattern.FilenamePart);
-                if (inputs.Includes(file, useDefaults: false) && ExistingContainedFile(file) is { } present)
-                    AddAbsolutePath(present);
-                return;
+                if (!TryGetDescendantRelativePath(root, path, out string relative) || inputs.IsExcludedLocalOutput(relative))
+                    return false;
+                var parent = Path.GetDirectoryName(relative);
+                return string.IsNullOrEmpty(parent) || !parent.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                    .Any(segment => segment.StartsWith('.'));
             }
-
-            // The native glob supplies the search prefix and matching semantics; validate the
-            // prefix against the checkout before inspecting any of its children.
-            if (Path.GetRelativePath(WorktreeRoot, prefix) != ".")
+            bool Selected(string path)
             {
-                var verified = ContainedPathResolver.ResolveExistingDirectory(WorktreeRoot, GetWorktreeRelativePath(prefix));
-                if (!verified.IsSuccess)
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!classified.TryGetValue(path, out bool included))
                 {
-                    var diagnostic = verified.Diagnostics.Single();
-                    if (diagnostic.Id == DiagnosticIds.DeclaredInputMissing) return;
-                    throw new SourceSetException(diagnostic, verified.ExitCode);
+                    included = inputs.Includes(path, DefaultLocation(path), cancellationToken);
+                    classified.Add(path, included);
                 }
+                return included;
             }
-            bool Recurse(string _) => pattern.WildcardDirectoryPart.Length != 0;
-            bool Matches(string path) => pattern.IsMatch(path) && inputs.Includes(path, useDefaults: false);
-            foreach (var path in EnumerateRegularFiles(prefix, Recurse, Matches)) AddAbsolutePath(path);
+
+            // A filesystem-only walk loses staged/unstaged wildcard members after their last directory is removed.
+            foreach (var path in observedPaths)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if ((search.Covers(path, cancellationToken) || DefaultLocation(path)) && Selected(path)) AddAbsolutePath(path);
+            }
+            bool DefaultDirectory(string path) => !Path.GetFileName(path).StartsWith('.') &&
+                !inputs.IsExcludedLocalOutput(Path.GetRelativePath(root, path));
+            if (inputs.HasDefaults)
+                foreach (var path in EnumerateRegularFiles(root, DefaultDirectory, Selected))
+                    AddAbsolutePath(path);
+
+            foreach (var file in search.Files)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                EnsureInsideWorktree(file);
+                if (Selected(file) && ExistingContainedFile(file) is { } present) AddAbsolutePath(present);
+            }
+            // Each physical directory is visited at most once by the explicit glob pass.
+            foreach (var (prefix, recursive) in search.Directories)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (Path.GetRelativePath(WorktreeRoot, prefix) != ".")
+                {
+                    var verified = ContainedPathResolver.ResolveExistingDirectory(WorktreeRoot, GetWorktreeRelativePath(prefix));
+                    if (!verified.IsSuccess)
+                    {
+                        var diagnostic = verified.Diagnostics.Single();
+                        if (diagnostic.Id == DiagnosticIds.DeclaredInputMissing) continue;
+                        throw new SourceSetException(diagnostic, verified.ExitCode);
+                    }
+                }
+                foreach (var path in EnumerateRegularFiles(prefix, _ => recursive, Selected)) AddAbsolutePath(path);
+            }
         }
 
         private static string? SourceExtension(string project) => Path.GetExtension(project).ToLowerInvariant() switch
@@ -431,18 +458,18 @@ internal sealed record RelevantSourceSet(
             relativePath.Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries)
                 .Any(IsBuildDirectoryName);
 
-        private static IEnumerable<string> EnumerateRegularFiles(string root, Func<string, bool>? includeDirectory = null,
+        private IEnumerable<string> EnumerateRegularFiles(string root, Func<string, bool>? includeDirectory = null,
             Func<string, bool>? includeFile = null)
         {
             var pendingDirectories = new Stack<string>();
             pendingDirectories.Push(Path.GetFullPath(root));
             while (pendingDirectories.Count > 0)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var directory = pendingDirectories.Pop();
-                foreach (var entry in Directory
-                    .EnumerateFileSystemEntries(directory)
-                    .OrderBy(path => path, StringComparer.Ordinal))
+                foreach (var entry in Directory.EnumerateFileSystemEntries(directory))
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var attributes = File.GetAttributes(entry);
                     bool isDirectory = (attributes & FileAttributes.Directory) != 0;
                     if ((isDirectory ? includeDirectory : includeFile)?.Invoke(entry) == false) continue;

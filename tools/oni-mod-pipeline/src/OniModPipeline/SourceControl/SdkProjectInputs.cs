@@ -20,6 +20,7 @@ internal sealed class SdkProjectInputs
     private bool localObjExcluded;
 
     internal IReadOnlyList<MSBuildGlob> DeclaredIncludes => includes;
+    internal bool HasDefaults => defaultCompile is not null || defaultResources is not null;
 
     internal bool IsExcludedLocalOutput(string relativePath)
     {
@@ -29,24 +30,48 @@ internal sealed class SdkProjectInputs
         return (localBinExcluded && first.Equals("bin", comparison)) || (localObjExcluded && first.Equals("obj", comparison));
     }
 
-    internal bool Includes(string path, bool useDefaults)
+    private ItemKind removedKinds;
+    internal bool Includes(string path, bool useDefaults, CancellationToken token)
     {
+        token.ThrowIfCancellationRequested();
         ItemKind selected = 0;
         if (useDefaults && defaultCompile?.IsMatch(path) == true) selected |= ItemKind.Compile;
         if (useDefaults && defaultResources?.IsMatch(path) == true) selected |= ItemKind.Resource;
-        foreach (var rule in rules)
+        if ((selected & ~removedKinds) != 0) return true;
+        ItemKind decided = 0;
+        // For each item type only its last applicable declaration can affect the answer.
+        for (int index = rules.Count - 1; index >= 0; index--)
         {
-            if (rule.Pattern.IsMatch(path) && !Array.Exists(rule.Excludes, exclude => exclude.IsMatch(path)))
-                selected = rule.Add ? selected | rule.Kind : selected & ~rule.Kind;
+            token.ThrowIfCancellationRequested();
+            var rule = rules[index];
+            if ((decided & rule.Kind) != 0 || !rule.Pattern.IsMatch(path) || IsExcluded(rule.Excludes))
+                continue;
+            if (rule.Add) return true;
+            decided |= rule.Kind;
         }
-        return selected != 0;
+        return (selected & ~decided) != 0;
+
+        bool IsExcluded(MSBuildGlob[] excludes)
+        {
+            foreach (var exclude in excludes)
+            {
+                token.ThrowIfCancellationRequested();
+                if (exclude.IsMatch(path)) return true;
+            }
+            return false;
+        }
     }
 
-    internal static SdkProjectInputs Read(string projectFile, string language, bool isolatedOutputs)
+    internal static SdkProjectInputs Read(string projectFile, string language, bool isolatedOutputs, CancellationToken token = default)
     {
+        token.ThrowIfCancellationRequested();
         using var reader = XmlReader.Create(projectFile, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null });
         var project = XDocument.Load(reader).Root ?? throw new InvalidDataException($"Empty project: {projectFile}");
         string root = Path.GetDirectoryName(projectFile)!;
+        var compiled = new Dictionary<string, MSBuildGlob>(StringComparer.Ordinal);
+        var positivePatterns = new HashSet<MSBuildGlob>();
+        var lastRules = new Dictionary<(ItemKind, MSBuildGlob, string), (int Order, Rule Rule)>();
+        int order = 0;
         var result = new SdkProjectInputs
         {
             localBinExcluded = ExcludesLocalOutput("bin", "BaseOutputPath"),
@@ -62,6 +87,7 @@ internal sealed class SdkProjectInputs
         {
             foreach (var item in group.Elements())
             {
+                token.ThrowIfCancellationRequested();
                 var kind = item.Name.LocalName switch
                 {
                     "Compile" => ItemKind.Compile,
@@ -71,24 +97,34 @@ internal sealed class SdkProjectInputs
                     _ => (ItemKind)0
                 };
                 if (kind == 0) continue;
-                var excludes = StaticPatterns(item.Attribute("Exclude")).Select(Glob).ToArray();
+                var excludeSpecs = StaticPatterns(item.Attribute("Exclude")).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+                var excludes = excludeSpecs.Select(Glob).ToArray();
+                string excludeKey = string.Join('\u0000', excludeSpecs);
                 foreach (var include in StaticPatterns(item.Attribute("Include")).Select(Glob))
                 {
-                    result.includes.Add(include);
-                    result.rules.Add(new(kind, true, include, excludes));
+                    if (positivePatterns.Add(include)) result.includes.Add(include);
+                    lastRules[(kind, include, excludeKey)] = (++order, new(kind, true, include, excludes));
                 }
                 // A conditional removal cannot rule out an input for all configurations.
                 if (group.Attribute("Condition") is null && item.Attribute("Condition") is null)
                     foreach (var remove in StaticPatterns(item.Attribute("Remove")).Select(Glob))
-                        result.rules.Add(new(kind, false, remove, []));
+                    {
+                        result.removedKinds |= kind;
+                        lastRules[(kind, remove, string.Empty)] = (++order, new(kind, false, remove, []));
+                    }
             }
         }
+        result.rules.AddRange(lastRules.Values.OrderBy(value => value.Order).Select(value => value.Rule));
         return result;
 
         MSBuildGlob Glob(string pattern)
         {
-            var glob = MSBuildGlob.Parse(root, pattern);
-            return glob.IsLegal ? glob : throw new InvalidDataException($"Invalid item pattern in '{projectFile}': {pattern}");
+            token.ThrowIfCancellationRequested();
+            if (compiled.TryGetValue(pattern, out var glob)) return glob;
+            glob = MSBuildGlob.Parse(root, pattern);
+            if (!glob.IsLegal) throw new InvalidDataException($"Invalid item pattern in '{projectFile}': {pattern}");
+            compiled.Add(pattern, glob);
+            return glob;
         }
 
         bool ExcludesLocalOutput(string name, string outputProperty)

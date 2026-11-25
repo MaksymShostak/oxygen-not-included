@@ -381,6 +381,77 @@ public sealed class RelevantSourceSetTests
         await Assert.That(result.Value!.DirtyPaths.ToArray()).IsEquivalentTo(expected);
     }
 
+    [Test]
+    [Arguments(false, false)]
+    [Arguments(true, false)]
+    [Arguments(true, true)]
+    public async Task Inspect_RetainsDeletedLinkedWildcardInputsEvenWhenTheirDirectoryDisappears(bool staged, bool removeDirectory)
+    {
+        using var directory = new TemporaryDirectory();
+        var profile = CreateProfileFixture(directory);
+        string source = Path.Combine(profile.ModRoot, "Source");
+        string shared = Directory.CreateDirectory(Path.Combine(profile.ModRoot, "shared", "nested")).FullName;
+        File.WriteAllText(Path.Combine(source, "Example.csproj"), """
+            <Project Sdk="Microsoft.NET.Sdk"><ItemGroup>
+              <Compile Include="../shared/**/*.cs" Exclude="../shared/**/Optional.cs" />
+            </ItemGroup></Project>
+            """);
+        WriteFile(Path.Combine(shared, "Removed.cs"));
+        WriteFile(Path.Combine(shared, "Optional.cs"));
+        TestGitRepository.CommitAll(directory.Path);
+        File.Delete(Path.Combine(shared, "Removed.cs"));
+        File.Delete(Path.Combine(shared, "Optional.cs"));
+        if (removeDirectory)
+        {
+            Directory.Delete(shared);
+            Directory.Delete(Path.GetDirectoryName(shared)!);
+        }
+        if (staged)
+        {
+            using var repository = new LibGit2Sharp.Repository(directory.Path);
+            LibGit2Sharp.Commands.Stage(repository, "mods/example/shared/*");
+        }
+        var result = await new GitRepositoryInspector().InspectAsync(profile, null, CancellationToken.None);
+        await Assert.That(result.IsSuccess).IsTrue();
+        await Assert.That(result.Value!.DirtyPaths.ToArray()).IsEquivalentTo(["mods/example/shared/nested/Removed.cs"]);
+    }
+
+    [Test]
+    public async Task OverlappingSdkPatternsPlanOneRecursiveWalkAndKeepDisjointDirectRoots()
+    {
+        using var directory = new TemporaryDirectory();
+        string project = directory.GetPath("Example.fsproj");
+        File.WriteAllText(project, """
+            <Project Sdk="Microsoft.NET.Sdk"><ItemGroup>
+              <Compile Include="lib/**/*.fs;lib/**/*.fs;lib/nested/*.fs;other/*.fs;other/deep/*.fs;one.fs;one.fs" />
+            </ItemGroup></Project>
+            """);
+        var inputs = SdkProjectInputs.Read(project, ".fs", isolatedOutputs: true);
+        await Assert.That(inputs.DeclaredIncludes.Count).IsEqualTo(5);
+        var plan = new SdkInputSearchPlan(inputs.DeclaredIncludes, CancellationToken.None);
+        await Assert.That(plan.Files.ToArray()).IsEquivalentTo([directory.GetPath("one.fs")]);
+        await Assert.That(plan.Directories.Keys.ToArray()).IsEquivalentTo(
+            [directory.GetPath("lib"), directory.GetPath("other"), directory.GetPath("other", "deep")]);
+        await Assert.That(plan.Directories[directory.GetPath("lib")]).IsTrue();
+        await Assert.That(plan.Directories[directory.GetPath("other")]).IsFalse();
+        await Assert.That(plan.Covers(directory.GetPath("lib", "missing", "WasHere.fs"), CancellationToken.None)).IsTrue();
+        await Assert.That(plan.Covers(directory.GetPath("library", "WasHere.fs"), CancellationToken.None)).IsFalse();
+        await Assert.That(plan.Covers(directory.GetPath("other", "unrelated", "WasHere.fs"), CancellationToken.None)).IsFalse();
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+        await Assert.That(() => plan.Covers(directory.GetPath("one.fs"), cancelled.Token)).ThrowsExactly<OperationCanceledException>();
+        await Assert.That(() => inputs.Includes(directory.GetPath("one.fs"), true, cancelled.Token)).ThrowsExactly<OperationCanceledException>();
+        using var duringDiscovery = new CancellationTokenSource();
+        IEnumerable<Microsoft.Build.Globbing.MSBuildGlob> InterruptedPatterns()
+        {
+            yield return inputs.DeclaredIncludes[0];
+            duringDiscovery.Cancel();
+            yield return inputs.DeclaredIncludes[1];
+        }
+        await Assert.That(() => new SdkInputSearchPlan(InterruptedPatterns(), duringDiscovery.Token)).ThrowsExactly<OperationCanceledException>();
+
+    }
+
     private static ModProfile CreateProfileFixture(TemporaryDirectory temporaryDirectory)
     {
         var modRoot = temporaryDirectory.GetPath("mods", "example");
