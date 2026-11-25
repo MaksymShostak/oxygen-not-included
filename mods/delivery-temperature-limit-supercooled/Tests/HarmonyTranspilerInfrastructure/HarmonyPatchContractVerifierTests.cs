@@ -1409,7 +1409,6 @@ public sealed class HarmonyPatchContractVerifierTests
             "FetchAreaCandidateClosure.changedStatesInstance");
         await Assert.That(() =>
             RequireKleiDirectEligibilityInstructionAnchors(
-                CapturedClearableCollectChoresInstructions(),
                 CapturedFetchAreaBeginInstructions(),
                 instructions)).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
@@ -1418,15 +1417,13 @@ public sealed class HarmonyPatchContractVerifierTests
     public async Task KleiDirectEligibilityInstructionContract_WhenCapturedInstalledShapesMatch_ResolvesEveryTypedAnchorOnce()
     {
         var anchors = RequireKleiDirectEligibilityInstructionAnchors(
-            CapturedClearableCollectChoresInstructions(),
             CapturedFetchAreaBeginInstructions(),
             CapturedFetchAreaCandidateDelegateInstructions());
 
-        await Assert.That(anchors.ClearablePickupableLocalIndex).IsEqualTo(5);
-        await Assert.That(anchors.ClearableFetchLocalIndex).IsEqualTo(10);
+
         await Assert.That(anchors.CandidateFetchChoreLocalIndex).IsEqualTo(14);
         await Assert.That(anchors.DelegatePickupableLocalIndex).IsEqualTo(0);
-        await Assert.That(anchors.ClearableEligibilityExtensionIndex).IsEqualTo(20);
+
         await Assert.That(anchors.FetchChoreContainmentExtensionIndex).IsEqualTo(6);
         await Assert.That(anchors.DelegateCanReachCallIndex).IsEqualTo(6);
     }
@@ -1441,7 +1438,6 @@ public sealed class HarmonyPatchContractVerifierTests
 
         await Assert.That(() =>
             RequireKleiDirectEligibilityInstructionAnchors(
-                CapturedClearableCollectChoresInstructions(),
                 CapturedFetchAreaBeginInstructions(),
                 delegateInstructions)).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
@@ -1455,7 +1451,6 @@ public sealed class HarmonyPatchContractVerifierTests
 
         await Assert.That(() =>
             RequireKleiDirectEligibilityInstructionAnchors(
-                CapturedClearableCollectChoresInstructions(),
                 CapturedFetchAreaBeginInstructions(),
                 delegateInstructions)).ThrowsExactly<HarmonyPatchContractViolationException>();
     }
@@ -1470,12 +1465,12 @@ public sealed class HarmonyPatchContractVerifierTests
         var source = File.ReadAllText(adapterPath);
 
         await Assert.That(source).Contains("ResolveFetchManagerIsFetchablePickupTarget");
-        await Assert.That(source).Contains("ResolveClearableManagerCollectChoresTarget");
+        await Assert.That(source).Contains("ResolveClearableManagerEvaluateFetchRangeTarget");
         await Assert.That(source).Contains("ResolveFetchAreaChoreStatesInstanceBeginTarget");
         await Assert.That(source).Contains("ResolveFetchAreaChoreCandidateDelegateTarget");
         await Assert.That(source).Contains("VerifyKleiDirectDeliveryEligibilityPatchContracts");
         await Assert.That(source).Contains("IsFetchablePickupPostfix");
-        await Assert.That(source).Contains("ClearableManagerCollectChoresTranspiler");
+        await Assert.That(source).Contains("ClearableManagerEvaluateFetchRangeTranspiler");
         await Assert.That(source).Contains("FetchAreaChoreBeginTranspiler");
         await Assert.That(source).Contains("FetchAreaCandidateDelegateTranspiler");
         await Assert.That(source).Contains("IsPickupAllowedForDestination");
@@ -2143,65 +2138,10 @@ public sealed class HarmonyPatchContractVerifierTests
     private static KleiDirectEligibilityInstructionAnchors
         RequireKleiDirectEligibilityInstructionAnchors(
             IReadOnlyList<TranspilerInstructionFixture>
-                clearableCollectChoresInstructions,
-            IReadOnlyList<TranspilerInstructionFixture>
                 fetchAreaBeginInstructions,
             IReadOnlyList<TranspilerInstructionFixture>
                 fetchAreaCandidateDelegateInstructions)
     {
-        var clearableCandidateIndices = Enumerable.Range(
-            0,
-            clearableCollectChoresInstructions.Count).ToArray();
-        int pickupableCaptureIndex =
-            HarmonyPatchContractVerifier.RequireSingleMatch(
-                clearableCandidateIndices,
-                index => MatchesWindow(
-                    clearableCollectChoresInstructions,
-                    index,
-                    FieldInstruction("ClearableManager.sortedClearables"),
-                    LoadLocalInstruction(localIndex: null),
-                    CallInstruction("List<SortedClearable>.get_Item"),
-                    OperationInstruction("dup"),
-                    FieldInstruction("SortedClearable.pickupable"),
-                    StoreLocalInstruction(localIndex: null)),
-                "ClearableManager.CollectChores typed pickupable capture");
-        int clearablePickupableLocalIndex =
-            clearableCollectChoresInstructions[pickupableCaptureIndex + 5]
-                .LocalIndex!.Value;
-
-        int fetchCaptureIndex =
-            HarmonyPatchContractVerifier.RequireSingleMatch(
-                clearableCandidateIndices,
-                index => MatchesWindow(
-                    clearableCollectChoresInstructions,
-                    index,
-                    LoadArgumentInstruction(1),
-                    LoadLocalInstruction(localIndex: null),
-                    CallInstruction("List<GlobalFetch>.get_Item"),
-                    StoreLocalInstruction(localIndex: null)),
-                "ClearableManager.CollectChores typed fetch capture");
-        int clearableFetchLocalIndex =
-            clearableCollectChoresInstructions[fetchCaptureIndex + 3]
-                .LocalIndex!.Value;
-
-        int clearableEligibilityAnchorIndex =
-            HarmonyPatchContractVerifier.RequireSingleMatch(
-                clearableCandidateIndices,
-                index => MatchesWindow(
-                    clearableCollectChoresInstructions,
-                    index,
-                    LoadLocalInstruction(localIndex: null),
-                    LoadLocalInstruction(clearableFetchLocalIndex),
-                    FieldInstruction("GlobalFetch.chore"),
-                    FieldInstruction("FetchChore.tagsFirst"),
-                    CallInstruction("KPrefabID.HasTag"),
-                    BranchInstruction("br.s"),
-                    OperationInstruction("ldc.i4.0"),
-                    BranchInstruction("br.s"),
-                    OperationInstruction("ldc.i4.1"),
-                    BranchInstruction("brfalse.s")),
-                "ClearableManager.CollectChores direct eligibility extension");
-
         var beginCandidateIndices = Enumerable.Range(
             0,
             fetchAreaBeginInstructions.Count).ToArray();
@@ -2249,11 +2189,10 @@ public sealed class HarmonyPatchContractVerifierTests
                 delegateCanReachAnchorIndex + 5].LocalIndex!.Value;
 
         return new KleiDirectEligibilityInstructionAnchors(
-            clearablePickupableLocalIndex,
-            clearableFetchLocalIndex,
+
             candidateFetchChoreLocalIndex,
             delegatePickupableLocalIndex,
-            clearableEligibilityAnchorIndex + 10,
+
             fetchChoreContainmentAnchorIndex + 6,
             delegateCanReachAnchorIndex + 6);
     }
@@ -2624,32 +2563,6 @@ public sealed class HarmonyPatchContractVerifierTests
     }
 
     private static List<TranspilerInstructionFixture>
-        CapturedClearableCollectChoresInstructions() =>
-        [
-            FieldInstruction("ClearableManager.sortedClearables"),
-            LoadLocalInstruction(4),
-            CallInstruction("List<SortedClearable>.get_Item"),
-            OperationInstruction("dup"),
-            FieldInstruction("SortedClearable.pickupable"),
-            StoreLocalInstruction(5),
-            LoadArgumentInstruction(1),
-            LoadLocalInstruction(9),
-            CallInstruction("List<GlobalFetch>.get_Item"),
-            StoreLocalInstruction(10),
-            LoadLocalInstruction(8),
-            LoadLocalInstruction(10),
-            FieldInstruction("GlobalFetch.chore"),
-            FieldInstruction("FetchChore.tagsFirst"),
-            CallInstruction("KPrefabID.HasTag"),
-            BranchInstruction("br.s"),
-            OperationInstruction("ldc.i4.0"),
-            BranchInstruction("br.s"),
-            OperationInstruction("ldc.i4.1"),
-            BranchInstruction("brfalse.s"),
-            LoadLocalAddressInstruction(7)
-        ];
-
-    private static List<TranspilerInstructionFixture>
         CapturedFetchAreaBeginInstructions() =>
         [
             LoadLocalInstruction(14),
@@ -2966,11 +2879,11 @@ public sealed class HarmonyPatchContractVerifierTests
         int? LocalIndex);
 
     private sealed record KleiDirectEligibilityInstructionAnchors(
-        int ClearablePickupableLocalIndex,
-        int ClearableFetchLocalIndex,
+
+
         int CandidateFetchChoreLocalIndex,
         int DelegatePickupableLocalIndex,
-        int ClearableEligibilityExtensionIndex,
+
         int FetchChoreContainmentExtensionIndex,
         int DelegateCanReachCallIndex);
 

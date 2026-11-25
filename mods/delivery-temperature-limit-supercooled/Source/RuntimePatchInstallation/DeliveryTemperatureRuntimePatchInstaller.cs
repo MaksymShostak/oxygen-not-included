@@ -782,10 +782,10 @@ namespace DeliveryTemperatureLimit
             AddTranspiler(
                 patches,
                 KleiDirectDeliveryEligibilityPatches
-                    .ResolveClearableManagerCollectChoresTarget(),
+                    .ResolveClearableManagerEvaluateFetchRangeTarget(),
                 typeof(KleiDirectDeliveryEligibilityPatches),
                 nameof(KleiDirectDeliveryEligibilityPatches
-                    .ClearableManagerCollectChoresTranspiler));
+                    .ClearableManagerEvaluateFetchRangeTranspiler));
             AddTranspiler(
                 patches,
                 KleiDirectDeliveryEligibilityPatches

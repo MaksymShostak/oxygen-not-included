@@ -34,21 +34,18 @@ namespace DeliveryTemperatureLimit
                 });
 
         internal static MethodInfo
-            ResolveClearableManagerCollectChoresTarget()
+            ResolveClearableManagerEvaluateFetchRangeTarget()
         {
             Type clearableManagerType = ResolveClearableManagerType();
-            return HarmonyPatchContractVerifier.RequireInstanceMethod(
-                clearableManagerType,
-                "CollectChores",
-                DeclaredMemberVisibility.Public,
-                typeof(void),
-                new[]
-                {
-                    typeof(List<GlobalChoreProvider.Fetch>),
-                    typeof(ChoreConsumerState),
-                    typeof(List<Chore.Precondition.Context>),
-                    typeof(List<Chore.Precondition.Context>)
-                });
+            Type range = HarmonyPatchContractVerifier.RequireNestedType(clearableManagerType,
+                "TagFetchRange", DeclaredMemberVisibility.NonPublic);
+            Type clearable = HarmonyPatchContractVerifier.RequireNestedType(clearableManagerType,
+                "SortedClearable", DeclaredMemberVisibility.NonPublic);
+            return HarmonyPatchContractVerifier.RequireInstanceMethod(clearableManagerType,
+                "EvaluateFetchRange", DeclaredMemberVisibility.NonPublic, typeof(bool),
+                new[] { range, typeof(List<int>), typeof(List<GlobalChoreProvider.Fetch>),
+                    typeof(ChoreConsumerState), clearable, typeof(KPrefabID), typeof(ChoreType),
+                    typeof(int), typeof(int), typeof(List<Chore.Precondition.Context>) });
         }
 
         internal static MethodInfo
@@ -119,7 +116,7 @@ namespace DeliveryTemperatureLimit
             _ = ResolveFetchManagerIsFetchablePickupTarget();
 
             MethodInfo clearableTarget =
-                ResolveClearableManagerCollectChoresTarget();
+                ResolveClearableManagerEvaluateFetchRangeTarget();
             ILGenerator clearableGenerator;
             List<CodeInstruction> clearableInstructions =
                 PatchProcessor.GetOriginalInstructions(
@@ -127,7 +124,7 @@ namespace DeliveryTemperatureLimit
                     out clearableGenerator);
             _ = clearableGenerator;
             _ = new List<CodeInstruction>(
-                ClearableManagerCollectChoresTranspiler(
+                ClearableManagerEvaluateFetchRangeTranspiler(
                     clearableInstructions,
                     clearableTarget));
 
@@ -176,7 +173,7 @@ namespace DeliveryTemperatureLimit
         }
 
         internal static IEnumerable<CodeInstruction>
-            ClearableManagerCollectChoresTranspiler(
+            ClearableManagerEvaluateFetchRangeTranspiler(
                 IEnumerable<CodeInstruction> instructions,
                 MethodBase originalMethod)
         {
@@ -187,40 +184,27 @@ namespace DeliveryTemperatureLimit
 
             RequireExactOriginalMethod(
                 originalMethod,
-                ResolveClearableManagerCollectChoresTarget(),
-                "ClearableManager.CollectChores");
+                ResolveClearableManagerEvaluateFetchRangeTarget(),
+                "ClearableManager.EvaluateFetchRange");
             var sourceInstructions = new List<CodeInstruction>(instructions);
-            ClearableEligibilityExtensionAnchor anchor =
-                RequireClearableEligibilityExtensionAnchor(
-                    sourceInstructions);
-            MethodInfo eligibilityHook =
-                HarmonyPatchContractVerifier.RequireStaticMethod(
-                    typeof(KleiDirectDeliveryEligibilityPatches),
-                    nameof(IsPickupAllowedForFetchChore),
-                    DeclaredMemberVisibility.NonPublic,
-                    typeof(bool),
-                    new[] { typeof(FetchChore), typeof(Pickupable) });
+            int join = RequireSweepCandidateJoin(sourceInstructions, originalMethod);
+            MethodInfo gate = HarmonyPatchContractVerifier.RequireStaticMethod(
+                typeof(KleiDirectDeliveryEligibilityPatches), nameof(IsPickupAllowedForFetchChore),
+                DeclaredMemberVisibility.NonPublic, typeof(bool), new[] { typeof(FetchChore), typeof(Pickupable) });
 
-            CodeInstruction originalContinuationInstruction =
-                sourceInstructions[anchor.ExtensionInsertionIndex];
-            var firstInjectedInstruction = HarmonyCodeInstructionFactory.LoadLocal(
-                anchor.FetchLocalIndex);
-            MoveInstructionLabels(
-                originalContinuationInstruction,
-                firstInjectedInstruction);
-            var eligibilityInstructions = new List<CodeInstruction>(5)
-            {
-                firstInjectedInstruction,
-                new CodeInstruction(OpCodes.Ldfld, anchor.FetchChoreField),
-                HarmonyCodeInstructionFactory.LoadLocal(anchor.PickupableLocalIndex),
-                new CodeInstruction(OpCodes.Call, eligibilityHook),
-                new CodeInstruction(
-                    OpCodes.Brfalse,
-                    anchor.RejectedCandidateBranchTarget)
-            };
-            sourceInstructions.InsertRange(
-                anchor.ExtensionInsertionIndex,
-                eligibilityInstructions);
+            // Replay the two native, typed loads. Both tag paths now visit the gate on an empty stack.
+            // A rejected pair continues the same pickup's range at the native loop increment.
+            var fetch = sourceInstructions[join + 1];
+            var pickup = sourceInstructions[join + 5];
+            var first = new CodeInstruction(fetch.opcode, fetch.operand);
+            MoveInstructionLabels(sourceInstructions[join], first);
+            sourceInstructions.InsertRange(join, new[] {
+                first, new CodeInstruction(OpCodes.Ldfld, sourceInstructions[join + 2].operand),
+                new CodeInstruction(pickup.opcode, pickup.operand),
+                new CodeInstruction(OpCodes.Ldfld, sourceInstructions[join + 6].operand),
+                new CodeInstruction(OpCodes.Call, gate),
+                new CodeInstruction(OpCodes.Brfalse, sourceInstructions[join - 1].operand)
+            });
             return sourceInstructions;
         }
 
@@ -544,204 +528,58 @@ namespace DeliveryTemperatureLimit
                 FieldStorageKind.Instance,
                 typeof(FetchAreaChore.StatesInstance));
 
-        private static ClearableEligibilityExtensionAnchor
-            RequireClearableEligibilityExtensionAnchor(
-                IReadOnlyList<CodeInstruction> instructions)
+        private static int RequireSweepCandidateJoin(List<CodeInstruction> code, MethodBase original)
         {
-            Type clearableManagerType = ResolveClearableManagerType();
-            Type sortedClearableType =
-                HarmonyPatchContractVerifier.RequireNestedType(
-                    clearableManagerType,
-                    "SortedClearable",
-                    DeclaredMemberVisibility.NonPublic);
-            Type sortedClearableListType =
-                typeof(List<>).MakeGenericType(sortedClearableType);
-            FieldInfo sortedClearablesField =
-                HarmonyPatchContractVerifier.RequireField(
-                    clearableManagerType,
-                    "sortedClearables",
-                    DeclaredMemberVisibility.NonPublic,
-                    FieldStorageKind.Instance,
-                    sortedClearableListType);
-            FieldInfo sortedPickupableField =
-                HarmonyPatchContractVerifier.RequireField(
-                    sortedClearableType,
-                    "pickupable",
-                    DeclaredMemberVisibility.Public,
-                    FieldStorageKind.Instance,
-                    typeof(Pickupable));
-            MethodInfo sortedClearableListItemGetter =
-                HarmonyPatchContractVerifier.RequireInstanceMethod(
-                    sortedClearableListType,
-                    "get_Item",
-                    DeclaredMemberVisibility.Public,
-                    sortedClearableType,
-                    new[] { typeof(int) });
-            Type fetchListType =
-                typeof(List<GlobalChoreProvider.Fetch>);
-            MethodInfo fetchListItemGetter =
-                HarmonyPatchContractVerifier.RequireInstanceMethod(
-                    fetchListType,
-                    "get_Item",
-                    DeclaredMemberVisibility.Public,
-                    typeof(GlobalChoreProvider.Fetch),
-                    new[] { typeof(int) });
-            FieldInfo fetchChoreField =
-                HarmonyPatchContractVerifier.RequireField(
-                    typeof(GlobalChoreProvider.Fetch),
-                    "chore",
-                    DeclaredMemberVisibility.Public,
-                    FieldStorageKind.Instance,
-                    typeof(FetchChore));
-            FieldInfo tagsFirstField =
-                HarmonyPatchContractVerifier.RequireField(
-                    typeof(FetchChore),
-                    "tagsFirst",
-                    DeclaredMemberVisibility.Public,
-                    FieldStorageKind.Instance,
-                    typeof(Tag));
-            MethodInfo hasTagMethod =
-                HarmonyPatchContractVerifier.RequireInstanceMethod(
-                    typeof(KPrefabID),
-                    "HasTag",
-                    DeclaredMemberVisibility.Public,
-                    typeof(bool),
-                    new[] { typeof(Tag) });
-            int[] candidateInstructionIndices =
-                CreateCandidateInstructionIndices(instructions.Count);
+            Type context = typeof(Chore.Precondition.Context);
+            MethodInfo set = HarmonyPatchContractVerifier.RequireInstanceMethod(context, "Set",
+                DeclaredMemberVisibility.Public, typeof(void), new[] { typeof(Chore), typeof(ChoreConsumerState), typeof(bool), typeof(object) });
+            MethodInfo hasTag = HarmonyPatchContractVerifier.RequireInstanceMethod(typeof(KPrefabID), "HasTag",
+                DeclaredMemberVisibility.Public, typeof(bool), new[] { typeof(Tag) });
+            MethodInfo run = HarmonyPatchContractVerifier.RequireInstanceMethod(context, "RunPreconditions",
+                DeclaredMemberVisibility.Public, typeof(void), Type.EmptyTypes);
+            MethodInfo success = HarmonyPatchContractVerifier.RequireInstanceMethod(context, "IsSuccess",
+                DeclaredMemberVisibility.Public, typeof(bool), Type.EmptyTypes);
+            FieldInfo fetch = HarmonyPatchContractVerifier.RequireField(typeof(GlobalChoreProvider.Fetch), "chore",
+                DeclaredMemberVisibility.Public, FieldStorageKind.Instance, typeof(FetchChore));
+            FieldInfo pickup = HarmonyPatchContractVerifier.RequireField(original.GetParameters()[4].ParameterType, "pickupable",
+                DeclaredMemberVisibility.Public, FieldStorageKind.Instance, typeof(Pickupable));
+            FieldInfo tagsFirst = HarmonyPatchContractVerifier.RequireField(typeof(FetchChore), "tagsFirst",
+                DeclaredMemberVisibility.Public, FieldStorageKind.Instance, typeof(Tag));
+            int[] indices = CreateCandidateInstructionIndices(code.Count);
+            int join = HarmonyPatchContractVerifier.RequireSingleMatch(indices, i => IsCall(code[i], set),
+                "ClearableManager.EvaluateFetchRange context initialization") - 7;
 
-            int pickupableCaptureIndex =
-                HarmonyPatchContractVerifier.RequireSingleMatch(
-                    candidateInstructionIndices,
-                    index => MatchesClearablePickupableCapture(
-                        instructions,
-                        index,
-                        sortedClearablesField,
-                        sortedClearableListItemGetter,
-                        sortedPickupableField),
-                    "ClearableManager.CollectChores typed pickupable capture");
-            int pickupableLocalIndex = GetLocalIndex(
-                instructions[pickupableCaptureIndex + 6]);
+            // The non-exact criteria branch joins the successful HasTag path; both failed tag
+            // matching and failed native preconditions must advance the same candidate index.
+            if (join < 11 || join + 15 >= code.Count ||
+                !IsBranchWhenNotEqual(code[join - 7]) || !(code[join - 7].operand is Label accepted) ||
+                !code[join].labels.Contains(accepted) || !IsLoadArgument(code[join - 6], 6) ||
+                !IsLoadLocal(code[join - 5]) || !IsFieldLoad(code[join - 4], fetch) ||
+                !IsFieldLoad(code[join - 3], tagsFirst) ||
+                !IsCall(code[join - 2], hasTag) || !IsBranchWhenFalse(code[join - 1]) ||
+                !(code[join - 1].operand is Label next) || !IsLoadLocalAddress(code[join]) ||
+                !IsLoadLocal(code[join + 1]) || GetLocalIndex(code[join + 1]) != GetLocalIndex(code[join - 5]) ||
+                !IsFieldLoad(code[join + 2], fetch) || !IsLoadArgument(code[join + 3], 4) ||
+                code[join + 4].opcode != OpCodes.Ldc_I4_0 || !IsLoadArgument(code[join + 5], 5) ||
+                !IsFieldLoad(code[join + 6], pickup) || !IsCall(code[join + 12], run) ||
+                !IsCall(code[join + 14], success) || !IsBranchWhenFalse(code[join + 15]) ||
+                !(code[join + 15].operand is Label preconditionRejected))
+                throw new HarmonyPatchContractViolationException("Klei sweep candidate admission or precondition flow changed.");
 
-            int fetchCaptureIndex =
-                HarmonyPatchContractVerifier.RequireSingleMatch(
-                    candidateInstructionIndices,
-                    index => MatchesClearableFetchCapture(
-                        instructions,
-                        index,
-                        fetchListItemGetter),
-                    "ClearableManager.CollectChores typed fetch capture");
-            int fetchLocalIndex = GetLocalIndex(
-                instructions[fetchCaptureIndex + 3]);
-
-            int eligibilityAnchorIndex =
-                HarmonyPatchContractVerifier.RequireSingleMatch(
-                    candidateInstructionIndices,
-                    index => MatchesClearableEligibilityWindow(
-                        instructions,
-                        index,
-                        fetchLocalIndex,
-                        fetchChoreField,
-                        tagsFirstField,
-                        hasTagMethod),
-                    "ClearableManager.CollectChores direct eligibility " +
-                    "extension");
-            CodeInstruction rejectionBranch =
-                instructions[eligibilityAnchorIndex + 9];
-            if (!(rejectionBranch.operand is Label rejectionTarget))
-            {
-                throw new HarmonyPatchContractViolationException(
-                    "ClearableManager.CollectChores eligibility rejection " +
-                    "branch has no typed label target.");
-            }
-
-            RequireSafeExtensionBoundary(
-                instructions,
-                eligibilityAnchorIndex,
-                eligibilityAnchorIndex + 10,
-                "ClearableManager.CollectChores eligibility extension");
-            return new ClearableEligibilityExtensionAnchor(
-                pickupableLocalIndex,
-                fetchLocalIndex,
-                eligibilityAnchorIndex + 10,
-                rejectionTarget,
-                fetchChoreField);
+            int increment = HarmonyPatchContractVerifier.RequireSingleMatch(indices, i => code[i].labels.Contains(next),
+                "Klei sweep next candidate");
+            if (increment <= join + 15 || increment + 4 >= code.Count ||
+                !code[increment].labels.Contains(preconditionRejected) || !IsLoadLocal(code[increment]) ||
+                code[increment + 1].opcode != OpCodes.Ldc_I4_1 || code[increment + 2].opcode != OpCodes.Add ||
+                !IsStoreLocal(code[increment + 3]) || GetLocalIndex(code[increment]) != GetLocalIndex(code[increment + 3]) ||
+                !IsLoadLocal(code[increment + 4]) || GetLocalIndex(code[increment]) != GetLocalIndex(code[increment + 4]))
+                throw new HarmonyPatchContractViolationException("Klei sweep rejection no longer advances the candidate index.");
+            RequireSafeExtensionBoundary(code, join - 7, join + 15, "Klei sweep candidate");
+            return join;
         }
 
-        private static bool MatchesClearablePickupableCapture(
-            IReadOnlyList<CodeInstruction> instructions,
-            int startIndex,
-            FieldInfo sortedClearablesField,
-            MethodInfo sortedClearableListItemGetter,
-            FieldInfo sortedPickupableField) =>
-            startIndex >= 0 &&
-            startIndex + 6 < instructions.Count &&
-            IsLoadArgument(instructions[startIndex], 0) &&
-            IsFieldLoad(
-                instructions[startIndex + 1],
-                sortedClearablesField) &&
-            IsLoadLocal(instructions[startIndex + 2]) &&
-            IsCall(
-                instructions[startIndex + 3],
-                sortedClearableListItemGetter) &&
-            instructions[startIndex + 4].opcode == OpCodes.Dup &&
-            IsFieldLoad(
-                instructions[startIndex + 5],
-                sortedPickupableField) &&
-            IsStoreLocal(instructions[startIndex + 6]);
-
-        private static bool MatchesClearableFetchCapture(
-            IReadOnlyList<CodeInstruction> instructions,
-            int startIndex,
-            MethodInfo fetchListItemGetter) =>
-            startIndex >= 0 &&
-            startIndex + 3 < instructions.Count &&
-            IsLoadArgument(instructions[startIndex], 1) &&
-            IsLoadLocal(instructions[startIndex + 1]) &&
-            IsCall(instructions[startIndex + 2], fetchListItemGetter) &&
-            IsStoreLocal(instructions[startIndex + 3]);
-
-        private static bool MatchesClearableEligibilityWindow(
-            IReadOnlyList<CodeInstruction> instructions,
-            int startIndex,
-            int fetchLocalIndex,
-            FieldInfo fetchChoreField,
-            FieldInfo tagsFirstField,
-            MethodInfo hasTagMethod)
-        {
-            if (startIndex < 0 ||
-                startIndex + 9 >= instructions.Count ||
-                !IsLoadLocal(instructions[startIndex]) ||
-                !IsLoadLocal(instructions[startIndex + 1]) ||
-                GetLocalIndex(instructions[startIndex + 1]) !=
-                    fetchLocalIndex ||
-                !IsFieldLoad(
-                    instructions[startIndex + 2],
-                    fetchChoreField) ||
-                !IsFieldLoad(
-                    instructions[startIndex + 3],
-                    tagsFirstField) ||
-                !IsCall(
-                    instructions[startIndex + 4],
-                    hasTagMethod) ||
-                !IsUnconditionalBranch(instructions[startIndex + 5]) ||
-                instructions[startIndex + 6].opcode != OpCodes.Ldc_I4_0 ||
-                !IsUnconditionalBranch(instructions[startIndex + 7]) ||
-                instructions[startIndex + 8].opcode != OpCodes.Ldc_I4_1 ||
-                !IsBranchWhenFalse(instructions[startIndex + 9]))
-            {
-                return false;
-            }
-
-            if (!(instructions[startIndex + 5].operand is Label firstJoin) ||
-                !(instructions[startIndex + 7].operand is Label secondJoin))
-            {
-                return false;
-            }
-
-            return instructions[startIndex + 9].labels.Contains(firstJoin) &&
-                instructions[startIndex + 9].labels.Contains(secondJoin);
-        }
+        private static bool IsLoadLocalAddress(CodeInstruction instruction) =>
+            instruction.opcode == OpCodes.Ldloca || instruction.opcode == OpCodes.Ldloca_S;
 
         private static FetchChoreContainmentExtensionAnchor
             RequireFetchChoreContainmentExtensionAnchor(
@@ -1136,16 +974,11 @@ namespace DeliveryTemperatureLimit
 
             if (operand is ParameterInfo parameter)
             {
-                return parameter.Position == expectedIndex;
+                return parameter.Position + (parameter.Member is MethodBase method && !method.IsStatic ? 1 : 0) == expectedIndex;
             }
 
             return false;
         }
-
-        private static bool IsUnconditionalBranch(
-            CodeInstruction instruction) =>
-            instruction.opcode == OpCodes.Br ||
-            instruction.opcode == OpCodes.Br_S;
 
         private static bool IsBranchWhenFalse(
             CodeInstruction instruction) =>
@@ -1161,34 +994,6 @@ namespace DeliveryTemperatureLimit
             CodeInstruction instruction) =>
             instruction.opcode == OpCodes.Bne_Un ||
             instruction.opcode == OpCodes.Bne_Un_S;
-
-        private readonly struct ClearableEligibilityExtensionAnchor
-        {
-            internal ClearableEligibilityExtensionAnchor(
-                int pickupableLocalIndex,
-                int fetchLocalIndex,
-                int extensionInsertionIndex,
-                Label rejectedCandidateBranchTarget,
-                FieldInfo fetchChoreField)
-            {
-                PickupableLocalIndex = pickupableLocalIndex;
-                FetchLocalIndex = fetchLocalIndex;
-                ExtensionInsertionIndex = extensionInsertionIndex;
-                RejectedCandidateBranchTarget =
-                    rejectedCandidateBranchTarget;
-                FetchChoreField = fetchChoreField;
-            }
-
-            internal int PickupableLocalIndex { get; }
-
-            internal int FetchLocalIndex { get; }
-
-            internal int ExtensionInsertionIndex { get; }
-
-            internal Label RejectedCandidateBranchTarget { get; }
-
-            internal FieldInfo FetchChoreField { get; }
-        }
 
         private readonly struct FetchChoreContainmentExtensionAnchor
         {

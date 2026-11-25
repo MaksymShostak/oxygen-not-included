@@ -13,7 +13,7 @@ public sealed class InstalledKleiFetchPatchTests
     public async Task SweepChecksBothTagPathsBeforeSettingTheNativeContext()
     {
         using var game = new InstalledGame();
-        var code = game.Rewrite("ClearableManager", "EvaluateFetchRange", "KleiDirectDeliveryEligibilityPatches",
+        var code = game.Rewrite("KleiDirectDeliveryEligibilityPatches", "ResolveClearableManager",
             method => method.Name.StartsWith("ClearableManager", StringComparison.Ordinal) && method.Name.EndsWith("Transpiler", StringComparison.Ordinal));
         int gate = code.FindIndex(op => op.Member == "IsPickupAllowedForFetchChore");
         int tag = code.FindIndex(op => op.Member == "HasTag");
@@ -23,19 +23,43 @@ public sealed class InstalledKleiFetchPatchTests
         int failure = code.FindIndex(op => op.Member == "IsSuccess") + 1;
         await Assert.That(code[gate + 1].Code).IsEqualTo(OpCodes.Brfalse);
         await Assert.That(code[gate + 1].Operand).IsEqualTo(code[tag + 1].Operand);
-        await Assert.That(code[gate + 1].Operand).IsEqualTo(code[failure].Operand);
+
         int join = code.FindIndex(op => op.Labels.Contains((Label)code[tagAccepted].Operand!));
         await Assert.That(join).IsEqualTo(tag + 2);
         await Assert.That(join < gate).IsTrue();
         int next = code.FindIndex(op => op.Labels.Contains((Label)code[gate + 1].Operand!));
+        await Assert.That(code[next].Labels.Contains((Label)code[failure].Operand!)).IsTrue();
         await Assert.That(code[next + 1].Code == OpCodes.Ldc_I4_1 && code[next + 2].Code == OpCodes.Add).IsTrue();
+    }
+
+    [Test]
+    [Arguments("missing")]
+    [Arguments("duplicate")]
+    [Arguments("redirected")]
+    public async Task SweepPreflightRejectsAnUnprovedCandidateGate(string mutation)
+    {
+        using var game = new InstalledGame();
+        var failure = await Assert.That(() => game.Rewrite("KleiDirectDeliveryEligibilityPatches",
+            "ResolveClearableManager", method => method.Name.EndsWith("EvaluateFetchRangeTranspiler", StringComparison.Ordinal),
+            il =>
+            {
+                var items = il.Cast<object>().ToList();
+                var type = items[0].GetType();
+                var operand = type.GetField("operand")!;
+                int set = items.FindIndex(item => (operand.GetValue(item) as MethodInfo)?.Name == "Set");
+                int hasTag = items.FindIndex(item => (operand.GetValue(item) as MethodInfo)?.Name == "HasTag");
+                if (mutation == "missing") il.RemoveAt(set);
+                else if (mutation == "duplicate") il.Add(items[set]);
+                else operand.SetValue(items[hasTag + 1], operand.GetValue(items[hasTag - 5]));
+            })).ThrowsExactly<TargetInvocationException>();
+        await Assert.That(failure!.InnerException!.GetType().Name).IsEqualTo("HarmonyPatchContractViolationException");
     }
 
     [Test]
     public async Task EachReachableDestinationIsRecordedEvenWhenNativeTagWritesAreDeduplicated()
     {
         using var game = new InstalledGame();
-        var code = game.Rewrite("GlobalChoreProvider", "UpdateStorageFetchableBits", "KleiAuthoritativeFetchTemperatureEligibilityPatches",
+        var code = game.Rewrite("KleiAuthoritativeFetchTemperatureEligibilityPatches", "ResolveGlobalChoreProviderUpdateStorageFetchableBits",
             method => method.Name == "UpdateStorageFetchableBitsTranspiler");
         // A and B share a single tag but have disjoint ranges. C collides with their hash
         // despite having two different tags. The native first-hash policy writes only A.
@@ -52,7 +76,7 @@ public sealed class InstalledKleiFetchPatchTests
                 var result = TraceChore(code, active, seen, tagCount, reachable, storage);
                 if (result.Recorded) recorded.Add(name);
                 if (result.NativeWrite) nativeWrites.Add(name);
-                seen |= result.NativeWrite;
+                seen |= result.HashInserted;
                 probes += result.Probes;
             }
             await Assert.That(string.Join(",", nativeWrites)).IsEqualTo("A");
@@ -63,7 +87,7 @@ public sealed class InstalledKleiFetchPatchTests
         await Assert.That(multiple.Recorded && multiple.NativeWrite && multiple.Probes == 1).IsTrue();
     }
 
-    private static (bool Recorded, bool NativeWrite, int Probes) TraceChore(
+    private static (bool Recorded, bool NativeWrite, bool HashInserted, int Probes) TraceChore(
         List<Instruction> code, bool active, bool seen, int tagCount, bool reachable, bool storage)
     {
         // Follow the emitted control flow for one iteration. Substitute measured fixture
@@ -75,7 +99,7 @@ public sealed class InstalledKleiFetchPatchTests
         var locals = new Dictionary<int, int> { [0] = 1, [1] = 2, [code[activeStore].LocalIndex] = active ? 1 : 0 };
         var stack = new Stack<int>();
         stack.Push(seen ? 1 : 0);
-        int records = 0, writes = 0, probes = 0;
+        int records = 0, writes = 0, hashInserts = 0, probes = 0;
         for (int i = first; i < end; i++)
         {
             var op = code[i];
@@ -100,6 +124,7 @@ public sealed class InstalledKleiFetchPatchTests
                     case "get_Count": value = tagCount; break;
                     case "RecordSelectedFetchChore": records++; break;
                     case "UnionWith": writes++; break;
+                    case "Add" when call.DeclaringType!.GetGenericArguments()[0] == typeof(int): hashInserts++; break;
                     case "Add" when call.DeclaringType!.GetGenericArguments()[0].Name == "Tag": writes++; break;
                 }
                 if (call.ReturnType != typeof(void)) stack.Push(value);
@@ -121,8 +146,8 @@ public sealed class InstalledKleiFetchPatchTests
             }
             else throw new InvalidDataException("Unexpected installed instruction " + instruction.Name);
         }
-        if (stack.Count != 0 || records > 1 || writes > 1) throw new InvalidDataException("Unbalanced or duplicated chore operation");
-        return (records == 1, writes == 1, probes);
+        if (stack.Count != 0 || records > 1 || writes > 1 || hashInserts > 1) throw new InvalidDataException("Unbalanced or duplicated chore operation");
+        return (records == 1, writes == 1, hashInserts == 1, probes);
     }
 
     private sealed record Instruction(OpCode Code, object? Operand, List<Label> Labels)
@@ -154,16 +179,19 @@ public sealed class InstalledKleiFetchPatchTests
             return File.Exists(path) ? LoadFromAssemblyPath(path) : null;
         }
 
-        internal List<Instruction> Rewrite(string owner, string method, string adapter, Func<MethodInfo, bool> match)
+        internal List<Instruction> Rewrite(string adapter, string resolverPrefix, Func<MethodInfo, bool> match, Action<IList>? mutate = null)
         {
             const BindingFlags declared = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance |
                 BindingFlags.Static | BindingFlags.DeclaredOnly;
-            var original = LoadFromAssemblyName(new("Assembly-CSharp")).GetType(owner, true)!.GetMethod(method, declared)!;
+            var members = candidate.GetType("DeliveryTemperatureLimit." + adapter, true)!.GetMethods(declared);
+            var resolver = members.Single(m => m.Name.StartsWith(resolverPrefix, StringComparison.Ordinal) && m.Name.EndsWith("Target", StringComparison.Ordinal));
+            var original = (MethodInfo)resolver.Invoke(null, null)!;
             var reader = LoadFromAssemblyName(new("0Harmony")).GetType("HarmonyLib.PatchProcessor", true)!
                 .GetMethods().Single(m => m.Name == "GetOriginalInstructions" && m.GetParameters()[1].ParameterType == typeof(ILGenerator));
             var generator = new DynamicMethod("ReadInstalledChore", typeof(void), Type.EmptyTypes).GetILGenerator();
             var il = reader.Invoke(null, [original, generator]);
-            var patch = candidate.GetType("DeliveryTemperatureLimit." + adapter, true)!.GetMethods(declared).Single(match);
+            mutate?.Invoke((IList)il!);
+            var patch = members.Single(match);
             var result = (IEnumerable)patch.Invoke(null, [il, patch.GetParameters()[1].ParameterType == typeof(ILGenerator) ? generator : original])!;
             return result.Cast<object>().Select(instruction =>
             {
