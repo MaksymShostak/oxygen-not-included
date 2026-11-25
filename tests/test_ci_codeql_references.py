@@ -123,6 +123,10 @@ class GameReferenceIntegrityTests(unittest.TestCase):
         self.catalog["package"]["version"] = "765432.0.1"
         with self.assertRaises(references.ReferenceError):
             references.selected_changelist(self.catalog)
+        self.catalog["schemaVersion"] = True
+        self.catalog_path.write_bytes(references.json_bytes(self.catalog))
+        with self.assertRaises(references.ReferenceError):
+            references.read_catalog(self.catalog_path)
         self.catalog_path.write_text('{"package":{"version":"765432.0.0"}}')
         with self.assertRaises((KeyError, references.ReferenceError)):
             references.read_catalog(self.catalog_path)

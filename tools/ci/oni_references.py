@@ -57,7 +57,7 @@ def read_catalog(path: Path = CATALOG) -> dict:
 
     catalog = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique)
     package = catalog["package"]
-    if (catalog.get("schemaVersion") != 1
+    if (type(catalog.get("schemaVersion")) is not int or catalog["schemaVersion"] != 1
             or not re.fullmatch(r"[A-Za-z0-9-]+", package["owner"])
             or package["id"] != PACKAGE_ID
             or not re.fullmatch(r"\d+\.\d+\.\d+", package["version"])

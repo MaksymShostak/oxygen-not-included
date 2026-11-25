@@ -14,28 +14,8 @@ internal sealed class OniMetadataReader
 
         try
         {
-            var modYamlPath = ResolveMetadataPath(
-                profile.ModRoot,
-                profile.ModYamlPath);
-            var modInfoYamlPath = ResolveMetadataPath(
-                profile.ModRoot,
-                profile.ModInfoYamlPath);
-            var modYaml = ReadMapping(modYamlPath);
-            var modInfoYaml = ReadMapping(modInfoYamlPath);
-
-            var metadata = new OniMetadata(
-                ReadRequiredScalar(modYaml, "staticID", modYamlPath),
-                ReadRequiredScalar(modYaml, "title", modYamlPath),
-                ReadRequiredScalar(modYaml, "description", modYamlPath),
-                ReadRequiredScalar(modInfoYaml, "supportedContent", modInfoYamlPath),
-                ReadRequiredInt(modInfoYaml, "minimumSupportedBuild", modInfoYamlPath),
-                ReadRequiredScalar(modInfoYaml, "version", modInfoYamlPath),
-                ReadRequiredInt(modInfoYaml, "APIVersion", modInfoYamlPath));
-
-            return new OperationResult<OniMetadata>(
-                metadata,
-                [],
-                PipelineExitCode.Success);
+            string path = ResolveMetadataPath(profile.ModRoot, profile.ModInfoYamlPath);
+            return new(ReadMetadata(profile, path, ReadMapping(path)), [], PipelineExitCode.Success);
         }
         catch (MetadataReadException exception)
         {
@@ -46,13 +26,23 @@ internal sealed class OniMetadataReader
         }
     }
 
+    private static OniMetadata ReadMetadata(ModProfile profile, string path, YamlMappingNode info)
+    {
+        string modPath = ResolveMetadataPath(profile.ModRoot, profile.ModYamlPath);
+        var mod = ReadMapping(modPath);
+        return new OniMetadata(
+            ReadRequiredScalar(mod, "staticID", modPath),
+            ReadRequiredScalar(mod, "title", modPath),
+            ReadRequiredScalar(mod, "description", modPath),
+            ReadRequiredScalar(info, "supportedContent", path),
+            ReadRequiredInt(info, "minimumSupportedBuild", path),
+            ReadRequiredScalar(info, "version", path),
+            ReadRequiredInt(info, "APIVersion", path));
+    }
+
     internal OperationResult<OniMetadata> SynchronizeMinimumBuild(ModProfile profile, int selectedBuild, bool write)
     {
-        var metadata = Read(profile);
-        if (!metadata.IsSuccess) return metadata;
-        var diagnostics = new List<Diagnostic>();
-        ModProfileValidator.ValidateMetadata(metadata.Value!, diagnostics);
-        if (diagnostics.Count > 0) return new(null, diagnostics, PipelineExitCode.InvalidInput);
+        ArgumentNullException.ThrowIfNull(profile);
         string path = profile.ModInfoYamlPath;
         try
         {
@@ -63,6 +53,10 @@ internal sealed class OniMetadataReader
             var utf8 = new UTF8Encoding(bom, true);
             string text = utf8.GetString(original.AsSpan(bom ? Encoding.UTF8.Preamble.Length : 0));
             var mapping = ReadMapping(path, text);
+            var metadata = ReadMetadata(profile, path, mapping);
+            var diagnostics = new List<Diagnostic>();
+            ModProfileValidator.ValidateMetadata(metadata, diagnostics);
+            if (diagnostics.Count > 0) return new(null, diagnostics, PipelineExitCode.InvalidInput);
             var floor = ReadRequiredScalarNode(mapping, "minimumSupportedBuild", path);
             if (!int.TryParse(floor.Value, NumberStyles.None, CultureInfo.InvariantCulture, out _))
                 throw InvalidMetadata(path, "minimumSupportedBuild must have a literal integer value");
@@ -72,7 +66,7 @@ internal sealed class OniMetadataReader
             if (token == "'" + floor.Value + "'" || token == "\"" + floor.Value + "\"") { start++; end--; }
             else if (token != floor.Value) throw InvalidMetadata(path, "cannot locate an unambiguous build-floor scalar");
             string expected = selectedBuild.ToString(CultureInfo.InvariantCulture);
-            if (text[start..end] == expected) return metadata;
+            if (text[start..end] == expected) return new(metadata, [], PipelineExitCode.Success);
             if (!write)
                 return new(null, [DiagnosticCatalog.InvalidOniMetadata(path,
                     $"minimumSupportedBuild differs from the reference catalog ({expected}). Run sync-build-floor --write.")],
@@ -87,7 +81,7 @@ internal sealed class OniMetadataReader
                 File.Replace(temp, path, null);
             }
             finally { File.Delete(temp); }
-            return new(metadata.Value! with { MinimumSupportedBuild = selectedBuild }, [], PipelineExitCode.Success);
+            return new(metadata with { MinimumSupportedBuild = selectedBuild }, [], PipelineExitCode.Success);
         }
         catch (MetadataReadException ex) { return new(null, [ex.Diagnostic], PipelineExitCode.InvalidInput); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or KeyNotFoundException

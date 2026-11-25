@@ -32,6 +32,7 @@ This copies the DLLs and writes a deterministic archive and candidate catalog in
 It refuses to overwrite an existing package.
 Verify the archive with `acquire --archive` using that candidate catalog.
 After reviewing the measured hashes, promote the catalog to `tools/ci/oni-references.json` and run the [build-floor projection](development-dependencies.md#update-game-and-mod-dependencies).
+Keep the verified archive privately in its intake directory or copy it into the local private-package store for future publication.
 
 After publication is authorized, publish the archive named by the selected package ID and version to `https://nuget.pkg.github.com/MaksymShostak/index.json` using a publishing credential with `write:packages`.
 The initial `744825.0.0` publication and download used the existing GitHub CLI OAuth login with package scopes.
@@ -78,11 +79,12 @@ No unresolved game API is replaced by a stub, excluded, or hidden through diagno
 
 ## Local verification
 
-Use the prepared archive without registry credentials:
+Use the verified intake directory from the preparation step.
+For a previously retained package, set `$intake` to the directory that contains its archive.
 
 ```powershell
 $pin = (Get-Content -Raw tools/ci/oni-references.json | ConvertFrom-Json).package
-$archive = Join-Path "artifacts/codeql-qualification/private-package" "$($pin.id).$($pin.version).nupkg"
+$archive = Join-Path $intake.FullName "$($pin.id).$($pin.version).nupkg"
 $run = Join-Path "artifacts" ("reference-check-" + [guid]::NewGuid().ToString("N"))
 python tools/ci/oni_references.py acquire --archive $archive --output-directory "$run/references"
 python tools/ci/codeql_build.py --managed-directory "$run/references/Managed" --output-directory "$run/build"
