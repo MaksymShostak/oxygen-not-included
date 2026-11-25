@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Runtime.Loader;
 using DeliveryTemperatureLimit.Tests.OniModPipelineIntegration;
 
 namespace DeliveryTemperatureLimit.Tests.HarmonyTranspilerInfrastructure;
@@ -57,6 +56,9 @@ public sealed class InstalledKleiFetchPatchTests
         await Assert.That(Pick(150, true, true, false, true)).IsEqualTo("");
         await Assert.That(Pick(150, false, true, true, false)).IsEqualTo("cold");
         await Assert.That(visited).IsEqualTo(2);
+        int success = code.FindIndex(op => op.Code == OpCodes.Ret) - 1;
+        code[success] = code[success] with { Code = OpCodes.Ldc_I4_0 };
+        await Assert.That(CompileSweepPair(code)(1, true, true, true, () => { })).IsFalse();
     }
 
     private delegate bool SweepPair(int criteria, bool tag, bool temperatureAllowed, bool preconditions, Action run);
@@ -86,7 +88,13 @@ public sealed class InstalledKleiFetchPatchTests
             }
             else if (op.Operand is Label target && op.Code.FlowControl == FlowControl.Cond_Branch)
                 il.Emit(op.Code, labels[code.FindIndex(item => item.Labels.Contains(target))]);
-            else if (op.Code == OpCodes.Ret) { il.Emit(OpCodes.Ldc_I4_1); il.Emit(OpCodes.Ret); }
+            else if (op.Code == OpCodes.Ret)
+            {
+                if (code[i - 1].Code != OpCodes.Ldc_I4_0 && code[i - 1].Code != OpCodes.Ldc_I4_1)
+                    throw new InvalidDataException("Unexpected native sweep result");
+                il.Emit(code[i - 1].Code);
+                il.Emit(OpCodes.Ret);
+            }
             else if (i == next) { il.Emit(OpCodes.Ldc_I4_0); il.Emit(OpCodes.Ret); }
         }
         return method.CreateDelegate<SweepPair>();
@@ -233,33 +241,18 @@ public sealed class InstalledKleiFetchPatchTests
         };
     }
 
-    private sealed class InstalledGame : AssemblyLoadContext, IDisposable
+    private sealed class InstalledGame : IDisposable
     {
-        private readonly string managed = Environment.GetEnvironmentVariable("ONI_MANAGED_ASSEMBLY_DIRECTORY")!;
-        private readonly Assembly candidate;
-        internal InstalledGame() : base("InstalledKleiFetchPatches", isCollectible: true)
-        {
-            var builds = PipelineProvenanceBoundAssemblyLocator.CreateForCurrentPipelineEnvironment().ProbeExactPipelineBuildDataRows();
-            if (builds.Count == 0) Skip.Test("The installed adapter contract needs the pipeline build result.");
-            candidate = LoadFromAssemblyPath(builds.Single().AssemblyPath);
-        }
-
-        protected override Assembly? Load(AssemblyName name)
-        {
-            if (name.Name is null or "mscorlib" or "netstandard" or "System" || name.Name.StartsWith("System.", StringComparison.Ordinal))
-                return null;
-            var path = Path.Combine(managed, name.Name + ".dll");
-            return File.Exists(path) ? LoadFromAssemblyPath(path) : null;
-        }
+        private readonly InstalledModAssemblyContext assemblies = new();
 
         internal List<Instruction> Rewrite(string adapter, string resolverPrefix, Func<MethodInfo, bool> match, Action<IList, ILGenerator>? mutate = null)
         {
             const BindingFlags declared = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance |
                 BindingFlags.Static | BindingFlags.DeclaredOnly;
-            var members = candidate.GetType("DeliveryTemperatureLimit." + adapter, true)!.GetMethods(declared);
+            var members = assemblies.Candidate.GetType("DeliveryTemperatureLimit." + adapter, true)!.GetMethods(declared);
             var resolver = members.Single(m => m.Name.StartsWith(resolverPrefix, StringComparison.Ordinal) && m.Name.EndsWith("Target", StringComparison.Ordinal));
             var original = (MethodInfo)resolver.Invoke(null, null)!;
-            var reader = LoadFromAssemblyName(new("0Harmony")).GetType("HarmonyLib.PatchProcessor", true)!
+            var reader = assemblies.LoadFromAssemblyName(new("0Harmony")).GetType("HarmonyLib.PatchProcessor", true)!
                 .GetMethods().Single(m => m.Name == "GetOriginalInstructions" && m.GetParameters()[1].ParameterType == typeof(ILGenerator));
             var generator = new DynamicMethod("ReadInstalledChore", typeof(void), Type.EmptyTypes).GetILGenerator();
             var il = reader.Invoke(null, [original, generator]);
@@ -275,6 +268,6 @@ public sealed class InstalledKleiFetchPatchTests
             }).ToList();
         }
 
-        public void Dispose() => Unload();
+        public void Dispose() => assemblies.Dispose();
     }
 }

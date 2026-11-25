@@ -578,6 +578,8 @@ namespace DeliveryTemperatureLimit
             FieldInfo start = HarmonyPatchContractVerifier.RequireField(range, "start",
                 DeclaredMemberVisibility.Public, FieldStorageKind.Instance, typeof(int));
             if (increment <= join + 15 || increment + 7 >= code.Count ||
+                !IsCall(code[increment - 3], typeof(List<Chore.Precondition.Context>).GetMethod("Add")!) ||
+                code[increment - 2].opcode != OpCodes.Ldc_I4_1 || code[increment - 1].opcode != OpCodes.Ret ||
                 !code[increment].labels.Contains(preconditionRejected) || !IsLoadLocal(code[increment]) ||
                 code[increment + 1].opcode != OpCodes.Ldc_I4_1 || code[increment + 2].opcode != OpCodes.Add ||
                 !IsStoreLocal(code[increment + 3]) || GetLocalIndex(code[increment]) != GetLocalIndex(code[increment + 3]) ||
