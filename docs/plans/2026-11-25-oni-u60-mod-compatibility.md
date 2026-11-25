@@ -280,6 +280,15 @@ Ensure one-tag requests can actually be swept.
 A matching `UnionWith` window or a passing builder test without the game adapter misses this regression.
 [Reference eligibility model](../../mods/delivery-temperature-limit-supercooled/Tests/ReferenceTemperatureModels/ReferenceTemperatureEligibilityModel.cs)
 
+**U60 implementation evidence.** The installed traversal checks each chore at most once.
+For an already-seen tag hash the active collector also calls the native group probe for that destination.
+On first use or after a move, storage's offset tracker can register or move entries in the solid-change and navigation-change scene-partitioner layers.
+The nearby `GlobalChoreProvider.UpdateFetches(Navigator)` applies a specific navigator's automation and path-cost filters, so its results cannot establish colony-wide group reachability.
+The native pickup offset worker services pickups rather than these storage destinations.
+The adapter therefore uses the group probe on the game thread and skips extra probes when collection is inactive.
+For *n* constrained destinations in one parent-world/tag group, publication also sorts intervals and their endpoints in O(*n* log *n*) time.
+The installed-instruction tests compare tag contents against unmodified Klei code and check two worlds, disjoint ranges, an unconstrained destination and teardown. Same-colony timing still requires a live run.
+
 ### SLICE-005. Replace the FastTrack fixture and qualify the released beta
 
 **REQ-02, REQ-04, REQ-06 · DEC-02, DEC-04.**

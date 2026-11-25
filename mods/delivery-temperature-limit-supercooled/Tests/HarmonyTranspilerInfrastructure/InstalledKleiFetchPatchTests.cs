@@ -173,19 +173,126 @@ public sealed class InstalledKleiFetchPatchTests
     }
 
     [Test]
+    public async Task ReachableChoresPublishPerWorldIntervalsAndPreserveInstalledNativeTagContents()
+    {
+        using var game = new InstalledGame();
+        List<Instruction> Read(bool patch) => game.Rewrite("KleiAuthoritativeFetchTemperatureEligibilityPatches",
+            "ResolveGlobalChoreProviderUpdateStorageFetchableBits", m => m.Name == "UpdateStorageFetchableBitsTranspiler",
+            applyTranspiler: patch);
+        var installed = Read(false);
+        var patched = Read(true);
+        var iron = new Tag("Iron");
+        var copper = new Tag("Copper");
+        var salt = new Tag("Salt");
+        var entries = new (int World, int Hash, Tag[] Tags, int Min, int Max, bool Reachable, bool Food)[]
+        {
+            (1, 10, [iron], 10, 20, true, false), (1, 10, [iron], 40, 50, true, false),
+            (1, 10, [copper, salt], 0, 0, true, true), (1, 10, [iron], 80, 90, false, false),
+            (2, 10, [iron], 70, 80, true, true), (2, 20, [copper, salt], 5, 15, true, false)
+        };
+        var builder = new FetchTemperatureEligibilityBuilder();
+        var session = new GameSessionGeneration(1);
+        void Begin() => builder.Begin(session, new ActiveTemperatureConstraintSnapshot(new TemperatureConstraintGeneration(2),
+                0, 0, Array.AsReadOnly(Array.Empty<int>())), new FetchRequestTopologyVersion(3),
+            new WorldParentTopologySnapshot(session, new WorldParentTopologyVersion(4), new Dictionary<int, int>()));
+        Begin();
+        HashSet<Tag> Traverse(List<Instruction> code, bool active)
+        {
+            var seen = new HashSet<int>();
+            var native = new HashSet<Tag>();
+            int worldHook = code.FindIndex(op => op.Member == "BeginParentWorldFetchMapSection");
+            int world = -1;
+            for (int i = 0; i < entries.Length; i++)
+            {
+                var entry = entries[i];
+                if (active && entry.World != world)
+                {
+                    // Follow the active branch with the actual sorted-world getter result on the stack.
+                    if (worldHook < 4 || code[worldHook - 4].Member != "get_Item" ||
+                        !code[worldHook - 3].Code.Name!.StartsWith("ldloc", StringComparison.Ordinal) ||
+                        !code[worldHook - 2].Code.Name!.StartsWith("brfalse", StringComparison.Ordinal) ||
+                        code[worldHook - 1].Code != OpCodes.Dup)
+                        throw new InvalidDataException("The parent-world hook lost the installed getter result");
+                    world = entry.World;
+                }
+                var result = TraceChore(code, active, seen.Contains(entry.Hash), entry.Tags.Length, entry.Reachable,
+                    storage: true, food: entry.Food, choreId: 100 + i,
+                    record: id =>
+                    {
+                        var chore = entries[id - 100];
+                        if (chore.Max == 0) builder.AddUnconstrainedFetchRequest(world, chore.Tags);
+                        else builder.AddTemperatureConstrainedFetchRequest(world, chore.Tags,
+                            DeliveryTemperatureConstraint.FromSerializedLimits(chore.Min, chore.Max));
+                    },
+                    writeTags: single => native.UnionWith(single ? entry.Tags.Take(1) : entry.Tags));
+                if (result.HashInserted) seen.Add(entry.Hash);
+            }
+            return native;
+        }
+        var stockTags = Traverse(installed, false);
+        var actual = Traverse(patched, true);
+        await Assert.That(actual.SetEquals(stockTags) && stockTags.SetEquals([iron, copper, salt])).IsTrue();
+        var snapshot = builder.Build();
+        await Assert.That(snapshot.TryGetStorageEligibility(1, iron, out var one)).IsTrue();
+        await Assert.That(one.Intervals.ToArray()).IsEquivalentTo(new[] { new AllowedTemperatureInterval(10, 20),
+            new AllowedTemperatureInterval(40, 50) }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(snapshot.TryGetStorageEligibility(2, iron, out var two)).IsTrue();
+        await Assert.That(two.Intervals.Single()).IsEqualTo(new AllowedTemperatureInterval(70, 80));
+        foreach (var tag in new[] { copper, salt })
+        {
+            await Assert.That(snapshot.TryGetStorageEligibility(1, tag, out var unbounded) && unbounded.AllowsEveryTemperature).IsTrue();
+            await Assert.That(snapshot.TryGetStorageEligibility(2, tag, out var constrained) &&
+                constrained.Intervals.Single().Equals(new AllowedTemperatureInterval(5, 15))).IsTrue();
+        }
+        Begin();
+        builder.AddUnconstrainedFetchRequest(2, [iron]);
+        builder.Discard();
+        Begin();
+        await Assert.That(builder.Build().TryGetStorageEligibility(2, iron, out _)).IsFalse();
+    }
+
+    [Test]
     [Arguments("seen")]
     [Arguments("reach")]
     [Arguments("native-write")]
+    [Arguments("probe-cell")]
+    [Arguments("offset-cell")]
+    [Arguments("food-type")]
+    [Arguments("bypass-recording")]
     public async Task FetchPreflightRejectsBrokenNativeDestinationPaths(string mutation)
     {
         using var game = new InstalledGame();
         var failure = await Assert.That(() => game.Rewrite("KleiAuthoritativeFetchTemperatureEligibilityPatches",
             "ResolveGlobalChoreProviderUpdateStorageFetchableBits", method => method.Name == "UpdateStorageFetchableBitsTranspiler",
-            (il, _) =>
+            (il, generator) =>
             {
                 var items = il.Cast<object>().ToList();
-                var opcode = items[0].GetType().GetField("opcode")!;
-                var operand = items[0].GetType().GetField("operand")!;
+                var type = items[0].GetType();
+                var opcode = type.GetField("opcode")!;
+                var operand = type.GetField("operand")!;
+                int Call(string name) => items.FindIndex(item => (operand.GetValue(item) as MethodInfo)?.Name == name);
+                if (mutation is "probe-cell" or "offset-cell")
+                {
+                    int load = Call("GetOffsets") - (mutation == "probe-cell" ? 4 : 1);
+                    var loopIndex = items[items.FindLastIndex(item => (operand.GetValue(item) as MethodInfo)?.Name == "Add") + 2];
+                    opcode.SetValue(items[load], opcode.GetValue(loopIndex));
+                    operand.SetValue(items[load], operand.GetValue(loopIndex));
+                    return;
+                }
+                if (mutation == "food-type")
+                {
+                    opcode.SetValue(items[Call("Contains") + 8], OpCodes.Ldloc_0);
+                    return;
+                }
+                if (mutation == "bypass-recording")
+                {
+                    var label = generator.DefineLabel();
+                    ((List<Label>)type.GetField("labels")!.GetValue(items[Call("UnionWith") - 4])!).Add(label);
+                    int entry = Call("Contains") - 3;
+                    il.Insert(entry, Activator.CreateInstance(type, OpCodes.Ldc_I4_0, null));
+                    il.Insert(entry + 1, Activator.CreateInstance(type, OpCodes.Brtrue, label));
+                    return;
+                }
                 int site = mutation switch
                 {
                     "seen" => items.FindIndex(item => (operand.GetValue(item) as MethodInfo)?.Name == "Contains") + 1,
@@ -198,7 +305,8 @@ public sealed class InstalledKleiFetchPatchTests
     }
 
     private static (bool Recorded, bool NativeWrite, bool HashInserted, int Probes) TraceChore(
-        List<Instruction> code, bool active, bool seen, int tagCount, bool reachable, bool storage, bool destinationExists = true)
+        List<Instruction> code, bool active, bool seen, int tagCount, bool reachable, bool storage, bool destinationExists = true,
+        bool food = false, int choreId = 80, Action<int>? record = null, Action<bool>? writeTags = null)
     {
         // Follow the emitted control flow for one iteration. Substitute measured fixture
         // inputs only at game boundaries. The rejection label denotes the next chore.
@@ -206,7 +314,8 @@ public sealed class InstalledKleiFetchPatchTests
         var reachBranch = code[code.FindIndex(op => op.Member == "IsReachable") + 1];
         int end = code.FindIndex(op => op.Labels.Contains((Label)reachBranch.Operand!));
         int activeStore = code.FindIndex(op => op.Member == "IsAuthoritativeFetchEligibilityBuildActive") + 1;
-        var locals = new Dictionary<int, int> { [0] = 1, [1] = 2, [code[activeStore].LocalIndex] = active ? 1 : 0 };
+        var locals = new Dictionary<int, int> { [0] = 1, [1] = 2, [code[first - 3].LocalIndex] = choreId };
+        if (activeStore > 0) locals[code[activeStore].LocalIndex] = active ? 1 : 0;
         var stack = new Stack<int>();
         stack.Push(seen ? 1 : 0);
         int records = 0, writes = 0, hashInserts = 0, probes = 0;
@@ -220,22 +329,29 @@ public sealed class InstalledKleiFetchPatchTests
             else if (instruction == OpCodes.Ldc_I4_1) stack.Push(1);
             else if (instruction.Name!.StartsWith("ldloc", StringComparison.Ordinal)) stack.Push(locals.GetValueOrDefault(op.LocalIndex));
             else if (instruction.Name.StartsWith("stloc", StringComparison.Ordinal)) locals[op.LocalIndex] = stack.Pop();
-            else if (instruction == OpCodes.Ldfld) { stack.Pop(); stack.Push(0); }
+            else if (instruction == OpCodes.Ldfld)
+            {
+                int instance = stack.Pop();
+                if (op.Member is "tags" or "tagsFirst" or "tagsHash" && instance != choreId)
+                    throw new InvalidDataException("The native tag write read a different chore");
+                stack.Push(op.Member switch { "tags" => -1, "tagsFirst" => -2, _ => 0 });
+            }
             else if (op.Operand is MethodInfo call)
             {
+                int argument = stack.Count == 0 ? 0 : stack.Peek();
                 foreach (var _ in call.GetParameters()) stack.Pop();
                 if (!call.IsStatic) stack.Pop();
                 int value = 0;
                 switch (call.Name)
                 {
-                    case "get_choreType": value = storage ? 1 : 9; break;
+                    case "get_choreType": value = food ? 2 : storage ? 1 : 9; break;
                     case "op_Implicit": value = destinationExists ? 1 : 0; break;
                     case "IsReachable": probes++; value = reachable ? 1 : 0; break;
                     case "get_Count": value = tagCount; break;
-                    case "RecordSelectedFetchChore": records++; break;
-                    case "UnionWith": writes++; break;
+                    case "RecordSelectedFetchChore": records++; record?.Invoke(argument); break;
+                    case "UnionWith" when argument == -1: writes++; writeTags?.Invoke(false); break;
                     case "Add" when call.DeclaringType!.GetGenericArguments()[0] == typeof(int): hashInserts++; break;
-                    case "Add" when call.DeclaringType!.GetGenericArguments()[0].Name == "Tag": writes++; break;
+                    case "Add" when call.DeclaringType!.GetGenericArguments()[0].Name == "Tag" && argument == -2: writes++; writeTags?.Invoke(true); break;
                 }
                 if (call.ReturnType != typeof(void)) stack.Push(value);
             }
@@ -274,7 +390,7 @@ public sealed class InstalledKleiFetchPatchTests
     {
         private readonly InstalledModAssemblyContext assemblies = new();
 
-        internal List<Instruction> Rewrite(string adapter, string resolverPrefix, Func<MethodInfo, bool> match, Action<IList, ILGenerator>? mutate = null)
+        internal List<Instruction> Rewrite(string adapter, string resolverPrefix, Func<MethodInfo, bool> match, Action<IList, ILGenerator>? mutate = null, bool applyTranspiler = true)
         {
             const BindingFlags declared = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance |
                 BindingFlags.Static | BindingFlags.DeclaredOnly;
@@ -287,7 +403,8 @@ public sealed class InstalledKleiFetchPatchTests
             var il = reader.Invoke(null, [original, generator]);
             mutate?.Invoke((IList)il!, generator);
             var patch = members.Single(match);
-            var result = (IEnumerable)patch.Invoke(null, [il, patch.GetParameters()[1].ParameterType == typeof(ILGenerator) ? generator : original])!;
+            var result = applyTranspiler ? (IEnumerable)patch.Invoke(null,
+                [il, patch.GetParameters()[1].ParameterType == typeof(ILGenerator) ? generator : original])! : (IEnumerable)il!;
             return result.Cast<object>().Select(instruction =>
             {
                 var type = instruction.GetType();

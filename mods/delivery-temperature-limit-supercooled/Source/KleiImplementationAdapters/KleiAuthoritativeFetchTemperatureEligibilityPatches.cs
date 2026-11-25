@@ -376,6 +376,7 @@ namespace DeliveryTemperatureLimit
                 {
                     // An already-seen hash suppresses native tag writes. Only an active collection
                     // needs Klei to check that particular destination's type, existence and reach.
+                    // GetOffsets can initialize a storage tracker and register its native change listeners.
                     instrumentedInstructions.Add(new CodeInstruction(OpCodes.Dup));
                     instrumentedInstructions.Add(HarmonyCodeInstructionFactory.StoreLocal(hashWasSeen.LocalIndex));
                     instrumentedInstructions.Add(new CodeInstruction(OpCodes.Brfalse, checkDestination));
@@ -713,6 +714,21 @@ namespace DeliveryTemperatureLimit
             bool Calls(int index, Type type, string name, params Type[] arguments) =>
                 IsCall(code[index], type.GetMethod(name, arguments)!);
 
+            bool LoadsStoredLocal(int load, int store) => code[store].IsStloc() &&
+                IsLoadLocal(code[load]) && code[load].LocalIndex() == code[store].LocalIndex();
+            bool LoadsChoreType(int comparison, string name)
+            {
+                var field = typeof(Db).GetField(nameof(Db.ChoreTypes))!;
+                var choreTypeField = field.FieldType.GetField(name)!;
+                int producer = code.FindIndex(op => IsFieldLoad(op, choreTypeField));
+                if (producer < 2 || producer + 1 >= world || !IsFieldLoad(code[producer - 1], field) ||
+                    !Calls(producer - 2, typeof(Db), nameof(Db.Get)) || !LoadsStoredLocal(comparison, producer + 1))
+                    return false;
+                int local = code[comparison].LocalIndex();
+                return !code.GetRange(producer + 2, comparison - producer - 2)
+                    .Exists(op => op.IsStloc() && op.LocalIndex() == local);
+            }
+
             int next = union + 6; // HashSet<int>.Add, pop, then the native next-chore increment.
             if (world >= hashBranch - 4 || hashBranch < 4 || hashBranch >= selected - 2 ||
                 selected + 16 != union || next + 3 >= code.Count || !(code[hashBranch].operand is Label rejection) ||
@@ -721,6 +737,7 @@ namespace DeliveryTemperatureLimit
                 code[hashBranch - 4].LocalIndex() != code[union + 1].LocalIndex() ||
                 !SameChore(hashBranch - 3) || !IsFieldLoad(code[hashBranch - 2], typeof(FetchChore).GetField("tagsHash")!) ||
                 !SameChore(hashBranch + 1) || !Calls(hashBranch + 2, typeof(Chore), "get_choreType") ||
+                !LoadsChoreType(hashBranch + 3, "StorageFetch") || !LoadsChoreType(hashBranch + 7, "FoodFetch") ||
                 !BranchTo(hashBranch + 4, hashBranch + 9, OpCodes.Beq_S, OpCodes.Beq) ||
                 !SameChore(hashBranch + 5) || !Calls(hashBranch + 6, typeof(Chore), "get_choreType") ||
                 !BranchTo(hashBranch + 8, next, OpCodes.Bne_Un_S, OpCodes.Bne_Un) ||
@@ -730,6 +747,8 @@ namespace DeliveryTemperatureLimit
                 !SameChore(selected - 12) || !Calls(selected - 11, typeof(FetchChore), "get_destination") ||
                 !SameChore(selected - 6) || !Calls(selected - 5, typeof(FetchChore), "get_destination") ||
                 !Calls(selected - 10, typeof(Grid), "PosToCell", typeof(KMonoBehaviour)) ||
+                !LoadsStoredLocal(selected - 7, selected - 9) || !LoadsStoredLocal(selected - 4, selected - 9) ||
+                !Calls(selected - 8, typeof(MinionGroupProber), "Get") ||
                 !Calls(selected - 3, typeof(Workable), "GetOffsets", typeof(int)) ||
                 !BranchTo(selected - 1, next, OpCodes.Brfalse_S, OpCodes.Brfalse) ||
                 !SameChore(selected) || code[selected].labels.Count != 0 || !IsFieldLoad(code[selected + 1], RequireFetchChoreTagsField()) ||
@@ -743,6 +762,18 @@ namespace DeliveryTemperatureLimit
                 !Calls(union + 4, typeof(HashSet<int>), "Add", typeof(int)) || code[union + 5].opcode != OpCodes.Pop ||
                 code[next + 1].opcode != OpCodes.Ldc_I4_1 || code[next + 2].opcode != OpCodes.Add)
                 throw new HarmonyPatchContractViolationException("Unrecognized Klei fetch destination or seen-tag write path.");
+            // An entry into either arm from outside the verified native branches can skip
+            // the recording gate even though the local opcode sequence looks identical.
+            var interior = new HashSet<Label>();
+            for (int i = hashBranch + 1; i < next; i++) interior.UnionWith(code[i].labels);
+            for (int i = 0; i < code.Count; i++)
+            {
+                if (i == hashBranch + 4 || i == selected + 4 || i == selected + 11) continue;
+                if ((code[i].operand is Label target && interior.Contains(target)) ||
+                    (code[i].operand is Label[] targets && Array.Exists(targets, interior.Contains)))
+                    throw new HarmonyPatchContractViolationException("Unexpected entry into Klei's fetch destination path.");
+            }
+
             for (int i = world; i <= next; i++)
                 if (code[i].blocks.Count != 0)
                     throw new HarmonyPatchContractViolationException("Klei fetch traversal crosses an exception boundary.");
