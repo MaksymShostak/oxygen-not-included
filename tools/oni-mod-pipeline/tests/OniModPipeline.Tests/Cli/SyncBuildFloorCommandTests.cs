@@ -1,4 +1,5 @@
 using System.Text.Json;
+using MaksymShostak.OniModPipeline.Catalogs;
 using MaksymShostak.OniModPipeline.Cli;
 using MaksymShostak.OniModPipeline.Processes;
 
@@ -27,7 +28,8 @@ public sealed class SyncBuildFloorCommandTests
         WriteCatalog(fixture.WorktreeRoot, 765432);
         string metadata = Path.Combine(fixture.ModRoot, "mod_info.yaml");
         string original = File.ReadAllText(metadata);
-        var command = CliApplication.CreateRootCommand(fixture.Services with { ProcessRunner = new ExternalProcessRunner() });
+        var runner = new CatalogProcessRunner(fixture.WorktreeRoot);
+        var command = CliApplication.CreateRootCommand(fixture.Services with { ProcessRunner = runner });
         string[] args = ["sync-build-floor", "--mod", Path.Combine(fixture.ModRoot, "oni-mod-pipeline.toml"), "--format", "json"];
 
         var drift = await DiagnoseCommandTests.InvokeAsync(command, args);
@@ -38,6 +40,7 @@ public sealed class SyncBuildFloorCommandTests
         await Assert.That(File.ReadAllText(metadata)).IsEqualTo(original.Replace("123456", "765432", StringComparison.Ordinal));
         var check = await DiagnoseCommandTests.InvokeAsync(command, args);
         await Assert.That(check.ExitCode).IsEqualTo(0).Because(check.StandardOutput);
+        await Assert.That(runner.InvocationCount).IsEqualTo(3);
         await Assert.That(fixture.ProcessRunner.Requests).IsEmpty();
     }
 
@@ -48,14 +51,68 @@ public sealed class SyncBuildFloorCommandTests
         Directory.CreateDirectory(Path.Combine(fixture.RootPath, ".git"));
         WriteCatalog(fixture.RootPath, 654321);
         Directory.CreateDirectory(Path.Combine(fixture.WorktreeRoot, ".git"));
-        var command = CliApplication.CreateRootCommand(fixture.Services with { ProcessRunner = new ExternalProcessRunner() });
+        var runner = new CatalogProcessRunner(fixture.WorktreeRoot);
+        var command = CliApplication.CreateRootCommand(fixture.Services with { ProcessRunner = runner });
         string metadata = Path.Combine(fixture.ModRoot, "mod_info.yaml");
         string original = File.ReadAllText(metadata);
         var result = await DiagnoseCommandTests.InvokeAsync(command, ["sync-build-floor", "--mod", fixture.ModRoot, "--write"]);
         await Assert.That(result.ExitCode).IsNotEqualTo(0);
         await Assert.That(result.StandardError).Contains("oni-references.json");
         await Assert.That(File.ReadAllText(metadata)).IsEqualTo(original);
+        await Assert.That(runner.InvocationCount).IsEqualTo(0);
         await Assert.That(fixture.ProcessRunner.Requests).IsEmpty();
+    }
+
+    [Test]
+    public async Task WriteRejectsAnIntermediateDirectoryLinkBeforeSelectingAnotherCheckoutsCatalog()
+    {
+        using var fixture = new CliCommandFixture(sourceIsDirty: false, gitIsAvailable: false);
+        Directory.CreateDirectory(Path.Combine(fixture.WorktreeRoot, ".git"));
+        var outer = Directory.CreateDirectory(Path.Combine(fixture.RootPath, "outer")).FullName;
+        Directory.CreateDirectory(Path.Combine(outer, ".git"));
+        WriteCatalog(outer, 654321);
+        string link = Path.Combine(outer, "linked-mods");
+        if (OperatingSystem.IsWindows())
+        {
+            // NTFS junctions exercise the same reparse boundary without developer-mode privileges.
+            var result = await new ExternalProcessRunner().RunAsync(new ProcessRequest(
+                Path.Combine(Environment.SystemDirectory, "cmd.exe"), ["/d", "/c", "mklink", "/j", "linked-mods", @"..\repository\mods"],
+                outer, new Dictionary<string, string>()), CancellationToken.None);
+            await Assert.That(result.ExitCode).IsEqualTo(0).Because(result.StandardError);
+        }
+        else Directory.CreateSymbolicLink(link, Path.GetDirectoryName(fixture.ModRoot)!);
+
+        try
+        {
+            var runner = new CatalogProcessRunner(outer);
+            var command = CliApplication.CreateRootCommand(fixture.Services with { ProcessRunner = runner });
+            string metadata = Path.Combine(fixture.ModRoot, "mod_info.yaml");
+            string original = File.ReadAllText(metadata);
+            var write = await DiagnoseCommandTests.InvokeAsync(command, ["sync-build-floor", "--mod", Path.Combine(link, "example"), "--write"]);
+            await Assert.That(write.ExitCode).IsNotEqualTo(0);
+            await Assert.That(File.ReadAllText(metadata)).IsEqualTo(original);
+            await Assert.That(runner.InvocationCount).IsEqualTo(0);
+        }
+        finally
+        {
+            Directory.Delete(link, recursive: false);
+        }
+    }
+
+    private sealed class CatalogProcessRunner(string root) : IExternalProcessRunner
+    {
+        internal int InvocationCount { get; private set; }
+
+        public Task<ProcessResult> RunAsync(ProcessRequest request, CancellationToken token)
+        {
+            string catalog = Path.Combine(root, "tools", "ci", "oni-references.json");
+            if (request.FileName != CatalogRunner.ResolvePython(null) || request.StandardInput is null ||
+                request.WorkingDirectory != AppContext.BaseDirectory ||
+                !request.Arguments.SequenceEqual(["-I", "-B", "-S", "-", "selected-build", "--catalog", catalog]))
+                throw new InvalidOperationException("Unexpected child process during build-floor projection.");
+            InvocationCount++;
+            return new ExternalProcessRunner().RunAsync(request, token);
+        }
     }
 
     private static void WriteCatalog(string root, int build)

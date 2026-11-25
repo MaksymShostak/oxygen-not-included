@@ -278,7 +278,9 @@ internal sealed partial class EnvironmentDiscoveryService(
             return Success(fullOverride);
         }
 
-        var artifactParent = GitWorktreeLocator.FindRoot(contextDirectory) ?? contextDirectory;
+        var checkout = GitWorktreeLocator.FindRoot(contextDirectory);
+        if (!checkout.IsSuccess) return checkout;
+        var artifactParent = checkout.Value ?? contextDirectory;
         var defaultArtifactsDirectory = Path.Combine(artifactParent, "artifacts");
         var defaultUnsafeReason = GetUnsafeArtifactsReason(
             defaultArtifactsDirectory,
