@@ -245,6 +245,7 @@ internal sealed record RelevantSourceSet(
         {
             var toolRoot = Path.Combine(WorktreeRoot, "tools", "oni-mod-pipeline");
             AddAbsolutePath(Path.Combine(WorktreeRoot, "global.json"));
+            AddAbsolutePath(Path.Combine(WorktreeRoot, "tools", "ci", "oni_references.py"));
             AddAbsolutePath(Path.Combine(toolRoot, "OniModPipeline.slnx"));
             AddAbsolutePath(Path.Combine(
                 toolRoot,

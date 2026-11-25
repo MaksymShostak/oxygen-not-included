@@ -76,7 +76,8 @@ public sealed class RelevantSourceSetTests
     public async Task Create_WhenPipelineExecutableIsInsideWorktree_IncludesToolSourcesAndLocks()
     {
         using var temporaryDirectory = new TemporaryDirectory();
-        var profile = CreateProfileFixture(temporaryDirectory);
+        // A content-only mod still relies on the in-worktree pipeline sources.
+        var profile = CreateProfileFixture(temporaryDirectory) with { Build = null, TestProjects = [] };
         var toolRoot = temporaryDirectory.GetPath("tools", "oni-mod-pipeline");
         var executablePath = Path.Combine(
             toolRoot,
@@ -105,6 +106,7 @@ public sealed class RelevantSourceSetTests
 
         await Assert.That(result.IsSuccess).IsTrue();
         await Assert.That(result.Value!.WorktreeRelativePaths.ToArray()).Contains("global.json");
+        await Assert.That(result.Value.WorktreeRelativePaths.ToArray()).Contains("tools/ci/oni_references.py");
         await Assert.That(result.Value.WorktreeRelativePaths.ToArray()).Contains("tools/oni-mod-pipeline/src/OniModPipeline/Catalogs/Python/catalogs.py");
         await Assert.That(result.Value.WorktreeRelativePaths.ToArray()).Contains("tools/oni-mod-pipeline/src/OniModPipeline/Program.cs");
         await Assert.That(result.Value.WorktreeRelativePaths.ToArray()).Contains("tools/oni-mod-pipeline/tests/OniModPipeline.Tests/SmokeTests.cs");
