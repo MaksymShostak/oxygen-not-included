@@ -384,7 +384,7 @@ internal static class FastTrackReflectionEmitFixture
             "CollectChores",
             MethodAttributes.Public,
             typeof(void),
-            new[] { choreConsumerStateType, listOfPreconditionContexts });
+            new[] { choreConsumerStateType, listOfPreconditionContexts, listOfPreconditionContexts });
         collectChoresBuilder.GetILGenerator().Emit(OpCodes.Ret);
         Type globalChoreProviderType = globalChoreProviderBuilder.CreateType()!;
 

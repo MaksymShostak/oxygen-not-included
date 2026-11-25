@@ -424,7 +424,7 @@ public sealed class DeclaredExternalModIntegrationPreparationTests
         ExternalModIntegrationOutcome outcome =
             result.ExternalModIntegrationOutcomes[0];
         await Assert.That(outcome.MatchState).IsEqualTo(DeclaredModMatchState.InspectionUnavailable);
-        await Assert.That(outcome.AssemblyIdentity).IsEqualTo("FastTrack, Version=0.18.4.0");
+        await Assert.That(outcome.AssemblyIdentity).IsEqualTo("FastTrack, Version=1.2.3.4");
         await Assert.That(outcome.Capabilities[0].AuthorityObservation).IsEqualTo(RuntimeAuthorityObservation.OwnsCompatible);
         await Assert.That(outcome.Capabilities[1].Disposition).IsEqualTo(IntegrationCapabilityDisposition.Unavailable);
         await Assert.That(outcome.Capabilities[1].DiagnosticCode).IsEqualTo("additive-integration-outcome-conflict");
@@ -631,7 +631,7 @@ public sealed class DeclaredExternalModIntegrationPreparationTests
                     IntegrationCapabilityDisposition.Ready,
                     capabilityDiagnosticCode,
                     capabilityDiagnosticMessage,
-                    assemblyIdentity: "FastTrack, Version=0.18.4.0",
+                    assemblyIdentity: "FastTrack, Version=1.2.3.4",
                     diagnostics: diagnostic == null
                         ? null
                         : new[] { diagnostic }),
@@ -810,7 +810,7 @@ public sealed class DeclaredExternalModIntegrationPreparationTests
                 IntegrationCapabilityDisposition.Ready,
                 null,
                 null,
-                assemblyIdentity: "FastTrack, Version=0.18.5.0");
+                assemblyIdentity: "FastTrack, Version=1.2.3.5");
     }
 
     private sealed class ConflictingDiagnosticAdditiveInspector :

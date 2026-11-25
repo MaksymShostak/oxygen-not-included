@@ -1,16 +1,47 @@
+using System.Collections;
 using System.Reflection;
+using DeliveryTemperatureLimit.Tests.OniModPipelineIntegration;
 
 namespace DeliveryTemperatureLimit.Tests.FastTrackCompatibility;
 public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
 {
-    private static readonly Version SupportedFileVersion =
-        new(0, 18, 4, 0);
+    private static Version SupportedFileVersion => FastTrackSupportedAssemblyBuildCatalog.SelectedBuild.FileVersion;
 
-    private const string SupportedDigest =
-        "D291C0D58379B77B4A60FB6D386B3783E4061E5C620DEF93502AE984CD657ADD";
+    private static string SupportedDigest => FastTrackSupportedAssemblyBuildCatalog.SelectedBuild.AssemblySha256;
 
     private const string UnsupportedDigest =
         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+
+    [Test]
+    public async Task InstalledCollectorRejectsAnUnknownSkippingPrefixOnDirectDelivery()
+    {
+        using var game = new InstalledModAssemblyContext();
+        Type ModType(string name) => game.Candidate.GetType("DeliveryTemperatureLimit." + name, true)!;
+        const BindingFlags hiddenStatic = BindingFlags.NonPublic | BindingFlags.Static;
+        var installer = ModType("DeliveryTemperatureRuntimePatchInstaller");
+        var requirements = installer.GetMethod("CreateKleiOriginalAuthorityRequirements", hiddenStatic)!;
+        var direct = ModType("RuntimeCapabilityId").GetField("DirectDeliveryEligibility", hiddenStatic)!.GetValue(null);
+        var bindings = Array.CreateInstance(ModType("HarmonyPatchContractBinding"), 0);
+        var requirement = ((IEnumerable)requirements.Invoke(null, [direct, bindings])!).Cast<object>().Single();
+        var target = (MethodInfo)requirement.GetType().GetProperty("TargetMethod",
+            BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(requirement)!;
+        await Assert.That(target.DeclaringType!.FullName + "." + target.Name).IsEqualTo("GlobalChoreProvider.CollectChores");
+        await Assert.That(target.GetParameters().Select(p => p.ParameterType.Name).ToArray())
+            .IsEquivalentTo(new[] { "ChoreConsumerState", "List`1", "List`1" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
+
+        var descriptor = ModType("ActiveHarmonyPrefixDescriptor");
+        var verifier = ModType("DeliveryTemperatureRuntimePatchPlan").GetMethod("VerifyKleiOriginalAuthority", hiddenStatic)!;
+        verifier.Invoke(null, ["direct delivery", requirement, Array.CreateInstance(descriptor, 0)]);
+        var prefixes = Array.CreateInstance(descriptor, 1);
+        var prefix = GetType().GetMethod(nameof(SkipCollector), hiddenStatic)!;
+        prefixes.SetValue(descriptor.GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic).Single()
+            .Invoke([target, prefix, "fixture.unknown-owner", 400]), 0);
+        var failure = await Assert.That(() => verifier.Invoke(null, ["direct delivery", requirement, prefixes]))
+            .ThrowsExactly<TargetInvocationException>();
+        await Assert.That(failure!.InnerException!.Message).Contains("fixture.unknown-owner");
+    }
+
+    private static bool SkipCollector() => false;
 
     [Test]
     public async Task DeclaredIntegrationDescriptor_UsesExactSupportedFastTrackIdentityAndCapabilities()
@@ -96,7 +127,7 @@ public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
         await Assert.That(outcome.MatchState).IsEqualTo(DeclaredModMatchState.Matched);
         await Assert.That(outcome.AssemblyIdentity).IsEqualTo(fixture.Assembly.FullName);
         await Assert.That(outcome.AssemblyVersion).IsEqualTo("0.18.0.0");
-        await Assert.That(outcome.FileVersion).IsEqualTo("0.18.4.0");
+        await Assert.That(outcome.FileVersion).IsEqualTo(SupportedFileVersion.ToString());
         await Assert.That(outcome.AssemblySha256).IsEqualTo(SupportedDigest);
         await Assert.That(result.RuntimeAuthorityContributions.Count).IsEqualTo(0);
         await Assert.That(identityReader.ReadCallCount).IsEqualTo(1);
@@ -307,7 +338,7 @@ public sealed class FastTrackRuntimeAuthorityIntegrationInspectorTests
             "fast-track-direct-delivery-build-unsupported");
         await Assert.That(outcome.Diagnostics.Count).IsEqualTo(3);
         await Assert.That(outcome.Capabilities[0].DiagnosticMessage).IsEqualTo("The active WorldInventory FastTrack replacement reports an " +
-            "unsupported assembly build. Observed file version: 0.18.4.0; " +
+            "unsupported assembly build. Observed file version: " + SupportedFileVersion + "; " +
             "observed DLL SHA-256: " + UnsupportedDigest + ". Compatibility " +
             "requires one exact admitted version-and-digest pair.");
 

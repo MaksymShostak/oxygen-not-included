@@ -506,9 +506,9 @@ public sealed class DeclaredIntegrationModelTests
             "Fast Track",
             categories,
             DeclaredModMatchState.Matched,
-            "FastTrack, Version=0.18.4.0",
-            "0.18.4.0",
-            "0.18.4.0",
+            "FastTrack, Version=1.2.3.4",
+            "1.2.3.4",
+            "1.2.3.4",
             "8EA0263FBD64F3D94C4127A03EC15A8ED88A1DA6BBDEDDA7E8EE85C9E2B3FC1D",
             capabilities,
             diagnostics);
@@ -526,7 +526,7 @@ public sealed class DeclaredIntegrationModelTests
         await Assert.That(outcome.Capabilities[0].Category).IsEqualTo(ExternalModIntegrationCategory.ExclusiveRuntimeAuthority);
         await Assert.That(outcome.Diagnostics).Count().IsEqualTo(1);
         await Assert.That(outcome.MatchState).IsEqualTo(DeclaredModMatchState.Matched);
-        await Assert.That(outcome.AssemblyVersion).IsEqualTo("0.18.4.0");
+        await Assert.That(outcome.AssemblyVersion).IsEqualTo("1.2.3.4");
 
         Type[] forbiddenRetainedTypes =
         {

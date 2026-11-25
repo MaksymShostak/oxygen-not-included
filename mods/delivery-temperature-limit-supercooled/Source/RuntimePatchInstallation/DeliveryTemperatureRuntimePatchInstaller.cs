@@ -433,13 +433,14 @@ namespace DeliveryTemperatureLimit
                 new[] { patchGroupId },
                 RuntimeAuthorityObservation.OwnsCompatible,
                 verifiedBindings,
-                CreateKleiOriginalAuthorityRequirements(verifiedBindings),
+                CreateKleiOriginalAuthorityRequirements(capabilityId, verifiedBindings),
                 diagnosticCode: null,
                 diagnosticMessage: null);
         }
 
         private static IReadOnlyList<RuntimeAuthorityRequirement>
             CreateKleiOriginalAuthorityRequirements(
+                RuntimeCapabilityId capabilityId,
                 IReadOnlyList<HarmonyPatchContractBinding> bindings)
         {
             var requirements = new List<RuntimeAuthorityRequirement>(
@@ -463,6 +464,16 @@ namespace DeliveryTemperatureLimit
                     Array.Empty<string>()));
             }
 
+            if (capabilityId.Equals(RuntimeCapabilityId.DirectDeliveryEligibility))
+            {
+                // A skipping prefix on the upstream collector can bypass all inner sweep gates.
+                var contexts = typeof(List<Chore.Precondition.Context>);
+                var collect = HarmonyPatchContractVerifier.RequireInstanceMethod(typeof(GlobalChoreProvider),
+                    "CollectChores", DeclaredMemberVisibility.Public, typeof(void),
+                    new[] { typeof(ChoreConsumerState), contexts, contexts });
+                requirements.Add(new RuntimeAuthorityRequirement(collect, RuntimeAuthorityRequirementKind.KleiOriginal,
+                    requiredHarmonyOwner: null, requiredPrefixMethod: null, Array.Empty<string>()));
+            }
             return requirements.AsReadOnly();
         }
 

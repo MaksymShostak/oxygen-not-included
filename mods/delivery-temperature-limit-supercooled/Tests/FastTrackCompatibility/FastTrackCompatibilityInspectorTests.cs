@@ -3,13 +3,23 @@ using System.Reflection;
 namespace DeliveryTemperatureLimit.Tests.FastTrackCompatibility;
 public sealed class FastTrackCompatibilityInspectorTests
 {
-    private static readonly Version SupportedFileVersion = new(0, 18, 4, 0);
-    private const string SupportedDigest =
-        "D291C0D58379B77B4A60FB6D386B3783E4061E5C620DEF93502AE984CD657ADD";
+    private static Version SupportedFileVersion => FastTrackSupportedAssemblyBuildCatalog.SelectedBuild.FileVersion;
+    private static string SupportedDigest => FastTrackSupportedAssemblyBuildCatalog.SelectedBuild.AssemblySha256;
     private const string OtherAdmittedDigest =
-        "CDF0150546952FDA3A31A612D61FBEF3808E05DB89B9B6E8CCEEA1F3C752AA3B";
+        "BCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBCBC";
     private const string UnknownDigest =
         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+
+    [Test]
+    public async Task SelectedRelease_WithoutLiveAdmission_RejectsActiveReplacementsOnly()
+    {
+        var fixture = FastTrackReflectionEmitFixture.CreateExpectedContract();
+        var report = Inspect(fixture, new RecordingAssemblyFileIdentityReader(SuccessfulFileIdentity()),
+            FastTrackSupportedAssemblyBuildCatalog.Declared, fixture.WorldInventoryReplacement, fixture.PickupGroupingReplacement);
+        await AssertFeatureState(report, FastTrackFeature.WorldInventory, FastTrackFeatureCompatibilityState.Incompatible);
+        await AssertFeatureState(report, FastTrackFeature.PickupGrouping, FastTrackFeatureCompatibilityState.Incompatible);
+        await AssertFeatureState(report, FastTrackFeature.DirectDeliveryEligibility, FastTrackFeatureCompatibilityState.ReplacementInactive);
+    }
 
     [Test]
     public async Task Inspect_WhenFastTrackModIsNotLoaded_ClassifiesEveryFeatureAsModNotLoaded()
@@ -105,14 +115,14 @@ public sealed class FastTrackCompatibilityInspectorTests
         FastTrackEmittedAssembly fixture =
             FastTrackReflectionEmitFixture.CreateExpectedContract();
         var supportedIdentity = new FastTrackAssemblyBuildIdentity(
-            new Version(0, 18, 4, 0),
+            SupportedFileVersion,
             SupportedDigest);
         var otherSupportedIdentity = new FastTrackAssemblyBuildIdentity(
-            new Version(0, 18, 5, 0),
+            new Version(8, 7, 6, 5),
             OtherAdmittedDigest);
         var identityReader = new RecordingAssemblyFileIdentityReader(
             SuccessfulFileIdentity(
-                new Version(0, 18, 4, 0),
+                SupportedFileVersion,
                 OtherAdmittedDigest));
 
         FastTrackCompatibilityReport report = Inspect(
@@ -139,7 +149,7 @@ public sealed class FastTrackCompatibilityInspectorTests
             FastTrackReflectionEmitFixture.CreateExpectedContract();
         var identityReader = new RecordingAssemblyFileIdentityReader(
             SuccessfulFileIdentity(
-                new Version(0, 18, 6, 0),
+                new Version(99, 1, 2, 3),
                 SupportedDigest));
 
         FastTrackCompatibilityReport report = Inspect(
@@ -274,7 +284,7 @@ public sealed class FastTrackCompatibilityInspectorTests
                 SupportedFileVersion,
                 SupportedDigest),
             new FastTrackAssemblyBuildIdentity(
-                new Version(0, 18, 5, 0),
+                new Version(8, 7, 6, 5),
                 OtherAdmittedDigest)
         });
 

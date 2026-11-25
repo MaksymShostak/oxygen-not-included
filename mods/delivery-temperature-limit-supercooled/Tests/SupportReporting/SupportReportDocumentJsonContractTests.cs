@@ -56,7 +56,7 @@ public sealed class SupportReportDocumentJsonContractTests
                 .Select(category => category!.GetValue<string>())
                 .ToArray()).IsEquivalentTo(new[] { "exclusive-runtime-authority" }, TUnit.Assertions.Enums.CollectionOrdering.Matching);
         await Assert.That(integration["matchState"]!.GetValue<string>()).IsEqualTo("matched");
-        await Assert.That(integration["assemblyIdentity"]!["value"]!.GetValue<string>()).IsEqualTo("FastTrack, Version=0.18.5.0");
+        await Assert.That(integration["assemblyIdentity"]!["value"]!.GetValue<string>()).IsEqualTo("FastTrack, Version=1.2.3.5");
         await Assert.That(integration["capabilities"]!.AsArray()).Count().IsEqualTo(1);
         await Assert.That(integration["diagnostics"]!.AsArray()).Count().IsEqualTo(0);
         await Assert.That(ContainsPropertyNamed(root, "fastTrack")).IsFalse();
@@ -141,9 +141,9 @@ public sealed class SupportReportDocumentJsonContractTests
             displayName,
             new[] { "exclusive-runtime-authority" },
             matchState,
-            SupportReportFact.Available("FastTrack, Version=0.18.5.0"),
-            SupportReportFact.Available("0.18.5.0"),
-            SupportReportFact.Available("0.18.5.0"),
+            SupportReportFact.Available("FastTrack, Version=1.2.3.5"),
+            SupportReportFact.Available("1.2.3.5"),
+            SupportReportFact.Available("1.2.3.5"),
             SupportReportFact.Available(
                 new string('A', 64)),
             capabilities,

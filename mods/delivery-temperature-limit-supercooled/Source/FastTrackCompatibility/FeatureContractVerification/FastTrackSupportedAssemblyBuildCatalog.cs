@@ -12,17 +12,13 @@ namespace DeliveryTemperatureLimit
     /// </summary>
     internal sealed class FastTrackSupportedAssemblyBuildCatalog
     {
-        private static readonly FastTrackSupportedAssemblyBuildCatalog
-            DeclaredCatalog = new FastTrackSupportedAssemblyBuildCatalog(
-                new[]
-                {
-                    new FastTrackAssemblyBuildIdentity(
-                        new Version(0, 18, 4, 0),
-                        "D291C0D58379B77B4A60FB6D386B3783E4061E5C620DEF93502AE984CD657ADD"),
-                    new FastTrackAssemblyBuildIdentity(
-                        new Version(0, 18, 5, 0),
-                        "CDF0150546952FDA3A31A612D61FBEF3808E05DB89B9B6E8CCEEA1F3C752AA3B")
-                });
+        // Dependency selection is independent of runtime admission. Tests measure the physical DLL.
+        internal static FastTrackAssemblyBuildIdentity SelectedBuild { get; } = new FastTrackAssemblyBuildIdentity(
+            new Version(0, 18, 6, 0), "58DBBB3E347B3E9EDBAAE7FB9BF706C6AB304CE6D9216A8BFFBC4624B4138E1A");
+
+        // The released beta has not passed paired U60 acceptance with distinguishable settings.
+        private static readonly FastTrackSupportedAssemblyBuildCatalog DeclaredCatalog =
+            new FastTrackSupportedAssemblyBuildCatalog(Array.Empty<FastTrackAssemblyBuildIdentity>());
 
         private readonly HashSet<FastTrackAssemblyBuildIdentity> buildSet;
 

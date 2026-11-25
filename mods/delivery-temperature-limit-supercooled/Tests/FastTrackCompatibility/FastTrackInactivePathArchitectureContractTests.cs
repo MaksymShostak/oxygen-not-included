@@ -6,8 +6,7 @@ using DeliveryTemperatureLimit.Tests.RuntimePatchInstallation;
 namespace DeliveryTemperatureLimit.Tests.FastTrackCompatibility;
 public sealed class FastTrackInactivePathArchitectureContractTests
 {
-    private const string SupportedDigest =
-        "D291C0D58379B77B4A60FB6D386B3783E4061E5C620DEF93502AE984CD657ADD";
+    private static string SupportedDigest => FastTrackSupportedAssemblyBuildCatalog.SelectedBuild.AssemblySha256;
     private const string UnsupportedDigest =
         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
@@ -74,7 +73,7 @@ public sealed class FastTrackInactivePathArchitectureContractTests
         var identityReader = new RecordingAssemblyIdentityReader(
             new FastTrackAssemblyFileIdentity(
                 FastTrackAssemblyFileIdentityReadState.Success,
-                new Version(0, 18, 4, 0),
+                FastTrackSupportedAssemblyBuildCatalog.SelectedBuild.FileVersion,
                 UnsupportedDigest,
                 failureMessage: null));
         var inspector = new FastTrackCompatibilityInspector(
@@ -197,7 +196,7 @@ public sealed class FastTrackInactivePathArchitectureContractTests
         new FastTrackSupportedAssemblyBuildCatalog(new[]
         {
             new FastTrackAssemblyBuildIdentity(
-                new Version(0, 18, 4, 0),
+                FastTrackSupportedAssemblyBuildCatalog.SelectedBuild.FileVersion,
                 SupportedDigest)
         });
 

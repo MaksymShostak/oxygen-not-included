@@ -321,8 +321,8 @@ namespace DeliveryTemperatureLimit
                 new[]
                 {
                     "ChoreConsumerState",
-                    "System.Collections.Generic.List`1[" +
-                    "Chore+Precondition+Context]"
+                    "System.Collections.Generic.List`1[Chore+Precondition+Context]",
+                    "System.Collections.Generic.List`1[Chore+Precondition+Context]"
                 });
 
         private static bool HasMethodContract(

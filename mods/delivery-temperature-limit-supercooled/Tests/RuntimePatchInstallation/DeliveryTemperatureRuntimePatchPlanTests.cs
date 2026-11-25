@@ -709,9 +709,9 @@ public sealed class DeliveryTemperatureRuntimePatchPlanTests
             matched
                 ? DeclaredModMatchState.Matched
                 : DeclaredModMatchState.NotMatched,
-            matched ? "FastTrack, Version=0.18.4.0" : null,
+            matched ? "FastTrack, Version=1.2.3.4" : null,
             matched ? "0.18.0.0" : null,
-            matched ? "0.18.4.0" : null,
+            matched ? "1.2.3.4" : null,
             matched ? FastTrackAssemblySha256 : null,
             capabilityOutcomes,
             diagnostics);

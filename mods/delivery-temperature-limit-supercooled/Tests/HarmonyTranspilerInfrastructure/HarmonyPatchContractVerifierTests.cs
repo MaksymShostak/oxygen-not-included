@@ -1695,18 +1695,9 @@ public sealed class HarmonyPatchContractVerifierTests
         await Assert.That(inspectorSource.Contains("FileVersionInfo", StringComparison.Ordinal)).IsFalse();
         await Assert.That(inspectorSource.Contains("SHA256", StringComparison.Ordinal)).IsFalse();
 
-        await Assert.That(inspectorSource.Contains(
-            "new Version(0, 18, 4, 0)",
-            StringComparison.Ordinal)).IsFalse();
-        await Assert.That(inspectorSource.Contains(
-            "new Version(0, 18, 5, 0)",
-            StringComparison.Ordinal)).IsFalse();
-        await Assert.That(inspectorSource.Contains(
-            "D291C0D58379B77B4A60FB6D386B3783E4061E5C620DEF93502AE984CD657ADD",
-            StringComparison.Ordinal)).IsFalse();
-        await Assert.That(inspectorSource.Contains(
-            "CDF0150546952FDA3A31A612D61FBEF3808E05DB89B9B6E8CCEEA1F3C752AA3B",
-            StringComparison.Ordinal)).IsFalse();
+        var selected = FastTrackSupportedAssemblyBuildCatalog.SelectedBuild;
+        await Assert.That(inspectorSource.Contains(selected.AssemblySha256, StringComparison.OrdinalIgnoreCase)).IsFalse();
+        await Assert.That(inspectorSource.Contains("new Version(", StringComparison.Ordinal)).IsFalse();
         await Assert.That(supportedBuildCatalogSource.Contains(
             "System.IO",
             StringComparison.Ordinal)).IsFalse();
