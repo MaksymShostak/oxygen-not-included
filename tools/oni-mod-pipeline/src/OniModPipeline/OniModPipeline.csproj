@@ -15,6 +15,7 @@
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="Catalogs/Python/catalogs.py" />
+    <EmbeddedResource Include="../../../ci/oni_references.py" LogicalName="OniModPipeline.oni_references.py" />
     <PackageReference Include="System.CommandLine" />
     <PackageReference Include="Tomlyn" />
     <PackageReference Include="YamlDotNet" />

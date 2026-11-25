@@ -40,7 +40,8 @@ There is no engine-admitted baseline, review or execution result associated with
 
 The local release is `2026.11.25` and the merged `netstandard2.1` assembly reports `2026.11.25.0`.
 Before the candidate freeze, 1,010 mod tests passed against an explicitly selected merged build, with no skips.
-After the projection review, the pipeline passed 444 tests and the private-reference suite passed 15.
+The pipeline passed 445 tests, including validation with an invalid checkout-side verifier, and the private-reference suite passed 15.
+The installed CLI reads the selected catalog as data and uses the verifier embedded in its own assembly.
 All four tracked C# projects compiled against the separately acquired reference pack and its directory was reverified after compilation.
 The development installation passed the package checksum check in an isolated ONI user-data directory.
 The Workshop listing describes the U60 target and the outstanding FastTrack limit.

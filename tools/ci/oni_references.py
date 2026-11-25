@@ -13,7 +13,8 @@ import tempfile
 import xml.etree.ElementTree as ET
 import zipfile
 
-ROOT = Path(__file__).resolve().parents[2]
+# The installed CLI streams this module from its assembly and passes the catalog path explicitly.
+ROOT = Path.cwd() if __file__ == "<stdin>" else Path(__file__).resolve().parents[2]
 CATALOG = ROOT / "tools/ci/oni-references.json"
 MANIFEST = "references.json"
 PACKAGE_ID = "MaksymShostak.ONI.GameReferences"

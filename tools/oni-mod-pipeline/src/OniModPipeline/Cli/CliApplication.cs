@@ -221,23 +221,9 @@ internal static class CliApplication
         var profile = loaded.Value!;
         var provenance = await services.GitRepositoryInspector.InspectAsync(profile.ModRoot, [profile.ManifestPath], token);
         if (!provenance.IsSuccess) return ConvertFailure<GitProvenance, OniMetadata>(provenance);
-        string root = provenance.Value!.WorktreeRoot;
-        var verifier = ContainedPathResolver.ResolveExistingFile(root, "tools/ci/oni_references.py");
-        if (!verifier.IsSuccess) return ConvertFailure<string, OniMetadata>(verifier);
-        var catalog = ContainedPathResolver.ResolveExistingFile(root, "tools/ci/oni-references.json");
-        if (!catalog.IsSuccess) return ConvertFailure<string, OniMetadata>(catalog);
-        try
-        {
-            var selected = await services.ProcessRunner.RunAsync(new ProcessRequest(CatalogRunner.ResolvePython(pythonPath),
-                ["-I", "-B", verifier.Value!, "selected-build", "--catalog", catalog.Value!], root, new Dictionary<string, string>()), token);
-            if (selected.ExitCode != 0 || !int.TryParse(selected.StandardOutput.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out int build))
-                return new(null, [DiagnosticCatalog.InvalidOniMetadata(catalog.Value!, "Reference selection failed. " + selected.StandardError)], PipelineExitCode.InvalidInput);
-            return services.MetadataReader.SynchronizeMinimumBuild(profile, build, write);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
-        {
-            return new(null, [DiagnosticCatalog.InvalidOniMetadata(catalog.Value!, ex.Message)], PipelineExitCode.EnvironmentUnavailable);
-        }
+        var selected = await GameReferenceCatalog.ReadSelectedBuildAsync(services.ProcessRunner, provenance.Value!.WorktreeRoot, pythonPath, token);
+        return selected.IsSuccess ? services.MetadataReader.SynchronizeMinimumBuild(profile, selected.Value, write)
+            : ConvertFailure<int, OniMetadata>(selected);
     }
 
     private static Command CreateSyncReadmeCommand(PipelineServices services)
